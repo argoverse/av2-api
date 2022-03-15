@@ -63,13 +63,24 @@ the open source community - please open a PR using the following [template](.git
 
 ## Citing
 
-Please use the following citation when referencing the [Argoverse 2](https://openreview.net/pdf?id=vKQGe36av4k) sensor, lidar, or motion forecasting datasets:
+Please use the following citation when referencing the [Argoverse 2](https://openreview.net/pdf?id=vKQGe36av4k) Sensor, Lidar, or Motion Forecasting Datasets:
 
 ```
-@inproceedings{wilson2021argoverse,
-  title={Argoverse 2: Next Generation Datasets for Self-Driving Perception and Forecasting},
-  author={Wilson, Benjamin and Qi, William and Agarwal, Tanmay and Lambert, John and Singh, Jagjeet and Khandelwal, Siddhesh and Pan, Bowen and Kumar, Ratnesh and Hartnett, Andrew and Pontes, Jhony Kaesemodel and Ramanan, Deva and Carr, Peter and Hays, James},
-  year={2021}
+@INPROCEEDINGS { Argoverse2,
+  author = {Benjamin Wilson and William Qi and Tanmay Agarwal and John Lambert and Jagjeet Singh and Siddhesh Khandelwal and Bowen Pan and Ratnesh Kumar and Andrew Hartnett and Jhony Kaesemodel Pontes and Deva Ramanan and Peter Carr and James Hays},
+  title = {Argoverse 2.0: Next Generation Datasets for Self-driving Perception and Forecasting},
+  booktitle = {Proceedings of the Neural Information Processing Systems Track on Datasets and Benchmarks (NeurIPS Datasets and Benchmarks 2021)},
+  year = {2021}
+}
+```
+
+Use the following citation when referencing the [Argoverse 2](https://openreview.net/pdf?id=vKQGe36av4k) Map Change Dataset:
+```
+@INPROCEEDINGS { TrustButVerify,
+  author = {John Lambert and James Hays},
+  title = {Trust, but Verify: Cross-Modality Fusion for HD Map Change Detection},
+  booktitle = {Proceedings of the Neural Information Processing Systems Track on Datasets and Benchmarks (NeurIPS Datasets and Benchmarks 2021)},
+  year = {2021}
 }
 ```
 
