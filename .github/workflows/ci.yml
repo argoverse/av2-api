@@ -1,0 +1,37 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test_and_build_wheels:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        python_version:
+          ["3.8", "3.9", "3.10"]
+
+    steps:
+      - uses: actions/checkout@v2
+      
+      - uses: actions/setup-python@v2
+        name: Install Python ${{ matrix.python_version }}
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Install dependencies.
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install nox
+        shell: bash
+
+      - name: Run nox.
+        run: |
+          python -m nox --error-on-missing-interpreters -p ${{ matrix.python_version }}
+        shell: bash
+
+      - name: Build wheels.
+        run: |
+          python -m pip wheel -w ./wheelhouse/ .
+        shell: bash

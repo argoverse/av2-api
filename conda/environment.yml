@@ -1,0 +1,19 @@
+name: av2
+channels:
+  - conda-forge
+dependencies:
+  - av
+  - click
+  - joblib
+  - matplotlib
+  - nox
+  - numba
+  - numpy>=1.21.5
+  - opencv
+  - pandas
+  - pre-commit
+  - pip
+  - pyarrow
+  - rich
+  - scipy>=1.8.0
+  - tqdm
