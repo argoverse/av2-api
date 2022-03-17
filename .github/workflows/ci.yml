@@ -36,11 +36,22 @@ jobs:
       - name: Build wheels.
         if: ${{ matrix.python_version }} == "virtualenv"
         run: |
-          python -m pip wheel --wheel-dir=/tmp/wheelhouse .
+          mamba install -y build
+          python -m build
+          
+      - name: Publish package to Test PyPI.
+        if: ${{ matrix.python_version }} == "virtualenv" && github.event_name == 'push'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+          skip_existing: true
           
       - name: Publish package to PyPI.
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+        if: ${{ matrix.python_version }} == "virtualenv" && github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
+          skip_existing: true
