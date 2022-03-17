@@ -36,12 +36,12 @@ pip install av2
 
 The _Argoverse 2_ family consists of **four** distinct datasets:
 
-| Dataset                                                                | Camera Imagery      |       Lidar      |      Maps     |
-| -----------------------------------------------------------------------| :----------------: | :----------------: | :----------------: |
-| [Sensor](src/av2/datasets/sensor/README.md)                            | :white_check_mark:  | :white_check_mark: | :white_check_mark: |
-| [Lidar](src/av2/datasets/lidar/README.md)                              |                     | :white_check_mark: | :white_check_mark: |
-| [Motion Forecasting](src/av2/datasets/motion_forecasting/README.md)    |                     |                    | :white_check_mark: |
-| [Map Change (i.e., Trust, but Verify)](src/av2/datasets/tbv/README.md) | :white_check_mark:  | :white_check_mark: | :white_check_mark: |
+| Dataset Name   | Camera Imagery      |       Lidar      |      Maps     | Additional Information|
+| -------------------------------------| :----------------: | :----------------: | :----------------: | --:|
+| Sensor                               | :white_check_mark:  | :white_check_mark: | :white_check_mark: | [SENSOR README](src/av2/datasets/sensor/README.md) |
+| Lidar                                |                     | :white_check_mark: | :white_check_mark: | [LIDAR README](src/av2/datasets/lidar/README.md) |
+| Motion Forecasting                   ||                    | :white_check_mark: | [MOTION-FORECASTING README](src/av2/datasets/motion_forecasting/README.md) |
+| Map Change (i.e., Trust, but Verify) | :white_check_mark:  | :white_check_mark: | :white_check_mark: | [MAP-CHANGE README](src/av2/datasets/tbv/README.md) |
 
 Please see [DOWNLOAD.md](DOWNLOAD.md) for detailed instructions on how to download each dataset.
 
