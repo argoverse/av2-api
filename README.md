@@ -74,11 +74,11 @@ raster maps that we employ across all AV2 datasets.
 
 ## Compatibility Matrix
 
-| `Python Version`   |     `linux`        |     `macOS`        |    `windows`       |
-| -------------      | -----------------  | ------------------ | ------------------ |
-| `3.8`              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| `3.9`              | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| `3.10`             | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| `Python Version` |       `linux`      |       `macOS`      |      `windows`     |
+| -------------    | :----------------: | :----------------: | :----------------: |
+| `3.8`            | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| `3.9`            | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| `3.10`           | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 ## Testing
 
