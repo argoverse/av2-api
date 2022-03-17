@@ -11,7 +11,7 @@ If you have any questions or run into any problems with either the data or API, 
 ## Overview
 
 - [Setup](#setup)
-- [Downloading the datasets](#downloading-the-datasets)
+- [Datasets](#datasets)
 - [Testing](#testing)
 - [Contributing](#contributing)
 - [Citing](#citing)
@@ -27,15 +27,18 @@ The easiest way to install the API is via [pip](https://pypi.org/project/av2/) b
 pip install av2
 ```
 
-### Downloading the datasets
+### Datasets
+
+The _Argoverse 2_ family consists of four distinct datasets:
+
+- [Sensor](src/av2/datasets/sensor/README.md)
+- [Lidar](src/av2/datasets/lidar/README.md)
+- [Motion Forecasting](src/av2/datasets/motion_forecasting/README.md)
+- [Map Change (i.e., Trust, but Verify)](src/av2/datasets/tbv/README.md)
 
 Please see [DOWNLOAD.md](DOWNLOAD.md) for detailed instructions on how to download each dataset.
 
-**Datasets**:
-- [Sensor](src/av2/datasets/sensor/README.md)
-- [Lidar](src/av2/datasets/lidar/README.md)
-- [Motion Forecasting](src/av2/datasets/motion-forecasting/README.md)
-- [Map Change (i.e., Trust, but Verify)](src/av2/datasets/tbv/README.md)
+---
 
 <div align="center">
   <h4> <a href="src/av2/datasets/sensor/README.md"> Sensor Dataset </a> </h4>
@@ -69,6 +72,8 @@ Please refer to the map change dataset (known as the **Trust, but Verify Dataset
 
 Please refer to the [map README](src/av2/map/README.md) for additional details about the common format for vector and
 raster maps that we employ across all AV2 datasets.
+
+---
 
 ## Compatibility Matrix
 
