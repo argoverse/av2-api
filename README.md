@@ -11,8 +11,8 @@ If you have any questions or run into any problems with either the data or API, 
 ## Overview
 
 - [Setup](#setup)
-- [Usage](#usage)
-- [Testing](#testing-automation)
+- [Downloading the datasets](#downloading-the-datasets)
+- [Testing](#testing)
 - [Contributing](#contributing)
 - [Citing](#citing)
 - [License](#license)
@@ -28,40 +28,38 @@ pip install av2
 ```
 
 ### Downloading the datasets
-Please see [the Download README](DOWNLOAD.md) for detailed instructions on how to download each dataset.
 
-### Argoverse 2 Sensor Dataset
+Please see [DOWNLOAD.md](DOWNLOAD.md) for detailed instructions on how to download each dataset.
 
-<p align="center">
+**Datasets**:
+- [Sensor](src/av2/datasets/sensor/README.md)
+- [Lidar](src/av2/datasets/lidar/README.md)
+- [Motion Forecasting](src/av2/datasets/motion-forecasting/README.md)
+- [Map Change (i.e., Trust, but Verify)](src/av2/datasets/tbv/README.md)
+
+<div align="center">
+  <h4> <a href="src/av2/datasets/sensor/README.md"> Sensor Dataset </a> </h4>
   <img src="https://user-images.githubusercontent.com/29715011/158742778-557f31a4-569d-44aa-a032-99836094dc97.gif" height="150">
   <img src="https://user-images.githubusercontent.com/29715011/158742776-069501c4-8dd4-4f9d-ac8c-f0421f855607.gif" height="150">
   <img src="https://user-images.githubusercontent.com/29715011/158739736-fe876299-23da-46ed-98ce-173f938d1702.gif" height="150">
   <img src="https://user-images.githubusercontent.com/29715011/158739767-886e1c2f-4613-495d-9204-a7b4813af16d.gif" height="150">
-</p>
+</div>
 
-Please refer to the [sensor dataset README](src/av2/datasets/sensor/README.md) for additional details.
-
-### Argoverse 2 Lidar Dataset
-
-<p align="center">
+<div align="center">
+  <h4> <a href="src/av2/datasets/lidar/README.md"> Lidar Dataset </a> </h4>
   <img src="https://user-images.githubusercontent.com/29715011/158715494-472339d1-a5d5-4d33-8fcf-3455c0d78d27.gif" height="150">
   <img src="https://user-images.githubusercontent.com/29715011/158715496-f439ccad-71af-4880-8b43-ade7b6c8f333.gif" height="150">
   <img src="https://user-images.githubusercontent.com/29715011/158715498-23d7a11f-12a1-4aeb-b9af-dbced217b340.gif" height="150">
   <img src="https://user-images.githubusercontent.com/29715011/158715497-d1603423-c32f-4cf0-ab1e-6bbc9c458535.gif" height="150">
-</p>
+</div>
 
-Please refer to the [lidar dataset README](src/av2/datasets/lidar/README.md) for additional details.
 
-### Argoverse 2 Motion Forecasting Dataset
-
-<p align="center">
+<div align="center">
+  <h4> <a href="src/av2/datasets/motion_forecasting/README.md"> Motion Forecasting Dataset </a> </h4>
   <img src="https://user-images.githubusercontent.com/29715011/158486284-1a0df794-ee0a-4ae6-a320-0dd0d1daad06.gif" height="150">
   <img src="https://user-images.githubusercontent.com/29715011/158486286-e734e654-b879-4994-a129-9957cc591af4.gif" height="150">
   <img src="https://user-images.githubusercontent.com/29715011/158486288-5e7c0971-de0c-4ff5-bea7-76f7922dd1e0.gif" height="150">
-</p>
-
-
-Please refer to the [motion forecasting dataset README](src/av2/datasets/motion_forecasting/README.md) for additional details.
+</div>
 
 ### Argoverse 2 Map Change Dataset
 
