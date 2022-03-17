@@ -67,9 +67,11 @@ Please see [DOWNLOAD.md](DOWNLOAD.md) for detailed instructions on how to downlo
   <img src="https://user-images.githubusercontent.com/29715011/158486288-5e7c0971-de0c-4ff5-bea7-76f7922dd1e0.gif" height="150">
 </div>
 
-### Argoverse 2 Map Change Dataset
-
-Please refer to the map change dataset (known as the **Trust, but Verify Dataset**) [README](src/av2/datasets/tbv/README.md) for additional details.
+<div align="center">
+  <h4> <a href="src/av2/datasets/tbv/README.md"> Map Change (Trust, but Verify) </a> </h4>
+  
+  TODO: Add visualizations.
+</div>
 
 ### Map API
 
