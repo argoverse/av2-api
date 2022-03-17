@@ -105,7 +105,7 @@ the open source community - please open a PR using the following [template](.git
 
 ## Citing
 
-Please use the following citation when referencing the [Argoverse 2](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/4734ba6f3de83d861c3176a6273cac6d-Paper-round2.pdf) Sensor, Lidar, or Motion Forecasting Datasets:
+Please use the following citation when referencing the [Argoverse 2](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/4734ba6f3de83d861c3176a6273cac6d-Paper-round2.pdf) _Sensor_, _Lidar_, or _Motion Forecasting_ Datasets:
 
 ```BibTeX
 @INPROCEEDINGS { Argoverse2,
@@ -116,7 +116,7 @@ Please use the following citation when referencing the [Argoverse 2](https://dat
 }
 ```
 
-Use the following citation when referencing the [Argoverse 2](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/6f4922f45568161a8cdf4ad2299f6d23-Paper-round2.pdf) Map Change Dataset:
+Use the following citation when referencing the [Argoverse 2](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/6f4922f45568161a8cdf4ad2299f6d23-Paper-round2.pdf) _Map Change_ Dataset:
 ```BibTeX
 @INPROCEEDINGS { TrustButVerify,
   author = {John Lambert and James Hays},
@@ -128,5 +128,5 @@ Use the following citation when referencing the [Argoverse 2](https://datasets-b
 
 ## License
 
-All code provided within this repository is released under the MIT license and bound by the Argoverse terms of use,
+All code provided within this repository is released under the **MIT license** and bound by the _Argoverse_ **terms of use**,
 please see [LICENSE](LICENSE) and [NOTICE](NOTICE) for additional details.
