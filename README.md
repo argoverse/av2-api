@@ -4,9 +4,14 @@
 
 # Argoverse 2 API
 
-Official GitHub repository for the [Argoverse 2](https://www.argoverse.org) family of datasets.
+> _Official_ GitHub repository for the [Argoverse 2](https://www.argoverse.org) family of datasets.
 
 If you have any questions or run into any problems with either the data or API, please feel free to open a [GitHub issue](https://github.com/argoai/argoverse2-api/issues)!
+
+## TL;DR
+
+- Install the API: `pip install av2`
+- Read the [instructions](DOWNLOAD.md) to download the data.
 
 ## Overview
 
@@ -37,8 +42,6 @@ The _Argoverse 2_ family consists of four distinct datasets:
 - [Map Change (i.e., Trust, but Verify)](src/av2/datasets/tbv/README.md)
 
 Please see [DOWNLOAD.md](DOWNLOAD.md) for detailed instructions on how to download each dataset.
-
----
 
 <div align="center">
   <h4> <a href="src/av2/datasets/sensor/README.md"> Sensor Dataset </a> </h4>
@@ -72,8 +75,6 @@ Please refer to the map change dataset (known as the **Trust, but Verify Dataset
 
 Please refer to the [map README](src/av2/map/README.md) for additional details about the common format for vector and
 raster maps that we employ across all AV2 datasets.
-
----
 
 ## Compatibility Matrix
 
