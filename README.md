@@ -34,12 +34,14 @@ pip install av2
 
 ### Datasets
 
-The _Argoverse 2_ family consists of four distinct datasets:
+The _Argoverse 2_ family consists of **four** distinct datasets:
 
-- [Sensor](src/av2/datasets/sensor/README.md)
-- [Lidar](src/av2/datasets/lidar/README.md)
-- [Motion Forecasting](src/av2/datasets/motion_forecasting/README.md)
-- [Map Change (i.e., Trust, but Verify)](src/av2/datasets/tbv/README.md)
+| Dataset                                                                | Camera Imagery      |       Lidar      |      Maps     |
+| -----------------------------------------------------------------------| :----------------: | :----------------: | :----------------: |
+| [Sensor](src/av2/datasets/sensor/README.md)                            | :white_check_mark:  | :white_check_mark: | :white_check_mark: |
+| [Lidar](src/av2/datasets/lidar/README.md)                              |                     | :white_check_mark: | :white_check_mark: |
+| [Motion Forecasting](src/av2/datasets/motion_forecasting/README.md)    |                     |                    | :white_check_mark: |
+| [Map Change (i.e., Trust, but Verify)](src/av2/datasets/tbv/README.md) | :white_check_mark:  | :white_check_mark: | :white_check_mark: |
 
 Please see [DOWNLOAD.md](DOWNLOAD.md) for detailed instructions on how to download each dataset.
 
