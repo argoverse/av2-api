@@ -50,7 +50,6 @@ jobs:
           .
           
       - name: Publish package to Test PyPI.
-        if: github.event_name == 'push'
         uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
