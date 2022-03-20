@@ -1,5 +1,12 @@
 # Trust, but Verify (TbV) Dataset Overview
 
+<div align="center">
+  <img src="https://user-images.githubusercontent.com/29715011/159150544-93ed1b7e-242a-416e-ac01-e1df3ff9be8b.gif" height="250">
+  <img src="https://user-images.githubusercontent.com/29715011/159150539-e5d14886-4b5c-4e10-96e1-6fdf5696d430.gif" height="250">
+  <img src="https://user-images.githubusercontent.com/29715011/159152108-3c3001fe-ec7c-48fd-8c08-4a473affb2a3.gif" height="250">
+  <img src="https://user-images.githubusercontent.com/29715011/159152102-27c04180-9ca4-4725-be81-95ee6858d367.gif" height="250">
+</div>
+
 ## Dataset Size
 
 The Trust, but Verify (TbV) Dataset consists of 1045 vehicle logs. Each vehicle log, on average, is 54 seconds in duration, including 536 LiDAR sweeps on average, and 1073 images from each of the 7 cameras (7512 images per log). Some logs are as short as 4 seconds, and other logs are up to 117 seconds in duration.
