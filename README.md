@@ -71,6 +71,8 @@ Please see [DOWNLOAD.md](DOWNLOAD.md) for detailed instructions on how to downlo
 
 <div align="center">
   <h4> <a href="src/av2/datasets/tbv/README.md"> Map Change (Trust, but Verify) </a> </h4>
+  <img src="https://user-images.githubusercontent.com/29715011/159150544-93ed1b7e-242a-416e-ac01-e1df3ff9be8b.gif" height="150">
+  <img src="https://user-images.githubusercontent.com/29715011/159150539-e5d14886-4b5c-4e10-96e1-6fdf5696d430.gif" height="150">
 </div>
 
 ### Map API
