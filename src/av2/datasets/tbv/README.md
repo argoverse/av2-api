@@ -1,8 +1,8 @@
 # Trust, but Verify (TbV) Dataset Overview
 
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/29715011/159150544-93ed1b7e-242a-416e-ac01-e1df3ff9be8b.gif" height="250">
-  <img src="https://user-images.githubusercontent.com/29715011/159150539-e5d14886-4b5c-4e10-96e1-6fdf5696d430.gif" height="250">
+  <img src="https://user-images.githubusercontent.com/29715011/159289930-a58147c3-c6ed-4b4e-a2a8-e23c23feb43e.gif" height="250">
+  <img src="https://user-images.githubusercontent.com/29715011/159289891-8aae12e7-136a-4f44-bbc1-8ef93f01e23e.gif" height="250">
   <img src="https://user-images.githubusercontent.com/29715011/159152108-3c3001fe-ec7c-48fd-8c08-4a473affb2a3.gif" height="250">
   <img src="https://user-images.githubusercontent.com/29715011/159152102-27c04180-9ca4-4725-be81-95ee6858d367.gif" height="250">
 </div>
