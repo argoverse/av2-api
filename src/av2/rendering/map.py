@@ -125,7 +125,7 @@ class EgoViewMapRenderer:
                 dash_interval_m=DASH_INTERVAL_M,
             )
 
-        elif (mark_type == LaneMarkType.SOLID_DASH_YELLOW and side == "right") or (
+        elif (mark_type in [LaneMarkType.SOLID_DASH_WHITE, LaneMarkType.SOLID_DASH_YELLOW] and side == "right") or (
             mark_type == LaneMarkType.DASH_SOLID_YELLOW and side == "left"
         ):
             self.render_polyline_egoview(left, img_bgr, bound_color, thickness_px=line_width_px)
@@ -133,7 +133,7 @@ class EgoViewMapRenderer:
                 right, img_bgr, bound_color, thickness_px=line_width_px, dash_interval_m=DASH_INTERVAL_M
             )
 
-        elif (mark_type == LaneMarkType.SOLID_DASH_YELLOW and side == "left") or (
+        elif (mark_type in [LaneMarkType.SOLID_DASH_WHITE, LaneMarkType.SOLID_DASH_YELLOW] and side == "left") or (
             mark_type == LaneMarkType.DASH_SOLID_YELLOW and side == "right"
         ):
             self.draw_dashed_polyline_egoview(
