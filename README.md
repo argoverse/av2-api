@@ -1,12 +1,12 @@
 [![PyPI Versions](https://img.shields.io/pypi/pyversions/av2)](https://pypi.org/project/av2/)
-![CI Status](https://github.com/argoai/argoverse2-api/actions/workflows/ci.yml/badge.svg)
+![CI Status](https://github.com/argoai/av2-api/actions/workflows/ci.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 # Argoverse 2 API
 
 > _Official_ GitHub repository for the [Argoverse 2](https://www.argoverse.org) family of datasets.
 
-If you have any questions or run into any problems with either the data or API, please feel free to open a [GitHub issue](https://github.com/argoai/argoverse2-api/issues)!
+If you have any questions or run into any problems with either the data or API, please feel free to open a [GitHub issue](https://github.com/argoai/av2-api/issues)!
 
 ## TL;DR
 
