@@ -12,7 +12,7 @@ Each scenario is specifically designed to maximize interactions relevant to the 
 
 ## Download
 
-The latest version of the AV2 motion forecasting dataset can be downloaded from the Argoverse [website](https://www.argoverse.org/data.html).
+The latest version of the AV2 motion forecasting dataset can be downloaded from the Argoverse [website](https://www.argoverse.org/av2.html).
 
 ## Scenarios and Tracks
 
