@@ -15,12 +15,29 @@ The total dataset amounts to 15.57 hours of driving data, amounting to 922 GB of
 
 ## Downloading TbV
 
-Install `s5cmd` using [the installation instructions here](../../../../../DOWNLOAD.md), and then run download 21 tar.gz archives from Amazon S3 as follows:
+TbV is available for download in two forms -- either zipped up as 21 tar.gz files -- or in extracted, unzipped form (without tar archives). Downloading either will produce the same result (the underlying log data is identical).
+
+Using the `tar.gz` files is recommended (depending upon your connection, this is likely faster, as there are almost 8 million images files in the extracted format). We recommend using `s5cmd` to pull down all 21 `.tar.gz` files with a single command. You can see the links to the `tar.gz` files on [the Argoverse 2 downloads page](https://www.argoverse.org/av2.html#download-link).
+
+First, install `s5cmd` using [the installation instructions here](https://github.com/argoai/argoverse2-api/blob/main/DOWNLOAD.md), and then download the 21 tar.gz archives from Amazon S3 as follows:
 
 ```bash
 SHARD_DIR={DESIRED PATH FOR TAR.GZ files}
-s5cmd cp s3://argoai-argoverse/av2/tars/tbv/*.tar.gz ${SHARD_DIR}
+s5cmd --no-sign-request cp s3://argoai-argoverse/av2/tars/tbv/*.tar.gz ${SHARD_DIR}
 ```
+
+If you would prefer to not install a 3rd party download tool (`s5cmd`), you can use `wget` to download the `tar.gz` files:
+```bash
+wget https://s3.amazonaws.com/argoai-argoverse/av2/tars/tbv/TbV_v1.0_shard0.tar.gz
+wget https://s3.amazonaws.com/argoai-argoverse/av2/tars/tbv/TbV_v1.0_shard1.tar.gz
+...
+wget https://s3.amazonaws.com/argoai-argoverse/av2/tars/tbv/TbV_v1.0_shard20.tar.gz
+```
+**Not Recommended**: If you want to directly transfer the extracted files, you may use:
+```bash
+s5cmd --no-sign-request cp s3://argoai-argoverse/av2/tbv/* target-directory
+```
+
 Next, extract TbV tar.gz files that were just downloaded to a local disk:
 ```bash
 python tutorial/untar_tbv.py
