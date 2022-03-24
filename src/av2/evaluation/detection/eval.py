@@ -111,11 +111,13 @@ def evaluate(
     gts_processed: pd.DataFrame = pd.concat(gts_list).reset_index()
 
     # Compute summary metrics.
-    summary_metrics = summarize_metrics(dts_processed, gts_processed, cfg).round(NUM_DECIMALS)
-    summary_metrics.loc["AVERAGE_METRICS"] = summary_metrics.mean().round(NUM_DECIMALS)
+    metrics = summarize_metrics(dts_processed, gts_processed, cfg)
+    metrics.loc[:, "AOE"] = np.rad2deg(metrics["AOE"])
+    metrics.loc["AVERAGE_METRICS"] = metrics.mean()
+    metrics = metrics.round(NUM_DECIMALS)
 
     # Return results.
-    return dts, gts, summary_metrics
+    return dts, gts, metrics
 
 
 def summarize_metrics(
