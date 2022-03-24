@@ -1,0 +1,409 @@
+# <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
+
+"""Detection utilities for the Argoverse detection leaderboard.
+
+Accepts detections (in Argoverse ground truth format) and ground truth labels
+for computing evaluation metrics for 3d object detection. We have five different,
+metrics: mAP, ATE, ASE, AOE, and DCS. A true positive for mAP is defined as the
+highest confidence prediction within a specified Euclidean distance threshold
+from a bird's-eye view. We prefer these metrics instead of IoU due to the
+increased interpretability of the error modes in a set of detections.
+"""
+
+import logging
+from dataclasses import dataclass
+from typing import Optional, Tuple
+
+import numpy as np
+import pandas as pd
+from scipy.spatial.distance import cdist
+from scipy.spatial.transform import Rotation
+
+from av2.evaluation.detection.constants import (
+    MAX_NORMALIZED_ASE,
+    MAX_SCALE_ERROR,
+    MAX_YAW_ERROR,
+    MIN_AP,
+    MIN_CDS,
+    AffinityType,
+    CompetitionCategories,
+    DistanceType,
+    EvaluationColumns,
+    FilterMetricType,
+    InterpType,
+    TruePositiveErrorNames,
+)
+from av2.geometry.geometry import quat_to_mat, wrap_angles
+from av2.geometry.iou import iou_3d_axis_aligned
+from av2.geometry.se3 import SE3
+from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
+from av2.structures.cuboid import CuboidList
+from av2.utils.constants import EPS, NAN
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class DetectionCfg:
+    """Instantiates a DetectionCfg object for configuring a evaluation.
+
+    Args:
+        affinity_thresholds_m: Affinity thresholds for determining a true positive (in meters).
+        affinity_type: Type of affinity function to be used for calculating average precision.
+        num_recall_samples: Number of recall points to sample uniformly in [0, 1].
+        tp_threshold_m: Center distance threshold for the true positive metrics (in meters).
+        categories: Detection classes for evaluation.
+        filter_metric: Detection metric to use for filtering of both detections and ground truth annotations.
+        max_range_m: Max distance (under a specific metric in meters) for a detection or ground truth cuboid to be
+            considered for evaluation.
+        tp_normalization_terms: Normalization constants for ATE, ASE, and AOE.
+        metrics_defaults: Evaluation summary default values.
+        eval_only_roi_instances: Only use dets and ground truth that lie within region of interest during eval.
+        splits: Tuple of split names to evaluate.
+    """
+
+    affinity_thresholds_m: Tuple[float, ...] = (0.5, 1.0, 2.0, 4.0)  # Meters
+    affinity_type: AffinityType = AffinityType.CENTER
+    num_recall_samples: int = 101
+    tp_threshold_m: float = 2.0  # Meters
+    categories: Tuple[str, ...] = tuple(x.value for x in CompetitionCategories)
+    filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN
+    max_range_m: float = 200.0  # Meters
+    tp_normalization_terms: Tuple[float, ...] = (
+        tp_threshold_m,
+        MAX_SCALE_ERROR,
+        MAX_YAW_ERROR,
+    )
+    metrics_defaults: Tuple[float, ...] = (
+        MIN_AP,
+        tp_threshold_m,
+        MAX_NORMALIZED_ASE,
+        MAX_YAW_ERROR,
+        MIN_CDS,
+    )
+    eval_only_roi_instances: bool = True
+    splits: Tuple[str, ...] = ("val",)
+
+
+def accumulate(
+    dts: pd.DataFrame,
+    gts: pd.DataFrame,
+    cfg: DetectionCfg,
+    poses: Optional[pd.DataFrame] = None,
+    avm: Optional[ArgoverseStaticMap] = None,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Accumulate the true / false positives (boolean flags) and true positive errors for each class.
+
+    Args:
+        dts: (N,len(EvaluationColumns)) Detections of shape. Must contain all of the columns in EvaluationColumns.
+        gts: (M,len(EvaluationColumns) + 1) Ground truth labels. Must contain all of the columns in EvaluationColumns
+            and the `num_interior_points` column.
+        cfg: Detection configuration.
+        poses: (N,) Detections city egopose.
+        avm: Argoverse map object.
+
+    Returns:
+        The detection and ground truth cuboids augmented with assigment and evaluation fields.
+
+    Raises:
+        ValueError: If all of the evaluation columns are not present in the detections or the
+            ground truth labels.
+    """
+    required_dts_cols = set(x.value for x in EvaluationColumns)
+    required_gts_cols = set(tuple(x.value for x in EvaluationColumns) + ("num_interior_points",))
+
+    missing_dts_cols = required_dts_cols - set(dts.columns)
+    missing_gts_cols = required_gts_cols - set(gts.columns)
+
+    # if len(missing_dts_cols) > 0:
+    #     raise ValueError(f"Missing the following columns in your detections: {missing_dts_cols}!")
+    # if len(missing_gts_cols) > 0:
+    #     raise ValueError(f"Missing the following columns in your ground truth labels: {missing_gts_cols}!")
+
+    dts.sort_values("score", ascending=False, inplace=True)
+    dts.reset_index(drop=True, inplace=True)
+
+    # Filter detections and ground truth annotations.
+    dts.loc[:, "is_evaluated"] = compute_evaluated_cuboids_mask(dts, cfg)
+    gts.loc[:, "is_evaluated"] = compute_evaluated_cuboids_mask(gts, cfg)
+
+    if cfg.eval_only_roi_instances and avm is not None and poses is not None:
+        dts.loc[:, "is_evaluated"] &= compute_objects_in_roi_mask(dts, poses, avm)
+
+    # Initialize corresponding assignments + errors.
+    dts.loc[:, cfg.affinity_thresholds_m] = False
+    dts.loc[:, tuple(x.value for x in TruePositiveErrorNames)] = cfg.metrics_defaults[1:4]
+    for category in cfg.categories:
+        is_eval_dts = np.logical_and(dts["category"] == category, dts["is_evaluated"])
+        is_eval_gts = np.logical_and(gts["category"] == category, gts["is_evaluated"])
+
+        category_dts = dts.loc[is_eval_dts].reset_index(drop=True)
+        category_gts = gts.loc[is_eval_gts].reset_index(drop=True)
+
+        # Skip if there are no detections for the current category left.
+        if len(category_dts) == 0:
+            continue
+
+        assignments = assign(category_dts, category_gts, cfg)
+        dts.loc[is_eval_dts, assignments.columns] = assign(category_dts, category_gts, cfg).to_numpy()
+    return dts, gts
+
+
+def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFrame:
+    """Attempt assignment of each detection to a ground truth label.
+
+    Args:
+        dts: (N,23) Detections of shape. Must contain all columns in EvaluationColumns and the
+            additional columns: (is_evaluated, *cfg.affinity_thresholds_m, *TruePositiveErrorNames).
+        gts: (M,23) Ground truth labels. Must contain all columns in EvaluationColumns and the
+            additional columns: (is_evaluated, *cfg.affinity_thresholds_m, *TruePositiveErrorNames).
+        cfg: Detection configuration.
+
+    Returns:
+        The (N,K+S) confusion table containing the true and false positives augmented with the true positive errors where
+        K is the number of thresholds and S is the number of true positive error names.
+    """
+    # Construct all columns.
+    cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames)
+
+    M = len(cols)  # Number of columns.
+    N = len(dts)  # Number of detections.
+    K = len(cfg.affinity_thresholds_m)  # Number of thresholds.
+
+    # Construct metrics table.
+    #        0.5    1.0    2.0    4.0  ATE  ASE  AOE (default columns)
+    #   0  False  False  False  False  0.0  0.0  0.0
+    #   1  False  False  False  False  0.0  0.0  0.0
+    #                                            ...
+    #   N  False  False  False  False  0.0  0.0  0.0
+    metrics_table = pd.DataFrame({c: np.zeros(N) for c in cols})
+    metrics_table = metrics_table.astype({tx_m: bool for tx_m in cfg.affinity_thresholds_m})
+    metrics_table.iloc[:, K : K + M] = cfg.metrics_defaults[1:4]
+    metrics_table.loc[:, "score"] = dts["score"]
+
+    if len(gts) == 0:
+        return metrics_table
+
+    affinity_matrix = compute_affinity_matrix(dts, gts, cfg.affinity_type)
+
+    # Get the GT label for each max-affinity GT label, detection pair.
+    idx_gts = affinity_matrix.argmax(axis=1)[None]
+
+    # The affinity matrix is an N by M matrix of the detections and ground truth labels respectively.
+    # We want to take the corresponding affinity for each of the initial assignments using `gt_matches`.
+    # The following line grabs the max affinity for each detection to a ground truth label.
+    affinities: NDArrayFloat = np.take_along_axis(affinity_matrix.transpose(), idx_gts, axis=0)[0]
+
+    # Find the indices of the _first_ detection assigned to each GT.
+    assignments: Tuple[NDArrayInt, NDArrayInt] = np.unique(idx_gts, return_index=True)
+
+    idx_gts, idx_dts = assignments
+    for i, threshold_m in enumerate(cfg.affinity_thresholds_m):
+        # `is_tp` may need to be defined differently with other affinities.
+        is_tp = affinities[idx_dts] > -threshold_m
+
+        # Record true positives.
+        metrics_table.iloc[idx_dts, i] = is_tp
+        if threshold_m != cfg.tp_threshold_m:
+            continue  # Skip if threshold isn't the true positive threshold.
+        if not np.any(is_tp):
+            continue  # Skip if no true positives exist.
+
+        idx_tps_dts = idx_dts[is_tp]
+        idx_tps_gts = idx_gts[is_tp]
+
+        tps_dts = dts.iloc[idx_tps_dts]
+        tps_gts = gts.iloc[idx_tps_gts]
+
+        translation_errors = distance(tps_dts, tps_gts, DistanceType.TRANSLATION)
+        scale_errors = distance(tps_dts, tps_gts, DistanceType.SCALE)
+        orientation_errors = distance(tps_dts, tps_gts, DistanceType.ORIENTATION)
+
+        # Assign errors.
+        metrics_table.loc[idx_tps_dts, tuple(x.value for x in TruePositiveErrorNames)] = np.vstack(
+            [translation_errors, scale_errors, orientation_errors]
+        ).transpose()
+    return metrics_table
+
+
+def interpolate_precision(precision: NDArrayFloat, interpolation_method: InterpType = InterpType.ALL) -> NDArrayFloat:
+    r"""Interpolate the precision at each sampled recall.
+
+    This function smooths the precision-recall curve according to the method introduced in Pascal
+    VOC:
+
+    Mathematically written as:
+        $$p_{\text{interp}}(r) = \max_{\tilde{r}: \tilde{r} \geq r} p(\tilde{r})$$
+
+    See equation 2 in http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.167.6629&rep=rep1&type=pdf
+        for more information.
+
+    Args:
+        precision: Precision at all recall levels (N,).
+        interpolation_method: Accumulation method.
+
+    Returns:
+        (N,) The interpolated precision at all sampled recall levels.
+
+    Raises:
+        NotImplementedError: If the interpolation method is not implemented.
+    """
+    if interpolation_method == InterpType.ALL:
+        precision_interpolated: NDArrayFloat = np.maximum.accumulate(precision[::-1])[::-1]
+    else:
+        raise NotImplementedError("This interpolation method is not implemented!")
+    return precision_interpolated
+
+
+def compute_affinity_matrix(dts: pd.DataFrame, gts: pd.DataFrame, metric: AffinityType) -> NDArrayFloat:
+    """Calculate the affinity matrix between detections and ground truth annotations.
+
+    Args:
+        dts: (N,) Detections.
+        gts: (M,) Ground truth annotations.
+        metric: Affinity metric type.
+
+    Returns:
+        The affinity scores between detections and ground truth annotations (N,M).
+
+    Raises:
+        NotImplementedError: If the affinity metric is not implemented.
+    """
+    if metric == AffinityType.CENTER:
+        dts_xy_m = dts.loc[:, EvaluationColumns.TRANSLATION_NAMES[:2]]
+        gts_xy_m = gts.loc[:, EvaluationColumns.TRANSLATION_NAMES[:2]]
+        affinities: NDArrayFloat = -cdist(dts_xy_m, gts_xy_m)
+    else:
+        raise NotImplementedError("This affinity metric is not implemented!")
+    return affinities
+
+
+def compute_average_precision(
+    tps: NDArrayBool, recall_interpolated: NDArrayFloat, num_gts: int
+) -> Tuple[float, NDArrayFloat]:
+    """Compute precision and recall, interpolated over N fixed recall points.
+
+    Args:
+        tps: True positive detections (ranked by confidence).
+        recall_interpolated: Interpolated recall values.
+        num_gts: Number of annotations of this class.
+
+    Returns:
+        The average precision and interpolated precision values.
+    """
+    cum_tps: NDArrayInt = np.cumsum(tps)
+    cum_fps: NDArrayInt = np.cumsum(~tps)
+    cum_fns: NDArrayInt = num_gts - cum_tps
+
+    # Compute precision.
+    precision = cum_tps / (cum_tps + cum_fps + EPS)
+
+    # Compute recall.
+    recall = cum_tps / (cum_tps + cum_fns)
+
+    # Interpolate precision -- VOC-style.
+    precision = interpolate_precision(precision)
+
+    # Evaluate precision at different recalls.
+    precision_interpolated: NDArrayFloat = np.interp(recall_interpolated, recall, precision, right=0)
+
+    average_precision: float = np.mean(precision_interpolated)
+    return average_precision, precision_interpolated
+
+
+def distance(dts: pd.DataFrame, gts: pd.DataFrame, metric: DistanceType) -> NDArrayFloat:
+    """Distance functions between detections and ground truth.
+
+    Args:
+        dts: (N,D) Detections where D is the number of attributes.
+        gts: (N,D) Ground truth labels where D is the number of attributes.
+        metric: Distance function type.
+
+    Returns:
+        (N,) Distance between the detections and ground truth under the specified metric.
+
+    Raises:
+        NotImplementedError: If the distance type is not supported.
+    """
+    if metric == DistanceType.TRANSLATION:
+        dts_xyz_m: NDArrayFloat = dts.loc[:, EvaluationColumns.TRANSLATION_NAMES].to_numpy()
+        gts_xyz_m: NDArrayFloat = gts.loc[:, EvaluationColumns.TRANSLATION_NAMES].to_numpy()
+        translation_errors: NDArrayFloat = np.linalg.norm(dts_xyz_m - gts_xyz_m, axis=1)
+        return translation_errors
+    elif metric == DistanceType.SCALE:
+        dts_lwh_m: NDArrayFloat = dts.loc[:, EvaluationColumns.DIMENSION_NAMES].reset_index(drop=True).to_numpy()
+        gts_lwh_m: NDArrayFloat = gts.loc[:, EvaluationColumns.DIMENSION_NAMES].reset_index(drop=True).to_numpy()
+        scale_errors: NDArrayFloat = 1 - iou_3d_axis_aligned(dts_lwh_m, gts_lwh_m)
+        return scale_errors
+    elif metric == DistanceType.ORIENTATION:
+        dts_quats_xyzw = dts.loc[:, EvaluationColumns.QUAT_COEFFICIENTS_XYZW]
+        gts_quats_xyzw = gts.loc[:, EvaluationColumns.QUAT_COEFFICIENTS_XYZW]
+        yaws_dts: NDArrayFloat = Rotation.from_quat(dts_quats_xyzw).as_euler("zyx")[:, 0]
+        yaws_gts: NDArrayFloat = Rotation.from_quat(gts_quats_xyzw).as_euler("zyx")[:, 0]
+        orientation_errors = wrap_angles(yaws_dts - yaws_gts)
+        return orientation_errors
+    else:
+        raise NotImplementedError("This distance metric is not implemented!")
+
+
+def compute_objects_in_roi_mask(
+    cuboids_dataframe: pd.DataFrame, poses: pd.DataFrame, avm: ArgoverseStaticMap
+) -> NDArrayBool:
+    """Compute the evaluated cuboids mask based off whether _any_ of their vertices fall into the ROI.
+
+    Args:
+        cuboids_dataframe: Dataframes containing cuboids.
+        poses: Poses of the cuboids in the city frame.
+        avm: Argoverse map object.
+
+    Returns:
+        The boolean mask indicating which cuboids will be evaluated.
+    """
+    cuboids_dataframe = cuboids_dataframe.sort_values("timestamp_ns").reset_index(drop=True)
+    poses = poses.sort_values("timestamp_ns").reset_index(drop=True)
+
+    cuboid_list_ego = CuboidList.from_dataframe(cuboids_dataframe)
+    timestamp_ns = poses.loc[:, "timestamp_ns"].unique()
+    quat_wxyz = poses.loc[timestamp_ns, EvaluationColumns.QUAT_COEFFICIENTS_WXYZ]
+    translation = poses.loc[timestamp_ns, EvaluationColumns.TRANSLATION_NAMES[:2]]
+    rotation = quat_to_mat(quat_wxyz)
+
+    city_SE3_ego = SE3(rotation=rotation, translation=translation)
+    cuboid_list_city = cuboid_list_ego.transform(city_SE3_ego)
+    cuboid_list_vertices_m = cuboid_list_city.vertices_m
+
+    vertices_within_roi = avm.get_raster_layer_points_boolean(cuboid_list_vertices_m[..., :2], RasterLayerType.ROI)
+    vertices_within_roi = vertices_within_roi.reshape(-1, 4)
+    is_within_roi: NDArrayBool = vertices_within_roi.any(axis=1)
+    return is_within_roi
+
+
+def compute_evaluated_cuboids_mask(
+    cuboids: pd.DataFrame,
+    cfg: DetectionCfg,
+) -> NDArrayBool:
+    """Compute the evaluated cuboids mask.
+
+    Valid cuboids meet _two_ conditions:
+        1. The cuboid's centroid (x,y,z) must lie within the maximum range in the detection configuration.
+        2. The cuboid must have at _least_ one point in its interior.
+
+    Args:
+        cuboids: Dataframes containing cuboids.
+        cfg: Detection configuration object.
+
+    Returns:
+        The boolean mask indicating which cuboids will be evaluated.
+
+    Raises:
+        ValueError: If all of the columns aren't in the cuboids table.
+    """
+    # if not set(translation_names + ("num_interior_points",)).issubset(cuboids.columns):
+    #     raise ValueError("All of the columns must be present in `cuboids`!")
+    # is_not_empty: NDArrayBool = cuboids.loc[:, "num_interior_points"] > 0
+
+    norm: NDArrayFloat = np.linalg.norm(cuboids.loc[:, EvaluationColumns.TRANSLATION_NAMES[:2]], axis=1)
+    is_within_radius: NDArrayBool = norm < cfg.max_range_m
+    is_evaluated: NDArrayBool = is_within_radius
+    return is_evaluated
