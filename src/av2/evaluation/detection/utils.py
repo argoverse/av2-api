@@ -33,7 +33,7 @@ from av2.evaluation.detection.constants import (
     InterpType,
     TruePositiveErrorNames,
 )
-from av2.geometry.geometry import quat_to_mat, wrap_angles
+from av2.geometry.geometry import mat_to_xyz, quat_to_mat, wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
 from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
@@ -99,7 +99,7 @@ def accumulate(
     Args:
         dts: (N,len(EvaluationColumns)) Detections of shape. Must contain all of the columns in EvaluationColumns.
         gts: (M,len(EvaluationColumns) + 1) Ground truth labels. Must contain all of the columns in EvaluationColumns
-            and the `num_interior_points` column.
+            and the `num_interior_pts` column.
         cfg: Detection configuration.
         poses: (N,) Detections city egopose.
         avm: Argoverse map object.
@@ -107,12 +107,14 @@ def accumulate(
     Returns:
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
     """
+    # avm = ArgoverseStaticMap.from_json()
+
     dts.sort_values("score", ascending=False, inplace=True)
     dts.reset_index(drop=True, inplace=True)
 
     # Filter detections and ground truth annotations.
-    dts.loc[:, "is_evaluated"] = compute_evaluated_cuboids_mask(dts, cfg)
-    gts.loc[:, "is_evaluated"] = compute_evaluated_cuboids_mask(gts, cfg)
+    dts.loc[:, "is_evaluated"] = compute_evaluated_dts_mask(dts, cfg)
+    gts.loc[:, "is_evaluated"] = compute_evaluated_gts_mask(gts, cfg)
 
     if cfg.eval_only_roi_instances and avm is not None and poses is not None:
         dts.loc[:, "is_evaluated"] &= compute_objects_in_roi_mask(dts, poses, avm)
@@ -323,10 +325,10 @@ def distance(dts: pd.DataFrame, gts: pd.DataFrame, metric: DistanceType) -> NDAr
         scale_errors: NDArrayFloat = 1 - iou_3d_axis_aligned(dts_lwh_m, gts_lwh_m)
         return scale_errors
     elif metric == DistanceType.ORIENTATION:
-        dts_quats_xyzw = dts.loc[:, EvaluationColumns.QUAT_COEFFICIENTS_XYZW]
-        gts_quats_xyzw = gts.loc[:, EvaluationColumns.QUAT_COEFFICIENTS_XYZW]
-        yaws_dts: NDArrayFloat = Rotation.from_quat(dts_quats_xyzw).as_euler("zyx")[:, 0]
-        yaws_gts: NDArrayFloat = Rotation.from_quat(gts_quats_xyzw).as_euler("zyx")[:, 0]
+        dts_quats_xyzw = dts.loc[:, EvaluationColumns.QUAT_COEFFICIENTS_WXYZ].to_numpy()
+        gts_quats_xyzw = gts.loc[:, EvaluationColumns.QUAT_COEFFICIENTS_WXYZ].to_numpy()
+        yaws_dts: NDArrayFloat = mat_to_xyz(quat_to_mat(dts_quats_xyzw))[..., 2]
+        yaws_gts: NDArrayFloat = mat_to_xyz(quat_to_mat(gts_quats_xyzw))[..., 2]
         orientation_errors = wrap_angles(yaws_dts - yaws_gts)
         return orientation_errors
     else:
@@ -365,8 +367,8 @@ def compute_objects_in_roi_mask(
     return is_within_roi
 
 
-def compute_evaluated_cuboids_mask(
-    cuboids: pd.DataFrame,
+def compute_evaluated_dts_mask(
+    dts: pd.DataFrame,
     cfg: DetectionCfg,
 ) -> NDArrayBool:
     """Compute the evaluated cuboids mask.
@@ -376,7 +378,7 @@ def compute_evaluated_cuboids_mask(
         2. The cuboid must have at _least_ one point in its interior.
 
     Args:
-        cuboids: Dataframes containing cuboids.
+        dts: Dataframes containing cuboids.
         cfg: Detection configuration object.
 
     Returns:
@@ -385,10 +387,36 @@ def compute_evaluated_cuboids_mask(
     Raises:
         ValueError: If all of the columns aren't in the cuboids table.
     """
-    is_not_empty: NDArrayBool = cuboids.loc[:, "num_interior_points"] > 0
-
-    norm: NDArrayFloat = np.linalg.norm(cuboids.loc[:, EvaluationColumns.TRANSLATION_NAMES[:2]], axis=1)
+    norm: NDArrayFloat = np.linalg.norm(dts.loc[:, EvaluationColumns.TRANSLATION_NAMES[:2]], axis=1)
     is_within_radius: NDArrayBool = norm < cfg.max_range_m
-    is_evaluated: NDArrayBool = is_within_radius & is_not_empty
-    is_evaluated[:, cfg.max_num_dts_per_category :] = False  # Limit the number of detections.
+    is_evaluated: NDArrayBool = is_within_radius
+    is_evaluated[cfg.max_num_dts_per_category :] = False  # Limit the number of detections.
+    return is_evaluated
+
+
+def compute_evaluated_gts_mask(
+    gts: pd.DataFrame,
+    cfg: DetectionCfg,
+) -> NDArrayBool:
+    """Compute the evaluated cuboids mask.
+
+    Valid cuboids meet _two_ conditions:
+        1. The cuboid's centroid (x,y,z) must lie within the maximum range in the detection configuration.
+        2. The cuboid must have at _least_ one point in its interior.
+
+    Args:
+        gts: Dataframes containing ground truth cuboids.
+        cfg: Detection configuration object.
+
+    Returns:
+        The boolean mask indicating which cuboids will be evaluated.
+
+    Raises:
+        ValueError: If all of the columns aren't in the cuboids table.
+    """
+    norm: NDArrayFloat = np.linalg.norm(gts.loc[:, EvaluationColumns.TRANSLATION_NAMES[:2]], axis=1)
+    is_valid_radius: NDArrayBool = norm < cfg.max_range_m
+    is_valid_num_points: NDArrayBool = gts.loc[:, "num_interior_pts"] > 0
+
+    is_evaluated: NDArrayBool = is_valid_radius
     return is_evaluated

@@ -56,11 +56,11 @@ from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from joblib import Parallel, delayed
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import DetectionCfg, accumulate, compute_average_precision
 from av2.utils.typing import NDArrayBool, NDArrayFloat
-from joblib import delayed, Parallel
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +113,6 @@ def evaluate(
 
     # Compute summary metrics.
     metrics = summarize_metrics(dts_processed, gts_processed, cfg)
-    metrics.loc[:, "AOE"] = np.rad2deg(metrics["AOE"])  # Report orientation error in degrees.
     metrics.loc["AVERAGE_METRICS"] = metrics.mean()
     metrics = metrics.round(NUM_DECIMALS)
 

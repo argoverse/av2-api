@@ -41,7 +41,9 @@ def _get_summary_identity() -> pd.DataFrame:
     """Define an evaluator that compares a set of results to itself."""
     detection_cfg = DetectionCfg(categories=("REGULAR_VEHICLE",), eval_only_roi_instances=False)
     dts: pd.DataFrame = pd.read_feather(TEST_DATA_DIR / "detections_identity.feather")
-    _, _, summary = evaluate(dts, dts, detection_cfg)
+    gts: pd.DataFrame = dts.copy()
+    gts.loc[:, "num_interior_pts"] = [1, 1, 1, 1, 1, 1]
+    _, _, summary = evaluate(dts, gts, detection_cfg)
     return summary
 
 
@@ -213,7 +215,7 @@ def test_assign() -> None:
 
     assert math.isclose(metrics.iloc[0, ATE_COL_IDX], expected_result)  # instance 0
     assert math.isclose(metrics.iloc[1, ATE_COL_IDX], expected_result)  # instance 1
-    assert math.isnan(metrics.iloc[2, ATE_COL_IDX])  # instance 32
+    assert math.isclose(metrics.iloc[2, ATE_COL_IDX], 2.0)  # instance 32
 
 
 def test_interp() -> None:
