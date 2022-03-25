@@ -33,14 +33,15 @@ wget https://s3.amazonaws.com/argoai-argoverse/av2/tars/tbv/TbV_v1.0_shard1.tar.
 ...
 wget https://s3.amazonaws.com/argoai-argoverse/av2/tars/tbv/TbV_v1.0_shard20.tar.gz
 ```
+
+Next, extract TbV tar.gz files that were just downloaded to a local disk using [`untar_tbv.py`](https://github.com/argoai/av2-api/blob/main/tutorials/untar_tbv.py):
+```bash
+python tutorials/untar_tbv.py
+```
 **Not Recommended**: If you want to directly transfer the extracted files, you may use:
 ```bash
-s5cmd --no-sign-request cp s3://argoai-argoverse/av2/tbv/* target-directory
-```
-
-Next, extract TbV tar.gz files that were just downloaded to a local disk:
-```bash
-python tutorial/untar_tbv.py
+DESIRED_TBV_DATAROOT={DESIRED LOCAL DIRECTORY PATH FOR TBV VEHICLE LOGS}
+s5cmd --no-sign-request cp s3://argoai-argoverse/av2/tbv/* ${DESIRED_TBV_DATAROOT}
 ```
 
 ## Baselines
