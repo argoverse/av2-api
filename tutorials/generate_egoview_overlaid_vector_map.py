@@ -9,7 +9,6 @@ import logging
 import os
 import sys
 import time
-from enum import Enum
 from pathlib import Path
 from typing import Final, List, Tuple
 

@@ -4,7 +4,7 @@
 
 Accepts detections (in Argoverse ground truth format) and ground truth labels
 for computing evaluation metrics for 3d object detection. We have five different,
-metrics: mAP, ATE, ASE, AOE, and DCS. A true positive for mAP is defined as the
+metrics: mAP, ATE, ASE, AOE, and CDS. A true positive for mAP is defined as the
 highest confidence prediction within a specified Euclidean distance threshold
 from a bird's-eye view. We prefer these metrics instead of IoU due to the
 increased interpretability of the error modes in a set of detections.
@@ -17,7 +17,6 @@ from typing import Optional, Tuple
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
-from scipy.spatial.transform import Rotation
 
 from av2.evaluation.detection.constants import (
     MAX_NORMALIZED_ASE,
@@ -38,7 +37,7 @@ from av2.geometry.iou import iou_3d_axis_aligned
 from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
 from av2.structures.cuboid import CuboidList
-from av2.utils.constants import EPS, NAN
+from av2.utils.constants import EPS
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 logger = logging.getLogger(__name__)
