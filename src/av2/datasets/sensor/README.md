@@ -136,7 +136,7 @@ All faces and license plates, whether inside vehicles or outside of the drivable
 
 We randomly partitioned 1000 logs into the following splits:
 
-- Train (750 logs)
+- Train (700 logs)
 - Validation (150 logs)
 - Test (150 logs)
 
