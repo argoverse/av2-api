@@ -82,6 +82,7 @@ class DetectionCfg:
         MAX_YAW_ERROR,
         MIN_CDS,
     )
+    max_num_dts_per_category: int = 100
     eval_only_roi_instances: bool = True
     splits: Tuple[str, ...] = ("val",)
 
@@ -105,22 +106,7 @@ def accumulate(
 
     Returns:
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
-
-    Raises:
-        ValueError: If all of the evaluation columns are not present in the detections or the
-            ground truth labels.
     """
-    required_dts_cols = set(x.value for x in EvaluationColumns)
-    required_gts_cols = set(tuple(x.value for x in EvaluationColumns) + ("num_interior_points",))
-
-    missing_dts_cols = required_dts_cols - set(dts.columns)
-    missing_gts_cols = required_gts_cols - set(gts.columns)
-
-    # if len(missing_dts_cols) > 0:
-    #     raise ValueError(f"Missing the following columns in your detections: {missing_dts_cols}!")
-    # if len(missing_gts_cols) > 0:
-    #     raise ValueError(f"Missing the following columns in your ground truth labels: {missing_gts_cols}!")
-
     dts.sort_values("score", ascending=False, inplace=True)
     dts.reset_index(drop=True, inplace=True)
 
@@ -399,11 +385,10 @@ def compute_evaluated_cuboids_mask(
     Raises:
         ValueError: If all of the columns aren't in the cuboids table.
     """
-    # if not set(translation_names + ("num_interior_points",)).issubset(cuboids.columns):
-    #     raise ValueError("All of the columns must be present in `cuboids`!")
-    # is_not_empty: NDArrayBool = cuboids.loc[:, "num_interior_points"] > 0
+    is_not_empty: NDArrayBool = cuboids.loc[:, "num_interior_points"] > 0
 
     norm: NDArrayFloat = np.linalg.norm(cuboids.loc[:, EvaluationColumns.TRANSLATION_NAMES[:2]], axis=1)
     is_within_radius: NDArrayBool = norm < cfg.max_range_m
-    is_evaluated: NDArrayBool = is_within_radius
+    is_evaluated: NDArrayBool = is_within_radius & is_not_empty
+    is_evaluated[:, cfg.max_num_dts_per_category :] = False  # Limit the number of detections.
     return is_evaluated

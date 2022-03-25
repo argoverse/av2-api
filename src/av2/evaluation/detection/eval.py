@@ -60,6 +60,7 @@ import pandas as pd
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import DetectionCfg, accumulate, compute_average_precision
 from av2.utils.typing import NDArrayBool, NDArrayFloat
+from joblib import delayed, Parallel
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +105,7 @@ def evaluate(
     args_list = [(dts.loc[uuid].reset_index().copy(), gts.loc[uuid].reset_index().copy(), cfg, poses) for uuid in uuids]
 
     # Accumulate and gather the processed detections and ground truth annotations.
-    dts_list, gts_list = zip(*[accumulate(*x) for x in args_list])
+    dts_list, gts_list = zip(*Parallel(n_jobs=-1)(delayed(accumulate)(*x) for x in args_list))
 
     # Concatenate the detections and ground truth annotations into DataFrames.
     dts_processed: pd.DataFrame = pd.concat(dts_list).reset_index(drop=True)
@@ -112,7 +113,7 @@ def evaluate(
 
     # Compute summary metrics.
     metrics = summarize_metrics(dts_processed, gts_processed, cfg)
-    metrics.loc[:, "AOE"] = np.rad2deg(metrics["AOE"])
+    metrics.loc[:, "AOE"] = np.rad2deg(metrics["AOE"])  # Report orientation error in degrees.
     metrics.loc["AVERAGE_METRICS"] = metrics.mean()
     metrics = metrics.round(NUM_DECIMALS)
 
