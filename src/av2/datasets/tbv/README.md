@@ -9,9 +9,9 @@
 
 ## Dataset Size
 
-The Trust, but Verify (TbV) Dataset consists of 1045 vehicle logs. Each vehicle log, on average, is 54 seconds in duration, including 536 LiDAR sweeps on average, and 1073 images from each of the 7 cameras (7512 images per log). Some logs are as short as 4 seconds, and other logs are up to 117 seconds in duration.
+The Trust, but Verify (TbV) Dataset consists of 1043 vehicle logs. Each vehicle log, on average, is 54 seconds in duration, including 536 LiDAR sweeps on average, and 1073 images from each of the 7 cameras (7512 images per log). Some logs are as short as 4 seconds, and other logs are up to 117 seconds in duration.
 
-The total dataset amounts to 15.57 hours of driving data, amounting to 922 GB of data in its extracted form. There are 7.85 Million images in the dataset, and 563,745 LiDAR sweeps in total.
+The total dataset amounts to 15.54 hours of driving data, amounting to 922 GB of data in its extracted form. There are 7.84 Million images in the dataset (7,837,614 exactly), and 559,440 LiDAR sweeps in total.
 
 ## Downloading TbV
 
@@ -43,6 +43,16 @@ python tutorials/untar_tbv.py
 DESIRED_TBV_DATAROOT={DESIRED LOCAL DIRECTORY PATH FOR TBV VEHICLE LOGS}
 s5cmd --no-sign-request cp s3://argoai-argoverse/av2/tbv/* ${DESIRED_TBV_DATAROOT}
 ```
+
+## Log Distribution Across Cities
+TbV vehicle logs are captured in 6 cities, according to the following distribution:
+- Austin, Texas: 80 logs.
+- Detroit, Michigan: 139 logs.
+- Miami, Florida: 349 logs.
+- Pittsburgh, Pennsylvania: 318 logs.
+- Palo Alto, California: 21 logs.
+- Washington, D.C.: 136 logs.
+
 
 ## Baselines
 We provide both pre-trained models for HD map change detection and code for training such models at [https://github.com/johnwlambert/tbv](https://github.com/johnwlambert/tbv).
