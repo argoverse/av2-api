@@ -30,9 +30,9 @@ class BEVParams:
         self.res_meters_per_px = res_meters_per_px
         self.accumulate_sweeps = accumulate_sweeps
 
-        # units are in meters
-        # get grid boundaries in meters (and we dont allow indexing beyond img_h - 1, img_w - 1)
-        # change limit so it cannot round to above.
+        # Units are in meters.
+        # Get grid boundaries in meters (and we dont allow indexing beyond img_h - 1, img_w - 1)
+        # We change the limit so it cannot round to above.
         self.xmin_m = -range_m
         self.xmax_m = range_m - self.res_meters_per_px
         self.ymin_m = -range_m
