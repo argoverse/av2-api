@@ -4,12 +4,17 @@
 
 from __future__ import annotations
 
+import typing
 from dataclasses import dataclass
 from functools import cached_property
 
 import numpy as np
 
 from av2.utils.typing import NDArrayFloat
+
+if typing.TYPE_CHECKING:
+    from av2.structs.cuboid import Cuboid
+    from av2.structs.sweep import Sweep
 
 
 @dataclass
@@ -69,6 +74,33 @@ class SE3:
             Array of shape (N, 3) representing the transformed point cloud, i.e. points in frame `dst`
         """
         return self.transform_from(point_cloud)
+
+    def transform_sweep_from(self, sweep: Sweep) -> Sweep:
+        """Apply the SE(3) transformation to a LiDAR sweep object.
+
+        This operation will transform 3d points in the sweep to a new reference frame.
+        Example usage:
+            sweep_city = city_SE3_ego.transform_sweep_from(sweep_ego)
+
+        Args:
+            sweep: LiDAR sweep. If the SE(3) transform represents dst_SE3_src, then the sweep should consist of points
+                provided in the `src` frame.
+
+        Returns:
+            LiDAR sweep, with points provided in the `dst` frame.
+        """
+        return sweep._transform_sweep_from(self)
+
+    def transform_cuboid_from(self, cuboid: Cuboid) -> Cuboid:
+        """Transform a cuboid.
+
+        Args:
+            cuboid:
+
+        Returns:
+            cuboid:
+        """
+        return cuboid._transform_cuboid_from(self)
 
     def inverse(self) -> SE3:
         """Return the inverse of the current SE(3) transformation.

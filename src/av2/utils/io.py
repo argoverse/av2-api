@@ -103,8 +103,14 @@ def read_ego_SE3_sensor(log_dir: Path) -> SensorPosesMapping:
 
     Returns:
         Mapping from sensor name to sensor pose.
+
+    Raises:
+        RuntimeError: If no file was found for this log at `calibration/egovehicle_SE3_sensor.feather` on disk.
     """
     ego_SE3_sensor_path = Path(log_dir, "calibration", "egovehicle_SE3_sensor.feather")
+    if not ego_SE3_sensor_path.exists():
+        raise RuntimeError(f"Calibration data could not be found under {log_dir}/calibration/")
+
     ego_SE3_sensor = read_feather(ego_SE3_sensor_path)
     rotations = geometry_utils.quat_to_mat(ego_SE3_sensor.loc[:, ["qw", "qx", "qy", "qz"]].to_numpy())
     translations = ego_SE3_sensor.loc[:, ["tx_m", "ty_m", "tz_m"]].to_numpy()

@@ -111,8 +111,10 @@ class Cuboid:
         is_interior = compute_interior_points_mask(points_xyz_m, vertices_dst_xyz_m)
         return points_xyz_m[is_interior], is_interior
 
-    def transform(self, target_SE3_dst: SE3) -> Cuboid:
+    def _transform_cuboid_from(self, target_SE3_dst: SE3) -> Cuboid:
         """Apply an SE(3) transformation to the cuboid.
+
+        Note: This method exists so that `SE3` can play around with it, without a cyclic dependency.
 
         Mathematically written as:
             cuboid_target = target_SE3_dst * cuboid_dst

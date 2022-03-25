@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from av2.geometry.se3 import SE3
 from av2.structures.sweep import Sweep
 from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayInt
 
@@ -31,3 +32,50 @@ def test_sweep_from_feather(dummy_sweep: Sweep) -> None:
     assert np.array_equal(dummy_sweep.laser_number, laser_number_expected)
     assert np.array_equal(dummy_sweep.offset_ns, offset_ns_expected)
     assert dummy_sweep.timestamp_ns == timestamp_ns_expected
+
+
+def test_prune_to_2d_bbox() -> None:
+    """Ensure we can discard Sweep points that lie outside a specified box.
+
+    Box indicated with dots:
+       ..|..
+       . | .
+       . | .
+      ---|------
+       . . .
+         |
+         |
+    """
+    # fmt: off
+    pts_xy: NDArrayFloat = np.array(
+        [
+            [-2.0, 2.0],  # will be discarded
+            [2.0, 0],  # will be discarded
+            [1.0, 2.0],
+            [0.0, 1.0]
+        ])
+    # fmt: on
+    pts_xyz: NDArrayFloat = np.hstack([pts_xy, np.ones((4, 1))])
+
+    dummy_pose = SE3(np.eye(3), np.zeros(3))
+    ego_SE3_down_lidar = dummy_pose
+    ego_SE3_up_lidar = dummy_pose
+
+    sweep = Sweep(
+        xyz=pts_xyz,
+        intensity=np.array([0, 1, 2, 3], dtype=np.uint8),
+        laser_number=np.array([5, 6, 7, 8], dtype=np.uint8),
+        offset_ns=np.array([9, 10, 11, 12], dtype=np.uint8),
+        timestamp_ns=0,  # dummy value
+        ego_SE3_up_lidar=ego_SE3_up_lidar,
+        ego_SE3_down_lidar=ego_SE3_down_lidar,
+    )
+
+    xmin = -1
+    ymin = -1
+    xmax = 1
+    ymax = 2
+
+    pruned_agg_sweep = sweep.prune_to_2d_bbox(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax)
+    gt_pts: NDArrayFloat = np.array([[1.0, 2.0, 1.0], [0.0, 1.0, 1.0]])  # only last 2 points should remain
+    assert np.allclose(pruned_agg_sweep.xyz, gt_pts)

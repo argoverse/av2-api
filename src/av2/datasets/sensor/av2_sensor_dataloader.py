@@ -191,6 +191,34 @@ class AV2SensorDataLoader:
 
         return lidar_fpath
 
+    def get_lidar_fpath(self, log_id: str, lidar_timestamp_ns: int) -> Path:
+        """Get file path for LiDAR sweep accumulated to the query reference timestamp.
+
+        Args:
+            log_id: unique ID of vehicle log.
+            lidar_timestamp_ns: query reference timestamp, in nanoseconds.
+
+        Returns:
+            lidar_fpath: path representing path to .feather file.
+        """
+
+        lidar_fname = f"{lidar_timestamp_ns}.feather"
+        lidar_fpath = Path(self._data_dir) / log_id / "sensors" / "lidar" / lidar_fname
+        return lidar_fpath
+
+    def get_ordered_log_lidar_timestamps(self, log_id: str) -> List[int]:
+        """Return chronologically-ordered timestamps corresponding to each LiDAR sweep in a log.
+
+        Args:
+            log_id: unique ID of vehicle log.
+
+        Returns:
+            lidar_timestamps_ns: ordered timestamps, provided in nanoseconds.
+        """
+        ordered_lidar_fpaths: List[Path] = self.get_ordered_log_lidar_fpaths(log_id=log_id)
+        lidar_timestamps_ns = [int(fp.stem) for fp in ordered_lidar_fpaths]
+        return lidar_timestamps_ns
+
     def get_ordered_log_lidar_fpaths(self, log_id: str) -> List[Path]:
         """Get a list of all file paths for LiDAR sweeps in a single log (ordered chronologically).
 

@@ -89,8 +89,14 @@ class PinholeCamera:
 
         Returns:
             A new PinholeCamera object, containing camera extrinsics and intrinsics.
+
+        Raises:
+            RuntimeError: If no file was found for this log at `calibration/intrinsics.feather` on disk.
         """
         intrinsics_path = log_dir / "calibration" / "intrinsics.feather"
+        if not intrinsics_path.exists():
+            raise RuntimeError(f"Calibration data could not be found under {log_dir}/calibration/")
+
         intrinsics_df = io_utils.read_feather(intrinsics_path).set_index("sensor_name")
         params = intrinsics_df.loc[cam_name]
         intrinsics = Intrinsics(

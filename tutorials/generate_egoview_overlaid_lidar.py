@@ -129,7 +129,12 @@ def generate_egoview_overlaid_lidar(
 
         video: NDArrayByte = np.stack(video_list).astype(np.uint8)
         video_output_dir = output_dir / "videos"
-        video_utils.write_video(video=video, dst=video_output_dir / f"{log_id}_{cam_name}.mp4", fps=RING_CAMERA_FPS)
+        video_utils.write_video(
+            video=video,
+            dst=video_output_dir / f"{log_id}_{cam_name}.mp4",
+            fps=RING_CAMERA_FPS,
+            preset="medium",
+        )
 
 
 @click.command(help="Generate LiDAR + map visualizations from the Argoverse 2 Sensor Dataset.")
