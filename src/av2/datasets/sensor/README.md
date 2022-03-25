@@ -128,6 +128,15 @@ An example camera intrinsics file is shown below:
 
 A local map is provided per log, please refer to the [Map README](../../map/README.md) for additional details.
 
+## Log Distribution Across Cities
+Vehicle logs from the **AV2 Sensor Dataset** are captured in 6 cities, according to the following distribution:
+- Austin, Texas: 31 logs.
+- Detroit, Michigan: 117 logs.
+- Miami, Florida: 354 logs.
+- Pittsburgh, Pennsylvania: 350 logs.
+- Palo Alto, California: 22 logs.
+- Washington, D.C.: 126 logs.
+
 ## Privacy
 
 All faces and license plates, whether inside vehicles or outside of the drivable area, are blurred extensively to preserve privacy.
