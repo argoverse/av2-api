@@ -92,13 +92,14 @@ class SE3:
         return sweep._transform_sweep_from(self)
 
     def transform_cuboid_from(self, cuboid: Cuboid) -> Cuboid:
-        """Transform a cuboid.
+        """Apply the SE(3) transformation to the vertices of a cuboid.
 
         Args:
-            cuboid:
+            cuboid: 3d bounding box. If the SE(3) transform represents dst_SE3_src, then the cuboid should represent
+                vertices provided in the `src` frame.
 
         Returns:
-            cuboid:
+            cuboid: 3d bounding box, with vertices now provided in the `dst` frame.
         """
         return cuboid._transform_cuboid_from(self)
 
