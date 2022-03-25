@@ -52,7 +52,7 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import logging
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -87,6 +87,7 @@ def evaluate(
 
     Raises:
         ValueError: If ROI filtering is enabled, but no egoposes are provided.
+        RuntimeError: If parallel processing fails to complete.
     """
     if cfg.eval_only_roi_instances and poses is None:
         raise ValueError("Poses must be provided for ROI cuboid filtering!")
@@ -105,7 +106,13 @@ def evaluate(
     args_list = [(dts.loc[uuid].reset_index().copy(), gts.loc[uuid].reset_index().copy(), cfg, poses) for uuid in uuids]
 
     # Accumulate and gather the processed detections and ground truth annotations.
-    dts_list, gts_list = zip(*Parallel(n_jobs=-1)(delayed(accumulate)(*x) for x in args_list))
+    results: Optional[List[Tuple[pd.DataFrame, pd.DataFrame]]] = Parallel(n_jobs=-1)(
+        delayed(accumulate)(*x) for x in args_list
+    )
+    if results is None:
+        raise RuntimeError("Accumulation of dts and gts has failed!")
+
+    dts_list, gts_list = zip(*results)
 
     # Concatenate the detections and ground truth annotations into DataFrames.
     dts_processed: pd.DataFrame = pd.concat(dts_list).reset_index(drop=True)
@@ -115,8 +122,6 @@ def evaluate(
     metrics = summarize_metrics(dts_processed, gts_processed, cfg)
     metrics.loc["AVERAGE_METRICS"] = metrics.mean()
     metrics = metrics.round(NUM_DECIMALS)
-
-    # Return results.
     return dts, gts, metrics
 
 
@@ -166,10 +171,6 @@ def summarize_metrics(
 
         for affinity_threshold_m in cfg.affinity_thresholds_m:
             true_positives: NDArrayBool = category_dts[affinity_threshold_m].to_numpy()
-
-            # NaN values correspond to detections that weren't true positives.
-            # is_valid = ~np.isnan(true_positives)
-            # true_positives = true_positives[is_valid].astype(bool)
 
             # Continue if there aren't any true positives.
             if len(true_positives) == 0:

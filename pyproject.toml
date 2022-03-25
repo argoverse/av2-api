@@ -22,3 +22,17 @@ ignore_missing_imports = true
 disallow_untyped_decorators = false
 plugins = "numpy.typing.mypy_plugin"
 strict = true
+
+[tool.pyright]
+include = ["src"]
+
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUntypedFunctionDecorator = false
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--cov-report term-missing:skip-covered --cov src/av2"
+testpaths = [
+    "tests",
+]
