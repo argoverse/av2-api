@@ -22,7 +22,7 @@ MIN_NUM_SWEEPS_PER_LOG: Final[int] = 40
 MIN_NUM_IMAGES_PER_CAMERA: Final[int] = 80
 
 # every lane segment should have 10 keys only.
-EXPECTED_LANE_SEGMENT_ATTRIB_KEYS = [
+EXPECTED_LANE_SEGMENT_ATTRIB_KEYS: Final[Tuple[str, ...]] = (
     "id",
     "is_intersection",
     "lane_type",
@@ -34,7 +34,7 @@ EXPECTED_LANE_SEGMENT_ATTRIB_KEYS = [
     "predecessors",
     "right_neighbor_id",
     "left_neighbor_id",
-]
+)
 
 
 def verify_log_contents(data_root: Path, log_id: str) -> None:
