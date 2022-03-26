@@ -36,11 +36,10 @@ from av2.evaluation.detection.constants import (
 )
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat, wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
-from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
 from av2.structures.cuboid import CuboidList
 from av2.utils.constants import EPS
-from av2.utils.io import read_city_SE3_ego
+from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 logger = logging.getLogger(__name__)
@@ -53,48 +52,53 @@ class DetectionCfg:
     Args:
         affinity_thresholds_m: Affinity thresholds for determining a true positive (in meters).
         affinity_type: Type of affinity function to be used for calculating average precision.
-        num_recall_samples: Number of recall points to sample uniformly in [0, 1].
-        tp_threshold_m: Center distance threshold for the true positive metrics (in meters).
         categories: Detection classes for evaluation.
+        eval_only_roi_instances: Only use dets and ground truth that lie within region of interest during eval.
         filter_metric: Detection metric to use for filtering of both detections and ground truth annotations.
         max_range_m: Max distance (under a specific metric in meters) for a detection or ground truth cuboid to be
             considered for evaluation.
-        tp_normalization_terms: Normalization constants for ATE, ASE, and AOE.
-        metrics_defaults: Evaluation summary default values.
-        eval_only_roi_instances: Only use dets and ground truth that lie within region of interest during eval.
+        num_recall_samples: Number of recall points to sample uniformly in [0, 1].
         splits: Tuple of split names to evaluate.
+        tp_threshold_m: Center distance threshold for the true positive metrics (in meters).
     """
 
-    dataset_dir: Optional[Path] = None
-    affinity_thresholds_m: Tuple[float, ...] = (0.5, 1.0, 2.0, 4.0)  # Meters
+    affinity_thresholds_m: Tuple[float, ...] = (0.5, 1.0, 2.0, 4.0)
     affinity_type: AffinityType = AffinityType.CENTER
-    num_recall_samples: int = 101
-    tp_threshold_m: float = 2.0  # Meters
     categories: Tuple[str, ...] = tuple(x.value for x in CompetitionCategories)
-    filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN
-    max_range_m: float = 200.0  # Meters
-    tp_normalization_terms: Tuple[float, ...] = (
-        tp_threshold_m,
-        MAX_SCALE_ERROR,
-        MAX_YAW_ERROR,
-    )
-    metrics_defaults: Tuple[float, ...] = (
-        MIN_AP,
-        tp_threshold_m,
-        MAX_NORMALIZED_ASE,
-        MAX_YAW_ERROR,
-        MIN_CDS,
-    )
-    max_num_dts_per_category: int = 100
+    dataset_dir: Optional[Path] = None
     eval_only_roi_instances: bool = True
+    filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN
+    max_num_dts_per_category: int = 100
+    max_range_m: float = 200.0
+    num_recall_samples: int = 101
     splits: Tuple[str, ...] = ("val",)
+    tp_threshold_m: float = 2.0
+
+    @property
+    def metric_defaults(self) -> Tuple[float, ...]:
+        """Return the evaluation summary default values."""
+        return (
+            MIN_AP,
+            self.tp_threshold_m,
+            MAX_NORMALIZED_ASE,
+            MAX_YAW_ERROR,
+            MIN_CDS,
+        )
+
+    @property
+    def tp_normalization_terms(self) -> Tuple[float, ...]:
+        """Return the normalization constants for ATE, ASE, and AOE."""
+        return (
+            self.tp_threshold_m,
+            MAX_SCALE_ERROR,
+            MAX_YAW_ERROR,
+        )
 
 
 def accumulate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
     cfg: DetectionCfg,
-    avm: Optional[ArgoverseStaticMap] = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Accumulate the true / false positives (boolean flags) and true positive errors for each class.
 
@@ -103,7 +107,6 @@ def accumulate(
         gts: (M,len(EvaluationColumns) + 1) Ground truth labels. Must contain all of the columns in EvaluationColumns
             and the `num_interior_pts` column.
         cfg: Detection configuration.
-        avm: Argoverse map object.
 
     Returns:
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
@@ -340,7 +343,7 @@ def distance(dts: pd.DataFrame, gts: pd.DataFrame, metric: DistanceType) -> NDAr
 
 
 def compute_objects_in_roi_mask(
-    cuboids_dataframe: pd.DataFrame, poses: pd.DataFrame, avm: ArgoverseStaticMap
+    cuboids_dataframe: pd.DataFrame, poses: TimestampedCitySE3EgoPoses, avm: ArgoverseStaticMap
 ) -> NDArrayBool:
     """Compute the evaluated cuboids mask based off whether _any_ of their vertices fall into the ROI.
 
@@ -365,7 +368,7 @@ def compute_objects_in_roi_mask(
         cuboid_list_vertices_m.reshape(-1, 3)[..., :2], RasterLayerType.ROI
     )
     is_within_roi = is_within_roi.reshape(-1, 8)
-    is_within_roi: NDArrayBool = is_within_roi.any(axis=1)
+    is_within_roi = is_within_roi.any(axis=1)
     return is_within_roi
 
 
