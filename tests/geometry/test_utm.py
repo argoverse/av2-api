@@ -17,7 +17,8 @@ def test_convert_city_coords_to_wgs84_atx() -> None:
             [1745.37, -1421.37],
             [1738.54, -1415.03],
             [1731.53, -1410.81],
-        ])
+        ]
+    )
 
     wgs84_coords = geo_utils.convert_city_coords_to_wgs84(points_city, city_name=CityName.ATX)
 
@@ -38,14 +39,16 @@ def test_convert_city_coords_to_wgs84_wdc() -> None:
         [
             [1716.85, 4470.38],
             [2139.70, 4606.14],
-        ])
+        ]
+    )
 
     wgs84_coords = geo_utils.convert_city_coords_to_wgs84(points_city, city_name=CityName.WDC)
     expected_wgs84_coords = np.array(
         [
-        [38.9299801515994, -77.0168603173312],
-        [38.931286945069985, -77.0120195048271],
-    ])
+            [38.9299801515994, -77.0168603173312],
+            [38.931286945069985, -77.0120195048271],
+        ]
+    )
     assert np.allclose(wgs84_coords, expected_wgs84_coords, atol=1e-4)
 
 
@@ -56,5 +59,3 @@ def test_convert_gps_to_utm() -> None:
 
     expected_utm_coords = 583710, 4477260
     assert np.allclose(utm_coords, expected_utm_coords, atol=0.01)
-
-
