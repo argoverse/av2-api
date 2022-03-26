@@ -12,6 +12,8 @@ increased interpretability of the error modes in a set of detections.
 
 import logging
 from dataclasses import dataclass
+from optparse import Option
+from pathlib import Path
 from typing import Optional, Tuple
 
 import numpy as np
@@ -38,6 +40,7 @@ from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
 from av2.structures.cuboid import CuboidList
 from av2.utils.constants import EPS
+from av2.utils.io import read_city_SE3_ego
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 logger = logging.getLogger(__name__)
@@ -62,6 +65,7 @@ class DetectionCfg:
         splits: Tuple of split names to evaluate.
     """
 
+    dataset_dir: Optional[Path] = None
     affinity_thresholds_m: Tuple[float, ...] = (0.5, 1.0, 2.0, 4.0)  # Meters
     affinity_type: AffinityType = AffinityType.CENTER
     num_recall_samples: int = 101
@@ -90,7 +94,6 @@ def accumulate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
     cfg: DetectionCfg,
-    poses: Optional[pd.DataFrame] = None,
     avm: Optional[ArgoverseStaticMap] = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Accumulate the true / false positives (boolean flags) and true positive errors for each class.
@@ -100,22 +103,24 @@ def accumulate(
         gts: (M,len(EvaluationColumns) + 1) Ground truth labels. Must contain all of the columns in EvaluationColumns
             and the `num_interior_pts` column.
         cfg: Detection configuration.
-        poses: (N,) Detections city egopose.
         avm: Argoverse map object.
 
     Returns:
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
     """
-    # avm = ArgoverseStaticMap.from_json()
-
     dts.sort_values("score", ascending=False, inplace=True)
     dts.reset_index(drop=True, inplace=True)
 
     # Filter detections and ground truth annotations.
     dts.loc[:, "is_evaluated"] = compute_evaluated_dts_mask(dts, cfg)
     gts.loc[:, "is_evaluated"] = compute_evaluated_gts_mask(gts, cfg)
+    if cfg.eval_only_roi_instances:
+        log_id = gts.log_id.unique().item()
+        log_dir = cfg.dataset_dir / log_id
+        avm_dir = log_dir / "map"
+        avm = ArgoverseStaticMap.from_map_dir(avm_dir, build_raster=True)
 
-    if cfg.eval_only_roi_instances and avm is not None and poses is not None:
+        poses = read_city_SE3_ego(log_dir)
         dts.loc[:, "is_evaluated"] &= compute_objects_in_roi_mask(dts, poses, avm)
 
     # Initialize corresponding assignments + errors.
@@ -348,21 +353,19 @@ def compute_objects_in_roi_mask(
         The boolean mask indicating which cuboids will be evaluated.
     """
     cuboids_dataframe = cuboids_dataframe.sort_values("timestamp_ns").reset_index(drop=True)
-    poses = poses.sort_values("timestamp_ns").reset_index(drop=True)
 
     cuboid_list_ego = CuboidList.from_dataframe(cuboids_dataframe)
-    timestamp_ns = poses.loc[:, "timestamp_ns"].unique()
-    quat_wxyz = poses.loc[timestamp_ns, EvaluationColumns.QUAT_COEFFICIENTS_WXYZ]
-    translation = poses.loc[timestamp_ns, EvaluationColumns.TRANSLATION_NAMES[:2]]
-    rotation = quat_to_mat(quat_wxyz)
+    timestamp_ns = cuboids_dataframe.timestamp_ns.unique().item()
+    city_SE3_ego = poses[timestamp_ns]
 
-    city_SE3_ego = SE3(rotation=rotation, translation=translation)
     cuboid_list_city = cuboid_list_ego.transform(city_SE3_ego)
     cuboid_list_vertices_m = cuboid_list_city.vertices_m
 
-    vertices_within_roi = avm.get_raster_layer_points_boolean(cuboid_list_vertices_m[..., :2], RasterLayerType.ROI)
-    vertices_within_roi = vertices_within_roi.reshape(-1, 4)
-    is_within_roi: NDArrayBool = vertices_within_roi.any(axis=1)
+    is_within_roi = avm.get_raster_layer_points_boolean(
+        cuboid_list_vertices_m.reshape(-1, 3)[..., :2], RasterLayerType.ROI
+    )
+    is_within_roi = is_within_roi.reshape(-1, 8)
+    is_within_roi: NDArrayBool = is_within_roi.any(axis=1)
     return is_within_roi
 
 

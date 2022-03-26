@@ -69,7 +69,6 @@ def evaluate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
     cfg: DetectionCfg,
-    poses: Optional[pd.DataFrame] = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Evaluate a set of detections against the ground truth annotations.
 
@@ -86,12 +85,8 @@ def evaluate(
         K refers to the number of evaluation metrics.
 
     Raises:
-        ValueError: If ROI filtering is enabled, but no egoposes are provided.
         RuntimeError: If parallel processing fails to complete.
     """
-    if cfg.eval_only_roi_instances and poses is None:
-        raise ValueError("Poses must be provided for ROI cuboid filtering!")
-
     # (log_id, timestamp_ns) uniquely identifies a sweep.
     uuid_columns = ["log_id", "timestamp_ns"]
 
@@ -103,7 +98,7 @@ def evaluate(
     uuids = gts.index.unique().tolist()
 
     # Construct arguments for multiprocessing.
-    args_list = [(dts.loc[uuid].reset_index().copy(), gts.loc[uuid].reset_index().copy(), cfg, poses) for uuid in uuids]
+    args_list = [(dts.loc[uuid].reset_index().copy(), gts.loc[uuid].reset_index().copy(), cfg) for uuid in uuids]
 
     # Accumulate and gather the processed detections and ground truth annotations.
     results: Optional[List[Tuple[pd.DataFrame, pd.DataFrame]]] = Parallel(n_jobs=-1)(

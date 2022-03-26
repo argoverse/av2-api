@@ -380,3 +380,36 @@ class CuboidList:
             )
             cuboid_list.append(cuboid)
         return cls(cuboids=cuboid_list)
+
+    @classmethod
+    def from_dataframe(cls, data: pd.DataFrame) -> CuboidList:
+        """Read annotations from a feather file.
+
+        Args:
+            annotations_feather_path: Feather file path.
+
+        Returns:
+            Constructed cuboids.
+        """
+        rotation = quat_to_mat(data.loc[:, ["qw", "qx", "qy", "qz"]].to_numpy())
+        translation_m = data.loc[:, ["tx_m", "ty_m", "tz_m"]].to_numpy()
+        length_m = data.loc[:, "length_m"].to_numpy()
+        width_m = data.loc[:, "width_m"].to_numpy()
+        height_m = data.loc[:, "height_m"].to_numpy()
+        category = data.loc[:, "category"].to_numpy()
+        timestamp_ns = data.loc[:, "timestamp_ns"].to_numpy()
+        N = len(data)
+
+        cuboid_list: List[Cuboid] = []
+        for i in range(N):
+            ego_SE3_object = SE3(rotation=rotation[i], translation=translation_m[i])
+            cuboid = Cuboid(
+                dst_SE3_object=ego_SE3_object,
+                length_m=length_m[i],
+                width_m=width_m[i],
+                height_m=height_m[i],
+                category=category[i],
+                timestamp_ns=timestamp_ns[i],
+            )
+            cuboid_list.append(cuboid)
+        return cls(cuboids=cuboid_list)
