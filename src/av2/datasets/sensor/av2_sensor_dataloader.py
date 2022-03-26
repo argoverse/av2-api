@@ -47,8 +47,20 @@ class AV2SensorDataLoader:
         self._sdb = SynchronizationDB(str(data_dir))
 
     def get_city_name(self, log_id: str) -> str:
-        """Return the name of the city where the log of interest was captured."""
-        raise NotImplementedError("Method is not available yet.")
+        """Return the name of the city where the log of interest was captured.
+
+        Vector map filenames contain the city name, and have a name in the following format:
+            `log_map_archive_453e5558-6363-38e3-bf9b-42b5ba0a6f1d____PAO_city_71741.json`
+
+        Args:
+            log_id: unique ID of vehicle log.
+
+        Returns:
+            Name of the city where the log of interest was captured.
+        """
+        vector_map_fpath = list(data_dir).glob(f"{log_id}/map/log_map_archive*")[0]
+        log_city_name = vector_map_fpath.name.split("____")[1].split("_")[0]
+        return log_city_name
 
     def get_log_pinhole_camera(self, log_id: str, cam_name: str) -> PinholeCamera:
         """Return a PinholeCamera parameterized by sensor pose in vehicle frame, intrinsics, and image dimensions."""
