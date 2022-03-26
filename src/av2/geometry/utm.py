@@ -70,7 +70,7 @@ def convert_city_coords_to_utm(points_city: Union[NDArrayFloat, NDArrayInt], cit
         city_name: name of city, where query points are located.
 
     Returns:
-        Points in the UTM coordinate system.
+        Points in the UTM coordinate system, as (easting, northing).
     """
     lat, long = CITY_ORIGIN_LATLONG_DICT[city_name]
     # get (easting, northing) of origin
@@ -81,8 +81,15 @@ def convert_city_coords_to_utm(points_city: Union[NDArrayFloat, NDArrayInt], cit
 
 
 def convert_city_coords_to_wgs84(points_city: Union[NDArrayFloat, NDArrayInt], city_name: CityName) -> NDArrayFloat:
-    """ """
+    """Convert city coordinates to WGS84 coordinates.
 
+    Args:
+        points_city: 2d coordinates, representing query points in the city coordinate frame.
+        city_name: name of city, where query points are located.
+
+    Returns:
+        Points in the WGS84 coordinate system, as (lat, long).
+    """
     points_utm = convert_city_coords_to_utm(points_city, city_name)
 
     projector = Proj(proj="utm", zone=UTM_ZONE_MAP[city_name], ellps="WGS84", datum="WGS84", units="m")
