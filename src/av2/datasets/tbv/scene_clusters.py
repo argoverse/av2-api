@@ -3,6 +3,7 @@
 """Clustering of TbV vehicle logs, by spatial location (scene).
 
 Note:
+   - Each log within a cluster shares some significant visual overlap with other logs within its cluster.
    - These are not before/after pairs. In some cases, all logs in a cluster may be "after" a change.
    - Each cluster has one log in the val or test set.
    - Logs of each cluster are provided in chronological order.
