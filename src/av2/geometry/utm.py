@@ -3,7 +3,7 @@
 """Utilities for converting AV2 city coordinates to UTM or WGS84 coordinate systems."""
 
 from enum import Enum
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 from pyproj import Proj
@@ -42,7 +42,7 @@ CITY_ORIGIN_LATLONG_DICT = {
 }
 
 
-def convert_gps_to_utm(lat: float, long: float, city_name):
+def convert_gps_to_utm(lat: float, long: float, city_name: CityName) -> Tuple[float, float]:
     """Convert GPS coordinates to UTM coordinates.
 
     Args:
