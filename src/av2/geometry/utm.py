@@ -10,14 +10,16 @@ from pyproj import Proj
 
 from av2.utils.typing import NDArrayFloat, NDArrayInt
 
+
 class CityName(str, Enum):
     """Abbreviations of names of cities featured in Argoverse 2."""
-    ATX = "ATX" # Austin, Texas
-    DTW = "DTW" # Detroit, Michigan
-    MIA = "MIA" # Miami, Florida
-    PAO = "PAO" # Palo Alto, California
-    PIT = "PIT" # Pittsburgh, PA
-    WDC = "WDC" # Washington, DC
+
+    ATX = "ATX"  # Austin, Texas
+    DTW = "DTW"  # Detroit, Michigan
+    MIA = "MIA"  # Miami, Florida
+    PAO = "PAO"  # Palo Alto, California
+    PIT = "PIT"  # Pittsburgh, PA
+    WDC = "WDC"  # Washington, DC
 
 
 # All are North UTM zones (Northern hemisphere)
@@ -27,18 +29,18 @@ UTM_ZONE_MAP = {
     CityName.MIA: 17,
     CityName.PAO: 10,
     CityName.PIT: 17,
-    CityName.WDC: 18
+    CityName.WDC: 18,
 }
 
 
 # as (lat, long) tuples
 CITY_ORIGIN_LATLONG_DICT = {
-    CityName.ATX: ( 30.27464237939507,   -97.7404457407424),
-    CityName.DTW: ( 42.29993066912924,  -83.17555750783717),
-    CityName.MIA: ( 25.77452579915163,  -80.19656914449405),
-    CityName.PAO: (         37.416065, -122.13571963362166),
-    CityName.PIT: ( 40.44177902989321,  -80.01294377242584),
-    CityName.WDC: (         38.889377,   -77.0355047439081)
+    CityName.ATX: (30.27464237939507, -97.7404457407424),
+    CityName.DTW: (42.29993066912924, -83.17555750783717),
+    CityName.MIA: (25.77452579915163, -80.19656914449405),
+    CityName.PAO: (37.416065, -122.13571963362166),
+    CityName.PIT: (40.44177902989321, -80.01294377242584),
+    CityName.WDC: (38.889377, -77.0355047439081),
 }
 
 
@@ -100,4 +102,3 @@ def convert_city_coords_to_wgs84(points_city: Union[NDArrayFloat, NDArrayInt], c
         points_wgs84.append((lat, long))
 
     return np.array(points_wgs84)
-
