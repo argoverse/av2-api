@@ -75,7 +75,7 @@ class DetectionCfg:
     tp_threshold_m: float = 2.0
 
     @property
-    def metric_defaults(self) -> Tuple[float, ...]:
+    def metrics_defaults(self) -> Tuple[float, ...]:
         """Return the evaluation summary default values."""
         return (
             MIN_AP,
