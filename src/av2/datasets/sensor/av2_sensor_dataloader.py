@@ -200,7 +200,7 @@ class AV2SensorDataLoader:
             lidar_timestamp_ns: timestamp of LiDAR sweep capture, in nanoseconds
 
         Returns:
-            lidar_fpath: path to sweep .feather file if one exists at the requested timestamp, or else None.
+            Path to sweep .feather file if one exists at the requested timestamp, or else None.
         """
         lidar_fname = f"{lidar_timestamp_ns}.feather"
         lidar_fpath = self._data_dir / log_id / "sensors" / "lidar" / lidar_fname
@@ -217,9 +217,8 @@ class AV2SensorDataLoader:
             lidar_timestamp_ns: query reference timestamp, in nanoseconds.
 
         Returns:
-            lidar_fpath: path representing path to .feather file.
+            Path to .feather file, containing sweep information.
         """
-
         lidar_fname = f"{lidar_timestamp_ns}.feather"
         lidar_fpath = Path(self._data_dir) / log_id / "sensors" / "lidar" / lidar_fname
         return lidar_fpath

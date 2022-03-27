@@ -240,7 +240,7 @@ def run_verify_all_tbv_logs(data_root: str, check_image_sizes: bool) -> None:
 
     # verify the total number of LiDAR sweeps found on disk.
     EXPECTED_NUM_TBV_SWEEPS = 559440
-    lidar_fpaths = list(Path(data_root).glob("*/sensors/lidar/*/*.feather"))
+    lidar_fpaths = list(Path(data_root).glob("*/sensors/lidar/*.feather"))
     assert len(lidar_fpaths) == EXPECTED_NUM_TBV_SWEEPS
 
 
