@@ -5,14 +5,16 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Final
+from typing import Final, List, Tuple
 
 import click
 from rich.progress import track
 
 import av2.utils.io as io_utils
+from av2.datasets.sensor.av2_sensor_dataloader import AV2SensorDataLoader
 from av2.datasets.sensor.constants import RingCameras
 from av2.datasets.tbv.splits import TRAIN, VAL, TEST
+from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap
 
 
@@ -20,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 MIN_NUM_SWEEPS_PER_LOG: Final[int] = 40
 MIN_NUM_IMAGES_PER_CAMERA: Final[int] = 80
+
+AV2_CITY_NAMES: Final[Tuple[str, ...]] = ("ATX", "DTW", "MIA", "PAO", "PIT", "WDC")
 
 # every lane segment should have 10 keys only.
 EXPECTED_LANE_SEGMENT_ATTRIB_KEYS: Final[Tuple[str, ...]] = (
@@ -37,12 +41,14 @@ EXPECTED_LANE_SEGMENT_ATTRIB_KEYS: Final[Tuple[str, ...]] = (
 )
 
 
-def verify_log_contents(data_root: Path, log_id: str) -> None:
+def verify_log_contents(data_root: Path, log_id: str, check_image_sizes: bool) -> None:
     """Verify that expected files exist and are loadable, for a single log.
 
     Args:
         data_root: Path to local directory where the TbV Dataset logs are stored.
         log_id: unique ID of TbV vehicle log.
+        check_image_sizes: Whether to verify the size of every image. This check is very
+            expensive over millions of images.
     """
     # every log should have a subfolder for each of the 7 ring cameras.
     assert (data_root / log_id / "sensors" / "cameras").exists()
@@ -55,6 +61,9 @@ def verify_log_contents(data_root: Path, log_id: str) -> None:
             len(img_fpaths) >= MIN_NUM_IMAGES_PER_CAMERA
         ), "There should be at last 80 images for each camera, per log."
 
+        # this check is expensive, and can be skipped.
+        if not check_image_sizes:
+            continue
         # every image should be (H,W) = 2048x1550 (front-center) or 775x1024 for all other cameras.
         for img_fpath in track(img_fpaths, description=f"Verifying image sizes for {camera_enum}"):
             img = io_utils.read_img(img_path=img_fpath, channel_order="RGB")
@@ -113,11 +122,6 @@ def verify_log_contents(data_root: Path, log_id: str) -> None:
         assert camera_enum.value in intrinsics_df["sensor_name"].tolist()
 
     verify_log_map(data_root=data_root, log_id=log_id)
-
-    # new_log_id = f"{log_uuid}__{season}_{year}"
-
-    # city abbreviation should be parsable from every vector map file name, and should fall into 1 of 6 cities
-    # season should be parsable from every vector map file name, and should fall into 1 of 4 seasons.
 
 
 def verify_log_map(data_root: Path, log_id: str) -> None:
@@ -181,6 +185,26 @@ def verify_log_map(data_root: Path, log_id: str) -> None:
     das = avm.get_scenario_vector_drivable_areas()
 
 
+def verify_logs_using_dataloader(data_root: Path, log_ids: List[str]) -> None:
+    """Use a dataloader object to query each log's data, and verify it.
+
+    Args:
+        data_root: Path to local directory where the TbV Dataset logs are stored.
+        log_ids: unique IDs of TbV vehicle logs.
+    """
+    loader = AV2SensorDataLoader(data_dir=data_root, labels_dir=data_root)
+    for log_id in log_ids:
+        # city abbreviation should be parsable from every vector map file name, and should fall into 1 of 6 cities
+        city_name = loader.get_city_name(log_id=log_id)
+        assert city_name in AV2_CITY_NAMES
+
+        # pose should be present for every lidar sweep.
+        lidar_timestamps_ns = loader.get_ordered_log_lidar_timestamps(log_id=log_id)
+        for lidar_timestamp_ns in lidar_timestamps_ns:
+            city_SE3_egovehicle = loader.get_city_SE3_ego(log_id=log_id, timestamp_ns=lidar_timestamp_ns)
+            assert isinstance(city_SE3_egovehicle, SE3)
+
+
 @click.command(help="Verify contents of downloaded + extracted TbV Dataset logs.")
 @click.option(
     "-d",
@@ -189,16 +213,35 @@ def verify_log_map(data_root: Path, log_id: str) -> None:
     help="Path to local directory where the TbV Dataset logs are stored.",
     type=click.Path(exists=True),
 )
-def run_verify_all_tbv_logs(data_root: str) -> None:
+@click.option(
+    "--check-image-sizes",
+    default=False,
+    help="Whether to verify the size of every image. This check is very expensive over millions of images.",
+    type=bool,
+)
+
+def run_verify_all_tbv_logs(data_root: str, check_image_sizes: bool) -> None:
     """Click entry point for TbV file verification."""
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
     log_ids = TRAIN + VAL + TEST
     num_logs = len(log_ids)
-    for i in range(num_logs):
+    for i in track(range(num_logs), description="Verify logs using an AV2 dataloader object"):
         log_id = log_ids[i]
         logger.info("Verifying log %d: %s", i, log_id)
-        verify_log_contents(data_root=Path(data_root), log_id=log_id)
+        verify_log_contents(data_root=Path(data_root), log_id=log_id, check_image_sizes=check_image_sizes)
+
+    verify_logs_using_dataloader(data_root=Path(data_root), log_ids=log_ids)
+
+    # verify the total number of images found on disk.
+    EXPECTED_NUM_TBV_IMAGES = 7837614
+    img_fpaths = list(Path(data_root).glob("*/sensors/cameras/*/*.jpg"))
+    assert len(img_fpaths) == EXPECTED_NUM_TBV_IMAGES
+
+    # verify the total number of LiDAR sweeps found on disk.
+    EXPECTED_NUM_TBV_SWEEPS = 559440
+    lidar_fpaths = list(Path(data_root).glob("*/sensors/lidar/*/*.feather"))
+    assert len(lidar_fpaths) == EXPECTED_NUM_TBV_SWEEPS
 
 
 if __name__ == "__main__":
