@@ -148,7 +148,7 @@ class AV2SensorDataLoader:
             RuntimeError: If no vector map file is found for the query log ID.
         """
         vector_map_fpaths = list(self._data_dir.glob(f"{log_id}/map/log_map_archive*"))
-        if len(vector_map_fpaths) != 1:
+        if len(vector_map_fpaths) == 0:
             raise RuntimeError(f"Vector map file is missing for {log_id}.")
         vector_map_fpath = vector_map_fpaths[0]
         log_city_name = vector_map_fpath.name.split("____")[1].split("_")[0]
