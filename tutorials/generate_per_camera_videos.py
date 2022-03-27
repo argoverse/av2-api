@@ -82,12 +82,12 @@ def render_log_ring_camera_videos(output_dir: Path, loader: AV2SensorDataLoader,
         )
 
 
-@click.command(help="Generate map visualizations on ego-view imagery from the Argoverse 2 Sensor Dataset.")
+@click.command(help="Generate map visualizations on ego-view imagery from the Argoverse 2 Sensor or TbV Datasets.")
 @click.option(
     "-d",
     "--data-root",
     required=True,
-    help="Path to local directory where the Argoverse 2 Sensor Dataset logs are stored.",
+    help="Path to local directory where the Argoverse 2 Sensor Dataset or TbV logs are stored.",
     type=click.Path(exists=True),
 )
 @click.option(
