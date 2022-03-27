@@ -79,7 +79,7 @@ def convert_city_coords_to_utm(points_city: Union[NDArrayFloat, NDArrayInt], cit
     # get (easting, northing) of origin
     origin_utm = convert_gps_to_utm(lat=lat, long=long, city_name=city_name)
     
-    points_utm: NDArrayFloat = points_city.astype(float) + np.array(origin_utm, dtype=float) # type: ignore
+    points_utm: NDArrayFloat = points_city.astype(float) + np.array(origin_utm, dtype=float)
     return points_utm
 
 
