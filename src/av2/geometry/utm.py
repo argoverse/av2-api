@@ -2,7 +2,7 @@
 
 """Utilities for converting AV2 city coordinates to UTM or WGS84 coordinate systems."""
 
-from enum import Enum
+from enum import unique, Enum
 from typing import Dict, Final, Tuple, Union
 
 import numpy as np
@@ -69,17 +69,17 @@ def convert_city_coords_to_utm(points_city: Union[NDArrayFloat, NDArrayInt], cit
     """Convert city coordinates to UTM coordinates.
 
     Args:
-        points_city: 2d coordinates, representing query points in the city coordinate frame.
+        points_city: (N,2) array, representing 2d query points in the city coordinate frame.
         city_name: name of city, where query points are located.
 
     Returns:
-        Points in the UTM coordinate system, as (easting, northing).
+        Array of shape (N,2), representing points in the UTM coordinate system, as (easting, northing).
     """
     lat, long = CITY_ORIGIN_LATLONG_DICT[city_name]
     # get (easting, northing) of origin
     origin_utm = convert_gps_to_utm(lat=lat, long=long, city_name=city_name)
-
-    points_utm: NDArrayFloat = points_city + origin_utm
+    
+    points_utm: NDArrayFloat = points_city.astype(float) + np.array(origin_utm, dtype=float) # type: ignore
     return points_utm
 
 
@@ -87,11 +87,11 @@ def convert_city_coords_to_wgs84(points_city: Union[NDArrayFloat, NDArrayInt], c
     """Convert city coordinates to WGS84 coordinates.
 
     Args:
-        points_city: 2d coordinates, representing query points in the city coordinate frame.
+        points_city: (N,2) array, representing 2d query points in the city coordinate frame.
         city_name: name of city, where query points are located.
 
     Returns:
-        Points in the WGS84 coordinate system, as (lat, long).
+        Array of shape (N,2), representing points in the WGS84 coordinate system, as (lat, long).
     """
     points_utm = convert_city_coords_to_utm(points_city, city_name)
 
