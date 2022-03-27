@@ -157,7 +157,7 @@ def verify_log_map(data_root: Path, log_id: str) -> None:
     assert list(vector_map_json_data.keys()) == ["pedestrian_crossings", "lane_segments", "drivable_areas"]
 
     for _, lane_segment_dict in vector_map_json_data["lane_segments"].items():
-        assert list(lane_segment_dict.keys()) == EXPECTED_LANE_SEGMENT_ATTRIB_KEYS
+        assert tuple(lane_segment_dict.keys()) == EXPECTED_LANE_SEGMENT_ATTRIB_KEYS
 
     # every map should be loadable from pure JSON.
     avm = ArgoverseStaticMap.from_json(static_map_path=vector_map_fpath)
