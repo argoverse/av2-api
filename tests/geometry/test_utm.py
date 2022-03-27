@@ -52,7 +52,7 @@ def test_convert_city_coords_to_wgs84_wdc() -> None:
 
 def test_convert_gps_to_utm() -> None:
     """Convert Pittsburgh city origin (given in WGS84) to UTM coordinates."""
-    lat, long = CITY_ORIGIN_LATLONG_DICT.get(CityName.PIT)
+    lat, long = 40.44177902989321, -80.01294377242584
     utm_coords = geo_utils.convert_gps_to_utm(lat, long, city_name=CityName.PIT)
 
     expected_utm_coords = 583710, 4477260
