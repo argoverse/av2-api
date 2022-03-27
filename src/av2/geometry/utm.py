@@ -1,6 +1,11 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
 
-"""Utilities for converting AV2 city coordinates to UTM or WGS84 coordinate systems."""
+"""Utilities for converting AV2 city coordinates to UTM or WGS84 coordinate systems.
+
+Reference:
+UTM: https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinate_system
+WGS84: https://en.wikipedia.org/wiki/World_Geodetic_System
+"""
 
 from enum import unique, Enum
 from typing import Dict, Final, Tuple, Union
@@ -45,12 +50,12 @@ CITY_ORIGIN_LATLONG_DICT: Final[Dict[CityName, Tuple[float, float]]] = {
 }
 
 
-def convert_gps_to_utm(lat: float, long: float, city_name: CityName) -> Tuple[float, float]:
+def convert_gps_to_utm(latitude: float, longitude: float, city_name: CityName) -> Tuple[float, float]:
     """Convert GPS coordinates to UTM coordinates.
 
     Args:
-        lat: latitude of query point.
-        long: longitude of query point.
+        latitude: latitude of query point.
+        longitude: longitude of query point.
         city_name: name of city, where query point is located.
 
     Returns:
@@ -60,7 +65,7 @@ def convert_gps_to_utm(lat: float, long: float, city_name: CityName) -> Tuple[fl
     projector = Proj(proj="utm", zone=UTM_ZONE_MAP[city_name], ellps="WGS84", datum="WGS84", units="m")
 
     # convert to UTM.
-    easting, northing = projector(long, lat)
+    easting, northing = projector(longitude, latitude)
 
     return easting, northing
 
@@ -75,9 +80,9 @@ def convert_city_coords_to_utm(points_city: Union[NDArrayFloat, NDArrayInt], cit
     Returns:
         Array of shape (N,2), representing points in the UTM coordinate system, as (easting, northing).
     """
-    lat, long = CITY_ORIGIN_LATLONG_DICT[city_name]
+    latitude, longitude = CITY_ORIGIN_LATLONG_DICT[city_name]
     # get (easting, northing) of origin
-    origin_utm = convert_gps_to_utm(lat=lat, long=long, city_name=city_name)
+    origin_utm = convert_gps_to_utm(latitude=latitude, longitude=longitude, city_name=city_name)
     
     points_utm: NDArrayFloat = points_city.astype(float) + np.array(origin_utm, dtype=float)
     return points_utm
@@ -91,7 +96,7 @@ def convert_city_coords_to_wgs84(points_city: Union[NDArrayFloat, NDArrayInt], c
         city_name: name of city, where query points are located.
 
     Returns:
-        Array of shape (N,2), representing points in the WGS84 coordinate system, as (lat, long).
+        Array of shape (N,2), representing points in the WGS84 coordinate system, as (latitude, longitude).
     """
     points_utm = convert_city_coords_to_utm(points_city, city_name)
 
@@ -99,7 +104,7 @@ def convert_city_coords_to_wgs84(points_city: Union[NDArrayFloat, NDArrayInt], c
 
     points_wgs84 = []
     for easting, northing in points_utm:
-        long, lat = projector(easting, northing, inverse=True)
-        points_wgs84.append((lat, long))
+        longitude, latitude = projector(easting, northing, inverse=True)
+        points_wgs84.append((latitude, longitude))
 
     return np.array(points_wgs84)
