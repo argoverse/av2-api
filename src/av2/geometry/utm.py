@@ -3,7 +3,7 @@
 """Utilities for converting AV2 city coordinates to UTM or WGS84 coordinate systems."""
 
 from enum import Enum
-from typing import Tuple, Union
+from typing import Dict, Final, Tuple, Union
 
 import numpy as np
 from pyproj import Proj
@@ -11,6 +11,7 @@ from pyproj import Proj
 from av2.utils.typing import NDArrayFloat, NDArrayInt
 
 
+@unique
 class CityName(str, Enum):
     """Abbreviations of names of cities featured in Argoverse 2."""
 
@@ -23,7 +24,7 @@ class CityName(str, Enum):
 
 
 # All are North UTM zones (Northern hemisphere)
-UTM_ZONE_MAP = {
+UTM_ZONE_MAP: Final[Dict[CityName, int]] = {
     CityName.ATX: 14,
     CityName.DTW: 17,
     CityName.MIA: 17,
@@ -34,7 +35,7 @@ UTM_ZONE_MAP = {
 
 
 # as (lat, long) tuples
-CITY_ORIGIN_LATLONG_DICT = {
+CITY_ORIGIN_LATLONG_DICT: Final[Dict[CityName, Tuple[float, float]]] = {
     CityName.ATX: (30.27464237939507, -97.7404457407424),
     CityName.DTW: (42.29993066912924, -83.17555750783717),
     CityName.MIA: (25.77452579915163, -80.19656914449405),
@@ -78,7 +79,7 @@ def convert_city_coords_to_utm(points_city: Union[NDArrayFloat, NDArrayInt], cit
     # get (easting, northing) of origin
     origin_utm = convert_gps_to_utm(lat=lat, long=long, city_name=city_name)
 
-    points_utm = points_city + origin_utm
+    points_utm: NDArrayFloat = points_city + origin_utm
     return points_utm
 
 
