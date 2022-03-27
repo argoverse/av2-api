@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 MIN_NUM_SWEEPS_PER_LOG: Final[int] = 40
 MIN_NUM_IMAGES_PER_CAMERA: Final[int] = 80
 
+EXPECTED_NUM_TBV_IMAGES: Final[int] = 7837614
+EXPECTED_NUM_TBV_SWEEPS: Final[int] = 559440
+
 AV2_CITY_NAMES: Final[Tuple[str, ...]] = ("ATX", "DTW", "MIA", "PAO", "PIT", "WDC")
 
 # every lane segment should have 10 keys only.
@@ -193,7 +196,9 @@ def verify_logs_using_dataloader(data_root: Path, log_ids: List[str]) -> None:
         log_ids: unique IDs of TbV vehicle logs.
     """
     loader = AV2SensorDataLoader(data_dir=data_root, labels_dir=data_root)
-    for log_id in log_ids:
+    for log_id in track(log_ids, description="Verify logs using an AV2 dataloader object"):
+
+        logger.info("Verifying log %s", log_id)
         # city abbreviation should be parsable from every vector map file name, and should fall into 1 of 6 cities
         city_name = loader.get_city_name(log_id=log_id)
         assert city_name in AV2_CITY_NAMES
@@ -226,7 +231,7 @@ def run_verify_all_tbv_logs(data_root: str, check_image_sizes: bool) -> None:
 
     log_ids = TRAIN + VAL + TEST
     num_logs = len(log_ids)
-    for i in track(range(num_logs), description="Verify logs using an AV2 dataloader object"):
+    for i in range(num_logs):
         log_id = log_ids[i]
         logger.info("Verifying log %d: %s", i, log_id)
         verify_log_contents(data_root=Path(data_root), log_id=log_id, check_image_sizes=check_image_sizes)
@@ -234,12 +239,10 @@ def run_verify_all_tbv_logs(data_root: str, check_image_sizes: bool) -> None:
     verify_logs_using_dataloader(data_root=Path(data_root), log_ids=log_ids)
 
     # verify the total number of images found on disk.
-    EXPECTED_NUM_TBV_IMAGES = 7837614
     img_fpaths = list(Path(data_root).glob("*/sensors/cameras/*/*.jpg"))
     assert len(img_fpaths) == EXPECTED_NUM_TBV_IMAGES
 
     # verify the total number of LiDAR sweeps found on disk.
-    EXPECTED_NUM_TBV_SWEEPS = 559440
     lidar_fpaths = list(Path(data_root).glob("*/sensors/lidar/*.feather"))
     assert len(lidar_fpaths) == EXPECTED_NUM_TBV_SWEEPS
 
