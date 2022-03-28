@@ -81,7 +81,6 @@ def evaluate(
         dts: (N,15) Table of detections.
         gts: (M,15) Table of ground truth annotations.
         cfg: Detection configuration.
-        poses: (K,8) Table of city egopose.
 
     Returns:
         (C+1,K) Table of evaluation metrics where C is the number of classes. Plus a row for their means.

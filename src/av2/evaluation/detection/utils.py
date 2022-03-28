@@ -100,7 +100,7 @@ def accumulate(
     gts: pd.DataFrame,
     cfg: DetectionCfg,
     avm: Optional[ArgoverseStaticMap] = None,
-    poses: Optional[TimestampedCitySE3EgoPoses] = None,
+    city_SE3_ego: Optional[SE3] = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Accumulate the true / false positives (boolean flags) and true positive errors for each class.
 
@@ -109,6 +109,8 @@ def accumulate(
         gts: (M,len(EvaluationColumns) + 1) Ground truth labels. Must contain all of the columns in EvaluationColumns
             and the `num_interior_pts` column.
         cfg: Detection configuration.
+        avm: Argoverse static map for the log.
+        city_SE3_ego: Egovehicle pose in the city reference frame.
 
     Returns:
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
@@ -119,8 +121,8 @@ def accumulate(
     # Filter detections and ground truth annotations.
     dts.loc[:, "is_evaluated"] = compute_evaluated_dts_mask(dts, cfg)
     gts.loc[:, "is_evaluated"] = compute_evaluated_gts_mask(gts, cfg)
-    if cfg.eval_only_roi_instances and avm is not None:
-        dts.loc[:, "is_evaluated"] &= compute_objects_in_roi_mask(dts, poses, avm)
+    if cfg.eval_only_roi_instances and city_SE3_ego is not None and avm is not None:
+        dts.loc[:, "is_evaluated"] &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
 
     # Initialize corresponding assignments + errors.
     dts.loc[:, cfg.affinity_thresholds_m] = False
@@ -152,8 +154,8 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
         cfg: Detection configuration.
 
     Returns:
-        The (N,K+S) confusion table containing the true and false positives augmented with the true positive errors where
-        K is the number of thresholds and S is the number of true positive error names.
+        The (N,K+S) confusion table containing the true and false positives augmented with the true positive errors
+            where K is the number of thresholds and S is the number of true positive error names.
     """
     # Construct all columns.
     cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames)
@@ -184,10 +186,10 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
     # The affinity matrix is an N by M matrix of the detections and ground truth labels respectively.
     # We want to take the corresponding affinity for each of the initial assignments using `gt_matches`.
     # The following line grabs the max affinity for each detection to a ground truth label.
-    affinities: NDArrayFloat = np.take_along_axis(affinity_matrix.transpose(), idx_gts, axis=0)[0]
+    affinities: NDArrayFloat = np.take_along_axis(affinity_matrix.transpose(), idx_gts, axis=0)[0]  # type: ignore
 
     # Find the indices of the _first_ detection assigned to each GT.
-    assignments: Tuple[NDArrayInt, NDArrayInt] = np.unique(idx_gts, return_index=True)
+    assignments: Tuple[NDArrayInt, NDArrayInt] = np.unique(idx_gts, return_index=True)  # type: ignore
 
     idx_gts, idx_dts = assignments
     for i, threshold_m in enumerate(cfg.affinity_thresholds_m):
@@ -240,8 +242,9 @@ def interpolate_precision(precision: NDArrayFloat, interpolation_method: InterpT
     Raises:
         NotImplementedError: If the interpolation method is not implemented.
     """
+    precision_interpolated: NDArrayFloat
     if interpolation_method == InterpType.ALL:
-        precision_interpolated: NDArrayFloat = np.maximum.accumulate(precision[::-1])[::-1]
+        precision_interpolated = np.maximum.accumulate(precision[::-1])[::-1]
     else:
         raise NotImplementedError("This interpolation method is not implemented!")
     return precision_interpolated
@@ -262,8 +265,8 @@ def compute_affinity_matrix(dts: pd.DataFrame, gts: pd.DataFrame, metric: Affini
         NotImplementedError: If the affinity metric is not implemented.
     """
     if metric == AffinityType.CENTER:
-        dts_xy_m = dts.loc[:, EvaluationColumns.TRANSLATION_NAMES[:2]]
-        gts_xy_m = gts.loc[:, EvaluationColumns.TRANSLATION_NAMES[:2]]
+        dts_xy_m = dts.loc[:, list(EvaluationColumns.TRANSLATION_NAMES[:2])]
+        gts_xy_m = gts.loc[:, list(EvaluationColumns.TRANSLATION_NAMES[:2])]
         affinities: NDArrayFloat = -cdist(dts_xy_m, gts_xy_m)
     else:
         raise NotImplementedError("This affinity metric is not implemented!")
@@ -288,10 +291,10 @@ def compute_average_precision(
     cum_fns: NDArrayInt = num_gts - cum_tps
 
     # Compute precision.
-    precision = cum_tps / (cum_tps + cum_fps + EPS)
+    precision: NDArrayFloat = cum_tps / (cum_tps + cum_fps + EPS)
 
     # Compute recall.
-    recall = cum_tps / (cum_tps + cum_fns)
+    recall: NDArrayFloat = cum_tps / (cum_tps + cum_fns)
 
     # Interpolate precision -- VOC-style.
     precision = interpolate_precision(precision)
@@ -318,18 +321,18 @@ def distance(dts: pd.DataFrame, gts: pd.DataFrame, metric: DistanceType) -> NDAr
         NotImplementedError: If the distance type is not supported.
     """
     if metric == DistanceType.TRANSLATION:
-        dts_xyz_m: NDArrayFloat = dts.loc[:, EvaluationColumns.TRANSLATION_NAMES].to_numpy()
-        gts_xyz_m: NDArrayFloat = gts.loc[:, EvaluationColumns.TRANSLATION_NAMES].to_numpy()
+        dts_xyz_m: NDArrayFloat = dts.loc[:, list(EvaluationColumns.TRANSLATION_NAMES)].to_numpy()
+        gts_xyz_m: NDArrayFloat = gts.loc[:, list(EvaluationColumns.TRANSLATION_NAMES)].to_numpy()
         translation_errors: NDArrayFloat = np.linalg.norm(dts_xyz_m - gts_xyz_m, axis=1)
         return translation_errors
     elif metric == DistanceType.SCALE:
-        dts_lwh_m: NDArrayFloat = dts.loc[:, EvaluationColumns.DIMENSION_NAMES].reset_index(drop=True).to_numpy()
-        gts_lwh_m: NDArrayFloat = gts.loc[:, EvaluationColumns.DIMENSION_NAMES].reset_index(drop=True).to_numpy()
+        dts_lwh_m: NDArrayFloat = dts.loc[:, list(EvaluationColumns.DIMENSION_NAMES)].reset_index(drop=True).to_numpy()
+        gts_lwh_m: NDArrayFloat = gts.loc[:, list(EvaluationColumns.DIMENSION_NAMES)].reset_index(drop=True).to_numpy()
         scale_errors: NDArrayFloat = 1 - iou_3d_axis_aligned(dts_lwh_m, gts_lwh_m)
         return scale_errors
     elif metric == DistanceType.ORIENTATION:
-        dts_quats_xyzw = dts.loc[:, EvaluationColumns.QUAT_COEFFICIENTS_WXYZ].to_numpy()
-        gts_quats_xyzw = gts.loc[:, EvaluationColumns.QUAT_COEFFICIENTS_WXYZ].to_numpy()
+        dts_quats_xyzw = dts.loc[:, list(EvaluationColumns.QUAT_COEFFICIENTS_WXYZ)].to_numpy()
+        gts_quats_xyzw = gts.loc[:, list(EvaluationColumns.QUAT_COEFFICIENTS_WXYZ)].to_numpy()
         yaws_dts: NDArrayFloat = mat_to_xyz(quat_to_mat(dts_quats_xyzw))[..., 2]
         yaws_gts: NDArrayFloat = mat_to_xyz(quat_to_mat(gts_quats_xyzw))[..., 2]
         orientation_errors = wrap_angles(yaws_dts - yaws_gts)
@@ -345,7 +348,7 @@ def compute_objects_in_roi_mask(
 
     Args:
         cuboids_dataframe: Dataframes containing cuboids.
-        poses: Poses of the cuboids in the city frame.
+        city_SE3_ego: Egovehicle pose in the city reference frame.
         avm: Argoverse map object.
 
     Returns:
@@ -381,9 +384,6 @@ def compute_evaluated_dts_mask(
 
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
-
-    Raises:
-        ValueError: If all of the columns aren't in the cuboids table.
     """
     norm: NDArrayFloat = np.linalg.norm(dts.loc[:, EvaluationColumns.TRANSLATION_NAMES[:2]], axis=1)
     is_within_radius: NDArrayBool = norm < cfg.max_range_m
@@ -408,12 +408,9 @@ def compute_evaluated_gts_mask(
 
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
-
-    Raises:
-        ValueError: If all of the columns aren't in the cuboids table.
     """
-    norm: NDArrayFloat = np.linalg.norm(gts.loc[:, EvaluationColumns.TRANSLATION_NAMES[:2]], axis=1)
+    norm: NDArrayFloat = np.linalg.norm(gts.loc[:, list(EvaluationColumns.TRANSLATION_NAMES[:2])], axis=1)
     is_valid_radius: NDArrayBool = norm < cfg.max_range_m
-    is_valid_num_points: NDArrayBool = gts.loc[:, "num_interior_pts"] > 0
+    is_valid_num_points: NDArrayBool = gts.loc[:, "num_interior_pts"].to_numpy() > 0
     is_evaluated: NDArrayBool = is_valid_radius & is_valid_num_points
     return is_evaluated

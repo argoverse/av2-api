@@ -386,7 +386,7 @@ class CuboidList:
         """Read annotations from a feather file.
 
         Args:
-            annotations_feather_path: Feather file path.
+            data: (N,12) Dataframe containing the cuboids and their respective parameters .
 
         Returns:
             Constructed cuboids.
