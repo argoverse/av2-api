@@ -12,7 +12,6 @@ increased interpretability of the error modes in a set of detections.
 
 import logging
 from dataclasses import dataclass
-from optparse import Option
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -36,6 +35,7 @@ from av2.evaluation.detection.constants import (
 )
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat, wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
+from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
 from av2.structures.cuboid import CuboidList
 from av2.utils.constants import EPS
@@ -137,7 +137,7 @@ def accumulate(
             continue
 
         assignments = assign(category_dts, category_gts, cfg)
-        dts.loc[is_eval_dts, assignments.columns] = assign(category_dts, category_gts, cfg).to_numpy()
+        dts.loc[is_eval_dts, assignments.columns] = assignments.to_numpy()
     return dts, gts
 
 
@@ -339,7 +339,7 @@ def distance(dts: pd.DataFrame, gts: pd.DataFrame, metric: DistanceType) -> NDAr
 
 
 def compute_objects_in_roi_mask(
-    cuboids_dataframe: pd.DataFrame, city_SE3_ego: TimestampedCitySE3EgoPoses, avm: ArgoverseStaticMap
+    cuboids_dataframe: pd.DataFrame, city_SE3_ego: SE3, avm: ArgoverseStaticMap
 ) -> NDArrayBool:
     """Compute the evaluated cuboids mask based off whether _any_ of their vertices fall into the ROI.
 

@@ -57,6 +57,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
+from rich.progress import track
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import DetectionCfg, accumulate, compute_average_precision
@@ -97,21 +98,21 @@ def evaluate(
     gts = gts.set_index(keys=uuid_columns).sort_index()
 
     # Find unique list of uuid tuples.
-    uuids = gts.index.unique().tolist()
-    log_ids = gts.index.get_level_values(level=0).unique()
+    uuids: List[Tuple[str, int]] = gts.index.unique().tolist()
+    log_ids: List[str] = gts.index.get_level_values(level=0).unique()
 
     log_id_to_avm: Dict[str, ArgoverseStaticMap] = {}
-    timestamped_city_SE3_egoposes: TimestampedCitySE3EgoPoses = {}
-    if cfg.eval_only_roi_instances:
+    log_id_to_timestamped_poses: Dict[str, TimestampedCitySE3EgoPoses] = {}
+    if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
         for log_id in log_ids:
             log_dir = cfg.dataset_dir / log_id
             avm_dir = log_dir / "map"
             avm = ArgoverseStaticMap.from_map_dir(avm_dir, build_raster=True)
             log_id_to_avm[log_id] = avm
-            timestamped_city_SE3_egoposes[log_id] = read_city_SE3_ego(log_dir)
+            log_id_to_timestamped_poses[log_id] = read_city_SE3_ego(log_dir)
 
     args_list = []
-    for (log_id, timestamp_ns) in uuids:
+    for (log_id, timestamp_ns) in track(uuids, "Loading maps ..."):
         sweep_dts = dts.loc[(log_id, timestamp_ns)].reset_index().copy()
         sweep_gts = gts.loc[(log_id, timestamp_ns)].reset_index().copy()
 
@@ -119,16 +120,15 @@ def evaluate(
         sweep_poses = None
         if log_id in log_id_to_avm:
             sweep_map = log_id_to_avm[log_id]
-        if log_id in timestamped_city_SE3_egoposes:
-            if timestamp_ns in timestamped_city_SE3_egoposes[log_id]:
-                sweep_poses = timestamped_city_SE3_egoposes[log_id][timestamp_ns]
+        if log_id in log_id_to_timestamped_poses:
+            if timestamp_ns in log_id_to_timestamped_poses[log_id]:
+                sweep_poses = log_id_to_timestamped_poses[log_id][timestamp_ns]
         args_list.append([sweep_dts, sweep_gts, cfg, sweep_map, sweep_poses])
 
     # Accumulate and gather the processed detections and ground truth annotations.
-    # results: Optional[List[Tuple[pd.DataFrame, pd.DataFrame]]] = Parallel(n_jobs=-1, backend="threading")(
-    #     delayed(accumulate)(*x) for x in args_list
-    # )
-    results = [accumulate(*x) for x in args_list]
+    results: Optional[List[Tuple[pd.DataFrame, pd.DataFrame]]] = Parallel(
+        n_jobs=-1, backend="multiprocessing", verbose=True
+    )(delayed(accumulate)(*x) for x in args_list)
     if results is None:
         raise RuntimeError("Accumulation of dts and gts has failed!")
 
