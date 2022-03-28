@@ -95,10 +95,12 @@ class DetectionCfg:
         )
 
 
+@profile
 def accumulate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
     cfg: DetectionCfg,
+    avm: Optional[ArgoverseStaticMap] = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Accumulate the true / false positives (boolean flags) and true positive errors for each class.
 
@@ -117,12 +119,9 @@ def accumulate(
     # Filter detections and ground truth annotations.
     dts.loc[:, "is_evaluated"] = compute_evaluated_dts_mask(dts, cfg)
     gts.loc[:, "is_evaluated"] = compute_evaluated_gts_mask(gts, cfg)
-    if cfg.eval_only_roi_instances:
+    if cfg.eval_only_roi_instances and avm is not None:
         log_id = gts.log_id.unique().item()
         log_dir = cfg.dataset_dir / log_id
-        avm_dir = log_dir / "map"
-        avm = ArgoverseStaticMap.from_map_dir(avm_dir, build_raster=True)
-
         poses = read_city_SE3_ego(log_dir)
         dts.loc[:, "is_evaluated"] &= compute_objects_in_roi_mask(dts, poses, avm)
 

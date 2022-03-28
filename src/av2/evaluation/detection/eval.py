@@ -52,7 +52,7 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import logging
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -60,11 +60,13 @@ from joblib import Parallel, delayed
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import DetectionCfg, accumulate, compute_average_precision
+from av2.map.map_api import ArgoverseStaticMap
 from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 logger = logging.getLogger(__name__)
 
 
+@profile
 def evaluate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
@@ -96,14 +98,28 @@ def evaluate(
 
     # Find unique list of uuid tuples.
     uuids = gts.index.unique().tolist()
+    log_ids = gts.index.get_level_values(level=0).unique()
+
+    log_id_to_avm: Dict[str, ArgoverseStaticMap] = {}
+    if cfg.eval_only_roi_instances:
+        log_id_to_avm: Dict[str, ArgoverseStaticMap] = {}
+        for log_id in log_ids:
+            log_dir = cfg.dataset_dir / log_id
+            avm_dir = log_dir / "map"
+            avm = ArgoverseStaticMap.from_map_dir(avm_dir, build_raster=True)
+            log_id_to_avm[log_id] = avm
 
     # Construct arguments for multiprocessing.
-    args_list = [(dts.loc[uuid].reset_index().copy(), gts.loc[uuid].reset_index().copy(), cfg) for uuid in uuids]
+    args_list = [
+        (dts.loc[uuid].reset_index().copy(), gts.loc[uuid].reset_index().copy(), cfg, log_id_to_avm.get(uuid[0], None))
+        for uuid in uuids
+    ]
 
     # Accumulate and gather the processed detections and ground truth annotations.
-    results: Optional[List[Tuple[pd.DataFrame, pd.DataFrame]]] = Parallel(n_jobs=-1)(
-        delayed(accumulate)(*x) for x in args_list
-    )
+    # results: Optional[List[Tuple[pd.DataFrame, pd.DataFrame]]] = Parallel(n_jobs=-1, backend="threading")(
+    #     delayed(accumulate)(*x) for x in args_list
+    # )
+    results = [accumulate(*x) for x in args_list]
     if results is None:
         raise RuntimeError("Accumulation of dts and gts has failed!")
 
