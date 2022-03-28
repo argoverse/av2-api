@@ -26,9 +26,9 @@ from av2.evaluation.detection.constants import (
     MIN_AP,
     MIN_CDS,
     AffinityType,
+    AnnotationColumns,
     CompetitionCategories,
     DistanceType,
-    EvaluationColumns,
     FilterMetricType,
     InterpType,
     TruePositiveErrorNames,
@@ -105,8 +105,8 @@ def accumulate(
     """Accumulate the true / false positives (boolean flags) and true positive errors for each class.
 
     Args:
-        dts: (N,len(EvaluationColumns)) Detections of shape. Must contain all of the columns in EvaluationColumns.
-        gts: (M,len(EvaluationColumns) + 1) Ground truth labels. Must contain all of the columns in EvaluationColumns
+        dts: (N,len(AnnotationColumns)) Detections of shape. Must contain all of the columns in AnnotationColumns.
+        gts: (M,len(AnnotationColumns) + 1) Ground truth labels. Must contain all of the columns in AnnotationColumns
             and the `num_interior_pts` column.
         cfg: Detection configuration.
         avm: Argoverse static map for the log.
@@ -147,9 +147,9 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
     """Attempt assignment of each detection to a ground truth label.
 
     Args:
-        dts: (N,23) Detections of shape. Must contain all columns in EvaluationColumns and the
+        dts: (N,23) Detections of shape. Must contain all columns in AnnotationColumns and the
             additional columns: (is_evaluated, *cfg.affinity_thresholds_m, *TruePositiveErrorNames).
-        gts: (M,23) Ground truth labels. Must contain all columns in EvaluationColumns and the
+        gts: (M,23) Ground truth labels. Must contain all columns in AnnotationColumns and the
             additional columns: (is_evaluated, *cfg.affinity_thresholds_m, *TruePositiveErrorNames).
         cfg: Detection configuration.
 
@@ -265,8 +265,8 @@ def compute_affinity_matrix(dts: pd.DataFrame, gts: pd.DataFrame, metric: Affini
         NotImplementedError: If the affinity metric is not implemented.
     """
     if metric == AffinityType.CENTER:
-        dts_xy_m = dts.loc[:, list(EvaluationColumns.TRANSLATION_NAMES[:2])]
-        gts_xy_m = gts.loc[:, list(EvaluationColumns.TRANSLATION_NAMES[:2])]
+        dts_xy_m = dts.loc[:, list(AnnotationColumns.TRANSLATION_NAMES[:2])]
+        gts_xy_m = gts.loc[:, list(AnnotationColumns.TRANSLATION_NAMES[:2])]
         affinities: NDArrayFloat = -cdist(dts_xy_m, gts_xy_m)
     else:
         raise NotImplementedError("This affinity metric is not implemented!")
@@ -300,7 +300,7 @@ def compute_average_precision(
     precision = interpolate_precision(precision)
 
     # Evaluate precision at different recalls.
-    precision_interpolated: NDArrayFloat = np.interp(recall_interpolated, recall, precision, right=0)
+    precision_interpolated: NDArrayFloat = np.interp(recall_interpolated, recall, precision, right=0)  # type: ignore
 
     average_precision: float = np.mean(precision_interpolated)
     return average_precision, precision_interpolated
@@ -321,18 +321,18 @@ def distance(dts: pd.DataFrame, gts: pd.DataFrame, metric: DistanceType) -> NDAr
         NotImplementedError: If the distance type is not supported.
     """
     if metric == DistanceType.TRANSLATION:
-        dts_xyz_m: NDArrayFloat = dts.loc[:, list(EvaluationColumns.TRANSLATION_NAMES)].to_numpy()
-        gts_xyz_m: NDArrayFloat = gts.loc[:, list(EvaluationColumns.TRANSLATION_NAMES)].to_numpy()
+        dts_xyz_m: NDArrayFloat = dts.loc[:, list(AnnotationColumns.TRANSLATION_NAMES)].to_numpy()
+        gts_xyz_m: NDArrayFloat = gts.loc[:, list(AnnotationColumns.TRANSLATION_NAMES)].to_numpy()
         translation_errors: NDArrayFloat = np.linalg.norm(dts_xyz_m - gts_xyz_m, axis=1)
         return translation_errors
     elif metric == DistanceType.SCALE:
-        dts_lwh_m: NDArrayFloat = dts.loc[:, list(EvaluationColumns.DIMENSION_NAMES)].reset_index(drop=True).to_numpy()
-        gts_lwh_m: NDArrayFloat = gts.loc[:, list(EvaluationColumns.DIMENSION_NAMES)].reset_index(drop=True).to_numpy()
+        dts_lwh_m: NDArrayFloat = dts.loc[:, list(AnnotationColumns.DIMENSION_NAMES)].reset_index(drop=True).to_numpy()
+        gts_lwh_m: NDArrayFloat = gts.loc[:, list(AnnotationColumns.DIMENSION_NAMES)].reset_index(drop=True).to_numpy()
         scale_errors: NDArrayFloat = 1 - iou_3d_axis_aligned(dts_lwh_m, gts_lwh_m)
         return scale_errors
     elif metric == DistanceType.ORIENTATION:
-        dts_quats_xyzw = dts.loc[:, list(EvaluationColumns.QUAT_COEFFICIENTS_WXYZ)].to_numpy()
-        gts_quats_xyzw = gts.loc[:, list(EvaluationColumns.QUAT_COEFFICIENTS_WXYZ)].to_numpy()
+        dts_quats_xyzw = dts.loc[:, list(AnnotationColumns.QUAT_COEFFICIENTS_WXYZ)].to_numpy()
+        gts_quats_xyzw = gts.loc[:, list(AnnotationColumns.QUAT_COEFFICIENTS_WXYZ)].to_numpy()
         yaws_dts: NDArrayFloat = mat_to_xyz(quat_to_mat(dts_quats_xyzw))[..., 2]
         yaws_gts: NDArrayFloat = mat_to_xyz(quat_to_mat(gts_quats_xyzw))[..., 2]
         orientation_errors = wrap_angles(yaws_dts - yaws_gts)
@@ -385,7 +385,9 @@ def compute_evaluated_dts_mask(
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
-    norm: NDArrayFloat = np.linalg.norm(dts.loc[:, EvaluationColumns.TRANSLATION_NAMES[:2]], axis=1)
+    norm: NDArrayFloat = np.linalg.norm(  # type: ignore
+        dts.loc[:, list(AnnotationColumns.TRANSLATION_NAMES[:2])], axis=1
+    )
     is_within_radius: NDArrayBool = norm < cfg.max_range_m
     is_evaluated: NDArrayBool = is_within_radius
     is_evaluated[cfg.max_num_dts_per_category :] = False  # Limit the number of detections.
@@ -409,8 +411,9 @@ def compute_evaluated_gts_mask(
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
-    norm: NDArrayFloat = np.linalg.norm(gts.loc[:, list(EvaluationColumns.TRANSLATION_NAMES[:2])], axis=1)
-    is_valid_radius: NDArrayBool = norm < cfg.max_range_m
+    norm: NDArrayFloat = np.linalg.norm(  # type: ignore
+        gts.loc[:, list(AnnotationColumns.TRANSLATION_NAMES[:2])], axis=1
+    )
     is_valid_num_points: NDArrayBool = gts.loc[:, "num_interior_pts"].to_numpy() > 0
     is_evaluated: NDArrayBool = is_valid_radius & is_valid_num_points
     return is_evaluated
