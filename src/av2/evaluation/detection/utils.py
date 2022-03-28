@@ -95,12 +95,12 @@ class DetectionCfg:
         )
 
 
-@profile
 def accumulate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
     cfg: DetectionCfg,
     avm: Optional[ArgoverseStaticMap] = None,
+    poses: Optional[TimestampedCitySE3EgoPoses] = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Accumulate the true / false positives (boolean flags) and true positive errors for each class.
 
@@ -120,9 +120,6 @@ def accumulate(
     dts.loc[:, "is_evaluated"] = compute_evaluated_dts_mask(dts, cfg)
     gts.loc[:, "is_evaluated"] = compute_evaluated_gts_mask(gts, cfg)
     if cfg.eval_only_roi_instances and avm is not None:
-        log_id = gts.log_id.unique().item()
-        log_dir = cfg.dataset_dir / log_id
-        poses = read_city_SE3_ego(log_dir)
         dts.loc[:, "is_evaluated"] &= compute_objects_in_roi_mask(dts, poses, avm)
 
     # Initialize corresponding assignments + errors.
@@ -342,7 +339,7 @@ def distance(dts: pd.DataFrame, gts: pd.DataFrame, metric: DistanceType) -> NDAr
 
 
 def compute_objects_in_roi_mask(
-    cuboids_dataframe: pd.DataFrame, poses: TimestampedCitySE3EgoPoses, avm: ArgoverseStaticMap
+    cuboids_dataframe: pd.DataFrame, city_SE3_ego: TimestampedCitySE3EgoPoses, avm: ArgoverseStaticMap
 ) -> NDArrayBool:
     """Compute the evaluated cuboids mask based off whether _any_ of their vertices fall into the ROI.
 
@@ -357,9 +354,6 @@ def compute_objects_in_roi_mask(
     cuboids_dataframe = cuboids_dataframe.sort_values("timestamp_ns").reset_index(drop=True)
 
     cuboid_list_ego = CuboidList.from_dataframe(cuboids_dataframe)
-    timestamp_ns = cuboids_dataframe.timestamp_ns.unique().item()
-    city_SE3_ego = poses[timestamp_ns]
-
     cuboid_list_city = cuboid_list_ego.transform(city_SE3_ego)
     cuboid_list_vertices_m = cuboid_list_city.vertices_m
 
