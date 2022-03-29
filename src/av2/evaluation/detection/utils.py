@@ -414,6 +414,7 @@ def compute_evaluated_gts_mask(
     norm: NDArrayFloat = np.linalg.norm(  # type: ignore
         gts.loc[:, list(AnnotationColumns.TRANSLATION_NAMES[:2])], axis=1
     )
+    is_within_radius: NDArrayBool = norm < cfg.max_range_m
     is_valid_num_points: NDArrayBool = gts.loc[:, "num_interior_pts"].to_numpy() > 0
-    is_evaluated: NDArrayBool = is_valid_radius & is_valid_num_points
+    is_evaluated: NDArrayBool = is_within_radius & is_valid_num_points
     return is_evaluated
