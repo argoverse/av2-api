@@ -126,7 +126,7 @@ def accumulate(
 
     # Initialize corresponding assignments + errors.
     dts.loc[:, cfg.affinity_thresholds_m] = False
-    dts.loc[:, tuple(x.value for x in TruePositiveErrorNames)] = cfg.metrics_defaults[1:4]
+    dts.loc[:, [x.value for x in TruePositiveErrorNames]] = np.array(cfg.metrics_defaults[1:4])
     for category in cfg.categories:
         is_eval_dts = np.logical_and(dts["category"] == category, dts["is_evaluated"])
         is_eval_gts = np.logical_and(gts["category"] == category, gts["is_evaluated"])
@@ -323,7 +323,7 @@ def distance(dts: pd.DataFrame, gts: pd.DataFrame, metric: DistanceType) -> NDAr
     if metric == DistanceType.TRANSLATION:
         dts_xyz_m: NDArrayFloat = dts.loc[:, list(AnnotationColumns.TRANSLATION_NAMES)].to_numpy()
         gts_xyz_m: NDArrayFloat = gts.loc[:, list(AnnotationColumns.TRANSLATION_NAMES)].to_numpy()
-        translation_errors: NDArrayFloat = np.linalg.norm(dts_xyz_m - gts_xyz_m, axis=1)
+        translation_errors: NDArrayFloat = np.linalg.norm(dts_xyz_m - gts_xyz_m, axis=1)  # type: ignore
         return translation_errors
     elif metric == DistanceType.SCALE:
         dts_lwh_m: NDArrayFloat = dts.loc[:, list(AnnotationColumns.DIMENSION_NAMES)].reset_index(drop=True).to_numpy()

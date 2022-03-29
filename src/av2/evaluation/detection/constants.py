@@ -44,23 +44,10 @@ class AnnotationColumns(str, Enum):
     TZ_M = "tz_m"
     SCORE = "score"
 
-    @classmethod
-    @property
-    def DIMENSION_NAMES(cls) -> Tuple[str, str, str]:
-        """Return the column names for the evaluation cuboids dataframes."""
-        return cls.LENGTH_M.value, cls.WIDTH_M.value, cls.HEIGHT_M.value
+    DIMENSION_NAMES = (LENGTH_M, WIDTH_M, HEIGHT_M)
+    TRANSLATION_NAMES = (TX_M, TY_M, TZ_M)
+    QUAT_COEFFICIENTS_WXYZ = (QW, QX, QY, QZ)
 
-    @classmethod
-    @property
-    def QUAT_COEFFICIENTS_WXYZ(cls) -> Tuple[str, str, str, str]:
-        """Return the quanternion coefficient names (scalar first) for the evaluation cuboids dataframes."""
-        return cls.QW.value, cls.QX.value, cls.QY.value, cls.QZ.value
-
-    @classmethod
-    @property
-    def TRANSLATION_NAMES(cls) -> Tuple[str, str, str]:
-        """Return the translation component names for the evaluation cuboids dataframes."""
-        return cls.TX_M.value, cls.TY_M.value, cls.TZ_M.value
 
 
 @unique
