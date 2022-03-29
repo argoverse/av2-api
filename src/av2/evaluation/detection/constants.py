@@ -24,40 +24,9 @@ MAX_NUM_BOXES: Final[int] = 500
 
 NUM_DECIMALS: Final[int] = 3
 
-
-@unique
-class AnnotationColumns(str, Enum):
-    """Columns needed for evaluation in the input detection and ground truth dataframes."""
-
-    LOG_ID = "log_id"
-    TIMESTAMP_NS = "timestamp_ns"
-    CATEGORY = "category"
-    LENGTH_M = "length_m"
-    WIDTH_M = "width_m"
-    HEIGHT_M = "height_m"
-    QW = "qw"
-    QX = "qx"
-    QY = "qy"
-    QZ = "qz"
-    TX_M = "tx_m"
-    TY_M = "ty_m"
-    TZ_M = "tz_m"
-    SCORE = "score"
-
-    @classmethod
-    @property
-    def TRANSLATION_NAMES(cls) -> List[str]:
-        return [cls.TX_M, cls.TY_M, cls.TZ_M]
-
-    @classmethod
-    @property
-    def DIMENSION_NAMES(cls) -> List[str]:
-        return [cls.LENGTH_M, cls.WIDTH_M, cls.HEIGHT_M]
-
-    @classmethod
-    @property
-    def QUAT_COEFFICIENTS_WXYZ(cls) -> List[str]:
-        return [cls.QW, cls.QX, cls.QY, cls.QZ]
+TRANSLATION_COLS: Final[List[str]] = ["tx_m", "ty_m", "tz_m"]
+DIMENSION_COLS: Final[List[str]] = ["length_m", "width_m", "height_m"]
+QUAT_WXYZ_COLS: Final[List[str]] = ["qw", "qx", "qy", "qz"]
 
 
 @unique
