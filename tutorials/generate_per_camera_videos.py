@@ -110,4 +110,5 @@ def run_generate_per_camera_videos(data_root: str, output_dir: str, num_workers:
 
 
 if __name__ == "__main__":
-    run_generate_per_camera_videos()
+    # https://github.com/pallets/click/issues/2227
+    run_generate_per_camera_videos()  # type: ignore

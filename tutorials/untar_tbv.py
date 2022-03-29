@@ -85,4 +85,5 @@ def run_untar_tbv_dataset(num_workers: int, shard_dirpath: str, desired_tbv_data
 
 
 if __name__ == "__main__":
-    run_untar_tbv_dataset()
+    # https://github.com/pallets/click/issues/2227
+    run_untar_tbv_dataset()  # type: ignore

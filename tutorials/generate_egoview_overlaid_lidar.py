@@ -195,4 +195,5 @@ def run_generate_egoview_overlaid_lidar(
 
 
 if __name__ == "__main__":
-    run_generate_egoview_overlaid_lidar()
+    # https://github.com/pallets/click/issues/2227
+    run_generate_egoview_overlaid_lidar()  # type: ignore
