@@ -3,7 +3,7 @@
 """3D object detection evaluation constants."""
 
 from enum import Enum, unique
-from typing import Final, Tuple
+from typing import Final, List, Tuple
 
 from av2.utils.constants import PI
 
@@ -44,10 +44,24 @@ class AnnotationColumns(str, Enum):
     TZ_M = "tz_m"
     SCORE = "score"
 
-    DIMENSION_NAMES = (LENGTH_M, WIDTH_M, HEIGHT_M)
-    TRANSLATION_NAMES = (TX_M, TY_M, TZ_M)
-    QUAT_COEFFICIENTS_WXYZ = (QW, QX, QY, QZ)
+    @classmethod
+    @property
+    def TRANSLATION_NAMES(cls) -> List[str]:
+        return [cls.TX_M, cls.TY_M, cls.TZ_M]
 
+    @classmethod
+    @property
+    def DIMENSION_NAMES(cls) -> List[str]:
+        return [cls.LENGTH_M, cls.WIDTH_M, cls.HEIGHT_M]
+
+    @classmethod
+    @property
+    def QUAT_COEFFICIENTS_WXYZ(cls) -> List[str]:
+        return [cls.QW, cls.QX, cls.QY, cls.QZ]
+
+    # DIMENSION_NAMES = [LENGTH_M, WIDTH_M, HEIGHT_M]
+    # TRANSLATION_NAMES = [TX_M, TY_M, TZ_M]
+    # QUAT_COEFFICIENTS_WXYZ = [QW, QX, QY, QZ]
 
 
 @unique
@@ -74,7 +88,6 @@ class MetricNames(str, Enum):
 class CompetitionCategories(str, Enum):
     """Sensor dataset annotation categories."""
 
-    ANIMAL = "ANIMAL"
     ARTICULATED_BUS = "ARTICULATED_BUS"
     BICYCLE = "BICYCLE"
     BICYCLIST = "BICYCLIST"
@@ -89,15 +102,12 @@ class CompetitionCategories(str, Enum):
     MOBILE_PEDESTRIAN_CROSSING_SIGN = "MOBILE_PEDESTRIAN_CROSSING_SIGN"
     MOTORCYCLE = "MOTORCYCLE"
     MOTORCYCLIST = "MOTORCYCLIST"
-    OFFICIAL_SIGNALER = "OFFICIAL_SIGNALER"
     PEDESTRIAN = "PEDESTRIAN"
-    RAILED_VEHICLE = "RAILED_VEHICLE"
     REGULAR_VEHICLE = "REGULAR_VEHICLE"
     SCHOOL_BUS = "SCHOOL_BUS"
     SIGN = "SIGN"
     STOP_SIGN = "STOP_SIGN"
     STROLLER = "STROLLER"
-    TRAFFIC_LIGHT_TRAILER = "TRAFFIC_LIGHT_TRAILER"
     TRUCK = "TRUCK"
     TRUCK_CAB = "TRUCK_CAB"
     VEHICULAR_TRAILER = "VEHICULAR_TRAILER"

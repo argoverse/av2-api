@@ -321,18 +321,18 @@ def distance(dts: pd.DataFrame, gts: pd.DataFrame, metric: DistanceType) -> NDAr
         NotImplementedError: If the distance type is not supported.
     """
     if metric == DistanceType.TRANSLATION:
-        dts_xyz_m: NDArrayFloat = dts.loc[:, list(AnnotationColumns.TRANSLATION_NAMES)].to_numpy()
-        gts_xyz_m: NDArrayFloat = gts.loc[:, list(AnnotationColumns.TRANSLATION_NAMES)].to_numpy()
+        dts_xyz_m: NDArrayFloat = dts.loc[:, AnnotationColumns.TRANSLATION_NAMES].to_numpy()
+        gts_xyz_m: NDArrayFloat = gts.loc[:, AnnotationColumns.TRANSLATION_NAMES].to_numpy()
         translation_errors: NDArrayFloat = np.linalg.norm(dts_xyz_m - gts_xyz_m, axis=1)  # type: ignore
         return translation_errors
     elif metric == DistanceType.SCALE:
-        dts_lwh_m: NDArrayFloat = dts.loc[:, list(AnnotationColumns.DIMENSION_NAMES)].reset_index(drop=True).to_numpy()
-        gts_lwh_m: NDArrayFloat = gts.loc[:, list(AnnotationColumns.DIMENSION_NAMES)].reset_index(drop=True).to_numpy()
+        dts_lwh_m: NDArrayFloat = dts.loc[:, AnnotationColumns.DIMENSION_NAMES].reset_index(drop=True).to_numpy()
+        gts_lwh_m: NDArrayFloat = gts.loc[:, AnnotationColumns.DIMENSION_NAMES].reset_index(drop=True).to_numpy()
         scale_errors: NDArrayFloat = 1 - iou_3d_axis_aligned(dts_lwh_m, gts_lwh_m)
         return scale_errors
     elif metric == DistanceType.ORIENTATION:
-        dts_quats_xyzw = dts.loc[:, list(AnnotationColumns.QUAT_COEFFICIENTS_WXYZ)].to_numpy()
-        gts_quats_xyzw = gts.loc[:, list(AnnotationColumns.QUAT_COEFFICIENTS_WXYZ)].to_numpy()
+        dts_quats_xyzw: NDArrayFloat = dts.loc[:, AnnotationColumns.QUAT_COEFFICIENTS_WXYZ].to_numpy()
+        gts_quats_xyzw: NDArrayFloat = gts.loc[:, AnnotationColumns.QUAT_COEFFICIENTS_WXYZ].to_numpy()
         yaws_dts: NDArrayFloat = mat_to_xyz(quat_to_mat(dts_quats_xyzw))[..., 2]
         yaws_gts: NDArrayFloat = mat_to_xyz(quat_to_mat(gts_quats_xyzw))[..., 2]
         orientation_errors = wrap_angles(yaws_dts - yaws_gts)
