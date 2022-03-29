@@ -3,12 +3,12 @@
 """3D object detection evaluation constants."""
 
 from enum import Enum, unique
-from typing import Final, List, Tuple
+from typing import Final, List
 
 from av2.utils.constants import PI
 
 MAX_SCALE_ERROR: Final[float] = 1.0
-MAX_YAW_ERROR: Final[float] = PI
+MAX_YAW_RAD_ERROR: Final[float] = PI
 
 # Higher is better.
 MIN_AP: Final[float] = 0.0
@@ -58,10 +58,6 @@ class AnnotationColumns(str, Enum):
     @property
     def QUAT_COEFFICIENTS_WXYZ(cls) -> List[str]:
         return [cls.QW, cls.QX, cls.QY, cls.QZ]
-
-    # DIMENSION_NAMES = [LENGTH_M, WIDTH_M, HEIGHT_M]
-    # TRANSLATION_NAMES = [TX_M, TY_M, TZ_M]
-    # QUAT_COEFFICIENTS_WXYZ = [QW, QX, QY, QZ]
 
 
 @unique

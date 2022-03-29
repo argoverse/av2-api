@@ -22,7 +22,7 @@ from scipy.spatial.distance import cdist
 from av2.evaluation.detection.constants import (
     MAX_NORMALIZED_ASE,
     MAX_SCALE_ERROR,
-    MAX_YAW_ERROR,
+    MAX_YAW_RAD_ERROR,
     MIN_AP,
     MIN_CDS,
     AffinityType,
@@ -81,7 +81,7 @@ class DetectionCfg:
             MIN_AP,
             self.tp_threshold_m,
             MAX_NORMALIZED_ASE,
-            MAX_YAW_ERROR,
+            MAX_YAW_RAD_ERROR,
             MIN_CDS,
         )
 
@@ -91,7 +91,7 @@ class DetectionCfg:
         return (
             self.tp_threshold_m,
             MAX_SCALE_ERROR,
-            MAX_YAW_ERROR,
+            MAX_YAW_RAD_ERROR,
         )
 
 
