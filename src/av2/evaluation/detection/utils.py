@@ -65,7 +65,7 @@ class DetectionCfg:
 
     affinity_thresholds_m: Tuple[float, ...] = (0.5, 1.0, 2.0, 4.0)
     affinity_type: AffinityType = AffinityType.CENTER
-    categories: Tuple[str, ...] = tuple(x.value for x in list(CompetitionCategories))
+    categories: Tuple[str, ...] = tuple(x.value for x in CompetitionCategories)
     dataset_dir: Optional[Path] = None
     eval_only_roi_instances: bool = True
     filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN
@@ -127,7 +127,7 @@ def accumulate(
 
     # Initialize corresponding assignments + errors.
     dts.loc[:, cfg.affinity_thresholds_m] = False
-    dts.loc[:, [x.value for x in list(TruePositiveErrorNames)]] = np.array(cfg.metrics_defaults[1:4])
+    dts.loc[:, [x.value for x in TruePositiveErrorNames]] = np.array(cfg.metrics_defaults[1:4])
     for category in cfg.categories:
         is_eval_dts = np.logical_and(dts["category"] == category, dts["is_evaluated"])
         is_eval_gts = np.logical_and(gts["category"] == category, gts["is_evaluated"])
@@ -159,7 +159,7 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
             where K is the number of thresholds and S is the number of true positive error names.
     """
     # Construct all columns.
-    cols = cfg.affinity_thresholds_m + tuple(x.value for x in list(TruePositiveErrorNames))
+    cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames)
 
     M = len(cols)  # Number of columns.
     N = len(dts)  # Number of detections.
@@ -215,7 +215,7 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
         orientation_errors = distance(tps_dts, tps_gts, DistanceType.ORIENTATION)
 
         # Assign errors.
-        metrics_table.loc[idx_tps_dts, tuple(x.value for x in list(TruePositiveErrorNames))] = np.vstack(
+        metrics_table.loc[idx_tps_dts, tuple(x.value for x in TruePositiveErrorNames)] = np.vstack(
             [translation_errors, scale_errors, orientation_errors]
         ).transpose()
     return metrics_table
