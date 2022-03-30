@@ -216,7 +216,8 @@ def summarize_metrics(
 
         # If true positives exist, compute the metrics.
         if has_true_positives:
-            tp_errors = category_dts.loc[is_tp_t, tuple(x.value for x in TruePositiveErrorNames)].mean(axis=0)
+            tp_error_cols = tuple(x.value for x in list(TruePositiveErrorNames))
+            tp_errors = category_dts.loc[is_tp_t, tp_error_cols].mean(axis=0)
 
         # Convert errors to scores.
         tp_scores = 1 - np.divide(tp_errors, cfg.tp_normalization_terms)
