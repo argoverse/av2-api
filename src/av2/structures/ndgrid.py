@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 
@@ -121,13 +121,16 @@ class BEVGrid(NDGrid):
     """
 
     def points_to_bev_img(
-        self, points: NDArrayFloat, color: Tuple[int, int, int] = GRAY_BGR, diameter: int = 2
+        self,
+        points: NDArrayFloat,
+        color: Union[Tuple[int, int, int], NDArrayByte] = GRAY_BGR,
+        diameter: int = 2,
     ) -> NDArrayByte:
         """Convert a set of points in Cartesian space to a bird's-eye-view image.
 
         Args:
             points: (N,D) List of points in R^D.
-            color: RGB color.
+            color: RGB color or list of grayscale values (0-255) representing lidar intensity.
             diameter: Point diameter for the drawn points.
 
         Returns:
@@ -142,16 +145,23 @@ class BEVGrid(NDGrid):
 
         points_xy = points[..., :2].copy()  # Prevent modifying input.
         indices = self.transform_to_grid_coordinates(points_xy)
-        indices_int, _ = crop_points(indices, lower_bound_inclusive=(0.0, 0.0), upper_bound_exclusive=self.dims)
+        indices_int, valid_mask = crop_points(
+            indices,
+            lower_bound_inclusive=(0.0, 0.0),
+            upper_bound_exclusive=self.dims,
+        )
 
         # Construct uv coordinates.
         H, W = (self.dims[0], self.dims[1])
         uv = indices_int[..., :2]
 
-        C = len(color)
-        shape = (H, W, C)
+        shape = (H, W, 3)
         img: NDArrayByte = np.zeros(shape, dtype=np.uint8)
 
-        colors: NDArrayByte = np.array([color for _ in range(len(points_xy))], dtype=np.uint8)
+        if isinstance(color, tuple):
+            colors: NDArrayByte = np.array([color for _ in range(len(points_xy[valid_mask]))], dtype=np.uint8)
+        else:
+            # Use lidar intensity
+            colors = np.array([[gray_val] * 3 for gray_val in color[valid_mask]], dtype=np.uint8)
         img = draw_points_xy_in_img(img, uv, colors, diameter=diameter)
         return img
