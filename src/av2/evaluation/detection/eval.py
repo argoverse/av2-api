@@ -98,7 +98,7 @@ def evaluate(
 
     # Find unique list of uuid tuples.
     uuids: List[Tuple[str, int]] = gts.index.unique().tolist()
-    log_ids: List[str] = gts.index.get_level_values(level=0).unique()
+    log_ids: List[str] = gts.index.get_level_values(level=0).unique().to_numpy().tolist()
 
     log_id_to_avm: Dict[str, ArgoverseStaticMap] = {}
     log_id_to_timestamped_poses: Dict[str, TimestampedCitySE3EgoPoses] = {}
@@ -111,7 +111,7 @@ def evaluate(
             log_id_to_timestamped_poses[log_id] = read_city_SE3_ego(log_dir)
 
     args_list = []
-    for (log_id, timestamp_ns) in track(uuids, "Loading maps ..."):
+    for (log_id, timestamp_ns) in track(uuids, "Loading maps and egoposes ..."):
         sweep_dts = dts.loc[(log_id, timestamp_ns)].reset_index().copy()
         sweep_gts = gts.loc[(log_id, timestamp_ns)].reset_index().copy()
 
