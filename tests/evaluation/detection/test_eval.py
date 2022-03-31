@@ -297,13 +297,13 @@ def test_compute_evaluated_dts_mask() -> None:
     detection_cfg = DetectionCfg(categories=("REGULAR_VEHICLE",), eval_only_roi_instances=False)
     dts_mask = compute_evaluated_dts_mask(dts, detection_cfg)
     dts_mask_: NDArrayBool = np.array([True, False, False, True])
-    np.testing.assert_array_equal(dts_mask, dts_mask_)
+    np.testing.assert_array_equal(dts_mask, dts_mask_)  # type: ignore
 
     dts = pd.DataFrame(np.random.rand(1000, 10), columns=columns)
     dts_mask = compute_evaluated_dts_mask(dts, detection_cfg)
     dts_mask_ = np.zeros(len(dts))
     dts_mask_[: detection_cfg.max_num_dts_per_category] = True
-    np.testing.assert_array_equal(dts_mask, dts_mask_)
+    np.testing.assert_array_equal(dts_mask, dts_mask_)  # type: ignore
 
 
 def test_compute_evaluated_gts_mask() -> None:
@@ -321,7 +321,7 @@ def test_compute_evaluated_gts_mask() -> None:
     detection_cfg = DetectionCfg(categories=("REGULAR_VEHICLE",), eval_only_roi_instances=False)
     gts_mask = compute_evaluated_gts_mask(gts, detection_cfg)
     gts_mask_: NDArrayBool = np.array([True, False, False, False])
-    np.testing.assert_array_equal(gts_mask, gts_mask_)
+    np.testing.assert_array_equal(gts_mask, gts_mask_)  # type: ignore
 
 
 # def test_filter_objs_to_roi() -> None:

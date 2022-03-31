@@ -72,7 +72,7 @@ class DetectionCfg:
     max_num_dts_per_category: int = 100
     max_range_m: float = 200.0
     num_recall_samples: int = 101
-    splits: Tuple[str, ...] = ("val",)
+    split: str = "val"
     tp_threshold_m: float = 2.0
 
     @property
@@ -159,7 +159,8 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
             where K is the number of thresholds and S is the number of true positive error names.
     """
     # Construct all columns.
-    cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames)
+    tp_error_cols = tuple(x.value for x in TruePositiveErrorNames)
+    cols = cfg.affinity_thresholds_m + tp_error_cols
     N = len(dts)  # Number of detections.
 
     # Construct metrics table.
@@ -170,7 +171,7 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
     #   N  False  False  False  False  0.0  0.0  0.0
     metrics_table = pd.DataFrame({c: np.zeros(N) for c in cols})
     metrics_table = metrics_table.astype({tx_m: bool for tx_m in cfg.affinity_thresholds_m})
-    metrics_table.loc[:, tuple(x.value for x in TruePositiveErrorNames)] = np.array(cfg.metrics_defaults[1:4])
+    metrics_table.loc[:, tp_error_cols] = np.array(cfg.metrics_defaults[1:4])
     metrics_table.loc[:, "score"] = dts["score"]
 
     if len(gts) == 0:
@@ -212,7 +213,7 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
         orientation_errors = distance(tps_dts, tps_gts, DistanceType.ORIENTATION)
 
         # Assign errors.
-        metrics_table.loc[idx_tps_dts, tuple(x.value for x in TruePositiveErrorNames)] = np.vstack(
+        metrics_table.loc[idx_tps_dts, tp_error_cols] = np.vstack(
             [translation_errors, scale_errors, orientation_errors]
         ).transpose()
     return metrics_table

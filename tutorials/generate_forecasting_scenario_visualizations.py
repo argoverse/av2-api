@@ -119,5 +119,4 @@ def run_generate_scenario_visualizations(
 
 
 if __name__ == "__main__":
-    # https://github.com/pallets/click/issues/2227
-    run_generate_scenario_visualizations()  # type: ignore
+    run_generate_scenario_visualizations()

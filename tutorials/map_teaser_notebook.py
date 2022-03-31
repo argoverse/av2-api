@@ -369,5 +369,4 @@ def run_map_tutorial(data_root: str, log_id: str, save_figures: bool) -> None:
 
 
 if __name__ == "__main__":
-    # https://github.com/pallets/click/issues/2227
-    run_map_tutorial()  # type: ignore
+    run_map_tutorial()
