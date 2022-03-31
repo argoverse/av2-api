@@ -12,7 +12,6 @@ from typing import Final, List
 
 import numpy as np
 import pandas as pd
-from av2.evaluation.detection.utils import compute_evaluated_dts_mask, compute_evaluated_gts_mask
 from scipy.spatial.transform import Rotation
 
 from av2.evaluation.detection.constants import AffinityType, DistanceType, TruePositiveErrorNames
@@ -22,6 +21,8 @@ from av2.evaluation.detection.utils import (
     accumulate,
     assign,
     compute_affinity_matrix,
+    compute_evaluated_dts_mask,
+    compute_evaluated_gts_mask,
     distance,
     interpolate_precision,
 )
@@ -323,20 +324,6 @@ def test_compute_evaluated_gts_mask() -> None:
     np.testing.assert_array_equal(gts_mask, gts_mask_)
 
 
-# def test_filter_instances() -> None:
-#     """Generate 100 different detections and filter them based on Euclidean distance."""
-#     columns = ["category"] + DIMS_COLS + QUAT_COLS + TRANSLATION_COLS
-
-#     dts = pd.DataFrame(
-#         [["REGULAR_VEHICLE", 0.0, 0.0, 0.0, 0.0, 5.0, 2.0, 3.0, i, i, 0] for i in range(100)],
-#         columns=columns,
-#     )
-#     cfg = DetectionCfg(eval_only_roi_instances=False)
-
-#     expected_result: int = 71
-#     assert len(is_filter(dts, cfg)) == expected_result
-
-
 # def test_filter_objs_to_roi() -> None:
 #     """Use the map to filter out an object that lies outside the ROI in a parking lot."""
 #     avm = av2Map()
@@ -396,16 +383,3 @@ def test_compute_evaluated_gts_mask() -> None:
 #     assert dts_filtered.dtype == "O"  # array of objects
 #     assert isinstance(dts_filtered, np.ndarray)
 #     assert dts_filtered[0].track_id == "bb0f40e4f68043e285d64a839f2f092c"
-
-
-# def test_AP_on_filtered_instances() -> None:
-#     """Test AP calculation on instances filtered on region-of-interest."""
-#     dt_fpath = TEST_DATA_LOC / "remove_nonroi_detections"
-#     gt_fpath = TEST_DATA_LOC / "remove_nonroi_ground_truth"
-#     fig_fpath = TEST_DATA_LOC / "test_figures"
-
-#     cfg = DetectionConfig(eval_only_roi_instances=True)
-#     evaluator = DetectionEvaluator(dt_fpath, gt_fpath, fig_fpath, cfg)
-#     metrics = evaluator.evaluate()
-
-#     assert metrics.AP.loc["Vehicle"] == 1.0

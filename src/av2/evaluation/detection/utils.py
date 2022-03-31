@@ -160,10 +160,7 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
     """
     # Construct all columns.
     cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames)
-
-    M = len(cols)  # Number of columns.
     N = len(dts)  # Number of detections.
-    K = len(cfg.affinity_thresholds_m)  # Number of thresholds.
 
     # Construct metrics table.
     #        0.5    1.0    2.0    4.0  ATE  ASE  AOE (default columns)
@@ -173,7 +170,7 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
     #   N  False  False  False  False  0.0  0.0  0.0
     metrics_table = pd.DataFrame({c: np.zeros(N) for c in cols})
     metrics_table = metrics_table.astype({tx_m: bool for tx_m in cfg.affinity_thresholds_m})
-    metrics_table.iloc[:, K : K + M] = cfg.metrics_defaults[1:4]
+    metrics_table.loc[:, tuple(x.value for x in TruePositiveErrorNames)] = np.array(cfg.metrics_defaults[1:4])
     metrics_table.loc[:, "score"] = dts["score"]
 
     if len(gts) == 0:
@@ -195,20 +192,20 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
     idx_gts, idx_dts = assignments
     for i, threshold_m in enumerate(cfg.affinity_thresholds_m):
         # `is_tp` may need to be defined differently with other affinities.
-        is_tp = affinities[idx_dts] > -threshold_m
+        is_tp: NDArrayBool = affinities[idx_dts] > -threshold_m
 
         # Record true positives.
-        metrics_table.iloc[idx_dts, i] = is_tp
+        metrics_table.iloc[idx_dts, i] = is_tp.tolist()
         if threshold_m != cfg.tp_threshold_m:
             continue  # Skip if threshold isn't the true positive threshold.
         if not np.any(is_tp):
             continue  # Skip if no true positives exist.
 
-        idx_tps_dts = idx_dts[is_tp]
-        idx_tps_gts = idx_gts[is_tp]
+        idx_tps_dts: NDArrayInt = idx_dts[is_tp]
+        idx_tps_gts: NDArrayInt = idx_gts[is_tp]
 
-        tps_dts = dts.iloc[idx_tps_dts]
-        tps_gts = gts.iloc[idx_tps_gts]
+        tps_dts = dts.loc[idx_tps_dts]
+        tps_gts = gts.loc[idx_tps_gts]
 
         translation_errors = distance(tps_dts, tps_gts, DistanceType.TRANSLATION)
         scale_errors = distance(tps_dts, tps_gts, DistanceType.SCALE)
