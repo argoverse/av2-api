@@ -12,6 +12,7 @@ from typing import Final, List
 
 import numpy as np
 import pandas as pd
+from av2.evaluation.detection.utils import compute_evaluated_dts_mask, compute_evaluated_gts_mask
 from scipy.spatial.transform import Rotation
 
 from av2.evaluation.detection.constants import AffinityType, DistanceType, TruePositiveErrorNames
@@ -27,7 +28,7 @@ from av2.evaluation.detection.utils import (
 from av2.geometry.geometry import wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
 from av2.utils.constants import PI
-from av2.utils.typing import NDArrayFloat
+from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 TEST_DATA_DIR: Final[Path] = Path(__file__).parent.resolve() / "data"
 
@@ -278,6 +279,48 @@ def test_orientation_error() -> None:
 
     assert _get_summary_identity().loc["AVERAGE_METRICS", "AOE"] == expected_result_identity
     assert _get_summary().loc["AVERAGE_METRICS", "AOE"] == expected_result_det
+
+
+def test_compute_evaluated_dts_mask() -> None:
+    """Unit test for computing valid detections cuboids."""
+    columns = TRANSLATION_COLS + DIMS_COLS + QUAT_COLS
+    dts = pd.DataFrame(
+        [
+            [5.0, 5.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0],  # In bounds with at least 1 point.
+            [175, 175.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0],  # Out of bounds with at least 1 point.
+            [-175.0, -175.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0],  # Out of bounds with at least 1 point.
+            [1.0, 1.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0],  # In bounds with at least 1 point.
+        ],
+        columns=columns,
+    )
+    detection_cfg = DetectionCfg(categories=("REGULAR_VEHICLE",), eval_only_roi_instances=False)
+    dts_mask = compute_evaluated_dts_mask(dts, detection_cfg)
+    dts_mask_: NDArrayBool = np.array([True, False, False, True])
+    np.testing.assert_array_equal(dts_mask, dts_mask_)
+
+    dts = pd.DataFrame(np.random.rand(1000, 10), columns=columns)
+    dts_mask = compute_evaluated_dts_mask(dts, detection_cfg)
+    dts_mask_ = np.zeros(len(dts))
+    dts_mask_[: detection_cfg.max_num_dts_per_category] = True
+    np.testing.assert_array_equal(dts_mask, dts_mask_)
+
+
+def test_compute_evaluated_gts_mask() -> None:
+    """Unit test for computing valid ground truth cuboids."""
+    columns = TRANSLATION_COLS + DIMS_COLS + QUAT_COLS + ["num_interior_pts"]
+    gts = pd.DataFrame(
+        [
+            [5.0, 5.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0, 5],  # In bounds with at least 1 point.
+            [175, 175.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0, 5],  # Out of bounds with at least 1 point.
+            [-175.0, -175.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0, 5],  # Out of bounds with at least 1 point.
+            [1.0, 1.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0, 0],  # In bounds with at least 1 point.
+        ],
+        columns=columns,
+    )
+    detection_cfg = DetectionCfg(categories=("REGULAR_VEHICLE",), eval_only_roi_instances=False)
+    gts_mask = compute_evaluated_gts_mask(gts, detection_cfg)
+    gts_mask_: NDArrayBool = np.array([True, False, False, False])
+    np.testing.assert_array_equal(gts_mask, gts_mask_)
 
 
 # def test_filter_instances() -> None:
