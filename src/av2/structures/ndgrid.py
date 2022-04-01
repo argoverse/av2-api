@@ -159,7 +159,7 @@ class BEVGrid(NDGrid):
         img: NDArrayByte = np.zeros(shape, dtype=np.uint8)
 
         if isinstance(color, tuple):
-            colors: NDArrayByte = np.array([color for _ in range(len(points_xy[valid_mask]))], dtype=np.uint8)
+            colors: NDArrayByte = np.array([color for _ in range(len(points_xy))], dtype=np.uint8)
         else:
             # Use lidar intensity
             colors = np.array([[gray_val] * 3 for gray_val in color[valid_mask]], dtype=np.uint8)
