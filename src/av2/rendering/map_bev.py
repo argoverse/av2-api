@@ -37,7 +37,8 @@ class BirdsEyeViewMapRenderer:
         avm: map, with vector and raster elements, for querying ground height at arbitrary locations.
         city_SE3_ego: AV pose at a single timestamp.
         bev_grid: Parameters for BEV rendering.
-        render_north_as_up: Whether to render north as up in (as opposed to using the +y axis of the egovehicle frame -- left of the AV -- as up).
+        render_north_as_up: Whether to render north as up in (as opposed to using the +y axis of the egovehicle
+            frame -- left of the AV -- as up).
     """
 
     avm: ArgoverseStaticMap
@@ -237,7 +238,7 @@ class BirdsEyeViewMapRenderer:
             bound_color: tuple of BGR intensities to use as color for rendering the lane boundary (i.e. polyline).
             alpha: Alpha blending coefficient.
 
-        Return:
+        Returns:
             Array of shape (H,W,3) representing a 3-channel BGR image.
         """
         polyline_ego_frame = self.ego_SE3_city.transform_from(copy.deepcopy(polyline_city_frame))

@@ -17,12 +17,15 @@ from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayInt
 @dataclass
 class Sweep:
     """Models a lidar sweep from a lidar sensor.
+
     A sweep refers to a set of points which were captured in a fixed interval [t,t+delta), where delta ~= (1/sensor_hz).
     Reference: https://en.wikipedia.org/wiki/Lidar
+
     NOTE: Argoverse 2 distributes sweeps which are from two, stacked Velodyne 32 beam sensors.
         These sensors each have different, overlapping fields-of-view.
         Both lidars have their own reference frame: up_lidar and down_lidar, respectively.
         We have egomotion-compensated the lidar sensor data to the egovehicle reference timestamp (`timestamp_ns`).
+
     Args:
         xyz: (N,3) Points in Cartesian space (x,y,z) in meters.
         intensity: (N,1) Intensity values in the interval [0,255] corresponding to each point.
@@ -48,8 +51,10 @@ class Sweep:
     @classmethod
     def from_feather(cls, lidar_feather_path: Path) -> Sweep:
         """Load a lidar sweep from a feather file.
+
         NOTE: The feather file is expected in AV2 format.
         NOTE: The sweep is in the _ego_ reference frame.
+
         The file should be a Apache Feather file and contain the following columns:
             x: Coordinate of each lidar return along the x-axis.
             y: Coordinate of each lidar return along the y-axis.
@@ -57,8 +62,10 @@ class Sweep:
             intensity: Measure of radiant power per unit solid angle.
             laser_number: Laser which emitted the point return.
             offset_ns: Nanosecond delta from the sweep timestamp for the point return.
+
         Args:
             lidar_feather_path: Path to the lidar sweep feather file.
+
         Returns:
             Sweep object.
         """
@@ -91,9 +98,12 @@ class Sweep:
 
     def transform_from(self, target_SE3_src: SE3) -> Sweep:
         """Transform 3d points in the sweep to a new reference frame.
+
         Note: This method exists so that `SE3` can play around with it, without a cyclic dependency.
+
         Args:
             target_SE3_src: SE(3) transformation. Assumes the sweep points are provided in the `src` frame.
+
         Returns:
             a new Sweep object, with points provided in the the `target` frame.
         """
@@ -109,6 +119,7 @@ class Sweep:
 
     def stack(self, sweep: Sweep) -> None:
         """Stack sweeps. Used for lidar sweep aggregation.
+
         Args:
             sweep: Lidar sweep.
         """
@@ -119,10 +130,12 @@ class Sweep:
 
 def normalize_array(array: NDArrayFloat) -> NDArrayFloat:
     """Normalize array values, i.e. bring them to a range of [0,1].
+
     Args:
         array: Numpy array of any shape, representing unnormalized values.
+
     Returns:
-        array: Numpy array of any shape, representing normalized values.
+        Numpy array of any shape, representing normalized values.
     """
     array -= array.min()  # shift min val to 0
     array /= array.max()  # shrink max val to 1
@@ -131,11 +144,14 @@ def normalize_array(array: NDArrayFloat) -> NDArrayFloat:
 
 def equalize_distribution(reflectance: NDArrayByte) -> NDArrayByte:
     """Re-distribute mass of distribution.
+
     Note: we add one to reflectance to map 0 values to 0 under logarithm.
+
     Args:
         reflectance: intensity per return, in the range [0,255]
+
     Returns:
-        log_reflectance_b: log of intensity per return, in the range [0,255]
+        Log of intensity per return, in the range [0,255]
     """
     log_reflectance: NDArrayFloat = np.log((reflectance + 1.0))  # note: must add a float, not an int.
     # normalize to [0,1]

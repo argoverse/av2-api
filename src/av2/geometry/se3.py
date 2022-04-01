@@ -20,6 +20,7 @@ if typing.TYPE_CHECKING:
 @dataclass
 class SE3:
     """SE(3) lie group object.
+
     References:
         http://ethaneade.com/lie_groups.pdf
     Args:
@@ -32,6 +33,7 @@ class SE3:
 
     def __post_init__(self) -> None:
         """Check validity of rotation and translation arguments.
+
         Raises:
             ValueError: If rotation is not shape (3,3) or translation is not shape (3,).
         """
@@ -50,9 +52,11 @@ class SE3:
 
     def transform_from(self, point_cloud: NDArrayFloat) -> NDArrayFloat:
         """Apply the SE(3) transformation to this point cloud.
+
         Args:
             point_cloud: Array of shape (N, 3). If the transform represents dst_SE3_src,
                 then point_cloud should consist of points in frame `src`
+
         Returns:
             Array of shape (N, 3) representing the transformed point cloud, i.e. points in frame `dst`
         """
@@ -60,9 +64,11 @@ class SE3:
 
     def transform_point_cloud(self, point_cloud: NDArrayFloat) -> NDArrayFloat:
         """Apply the SE(3) transformation to this point cloud.
+
         Args:
             point_cloud: Array of shape (N, 3). If the transform represents dst_SE3_src,
                 then point_cloud should consist of points in frame `src`
+
         Returns:
             Array of shape (N, 3) representing the transformed point cloud, i.e. points in frame `dst`
         """
@@ -70,12 +76,15 @@ class SE3:
 
     def transform_sweep_from(self, sweep: Sweep) -> Sweep:
         """Apply the SE(3) transformation to a LiDAR sweep object.
+
         This operation will transform 3d points in the sweep to a new reference frame.
         Example usage:
             sweep_city = city_SE3_ego.transform_sweep_from(sweep_ego)
+
         Args:
             sweep: LiDAR sweep. If the SE(3) transform represents dst_SE3_src, then the sweep should consist of points
                 provided in the `src` frame.
+
         Returns:
             LiDAR sweep, with points provided in the `dst` frame.
         """
@@ -83,17 +92,21 @@ class SE3:
 
     def transform_cuboid_from(self, cuboid: Cuboid) -> Cuboid:
         """Apply the SE(3) transformation to the vertices of a cuboid.
+
         Args:
             cuboid: 3d bounding box. If the SE(3) transform represents dst_SE3_src, then the cuboid should represent
                 vertices provided in the `src` frame.
+
         Returns:
-            cuboid: 3d bounding box, with vertices now provided in the `dst` frame.
+            3d bounding box, with vertices now provided in the `dst` frame.
         """
         return cuboid.transform(self)
 
     def inverse(self) -> SE3:
         """Return the inverse of the current SE(3) transformation.
+
         For example, if the current object represents target_SE3_src, we will return instead src_SE3_target.
+
         Returns:
             instance of SE3 class, representing inverse of SE3 transformation target_SE3_src.
         """
@@ -101,9 +114,12 @@ class SE3:
 
     def compose(self, right_SE3: SE3) -> SE3:
         """Compose (right multiply) this class' transformation matrix T with another SE(3) instance.
+
         Algebraic representation: chained_se3 = T * right_SE3
+        
         Args:
             right_SE3: Another instance of SE3 class.
+
         Returns:
             New instance of SE3 class.
         """

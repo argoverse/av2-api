@@ -1,8 +1,10 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
 
-"""Argoverse 2 Lidar Dataset tutorial
+"""Argoverse 2 Lidar Dataset tutorial.
+
 Generates videos visualizing the lidar dataset.
 """
+
 from __future__ import annotations
 
 import copy
@@ -36,13 +38,17 @@ CROSSWALK_EPS: Final[float] = 1e-5
 
 
 def accumulate_all_frames(loader: AV2SensorDataLoader, log_id: str) -> Sweep:
-    """Aggregated sweeps representing (x,y,z) in city coordinate system and reflectance.
+    """Aggregate sweeps representing (x,y,z) in city coordinate system and reflectance.
 
     Args:
         loader: The AV2 Lidar Dataset dataloader.
         log_id: unique ID for AV2 scenario/log.
+
     Returns:
         Sweep representing aggregated lidar returns, placed in the city frame.
+
+    Raises:
+        RuntimeError: If no lidar sweeps are found.
     """
     lidar_timestamps_ns = loader.get_ordered_log_lidar_timestamps(log_id=log_id)
 
