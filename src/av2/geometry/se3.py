@@ -116,7 +116,7 @@ class SE3:
         """Compose (right multiply) this class' transformation matrix T with another SE(3) instance.
 
         Algebraic representation: chained_se3 = T * right_SE3
-        
+
         Args:
             right_SE3: Another instance of SE3 class.
 
