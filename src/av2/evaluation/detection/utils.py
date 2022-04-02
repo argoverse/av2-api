@@ -115,35 +115,39 @@ def accumulate(
     Returns:
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
     """
+    # Sort the detections by score in _descending_ order.
     scores: NDArrayFloat = dts["score"].to_numpy()
-    perm: NDArrayInt = np.argsort(-scores)
-    dts_npy: NDArrayFloat = dts.loc[:, CUBOID_COLS].to_numpy()[perm]
+    permutation: NDArrayInt = np.argsort(-scores)
+
+    dts_npy: NDArrayFloat = dts.loc[:, CUBOID_COLS].to_numpy()[permutation]
     gts_npy: NDArrayFloat = gts.loc[:, CUBOID_COLS].to_numpy()
 
     num_interior_pts: NDArrayFloat = gts["num_interior_pts"].to_numpy()
-
     is_evaluated_dts = compute_evaluated_dts_mask(dts_npy, cfg)
     is_evaluated_gts = compute_evaluated_gts_mask(gts_npy, num_interior_pts, cfg)
 
-    dt_results: NDArrayFloat = np.zeros((len(dts), 8))
-    gt_results: NDArrayFloat = np.zeros((len(gts), 5))
+    N, M = len(dts), len(gts)
+    dt_results: NDArrayFloat = np.zeros((N, 8))
+    gt_results: NDArrayFloat = np.zeros((M, 5))
     if is_evaluated_dts.sum() == 0 or is_evaluated_gts.sum() == 0:
         return dt_results, gt_results
 
     dts_npy = dts_npy[is_evaluated_dts]
     gts_npy = gts_npy[is_evaluated_gts]
 
-    dt_results[is_evaluated_dts, -1] = True
-    gt_results[is_evaluated_gts, -1] = True
-
+    # Compute true positives through assigning detections and ground truths.
     dts_assignments, gts_assignments = assign(dts_npy, gts_npy, cfg)
     dt_results[is_evaluated_dts, :-1] = dts_assignments
     gt_results[is_evaluated_gts, :-1] = gts_assignments
 
+    # `is_evaluated` boolean flag is always the last column of the array.
+    dt_results[is_evaluated_dts, -1] = True
+    gt_results[is_evaluated_gts, -1] = True
+
     # Permute the detections according to the original ordering.
-    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(perm, return_index=True)
-    _, inv = outputs
-    dt_results = dt_results[inv]
+    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(permutation, return_index=True)
+    _, inverse_permutation = outputs
+    dt_results = dt_results[inverse_permutation]
     return dt_results, gt_results
 
 
