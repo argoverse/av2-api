@@ -119,7 +119,8 @@ def accumulate(
     Returns:
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
     """
-    dts = dts.sort_values("score", ascending=False).reset_index(drop=True)
+    # breakpoint()
+    # dts = dts.sort_values("score", ascending=False).reset_index(drop=True)
     dt_records: NDArrayObject = dts.to_records()
     gt_records: NDArrayObject = gts.to_records()
 
@@ -129,24 +130,26 @@ def accumulate(
     dt_results: NDArrayFloat = np.zeros((len(dts), 8))
     gt_results: NDArrayFloat = np.zeros((len(gts), 5))
     for category in cfg.categories:
-        category_dts_mask: NDArrayBool = dt_records["category"] == category
-        category_gts_mask: NDArrayBool = gt_records["category"] == category
+        category_dts_idx: NDArrayBool = np.where(dt_records["category"] == category)[0]
+        category_gts_idx: NDArrayBool = np.where(gt_records["category"] == category)[0]
 
-        if not np.any(category_dts_mask):
+        if not np.any(category_dts_idx):
             continue
-        if not np.any(category_gts_mask):
+        if not np.any(category_gts_idx):
             continue
 
-        is_evaluated_dts = category_dts_mask & compute_evaluated_dts_mask(dt_params, cfg)
-        is_evaluated_gts = category_gts_mask & compute_evaluated_gts_mask(
-            gt_params, gt_records["num_interior_pts"], cfg
+        is_evaluated_dts = compute_evaluated_dts_mask(dt_params[category_dts_idx], cfg)
+        is_evaluated_gts = compute_evaluated_gts_mask(
+            gt_params[category_gts_idx], gt_records["num_interior_pts"][category_gts_idx], cfg
         )
+        category_dts_idx = category_dts_idx[is_evaluated_dts]
+        category_gts_idx = category_gts_idx[is_evaluated_gts]
 
-        category_dts_params = dt_params[is_evaluated_dts]
-        category_gts_params = gt_params[is_evaluated_gts]
+        category_dts_params = dt_params[category_dts_idx]
+        category_gts_params = gt_params[category_gts_idx]
 
-        dt_results[:, -1] = np.logical_or(dt_results[:, -1], is_evaluated_dts)
-        gt_results[:, -1] = np.logical_or(gt_results[:, -1], is_evaluated_gts)
+        dt_results[category_dts_idx, -1] = True
+        gt_results[category_gts_idx, -1] = True
 
         # Skip if there are no detections for the current category left.
         if len(category_dts_params) == 0:
@@ -155,9 +158,15 @@ def accumulate(
             continue
 
         dts_assignments, gts_assignments = assign(category_dts_params, category_gts_params, cfg)
-        dt_results[is_evaluated_dts, :-1] = dts_assignments
-        gt_results[is_evaluated_gts, :-1] = gts_assignments
-    return dt_results, gt_results
+        dt_results[category_dts_idx, :-1] = dts_assignments
+        gt_results[category_gts_idx, :-1] = gts_assignments
+
+    cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames) + ("is_evaluated",)
+    dts.loc[:, cols] = dt_results
+    gts.loc[:, cfg.affinity_thresholds_m + ("is_evaluated",)] = gt_results
+    # dts_results = pd.concat([dts, dt_results], axis=1)
+    # breakpoint()
+    return dts, gts
 
 
 def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDArrayFloat, NDArrayFloat]:
@@ -209,7 +218,7 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
         tps_dts = dts[idx_tps_dts]
         tps_gts = gts[idx_tps_gts]
 
-        translation_errors = distance(tps_dts[:, :2], tps_gts[:, :2], DistanceType.TRANSLATION)
+        translation_errors = distance(tps_dts[:, :3], tps_gts[:, :3], DistanceType.TRANSLATION)
         scale_errors = distance(tps_dts[:, 3:6], tps_gts[:, 3:6], DistanceType.SCALE)
         orientation_errors = distance(tps_dts[:, 6:10], tps_gts[:, 6:10], DistanceType.ORIENTATION)
 

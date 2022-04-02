@@ -165,16 +165,16 @@ def test_accumulate() -> None:
         dts, gts = accumulate(*job)
 
         # Check that there's a true positive under every threshold.
-        assert np.all(dts[:, :4])
+        assert np.all(dts.loc[:, cfg.affinity_thresholds_m])
 
         # Check that all error metrics are zero.
-        assert (dts[:, 4:] == 0).all(axis=None)
+        assert (dts.loc[:, tuple(x.value for x in TruePositiveErrorNames)] == 0).all(axis=None)
 
         # Check that there are 2 regular vehicles.
-        # assert gts["category"].value_counts()["REGULAR_VEHICLE"] == 2
+        assert gts["category"].value_counts()["REGULAR_VEHICLE"] == 2
 
         # Check that there are no other labels.
-        # assert gts["category"].value_counts().sum() == 2
+        assert gts["category"].value_counts().sum() == 2
 
 
 def test_assign() -> None:
@@ -183,7 +183,7 @@ def test_assign() -> None:
 
     dts: NDArrayFloat = np.array(
         [
-            [0.0,0.0, 0.0, 5.0, 5.0, 5.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 5.0, 5.0, 5.0, 1.0, 0.0, 0.0, 0.0, 1.0],
             [10.0, 10.0, 10.0, 5.0, 5.0, 5.0, 1.0, 0.0, 0.0, 0.0, 1.0],
             [20.0, 20.0, 20.0, 5.0, 5.0, 5.0, 1.0, 0.0, 0.0, 0.0, 1.0],
         ],
@@ -272,65 +272,54 @@ def test_orientation_error() -> None:
 def test_compute_evaluated_dts_mask() -> None:
     """Unit test for computing valid detections cuboids."""
     columns = TRANSLATION_COLS + DIMS_COLS + QUAT_COLS
-    dts = pd.DataFrame(
+    dts: NDArrayFloat = np.array(
         [
             [5.0, 5.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0],  # In bounds with at least 1 point.
             [175, 175.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0],  # Out of bounds with at least 1 point.
             [-175.0, -175.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0],  # Out of bounds with at least 1 point.
             [1.0, 1.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0],  # In bounds with at least 1 point.
         ],
-        columns=columns,
     )
     detection_cfg = DetectionCfg(categories=("REGULAR_VEHICLE",), eval_only_roi_instances=False)
     dts_mask = compute_evaluated_dts_mask(dts, detection_cfg)
     dts_mask_: NDArrayBool = np.array([True, False, False, True])
     np.testing.assert_array_equal(dts_mask, dts_mask_)  # type: ignore
 
-    dts = pd.DataFrame(np.random.rand(1000, 10), columns=columns)
-    dts_mask = compute_evaluated_dts_mask(dts, detection_cfg)
-    dts_mask_ = np.zeros(len(dts))
-    dts_mask_[: detection_cfg.max_num_dts_per_category] = True
-    np.testing.assert_array_equal(dts_mask, dts_mask_)  # type: ignore
-
 
 def test_compute_evaluated_gts_mask() -> None:
     """Unit test for computing valid ground truth cuboids."""
-    columns = TRANSLATION_COLS + DIMS_COLS + QUAT_COLS + ["num_interior_pts"]
-    gts = pd.DataFrame(
+    # columns = TRANSLATION_COLS + DIMS_COLS + QUAT_COLS + ["num_interior_pts"]
+    gts: NDArrayFloat = np.array(
         [
             [5.0, 5.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0, 5],  # In bounds with at least 1 point.
             [175, 175.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0, 5],  # Out of bounds with at least 1 point.
             [-175.0, -175.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0, 5],  # Out of bounds with at least 1 point.
             [1.0, 1.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0, 0],  # In bounds with at least 1 point.
         ],
-        columns=columns,
     )
     detection_cfg = DetectionCfg(categories=("REGULAR_VEHICLE",), eval_only_roi_instances=False)
-    gts_mask = compute_evaluated_gts_mask(gts, detection_cfg)
+
+    gts_mask = compute_evaluated_gts_mask(gts[:, :-1], gts[:, -1], detection_cfg)
     gts_mask_: NDArrayBool = np.array([True, False, False, False])
     np.testing.assert_array_equal(gts_mask, gts_mask_)  # type: ignore
 
 
-def test_val_identity() -> None:
-    root_dir = Path.home() / "data" / "datasets" / "av2" / "sensor" / "val"
-    paths = sorted(root_dir.glob("*/annotations.feather"))
+# def test_val_identity() -> None:
+#     root_dir = Path.home() / "data" / "datasets" / "av2" / "sensor" / "val"
+#     paths = sorted(root_dir.glob("*/annotations.feather"))
 
-    annotations = []
-    for p in paths:
-        df = pd.read_feather(p)
-        df["log_id"] = p.parent.stem
-        annotations.append(df)
-    annotations = pd.concat(annotations).reset_index(drop=True)
-    annotations = annotations.drop("track_uuid", axis=1).drop_duplicates().reset_index(drop=True)
-    dts = annotations.copy()
-    dts["score"] = 1.0
-    annotations["num_interior_pts"] = 1
-    # annotations = pd.concat([pd.read_feather(x) for x in paths]).reset_index(drop=True)
+#     annotations = []
+#     for p in paths:
+#         df = pd.read_feather(p)
+#         df["log_id"] = p.parent.stem
+#         annotations.append(df)
+#     annotations = pd.concat(annotations).reset_index(drop=True)
+#     dts = annotations.copy()
+#     dts["score"] = 1.0
+#     annotations["num_interior_pts"] = 1
 
-    # dts = dts.drop("track_uuid", axis=1).drop_duplicates()
-    detection_cfg = DetectionCfg(eval_only_roi_instances=False)
-    dts_processed, gts_processed, metrics = evaluate(dts, annotations, detection_cfg)
-    breakpoint()
+#     detection_cfg = DetectionCfg(eval_only_roi_instances=False, max_num_dts_per_category=1000)
+#     dts_, gts_, metrics_ = evaluate(dts, annotations, detection_cfg)
 
 
 if __name__ == "__main__":

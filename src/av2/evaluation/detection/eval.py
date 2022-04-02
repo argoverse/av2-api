@@ -91,6 +91,7 @@ def evaluate(
     Raises:
         RuntimeError: If parallel processing fails to complete.
     """
+    dts = dts.sort_values("score", ascending=False).reset_index(drop=True)
     log_ids: List[str] = gts["log_id"].unique().tolist()
 
     log_id_to_avm: Dict[str, ArgoverseStaticMap] = {}
@@ -103,6 +104,7 @@ def evaluate(
             log_id_to_avm[log_id] = avm
             log_id_to_timestamped_poses[log_id] = read_city_SE3_ego(log_dir)
 
+    # dts = dts.sort_values("score", "")
     dts_mapping = {uuid: x for uuid, x in dts.groupby(["log_id", "timestamp_ns"])}
     gts_mapping = {uuid: x for uuid, x in gts.groupby(["log_id", "timestamp_ns"])}
     args_list = [(dts_mapping[uuid], sweep_gts, cfg, None, None) for uuid, sweep_gts in gts_mapping.items()]
@@ -112,25 +114,28 @@ def evaluate(
     #     n_jobs=-1, backend="multiprocessing", verbose=True
     # )(delayed(accumulate)(*x) for x in args_list)
     # breakpoint()
-    results = [accumulate(*x) for x in args_list[:100]]
+    results = [accumulate(*x) for x in args_list]
     dts_list, gts_list = zip(*results)
-    dts_processed: NDArrayFloat = np.concatenate(dts_list)
-    gts_processed: NDArrayFloat = np.concatenate(gts_list)
 
-    columns = list(cfg.affinity_thresholds_m) + [x.value for x in TruePositiveErrorNames] + ["is_evaluated"]
-    gts_processed = pd.DataFrame(gts_processed, columns=columns[:4] + ["is_evaluated"])
-    dts_processed = pd.DataFrame(dts_processed, columns=columns)
+    dts = pd.concat(dts_list).reset_index(drop=True)
+    gts = pd.concat(gts_list).reset_index(drop=True)
 
-    gts_processed = pd.concat([gts[:len(gts_processed)], gts_processed], axis=1)
-    dts_processed = pd.concat([dts[:len(dts_processed)], dts_processed], axis=1)
+    # breakpoint()
+    # dts_processed: NDArrayFloat = np.concatenate(dts_list)
+    # gts_processed: NDArrayFloat = np.concatenate(gts_list)
 
-    breakpoint()
+    # columns = list(cfg.affinity_thresholds_m) + [x.value for x in TruePositiveErrorNames] + ["is_evaluated"]
+    # gts_processed = pd.DataFrame(gts_processed, columns=columns[:4] + ["is_evaluated"])
+    # dts_processed = pd.DataFrame(dts_processed, columns=columns)
+
+    # gts_processed = pd.concat([gts], gts_processed], axis=1)
+    # dts_processed = pd.concat([dts[:len(dts_processed)], dts_processed], axis=1)
 
     # Compute summary metrics.
-    metrics = summarize_metrics(dts_processed, gts_processed, cfg)
+    metrics = summarize_metrics(dts, gts, cfg)
     metrics.loc["AVERAGE_METRICS"] = metrics.mean()
     metrics = metrics.round(NUM_DECIMALS)
-    return dts_processed, gts_processed, metrics
+    return dts, gts, metrics
 
 
 def summarize_metrics(
