@@ -51,7 +51,9 @@ Results:
     in addition to the mean statistics average across all classes, and P refers to the number of included statistics,
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
+import functools
 import logging
+from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -89,16 +91,7 @@ def evaluate(
     Raises:
         RuntimeError: If parallel processing fails to complete.
     """
-    # (log_id, timestamp_ns) uniquely identifies a sweep.
-    uuid_columns = ["log_id", "timestamp_ns"]
-
-    # Set index and sort for performance.
-    dts = dts.set_index(keys=uuid_columns).sort_index()
-    gts = gts.set_index(keys=uuid_columns).sort_index()
-
-    # Find unique list of uuid tuples.
-    uuids: List[Tuple[str, int]] = gts.index.unique().tolist()
-    log_ids: List[str] = gts.index.get_level_values(level=0).unique().to_numpy().tolist()
+    log_ids: List[str] = gts["log_id"].unique().tolist()
 
     log_id_to_avm: Dict[str, ArgoverseStaticMap] = {}
     log_id_to_timestamped_poses: Dict[str, TimestampedCitySE3EgoPoses] = {}
@@ -110,38 +103,34 @@ def evaluate(
             log_id_to_avm[log_id] = avm
             log_id_to_timestamped_poses[log_id] = read_city_SE3_ego(log_dir)
 
-    args_list = []
-    for (log_id, timestamp_ns) in track(uuids, "Loading maps and egoposes ..."):
-        sweep_dts = dts.loc[(log_id, timestamp_ns)].reset_index().copy()
-        sweep_gts = gts.loc[(log_id, timestamp_ns)].reset_index().copy()
-
-        sweep_map = None
-        sweep_poses = None
-        if log_id in log_id_to_avm:
-            sweep_map = log_id_to_avm[log_id]
-        if log_id in log_id_to_timestamped_poses:
-            if timestamp_ns in log_id_to_timestamped_poses[log_id]:
-                sweep_poses = log_id_to_timestamped_poses[log_id][timestamp_ns]
-        args_list.append([sweep_dts, sweep_gts, cfg, sweep_map, sweep_poses])
+    dts_mapping = {uuid: x for uuid, x in dts.groupby(["log_id", "timestamp_ns"])}
+    gts_mapping = {uuid: x for uuid, x in gts.groupby(["log_id", "timestamp_ns"])}
+    args_list = [(dts_mapping[uuid], sweep_gts, cfg, None, None) for uuid, sweep_gts in gts_mapping.items()]
 
     # Accumulate and gather the processed detections and ground truth annotations.
-    results: Optional[List[Tuple[pd.DataFrame, pd.DataFrame]]] = Parallel(
-        n_jobs=-1, backend="multiprocessing", verbose=True
-    )(delayed(accumulate)(*x) for x in args_list)
-    if results is None:
-        raise RuntimeError("Accumulation of dts and gts has failed!")
-
+    # results: Optional[List[Tuple[pd.DataFrame, pd.DataFrame]]] = Parallel(
+    #     n_jobs=-1, backend="multiprocessing", verbose=True
+    # )(delayed(accumulate)(*x) for x in args_list)
+    # breakpoint()
+    results = [accumulate(*x) for x in args_list[:100]]
     dts_list, gts_list = zip(*results)
+    dts_processed: NDArrayFloat = np.concatenate(dts_list)
+    gts_processed: NDArrayFloat = np.concatenate(gts_list)
 
-    # Concatenate the detections and ground truth annotations into DataFrames.
-    dts_processed: pd.DataFrame = pd.concat(dts_list).reset_index(drop=True)
-    gts_processed: pd.DataFrame = pd.concat(gts_list).reset_index()
+    columns = list(cfg.affinity_thresholds_m) + [x.value for x in TruePositiveErrorNames] + ["is_evaluated"]
+    gts_processed = pd.DataFrame(gts_processed, columns=columns[:4] + ["is_evaluated"])
+    dts_processed = pd.DataFrame(dts_processed, columns=columns)
+
+    gts_processed = pd.concat([gts[:len(gts_processed)], gts_processed], axis=1)
+    dts_processed = pd.concat([dts[:len(dts_processed)], dts_processed], axis=1)
+
+    breakpoint()
 
     # Compute summary metrics.
     metrics = summarize_metrics(dts_processed, gts_processed, cfg)
     metrics.loc["AVERAGE_METRICS"] = metrics.mean()
     metrics = metrics.round(NUM_DECIMALS)
-    return dts, gts, metrics
+    return dts_processed, gts_processed, metrics
 
 
 def summarize_metrics(
@@ -175,7 +164,7 @@ def summarize_metrics(
         # Only keep detections if they match the category and have NOT been filtered.
         is_valid_dts = np.logical_and(is_category_dts, dts["is_evaluated"])
 
-        # Get valid detections and sort them in ascending order.
+        # Get valid detections and sort them in descending order.
         category_dts = dts.loc[is_valid_dts].sort_values(by="score", ascending=False).reset_index(drop=True)
 
         # Find annotations that have the current category.
@@ -189,7 +178,7 @@ def summarize_metrics(
             continue
 
         for affinity_threshold_m in cfg.affinity_thresholds_m:
-            true_positives: NDArrayBool = category_dts[affinity_threshold_m].to_numpy()
+            true_positives: NDArrayBool = category_dts[affinity_threshold_m].astype(bool).to_numpy()
 
             # Continue if there aren't any true positives.
             if len(true_positives) == 0:
@@ -206,7 +195,7 @@ def summarize_metrics(
         # Select only the true positives for each instance.
         middle_idx = len(cfg.affinity_thresholds_m) // 2
         middle_threshold = cfg.affinity_thresholds_m[middle_idx]
-        is_tp_t = category_dts[middle_threshold]
+        is_tp_t = category_dts[middle_threshold].astype(bool)
 
         # Initialize true positive metrics.
         tp_errors = cfg.tp_normalization_terms

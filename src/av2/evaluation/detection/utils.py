@@ -13,9 +13,10 @@ increased interpretability of the error modes in a set of detections.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Any, Dict, Final, List, Optional, Tuple
 
 import numpy as np
+import numpy.lib.recfunctions as rf
 import pandas as pd
 from scipy.spatial.distance import cdist
 
@@ -41,9 +42,11 @@ from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
 from av2.structures.cuboid import CuboidList
 from av2.utils.constants import EPS
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt, NDArrayObject
 
 logger = logging.getLogger(__name__)
+
+CUBOID_COLS: Final[List[str]] = ["tx_m", "ty_m", "tz_m", "length_m", "width_m", "height_m", "qw", "qx", "qy", "qz"]
 
 
 @dataclass(frozen=True)
@@ -102,7 +105,7 @@ def accumulate(
     cfg: DetectionCfg,
     avm: Optional[ArgoverseStaticMap] = None,
     city_SE3_ego: Optional[SE3] = None,
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+) -> Tuple[NDArrayFloat, NDArrayFloat]:
     """Accumulate the true / false positives (boolean flags) and true positive errors for each class.
 
     Args:
@@ -116,35 +119,48 @@ def accumulate(
     Returns:
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
     """
-    dts.sort_values("score", ascending=False, inplace=True)
-    dts.reset_index(drop=True, inplace=True)
+    dts = dts.sort_values("score", ascending=False).reset_index(drop=True)
+    dt_records: NDArrayObject = dts.to_records()
+    gt_records: NDArrayObject = gts.to_records()
 
-    # Filter detections and ground truth annotations.
-    dts.loc[:, "is_evaluated"] = compute_evaluated_dts_mask(dts, cfg)
-    gts.loc[:, "is_evaluated"] = compute_evaluated_gts_mask(gts, cfg)
-    if cfg.eval_only_roi_instances and city_SE3_ego is not None and avm is not None:
-        dts.loc[:, "is_evaluated"] &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
+    dt_params: NDArrayFloat = rf.structured_to_unstructured(rf.repack_fields(dt_records[CUBOID_COLS]))
+    gt_params: NDArrayFloat = rf.structured_to_unstructured(rf.repack_fields(gt_records[CUBOID_COLS]))
 
-    # Initialize corresponding assignments + errors.
-    dts.loc[:, cfg.affinity_thresholds_m] = False
-    dts.loc[:, [x.value for x in TruePositiveErrorNames]] = np.array(cfg.metrics_defaults[1:4])
+    dt_results: NDArrayFloat = np.zeros((len(dts), 8))
+    gt_results: NDArrayFloat = np.zeros((len(gts), 5))
     for category in cfg.categories:
-        is_eval_dts = np.logical_and(dts["category"] == category, dts["is_evaluated"])
-        is_eval_gts = np.logical_and(gts["category"] == category, gts["is_evaluated"])
+        category_dts_mask: NDArrayBool = dt_records["category"] == category
+        category_gts_mask: NDArrayBool = gt_records["category"] == category
 
-        category_dts = dts.loc[is_eval_dts].reset_index(drop=True)
-        category_gts = gts.loc[is_eval_gts].reset_index(drop=True)
-
-        # Skip if there are no detections for the current category left.
-        if len(category_dts) == 0:
+        if not np.any(category_dts_mask):
+            continue
+        if not np.any(category_gts_mask):
             continue
 
-        assignments = assign(category_dts, category_gts, cfg)
-        dts.loc[is_eval_dts, assignments.columns] = assignments.to_numpy()
-    return dts, gts
+        is_evaluated_dts = category_dts_mask & compute_evaluated_dts_mask(dt_params, cfg)
+        is_evaluated_gts = category_gts_mask & compute_evaluated_gts_mask(
+            gt_params, gt_records["num_interior_pts"], cfg
+        )
+
+        category_dts_params = dt_params[is_evaluated_dts]
+        category_gts_params = gt_params[is_evaluated_gts]
+
+        dt_results[:, -1] = np.logical_or(dt_results[:, -1], is_evaluated_dts)
+        gt_results[:, -1] = np.logical_or(gt_results[:, -1], is_evaluated_gts)
+
+        # Skip if there are no detections for the current category left.
+        if len(category_dts_params) == 0:
+            continue
+        if len(category_gts_params) == 0:
+            continue
+
+        dts_assignments, gts_assignments = assign(category_dts_params, category_gts_params, cfg)
+        dt_results[is_evaluated_dts, :-1] = dts_assignments
+        gt_results[is_evaluated_gts, :-1] = gts_assignments
+    return dt_results, gt_results
 
 
-def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFrame:
+def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDArrayFloat, NDArrayFloat]:
     """Attempt assignment of each detection to a ground truth label.
 
     Args:
@@ -158,25 +174,6 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
         The (N,K+S) confusion table containing the true and false positives augmented with the true positive errors
             where K is the number of thresholds and S is the number of true positive error names.
     """
-    # Construct all columns.
-    tp_error_cols = tuple(x.value for x in TruePositiveErrorNames)
-    cols = cfg.affinity_thresholds_m + tp_error_cols
-    N = len(dts)  # Number of detections.
-
-    # Construct metrics table.
-    #        0.5    1.0    2.0    4.0  ATE  ASE  AOE (default columns)
-    #   0  False  False  False  False  0.0  0.0  0.0
-    #   1  False  False  False  False  0.0  0.0  0.0
-    #                                            ...
-    #   N  False  False  False  False  0.0  0.0  0.0
-    metrics_table = pd.DataFrame({c: np.zeros(N) for c in cols})
-    metrics_table = metrics_table.astype({tx_m: bool for tx_m in cfg.affinity_thresholds_m})
-    metrics_table.loc[:, tp_error_cols] = np.array(cfg.metrics_defaults[1:4])
-    metrics_table.loc[:, "score"] = dts["score"]
-
-    if len(gts) == 0:
-        return metrics_table
-
     affinity_matrix = compute_affinity_matrix(dts, gts, cfg.affinity_type)
 
     # Get the GT label for each max-affinity GT label, detection pair.
@@ -191,12 +188,16 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
     assignments: Tuple[NDArrayInt, NDArrayInt] = np.unique(idx_gts, return_index=True)  # type: ignore
 
     idx_gts, idx_dts = assignments
+    K = len(cfg.affinity_thresholds_m)
+    dts_table: NDArrayFloat = np.zeros((len(dts), K + 3))
+    dts_table[:, 4:] = cfg.metrics_defaults[1:4]
+    gts_table: NDArrayFloat = np.zeros((len(gts), K))
     for i, threshold_m in enumerate(cfg.affinity_thresholds_m):
-        # `is_tp` may need to be defined differently with other affinities.
         is_tp: NDArrayBool = affinities[idx_dts] > -threshold_m
 
-        # Record true positives.
-        metrics_table.iloc[idx_dts, i] = is_tp.tolist()
+        dts_table[idx_dts[is_tp], i] = True
+        gts_table[idx_gts, i] = True
+
         if threshold_m != cfg.tp_threshold_m:
             continue  # Skip if threshold isn't the true positive threshold.
         if not np.any(is_tp):
@@ -205,18 +206,15 @@ def assign(dts: pd.DataFrame, gts: pd.DataFrame, cfg: DetectionCfg) -> pd.DataFr
         idx_tps_dts: NDArrayInt = idx_dts[is_tp]
         idx_tps_gts: NDArrayInt = idx_gts[is_tp]
 
-        tps_dts = dts.loc[idx_tps_dts]
-        tps_gts = gts.loc[idx_tps_gts]
+        tps_dts = dts[idx_tps_dts]
+        tps_gts = gts[idx_tps_gts]
 
-        translation_errors = distance(tps_dts, tps_gts, DistanceType.TRANSLATION)
-        scale_errors = distance(tps_dts, tps_gts, DistanceType.SCALE)
-        orientation_errors = distance(tps_dts, tps_gts, DistanceType.ORIENTATION)
+        translation_errors = distance(tps_dts[:, :2], tps_gts[:, :2], DistanceType.TRANSLATION)
+        scale_errors = distance(tps_dts[:, 3:6], tps_gts[:, 3:6], DistanceType.SCALE)
+        orientation_errors = distance(tps_dts[:, 6:10], tps_gts[:, 6:10], DistanceType.ORIENTATION)
 
-        # Assign errors.
-        metrics_table.loc[idx_tps_dts, tp_error_cols] = np.vstack(
-            [translation_errors, scale_errors, orientation_errors]
-        ).transpose()
-    return metrics_table
+        dts_table[idx_tps_dts, 4:] = np.stack((translation_errors, scale_errors, orientation_errors), axis=-1)
+    return dts_table, gts_table
 
 
 def interpolate_precision(precision: NDArrayFloat, interpolation_method: InterpType = InterpType.ALL) -> NDArrayFloat:
@@ -249,7 +247,7 @@ def interpolate_precision(precision: NDArrayFloat, interpolation_method: InterpT
     return precision_interpolated
 
 
-def compute_affinity_matrix(dts: pd.DataFrame, gts: pd.DataFrame, metric: AffinityType) -> NDArrayFloat:
+def compute_affinity_matrix(dts: NDArrayFloat, gts: NDArrayFloat, metric: AffinityType) -> NDArrayFloat:
     """Calculate the affinity matrix between detections and ground truth annotations.
 
     Args:
@@ -264,8 +262,8 @@ def compute_affinity_matrix(dts: pd.DataFrame, gts: pd.DataFrame, metric: Affini
         NotImplementedError: If the affinity metric is not implemented.
     """
     if metric == AffinityType.CENTER:
-        dts_xy_m = dts.loc[:, TRANSLATION_COLS[:2]]  # pytype: disable=unsupported-operands
-        gts_xy_m = gts.loc[:, TRANSLATION_COLS[:2]]  # pytype: disable=unsupported-operands
+        dts_xy_m = dts[:, :2]
+        gts_xy_m = gts[:, :2]
         affinities: NDArrayFloat = -cdist(dts_xy_m, gts_xy_m)
     else:
         raise NotImplementedError("This affinity metric is not implemented!")
@@ -305,7 +303,7 @@ def compute_average_precision(
     return average_precision, precision_interpolated
 
 
-def distance(dts: pd.DataFrame, gts: pd.DataFrame, metric: DistanceType) -> NDArrayFloat:
+def distance(dts: NDArrayFloat, gts: NDArrayFloat, metric: DistanceType) -> NDArrayFloat:
     """Distance functions between detections and ground truth.
 
     Args:
@@ -320,20 +318,14 @@ def distance(dts: pd.DataFrame, gts: pd.DataFrame, metric: DistanceType) -> NDAr
         NotImplementedError: If the distance type is not supported.
     """
     if metric == DistanceType.TRANSLATION:
-        dts_xyz_m: NDArrayFloat = dts.loc[:, TRANSLATION_COLS].to_numpy()
-        gts_xyz_m: NDArrayFloat = gts.loc[:, TRANSLATION_COLS].to_numpy()
-        translation_errors: NDArrayFloat = np.linalg.norm(dts_xyz_m - gts_xyz_m, axis=1)  # type: ignore
+        translation_errors: NDArrayFloat = np.linalg.norm(dts - gts, axis=1)  # type: ignore
         return translation_errors
     elif metric == DistanceType.SCALE:
-        dts_lwh_m: NDArrayFloat = dts.loc[:, DIMENSION_COLS].reset_index(drop=True).to_numpy()
-        gts_lwh_m: NDArrayFloat = gts.loc[:, DIMENSION_COLS].reset_index(drop=True).to_numpy()
-        scale_errors: NDArrayFloat = 1 - iou_3d_axis_aligned(dts_lwh_m, gts_lwh_m)
+        scale_errors: NDArrayFloat = 1 - iou_3d_axis_aligned(dts, gts)
         return scale_errors
     elif metric == DistanceType.ORIENTATION:
-        dts_quats_xyzw: NDArrayFloat = dts.loc[:, QUAT_WXYZ_COLS].to_numpy()
-        gts_quats_xyzw: NDArrayFloat = gts.loc[:, QUAT_WXYZ_COLS].to_numpy()
-        yaws_dts: NDArrayFloat = mat_to_xyz(quat_to_mat(dts_quats_xyzw))[..., 2]
-        yaws_gts: NDArrayFloat = mat_to_xyz(quat_to_mat(gts_quats_xyzw))[..., 2]
+        yaws_dts: NDArrayFloat = mat_to_xyz(quat_to_mat(dts))[..., 2]
+        yaws_gts: NDArrayFloat = mat_to_xyz(quat_to_mat(gts))[..., 2]
         orientation_errors = wrap_angles(yaws_dts - yaws_gts)
         return orientation_errors
     else:
@@ -368,7 +360,7 @@ def compute_objects_in_roi_mask(
 
 
 def compute_evaluated_dts_mask(
-    dts: pd.DataFrame,
+    dts: NDArrayFloat,
     cfg: DetectionCfg,
 ) -> NDArrayBool:
     """Compute the evaluated cuboids mask.
@@ -384,7 +376,7 @@ def compute_evaluated_dts_mask(
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
-    norm: NDArrayFloat = np.linalg.norm(dts.loc[:, TRANSLATION_COLS], axis=1)  # type: ignore
+    norm: NDArrayFloat = np.linalg.norm(dts[:, :3], axis=1)  # type: ignore
     is_within_radius: NDArrayBool = norm < cfg.max_range_m
     is_evaluated: NDArrayBool = is_within_radius
     is_evaluated[cfg.max_num_dts_per_category :] = False  # Limit the number of detections.
@@ -392,7 +384,8 @@ def compute_evaluated_dts_mask(
 
 
 def compute_evaluated_gts_mask(
-    gts: pd.DataFrame,
+    gts: NDArrayFloat,
+    num_interior_pts: NDArrayFloat,
     cfg: DetectionCfg,
 ) -> NDArrayBool:
     """Compute the evaluated cuboids mask.
@@ -408,8 +401,8 @@ def compute_evaluated_gts_mask(
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
-    norm: NDArrayFloat = np.linalg.norm(gts.loc[:, TRANSLATION_COLS], axis=1)  # type: ignore
+    norm: NDArrayFloat = np.linalg.norm(gts[:, :3], axis=1)  # type: ignore
     is_within_radius: NDArrayBool = norm < cfg.max_range_m
-    is_valid_num_points: NDArrayBool = gts.loc[:, "num_interior_pts"].to_numpy() > 0
+    is_valid_num_points: NDArrayBool = num_interior_pts > 0
     is_evaluated: NDArrayBool = is_within_radius & is_valid_num_points
     return is_evaluated

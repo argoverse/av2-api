@@ -32,7 +32,7 @@ reportUntypedFunctionDecorator = false
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--cov-report term-missing:skip-covered --cov src/av2"
+addopts = "--cov-report term-missing:skip-covered --cov av2"
 testpaths = [
     "tests",
 ]
