@@ -119,34 +119,37 @@ def accumulate(
     Returns:
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
     """
-    # breakpoint()
-    # dts = dts.sort_values("score", ascending=False).reset_index(drop=True)
-    dt_records: NDArrayObject = dts.to_records()
-    gt_records: NDArrayObject = gts.to_records()
+    dts = dts.sort_values("score", ascending=False).reset_index(drop=True)
+    dt_records: NDArrayObject = dts[CUBOID_COLS].to_numpy()
+    gt_records: NDArrayObject = gts[CUBOID_COLS].to_numpy()
 
-    dt_params: NDArrayFloat = rf.structured_to_unstructured(rf.repack_fields(dt_records[CUBOID_COLS]))
-    gt_params: NDArrayFloat = rf.structured_to_unstructured(rf.repack_fields(gt_records[CUBOID_COLS]))
+    dts_categories: NDArrayObject = dts["category"].to_numpy()
+    gts_categories: NDArrayObject = gts["category"].to_numpy()
+
+    num_interior_pts: NDArrayFloat = gts["num_interior_pts"].to_numpy()
 
     dt_results: NDArrayFloat = np.zeros((len(dts), 8))
     gt_results: NDArrayFloat = np.zeros((len(gts), 5))
     for category in cfg.categories:
-        category_dts_idx: NDArrayBool = np.where(dt_records["category"] == category)[0]
-        category_gts_idx: NDArrayBool = np.where(gt_records["category"] == category)[0]
+        category_dts_mask: NDArrayBool = dts_categories == category
+        category_gts_mask: NDArrayBool = gts_categories == category
+        category_dts_idx: NDArrayBool = np.where(category_dts_mask)[0]
+        category_gts_idx: NDArrayBool = np.where(category_gts_mask)[0]
 
         if not np.any(category_dts_idx):
             continue
         if not np.any(category_gts_idx):
             continue
 
-        is_evaluated_dts = compute_evaluated_dts_mask(dt_params[category_dts_idx], cfg)
+        is_evaluated_dts = compute_evaluated_dts_mask(dt_records[category_dts_idx], cfg)
         is_evaluated_gts = compute_evaluated_gts_mask(
-            gt_params[category_gts_idx], gt_records["num_interior_pts"][category_gts_idx], cfg
+            gt_records[category_gts_idx], num_interior_pts[category_gts_idx], cfg
         )
         category_dts_idx = category_dts_idx[is_evaluated_dts]
         category_gts_idx = category_gts_idx[is_evaluated_gts]
 
-        category_dts_params = dt_params[category_dts_idx]
-        category_gts_params = gt_params[category_gts_idx]
+        category_dts_params = dt_records[category_dts_idx]
+        category_gts_params = gt_records[category_gts_idx]
 
         dt_results[category_dts_idx, -1] = True
         gt_results[category_gts_idx, -1] = True
@@ -164,8 +167,6 @@ def accumulate(
     cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames) + ("is_evaluated",)
     dts.loc[:, cols] = dt_results
     gts.loc[:, cfg.affinity_thresholds_m + ("is_evaluated",)] = gt_results
-    # dts_results = pd.concat([dts, dt_results], axis=1)
-    # breakpoint()
     return dts, gts
 
 

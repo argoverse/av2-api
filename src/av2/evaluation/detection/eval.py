@@ -83,13 +83,8 @@ def evaluate(
     Returns:
         (C+1,K) Table of evaluation metrics where C is the number of classes. Plus a row for their means.
         K refers to the number of evaluation metrics.
-
-    Raises:
-        RuntimeError: If parallel processing fails to complete.
     """
-    dts = dts.sort_values("score", ascending=False).reset_index(drop=True)
     log_ids: List[str] = gts["log_id"].unique().tolist()
-
     log_id_to_avm: Dict[str, ArgoverseStaticMap] = {}
     log_id_to_timestamped_poses: Dict[str, TimestampedCitySE3EgoPoses] = {}
     if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
@@ -100,7 +95,6 @@ def evaluate(
             log_id_to_avm[log_id] = avm
             log_id_to_timestamped_poses[log_id] = read_city_SE3_ego(log_dir)
 
-    # dts = dts.sort_values("score", "")
     dts_mapping = {uuid: x for uuid, x in dts.groupby(["log_id", "timestamp_ns"])}
     gts_mapping = {uuid: x for uuid, x in gts.groupby(["log_id", "timestamp_ns"])}
     args_list = [(dts_mapping[uuid], sweep_gts, cfg, None, None) for uuid, sweep_gts in gts_mapping.items()]
