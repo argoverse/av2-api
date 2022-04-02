@@ -13,7 +13,7 @@ increased interpretability of the error modes in a set of detections.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, List, Optional, Tuple
+from typing import Dict, Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -38,6 +38,7 @@ from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
 from av2.structures.cuboid import CuboidList
 from av2.utils.constants import EPS
+from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt, NDArrayObject
 
 logger = logging.getLogger(__name__)
@@ -115,16 +116,25 @@ def accumulate(
     Returns:
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
     """
+    N, M = len(dts), len(gts)
+
     # Sort the detections by score in _descending_ order.
     scores: NDArrayFloat = dts["score"].to_numpy()
-    permutation: NDArrayInt = np.argsort(-scores)
+    permutation: NDArrayInt = np.argsort(-scores).tolist()
+    dts = dts.iloc[permutation, :]
 
-    dts_npy: NDArrayFloat = dts.loc[:, CUBOID_COLS].to_numpy()[permutation]
+    is_evaluated_dts: NDArrayBool = np.ones(N, dtype=bool)
+    is_evaluated_gts: NDArrayBool = np.ones(M, dtype=bool)
+    if avm is not None and city_SE3_ego is not None:
+        is_evaluated_dts &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
+        is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
+
+    dts_npy: NDArrayFloat = dts.loc[:, CUBOID_COLS].to_numpy()
     gts_npy: NDArrayFloat = gts.loc[:, CUBOID_COLS].to_numpy()
 
     num_interior_pts: NDArrayFloat = gts["num_interior_pts"].to_numpy()
-    is_evaluated_dts = compute_evaluated_dts_mask(dts_npy, cfg)
-    is_evaluated_gts = compute_evaluated_gts_mask(gts_npy, num_interior_pts, cfg)
+    is_evaluated_dts &= compute_evaluated_dts_mask(dts_npy, cfg)
+    is_evaluated_gts &= compute_evaluated_gts_mask(gts_npy, num_interior_pts, cfg)
 
     N, M = len(dts), len(gts)
     dt_results: NDArrayFloat = np.zeros((N, 8))
@@ -397,3 +407,14 @@ def compute_evaluated_gts_mask(
     is_valid_num_points: NDArrayBool = num_interior_pts > 0
     is_evaluated: NDArrayBool = is_within_radius & is_valid_num_points
     return is_evaluated
+
+
+def load_mapped_avm_and_egoposes(
+    gts: pd.DataFrame, dataset_dir: Path
+) -> Tuple[Dict[str, ArgoverseStaticMap], Dict[str, TimestampedCitySE3EgoPoses]]:
+    log_ids: List[str] = gts["log_id"].unique().tolist()
+    log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(dataset_dir / log_id) for log_id in log_ids}
+    log_id_to_avm = {
+        log_id: ArgoverseStaticMap.from_map_dir(dataset_dir / log_id / "map", build_raster=True) for log_id in log_ids
+    }
+    return log_id_to_avm, log_id_to_timestamped_poses

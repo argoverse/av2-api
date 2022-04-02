@@ -318,7 +318,7 @@ def test_val_identity() -> None:
     dts["score"] = 1.0
     annotations["num_interior_pts"] = 1
 
-    detection_cfg = DetectionCfg(eval_only_roi_instances=False, max_num_dts_per_category=1000)
+    detection_cfg = DetectionCfg(eval_only_roi_instances=True, max_num_dts_per_category=1000, dataset_dir=root_dir)
     dts_, gts_, metrics_ = evaluate(dts, annotations, detection_cfg)
     breakpoint()
 

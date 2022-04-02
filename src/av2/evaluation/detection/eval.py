@@ -52,14 +52,19 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 from rich.progress import track
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
-from av2.evaluation.detection.utils import DetectionCfg, accumulate, compute_average_precision
+from av2.evaluation.detection.utils import (
+    DetectionCfg,
+    accumulate,
+    compute_average_precision,
+    load_mapped_avm_and_egoposes,
+)
 from av2.map.map_api import ArgoverseStaticMap
 from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego
 from av2.utils.typing import NDArrayBool, NDArrayFloat
@@ -85,31 +90,32 @@ def evaluate(
         (C+1,K) Table of evaluation metrics where C is the number of classes. Plus a row for their means.
         K refers to the number of evaluation metrics.
     """
-    # dts_npy = dts.to_numpy()
-    # gts_npy = gts.to_numpy()
-    # log_ids: List[str] = gts["log_id"].unique().tolist()
-    # log_id_to_avm: Dict[str, ArgoverseStaticMap] = {}
-    # log_id_to_timestamped_poses: Dict[str, TimestampedCitySE3EgoPoses] = {}
-    # if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
-    #     for log_id in log_ids:
-    #         log_dir = cfg.dataset_dir / log_id
-    #         avm_dir = log_dir / "map"
-    #         avm = ArgoverseStaticMap.from_map_dir(avm_dir, build_raster=True)
-    #         log_id_to_avm[log_id] = avm
-    #         log_id_to_timestamped_poses[log_id] = read_city_SE3_ego(log_dir)
+    log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
+    log_id_to_timestamped_poses: Optional[Dict[str, TimestampedCitySE3EgoPoses]] = None
 
-    task_columns = ["log_id", "timestamp_ns", "category"]
-    dts_mapping = {uuid: x for uuid, x in dts.groupby(task_columns, sort=False)}
-    gts_mapping = {uuid: x for uuid, x in gts.groupby(task_columns, sort=False)}
-    args_list = [(dts_mapping[uuid], sweep_gts, cfg, None, None) for uuid, sweep_gts in gts_mapping.items()]
+    # Load maps and egoposes if roi-pruning is enabled.
+    if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
+        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(gts, cfg.dataset_dir)
 
-    # Accumulate and gather the processed detections and ground truth annotations.
-    results = [accumulate(*x) for x in track(args_list)]
-    dts_list, gts_list = zip(*results)
+    column_names = ["log_id", "timestamp_ns", "category"]
+    uuid_to_dts = {uuid: x for uuid, x in dts.groupby(column_names, sort=False)}
+    uuid_to_gts = {uuid: x for uuid, x in gts.groupby(column_names, sort=False)}
+
+    dts_list = []
+    gts_list = []
+    for uuid, sweep_gts in track(uuid_to_gts.items()):
+        args = uuid_to_dts[uuid], sweep_gts, cfg, None, None
+        if log_id_to_avm is not None and log_id_to_timestamped_poses is not None:
+            avm = log_id_to_avm[uuid[0]]
+            city_SE3_ego = log_id_to_timestamped_poses[uuid[0]][uuid[1]]
+            args = uuid_to_dts[uuid], sweep_gts, cfg, avm, city_SE3_ego
+        dts_accum, gts_accum = accumulate(*args)
+        dts_list.append(dts_accum)
+        gts_list.append(gts_accum)
 
     cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames)
-    dts_npy = np.concatenate(dts_list)
-    gts_npy = np.concatenate(gts_list)
+    dts_npy: NDArrayFloat = np.concatenate(dts_list)
+    gts_npy: NDArrayFloat = np.concatenate(gts_list)
 
     dts.loc[:, cols + ("is_evaluated",)] = dts_npy
     gts.loc[:, cfg.affinity_thresholds_m + ("is_evaluated",)] = gts_npy
