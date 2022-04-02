@@ -320,6 +320,7 @@ def test_val_identity() -> None:
 
     detection_cfg = DetectionCfg(eval_only_roi_instances=False, max_num_dts_per_category=1000)
     dts_, gts_, metrics_ = evaluate(dts, annotations, detection_cfg)
+    breakpoint()
 
 
 if __name__ == "__main__":

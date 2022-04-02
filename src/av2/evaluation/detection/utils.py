@@ -94,14 +94,14 @@ class DetectionCfg:
             MAX_YAW_RAD_ERROR,
         )
 
-@profile
+
 def accumulate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
     cfg: DetectionCfg,
     avm: Optional[ArgoverseStaticMap] = None,
     city_SE3_ego: Optional[SE3] = None,
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+) -> Tuple[NDArrayFloat, NDArrayFloat]:
     """Accumulate the true / false positives (boolean flags) and true positive errors for each class.
 
     Args:
@@ -115,60 +115,34 @@ def accumulate(
     Returns:
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
     """
-    breakpoint()
-    perm = (-dts["score"]).to_numpy().argsort()
-    dts = dts.iloc[perm]
-    # dts = dts[]
-    # breakpoint()
-    dts = dts.sort_values("score", ascending=False).reset_index(drop=True)
-    dts_npy: NDArrayFloat = dts[CUBOID_COLS].to_numpy()
-    gts_npy: NDArrayFloat = gts[CUBOID_COLS].to_numpy()
-
-    dts_categories: NDArrayObject = dts["category"].to_numpy()
-    gts_categories: NDArrayObject = gts["category"].to_numpy()
+    scores: NDArrayFloat = dts["score"].to_numpy()
+    perm: NDArrayInt = np.argsort(-scores)
+    dts_npy: NDArrayFloat = dts.loc[:, CUBOID_COLS].to_numpy()[perm]
+    gts_npy: NDArrayFloat = gts.loc[:, CUBOID_COLS].to_numpy()
 
     num_interior_pts: NDArrayFloat = gts["num_interior_pts"].to_numpy()
 
+    is_evaluated_dts = compute_evaluated_dts_mask(dts_npy, cfg)
+    is_evaluated_gts = compute_evaluated_gts_mask(gts_npy, num_interior_pts, cfg)
+
     dt_results: NDArrayFloat = np.zeros((len(dts), 8))
     gt_results: NDArrayFloat = np.zeros((len(gts), 5))
+    if is_evaluated_dts.sum() == 0 or is_evaluated_gts.sum() == 0:
+        return dt_results, gt_results
 
-    
-    for category in cfg.categories:
-        category_dts_mask: NDArrayBool = dts_categories == category
-        category_gts_mask: NDArrayBool = gts_categories == category
-        category_dts_idx: NDArrayBool = np.where(category_dts_mask)[0]
-        category_gts_idx: NDArrayBool = np.where(category_gts_mask)[0]
+    dts_npy = dts_npy[is_evaluated_dts]
+    gts_npy = gts_npy[is_evaluated_gts]
 
-        if not np.any(category_dts_idx):
-            continue
-        if not np.any(category_gts_idx):
-            continue
+    dt_results[is_evaluated_dts, -1] = True
+    gt_results[is_evaluated_gts, -1] = True
 
-        is_evaluated_dts = compute_evaluated_dts_mask(dts_npy[category_dts_idx], cfg)
-        is_evaluated_gts = compute_evaluated_gts_mask(
-            gts_npy[category_gts_idx], num_interior_pts[category_gts_idx], cfg
-        )
-        category_dts_idx = category_dts_idx[is_evaluated_dts]
-        category_gts_idx = category_gts_idx[is_evaluated_gts]
+    dts_assignments, gts_assignments = assign(dts_npy, gts_npy, cfg)
+    dt_results[is_evaluated_dts, :-1] = dts_assignments
+    gt_results[is_evaluated_gts, :-1] = gts_assignments
 
-        # Skip if there are no detections for the current category left.
-        if len(category_dts_idx) == 0:
-            continue
-        if len(category_gts_idx) == 0:
-            continue
-
-        category_dts_params = dts_npy[category_dts_idx]
-        category_gts_params = gts_npy[category_gts_idx]
-
-        dt_results[category_dts_idx, -1] = True
-        gt_results[category_gts_idx, -1] = True
-
-
-        dts_assignments, gts_assignments = assign(category_dts_params, category_gts_params, cfg)
-        dt_results[category_dts_idx, :-1] = dts_assignments
-        gt_results[category_gts_idx, :-1] = gts_assignments
-
-    _, inv = np.unique(perm, return_index=True)
+    # Permute the detections according to the original ordering.
+    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(perm, return_index=True)
+    _, inv = outputs
     dt_results = dt_results[inv]
     return dt_results, gt_results
 

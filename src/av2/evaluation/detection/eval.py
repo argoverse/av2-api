@@ -56,6 +56,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
+from rich.progress import track
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import DetectionCfg, accumulate, compute_average_precision
@@ -65,7 +66,7 @@ from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 logger = logging.getLogger(__name__)
 
-@profile
+
 def evaluate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
@@ -96,32 +97,22 @@ def evaluate(
     #         avm = ArgoverseStaticMap.from_map_dir(avm_dir, build_raster=True)
     #         log_id_to_avm[log_id] = avm
     #         log_id_to_timestamped_poses[log_id] = read_city_SE3_ego(log_dir)
-    # dts = dts.sort_values(["log_id", "timestamp_ns"], ascending=True).reset_index(drop=True)
-    # breakpoint()
-    # uuids = gts.loc[:, ["log_id", "timestamp_ns"]].drop_duplicates().melt()
-    # breakpoint()
 
-    # dts = dts.set_index(["log_id", "timestamp_ns"]).sort_values("score", ascending=False)
-    # gts = gts.set_index(["log_id", "timestamp_ns"])
-    # breakpoint()
-    dts_mapping = {uuid: x for uuid, x in dts.groupby(["log_id", "timestamp_ns", "category"])}
-    gts_mapping = {uuid: x for uuid, x in gts.groupby(["log_id", "timestamp_ns", "category"])}
+    task_columns = ["log_id", "timestamp_ns", "category"]
+    dts_mapping = {uuid: x for uuid, x in dts.groupby(task_columns, sort=False)}
+    gts_mapping = {uuid: x for uuid, x in gts.groupby(task_columns, sort=False)}
     args_list = [(dts_mapping[uuid], sweep_gts, cfg, None, None) for uuid, sweep_gts in gts_mapping.items()]
 
     # Accumulate and gather the processed detections and ground truth annotations.
-    results = [accumulate(*x) for x in args_list]
+    results = [accumulate(*x) for x in track(args_list)]
     dts_list, gts_list = zip(*results)
 
     cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames)
     dts_npy = np.concatenate(dts_list)
     gts_npy = np.concatenate(gts_list)
 
-    dts.loc[:len(dts_npy) - 1, cols + ("is_evaluated",)] = dts_npy
-    gts.loc[:len(gts_npy) - 1, cfg.affinity_thresholds_m + ("is_evaluated",)] = gts_npy
-    # breakpoint()
-
-    # dts = pd.concat(dts_list).reset_index(drop=True)
-    # gts = pd.concat(gts_list).reset_index(drop=True)
+    dts.loc[:, cols + ("is_evaluated",)] = dts_npy
+    gts.loc[:, cfg.affinity_thresholds_m + ("is_evaluated",)] = gts_npy
 
     # Compute summary metrics.
     metrics = summarize_metrics(dts, gts, cfg)
