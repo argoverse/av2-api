@@ -105,7 +105,7 @@ def accumulate(
     cfg: DetectionCfg,
     avm: Optional[ArgoverseStaticMap] = None,
     city_SE3_ego: Optional[SE3] = None,
-) -> Tuple[NDArrayFloat, NDArrayFloat]:
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Accumulate the true / false positives (boolean flags) and true positive errors for each class.
 
     Args:

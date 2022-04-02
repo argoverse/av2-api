@@ -51,15 +51,11 @@ Results:
     in addition to the mean statistics average across all classes, and P refers to the number of included statistics,
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
-import functools
 import logging
-from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
-from rich.progress import track
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import DetectionCfg, accumulate, compute_average_precision
@@ -110,26 +106,11 @@ def evaluate(
     args_list = [(dts_mapping[uuid], sweep_gts, cfg, None, None) for uuid, sweep_gts in gts_mapping.items()]
 
     # Accumulate and gather the processed detections and ground truth annotations.
-    # results: Optional[List[Tuple[pd.DataFrame, pd.DataFrame]]] = Parallel(
-    #     n_jobs=-1, backend="multiprocessing", verbose=True
-    # )(delayed(accumulate)(*x) for x in args_list)
-    # breakpoint()
     results = [accumulate(*x) for x in args_list]
     dts_list, gts_list = zip(*results)
 
     dts = pd.concat(dts_list).reset_index(drop=True)
     gts = pd.concat(gts_list).reset_index(drop=True)
-
-    # breakpoint()
-    # dts_processed: NDArrayFloat = np.concatenate(dts_list)
-    # gts_processed: NDArrayFloat = np.concatenate(gts_list)
-
-    # columns = list(cfg.affinity_thresholds_m) + [x.value for x in TruePositiveErrorNames] + ["is_evaluated"]
-    # gts_processed = pd.DataFrame(gts_processed, columns=columns[:4] + ["is_evaluated"])
-    # dts_processed = pd.DataFrame(dts_processed, columns=columns)
-
-    # gts_processed = pd.concat([gts], gts_processed], axis=1)
-    # dts_processed = pd.concat([dts[:len(dts_processed)], dts_processed], axis=1)
 
     # Compute summary metrics.
     metrics = summarize_metrics(dts, gts, cfg)
@@ -195,30 +176,30 @@ def summarize_metrics(
             # Record the average precision.
             average_precisions.loc[category, affinity_threshold_m] = threshold_average_precision
 
-        mean_average_precisions = average_precisions.loc[category].mean()
+        mean_average_precisions: NDArrayFloat = average_precisions.loc[category].to_numpy().mean()
 
         # Select only the true positives for each instance.
         middle_idx = len(cfg.affinity_thresholds_m) // 2
         middle_threshold = cfg.affinity_thresholds_m[middle_idx]
-        is_tp_t = category_dts[middle_threshold].astype(bool)
+        is_tp_t = category_dts[middle_threshold].to_numpy().astype(bool)
 
         # Initialize true positive metrics.
-        tp_errors = cfg.tp_normalization_terms
+        tp_errors = np.array(cfg.tp_normalization_terms)
 
         # Check whether any true positives exist under the current threshold.
         has_true_positives = np.any(is_tp_t)
 
         # If true positives exist, compute the metrics.
         if has_true_positives:
-            tp_error_cols = tuple(x.value for x in list(TruePositiveErrorNames))
-            tp_errors = category_dts.loc[is_tp_t, tp_error_cols].mean(axis=0)
+            tp_error_cols = [str(x.value) for x in TruePositiveErrorNames]
+            tp_errors: NDArrayFloat = category_dts.loc[is_tp_t, tp_error_cols].to_numpy().mean(axis=0)
 
         # Convert errors to scores.
         tp_scores = 1 - np.divide(tp_errors, cfg.tp_normalization_terms)
 
         # Compute Composite Detection Score (CDS).
         cds = mean_average_precisions * np.mean(tp_scores)
-        summary.loc[category] = [mean_average_precisions, *tp_errors, cds]
+        summary.loc[category] = np.array([mean_average_precisions, *tp_errors, cds])
 
     # Return the summary.
     return summary
