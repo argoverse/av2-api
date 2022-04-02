@@ -13,22 +13,18 @@ increased interpretability of the error modes in a set of detections.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Final, List, Optional, Tuple
+from typing import Final, List, Optional, Tuple
 
 import numpy as np
-import numpy.lib.recfunctions as rf
 import pandas as pd
 from scipy.spatial.distance import cdist
 
 from av2.evaluation.detection.constants import (
-    DIMENSION_COLS,
     MAX_NORMALIZED_ASE,
     MAX_SCALE_ERROR,
     MAX_YAW_RAD_ERROR,
     MIN_AP,
     MIN_CDS,
-    QUAT_WXYZ_COLS,
-    TRANSLATION_COLS,
     AffinityType,
     CompetitionCategories,
     DistanceType,
@@ -120,8 +116,8 @@ def accumulate(
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
     """
     dts = dts.sort_values("score", ascending=False).reset_index(drop=True)
-    dt_records: NDArrayObject = dts[CUBOID_COLS].to_numpy()
-    gt_records: NDArrayObject = gts[CUBOID_COLS].to_numpy()
+    dts_npy: NDArrayObject = dts[CUBOID_COLS].to_numpy()
+    gts_npy: NDArrayObject = gts[CUBOID_COLS].to_numpy()
 
     dts_categories: NDArrayObject = dts["category"].to_numpy()
     gts_categories: NDArrayObject = gts["category"].to_numpy()
@@ -141,31 +137,32 @@ def accumulate(
         if not np.any(category_gts_idx):
             continue
 
-        is_evaluated_dts = compute_evaluated_dts_mask(dt_records[category_dts_idx], cfg)
+        is_evaluated_dts = compute_evaluated_dts_mask(dts_npy[category_dts_idx], cfg)
         is_evaluated_gts = compute_evaluated_gts_mask(
-            gt_records[category_gts_idx], num_interior_pts[category_gts_idx], cfg
+            gts_npy[category_gts_idx], num_interior_pts[category_gts_idx], cfg
         )
         category_dts_idx = category_dts_idx[is_evaluated_dts]
         category_gts_idx = category_gts_idx[is_evaluated_gts]
 
-        category_dts_params = dt_records[category_dts_idx]
-        category_gts_params = gt_records[category_gts_idx]
+        # Skip if there are no detections for the current category left.
+        if len(category_dts_idx) == 0:
+            continue
+        if len(category_gts_idx) == 0:
+            continue
+
+        category_dts_params = dts_npy[category_dts_idx]
+        category_gts_params = gts_npy[category_gts_idx]
 
         dt_results[category_dts_idx, -1] = True
         gt_results[category_gts_idx, -1] = True
 
-        # Skip if there are no detections for the current category left.
-        if len(category_dts_params) == 0:
-            continue
-        if len(category_gts_params) == 0:
-            continue
 
         dts_assignments, gts_assignments = assign(category_dts_params, category_gts_params, cfg)
         dt_results[category_dts_idx, :-1] = dts_assignments
         gt_results[category_gts_idx, :-1] = gts_assignments
 
-    cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames) + ("is_evaluated",)
-    dts.loc[:, cols] = dt_results
+    cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames) 
+    dts.loc[:, cols + ("is_evaluated",)] = dt_results
     gts.loc[:, cfg.affinity_thresholds_m + ("is_evaluated",)] = gt_results
     return dts, gts
 
