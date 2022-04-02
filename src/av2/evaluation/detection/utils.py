@@ -94,7 +94,7 @@ class DetectionCfg:
             MAX_YAW_RAD_ERROR,
         )
 
-
+@profile
 def accumulate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
@@ -115,9 +115,14 @@ def accumulate(
     Returns:
         The detection and ground truth cuboids augmented with assigment and evaluation fields.
     """
+    breakpoint()
+    perm = (-dts["score"]).to_numpy().argsort()
+    dts = dts.iloc[perm]
+    # dts = dts[]
+    # breakpoint()
     dts = dts.sort_values("score", ascending=False).reset_index(drop=True)
-    dts_npy: NDArrayObject = dts[CUBOID_COLS].to_numpy()
-    gts_npy: NDArrayObject = gts[CUBOID_COLS].to_numpy()
+    dts_npy: NDArrayFloat = dts[CUBOID_COLS].to_numpy()
+    gts_npy: NDArrayFloat = gts[CUBOID_COLS].to_numpy()
 
     dts_categories: NDArrayObject = dts["category"].to_numpy()
     gts_categories: NDArrayObject = gts["category"].to_numpy()
@@ -126,6 +131,8 @@ def accumulate(
 
     dt_results: NDArrayFloat = np.zeros((len(dts), 8))
     gt_results: NDArrayFloat = np.zeros((len(gts), 5))
+
+    
     for category in cfg.categories:
         category_dts_mask: NDArrayBool = dts_categories == category
         category_gts_mask: NDArrayBool = gts_categories == category
@@ -161,10 +168,9 @@ def accumulate(
         dt_results[category_dts_idx, :-1] = dts_assignments
         gt_results[category_gts_idx, :-1] = gts_assignments
 
-    cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames) 
-    dts.loc[:, cols + ("is_evaluated",)] = dt_results
-    gts.loc[:, cfg.affinity_thresholds_m + ("is_evaluated",)] = gt_results
-    return dts, gts
+    _, inv = np.unique(perm, return_index=True)
+    dt_results = dt_results[inv]
+    return dt_results, gt_results
 
 
 def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDArrayFloat, NDArrayFloat]:

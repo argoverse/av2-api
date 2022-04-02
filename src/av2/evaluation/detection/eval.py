@@ -65,7 +65,7 @@ from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 logger = logging.getLogger(__name__)
 
-
+@profile
 def evaluate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
@@ -84,27 +84,44 @@ def evaluate(
         (C+1,K) Table of evaluation metrics where C is the number of classes. Plus a row for their means.
         K refers to the number of evaluation metrics.
     """
-    log_ids: List[str] = gts["log_id"].unique().tolist()
-    log_id_to_avm: Dict[str, ArgoverseStaticMap] = {}
-    log_id_to_timestamped_poses: Dict[str, TimestampedCitySE3EgoPoses] = {}
-    if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
-        for log_id in log_ids:
-            log_dir = cfg.dataset_dir / log_id
-            avm_dir = log_dir / "map"
-            avm = ArgoverseStaticMap.from_map_dir(avm_dir, build_raster=True)
-            log_id_to_avm[log_id] = avm
-            log_id_to_timestamped_poses[log_id] = read_city_SE3_ego(log_dir)
+    # dts_npy = dts.to_numpy()
+    # gts_npy = gts.to_numpy()
+    # log_ids: List[str] = gts["log_id"].unique().tolist()
+    # log_id_to_avm: Dict[str, ArgoverseStaticMap] = {}
+    # log_id_to_timestamped_poses: Dict[str, TimestampedCitySE3EgoPoses] = {}
+    # if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
+    #     for log_id in log_ids:
+    #         log_dir = cfg.dataset_dir / log_id
+    #         avm_dir = log_dir / "map"
+    #         avm = ArgoverseStaticMap.from_map_dir(avm_dir, build_raster=True)
+    #         log_id_to_avm[log_id] = avm
+    #         log_id_to_timestamped_poses[log_id] = read_city_SE3_ego(log_dir)
+    # dts = dts.sort_values(["log_id", "timestamp_ns"], ascending=True).reset_index(drop=True)
+    # breakpoint()
+    # uuids = gts.loc[:, ["log_id", "timestamp_ns"]].drop_duplicates().melt()
+    # breakpoint()
 
-    dts_mapping = {uuid: x for uuid, x in dts.groupby(["log_id", "timestamp_ns"])}
-    gts_mapping = {uuid: x for uuid, x in gts.groupby(["log_id", "timestamp_ns"])}
+    # dts = dts.set_index(["log_id", "timestamp_ns"]).sort_values("score", ascending=False)
+    # gts = gts.set_index(["log_id", "timestamp_ns"])
+    # breakpoint()
+    dts_mapping = {uuid: x for uuid, x in dts.groupby(["log_id", "timestamp_ns", "category"])}
+    gts_mapping = {uuid: x for uuid, x in gts.groupby(["log_id", "timestamp_ns", "category"])}
     args_list = [(dts_mapping[uuid], sweep_gts, cfg, None, None) for uuid, sweep_gts in gts_mapping.items()]
 
     # Accumulate and gather the processed detections and ground truth annotations.
     results = [accumulate(*x) for x in args_list]
     dts_list, gts_list = zip(*results)
 
-    dts = pd.concat(dts_list).reset_index(drop=True)
-    gts = pd.concat(gts_list).reset_index(drop=True)
+    cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames)
+    dts_npy = np.concatenate(dts_list)
+    gts_npy = np.concatenate(gts_list)
+
+    dts.loc[:len(dts_npy) - 1, cols + ("is_evaluated",)] = dts_npy
+    gts.loc[:len(gts_npy) - 1, cfg.affinity_thresholds_m + ("is_evaluated",)] = gts_npy
+    # breakpoint()
+
+    # dts = pd.concat(dts_list).reset_index(drop=True)
+    # gts = pd.concat(gts_list).reset_index(drop=True)
 
     # Compute summary metrics.
     metrics = summarize_metrics(dts, gts, cfg)
