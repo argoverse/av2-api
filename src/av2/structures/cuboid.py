@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -21,6 +21,19 @@ from av2.rendering.color import BLUE_BGR, TRAFFIC_YELLOW1_BGR
 from av2.rendering.vector import draw_line_frustum
 from av2.utils.io import read_feather
 from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt, NDArrayObject
+
+ORDERED_CUBOID_COL_NAMES: Final[List[str]] = [
+    "tx_m",
+    "ty_m",
+    "tz_m",
+    "length_m",
+    "width_m",
+    "height_m",
+    "qw",
+    "qx",
+    "qy",
+    "qz",
+]
 
 
 @dataclass
@@ -42,8 +55,8 @@ class Cuboid:
     length_m: float
     width_m: float
     height_m: float
-    category: Enum
-    timestamp_ns: int
+    timestamp_ns: Optional[int] = None
+    category: Optional[Enum] = None
 
     @property
     def xyz_center_m(self) -> NDArrayFloat:
@@ -134,25 +147,27 @@ class Cuboid:
         )
 
     @classmethod
-    def from_series(cls, data: pd.Series) -> Cuboid:
-        """Convert a Pandas series to a Cuboid.
+    def from_numpy(
+        cls, params: NDArrayObject, category: Optional[Enum] = None, timestamp_ns: Optional[int] = None
+    ) -> Cuboid:
+        """Convert a set of cuboid parameters to a `Cuboid` object.
+
+        NOTE: Category and timestamp may be optionally provided.
 
         Args:
-            data: Row from a Pandas DataFrame.
+            data: (N,10) Array of cuboid parameters corresponding to `ORDERED_CUBOID_COL_NAMES`.
+            category: Category name of the cuboid.
+            timestamp_ns: Sweep at which the cuboid was annotated or detected.
 
         Returns:
             Constructed cuboid.
         """
-        translation = data.loc[["tx_m", "ty_m", "tz_m"]].to_numpy()
-        quat_wxyz = data.loc[["qw", "qx", "qy", "qz"]].to_numpy()
-        length_m = data["length_m"]
-        width_m = data["width_m"]
-        height_m = data["height_m"]
+        translation = params[:3]
+        length_m, width_m, height_m = params[3:6]
+        quat_wxyz = params[6:10]
 
         rotation = geometry_utils.quat_to_mat(quat_wxyz)
         ego_SE3_object = SE3(rotation=rotation, translation=translation)
-        category = data["category"]
-        timestamp_ns = data["timestamp_ns"]
         return cls(
             dst_SE3_object=ego_SE3_object,
             length_m=length_m,
@@ -386,31 +401,17 @@ class CuboidList:
         """Read annotations from a feather file.
 
         Args:
-            data: (N,12) Dataframe containing the cuboids and their respective parameters .
+            data: (N,12) Dataframe containing the cuboids and their respective parameters.
 
         Returns:
             Constructed cuboids.
         """
-        quat_wxyz: NDArrayFloat = data.loc[:, ["qw", "qx", "qy", "qz"]].to_numpy()
-        rotation = quat_to_mat(quat_wxyz)
-        translation_m: NDArrayFloat = data.loc[:, ["tx_m", "ty_m", "tz_m"]].to_numpy()
-        length_m: NDArrayFloat = data.loc[:, "length_m"].to_numpy()
-        width_m: NDArrayFloat = data.loc[:, "width_m"].to_numpy()
-        height_m: NDArrayFloat = data.loc[:, "height_m"].to_numpy()
-        category: NDArrayObject = data.loc[:, "category"].to_numpy()
-        timestamp_ns: NDArrayInt = data.loc[:, "timestamp_ns"].to_numpy()
-        N = len(data)
+        cuboids_parameters: NDArrayFloat = data.loc[:, ORDERED_CUBOID_COL_NAMES].to_numpy()
+        categories: NDArrayObject = data.loc[:, "category"].to_numpy()
+        timestamps_ns: NDArrayInt = data.loc[:, "timestamp_ns"].to_numpy()
 
-        cuboid_list: List[Cuboid] = []
-        for i in range(N):
-            ego_SE3_object = SE3(rotation=rotation[i], translation=translation_m[i])
-            cuboid = Cuboid(
-                dst_SE3_object=ego_SE3_object,
-                length_m=length_m[i],
-                width_m=width_m[i],
-                height_m=height_m[i],
-                category=category[i],
-                timestamp_ns=timestamp_ns[i],
-            )
-            cuboid_list.append(cuboid)
-        return cls(cuboids=cuboid_list)
+        cuboid_list = [
+            Cuboid.from_numpy(params, category, timestamp_ns)
+            for params, category, timestamp_ns in zip(cuboids_parameters, categories, timestamps_ns)
+        ]
+        return cls(cuboid_list)

@@ -43,19 +43,6 @@ from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 logger = logging.getLogger(__name__)
 
-ORDERED_CUBOID_COL_NAMES: Final[List[str]] = [
-    "tx_m",
-    "ty_m",
-    "tz_m",
-    "length_m",
-    "width_m",
-    "height_m",
-    "qw",
-    "qx",
-    "qy",
-    "qz",
-]
-
 
 @dataclass(frozen=True)
 class DetectionCfg:
@@ -338,37 +325,20 @@ def distance(dts: NDArrayFloat, gts: NDArrayFloat, metric: DistanceType) -> NDAr
         raise NotImplementedError("This distance metric is not implemented!")
 
 
-def compute_objects_in_roi_mask(cuboids: NDArrayFloat, city_SE3_ego: SE3, avm: ArgoverseStaticMap) -> NDArrayBool:
+def compute_objects_in_roi_mask(
+    cuboids_parameters: NDArrayFloat, city_SE3_ego: SE3, avm: ArgoverseStaticMap
+) -> NDArrayBool:
     """Compute the evaluated cuboids mask based off whether _any_ of their vertices fall into the ROI.
 
     Args:
-        cuboids: (N,10) Array of cuboid parameters corresponding to `ORDERED_CUBOID_COL_NAMES`.
+        cuboids_parameters: (N,10) Array of cuboid parameters corresponding to `ORDERED_CUBOID_COL_NAMES`.
         city_SE3_ego: Egovehicle pose in the city reference frame.
         avm: Argoverse map object.
 
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
-    translation = cuboids[:, :3]
-    length_m, width_m, height_m = cuboids[:, 3:6].T
-    quat_wxyz = cuboids[:, 6:10]
-
-    cuboid_list: List[Cuboid] = []
-    for c in cuboids:
-        translation = c[:3]
-        length_m, width_m, height_m = c[3:6]
-        quat_wxyz = c[6:10]
-        cuboid = Cuboid(
-            dst_SE3_object=SE3(rotation=quat_to_mat(quat_wxyz), translation=translation),
-            length_m=length_m,
-            width_m=width_m,
-            height_m=height_m,
-            category="",
-            timestamp_ns=0,
-        )
-        cuboid_list.append(cuboid)
-    cuboid_list_ego = CuboidList(cuboid_list)
-
+    cuboid_list_ego: CuboidList = CuboidList([Cuboid.from_numpy(params) for params in cuboids_parameters])
     cuboid_list_city = cuboid_list_ego.transform(city_SE3_ego)
     cuboid_list_vertices_m = cuboid_list_city.vertices_m
 

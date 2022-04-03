@@ -52,7 +52,7 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import logging
-from typing import Dict, Final, List, Optional, Tuple, Union
+from typing import Dict, Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -60,7 +60,6 @@ from joblib import Parallel, delayed
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import (
-    ORDERED_CUBOID_COL_NAMES,
     DetectionCfg,
     accumulate,
     compute_average_precision,
@@ -69,6 +68,7 @@ from av2.evaluation.detection.utils import (
 )
 from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap
+from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
 from av2.utils.io import TimestampedCitySE3EgoPoses
 from av2.utils.typing import NDArrayBool, NDArrayFloat
 
