@@ -155,9 +155,9 @@ class Cuboid:
         NOTE: Category and timestamp may be optionally provided.
 
         Args:
-            data: (N,10) Array of cuboid parameters corresponding to `ORDERED_CUBOID_COL_NAMES`.
+            params: (N,10) Array of cuboid parameters corresponding to `ORDERED_CUBOID_COL_NAMES`.
             category: Category name of the cuboid.
-            timestamp_ns: Sweep at which the cuboid was annotated or detected.
+            timestamp_ns: Sweep timestamp at which the cuboid was annotated or detected (in nanoseconds).
 
         Returns:
             Constructed cuboid.

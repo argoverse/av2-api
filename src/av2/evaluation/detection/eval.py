@@ -94,6 +94,9 @@ def evaluate(
     Returns:
         (C+1,K) Table of evaluation metrics where C is the number of classes. Plus a row for their means.
         K refers to the number of evaluation metrics.
+
+    Raises:
+        RuntimeError: If accumulation fails.
     """
     uuid_column_names = ["log_id", "timestamp_ns", "category"]
 
@@ -103,8 +106,8 @@ def evaluate(
 
     dts_cols = ORDERED_CUBOID_COL_NAMES + ["score"]
     gts_cols = ORDERED_CUBOID_COL_NAMES + ["num_interior_pts"]
-    dts_npy = dts.loc[:, dts_cols].to_numpy()
-    gts_npy = gts.loc[:, gts_cols].to_numpy()
+    dts_npy: NDArrayFloat = dts.loc[:, dts_cols].to_numpy()
+    gts_npy: NDArrayFloat = gts.loc[:, gts_cols].to_numpy()
 
     dts_uuids: List[str] = dts[uuid_column_names].to_numpy().astype(str).tolist()
     gts_uuids: List[str] = gts[uuid_column_names].to_numpy().astype(str).tolist()
