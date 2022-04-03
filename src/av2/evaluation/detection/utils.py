@@ -435,8 +435,10 @@ def load_mapped_avm_and_egoposes(
 ) -> Tuple[Dict[str, ArgoverseStaticMap], Dict[str, TimestampedCitySE3EgoPoses]]:
     log_ids: List[str] = gts["log_id"].unique().tolist()
     log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(dataset_dir / log_id) for log_id in log_ids}
-    avms: List[ArgoverseStaticMap] = Parallel(n_jobs=-1, backend="threading", verbose=10)(
+    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, backend="threading", verbose=1)(
         delayed(ArgoverseStaticMap.from_map_dir)(dataset_dir / log_id / "map", build_raster=True) for log_id in log_ids
     )
+    if avms is None:
+        raise RuntimeError("Map and egopose loading has failed!")
     log_id_to_avm = {log_ids[i]: avm for i, avm in enumerate(avms)}
     return log_id_to_avm, log_id_to_timestamped_poses

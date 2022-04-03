@@ -138,12 +138,13 @@ def evaluate(
 
     # # Load maps and egoposes if roi-pruning is enabled.
     if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
+        logger.info("Loading maps and egoposes ...")
         log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(gts, cfg.dataset_dir)
 
     dts_list = []
     gts_list = []
     args_list: List[Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
-    for uuid, sweep_gts in track(uuid_to_gts.items()):
+    for uuid, sweep_gts in uuid_to_gts.items():
         log_id, timestamp_ns, _ = uuid.split(":")
         args = uuid_to_dts[uuid], sweep_gts, cfg, None, None
         if log_id_to_avm is not None and log_id_to_timestamped_poses is not None:
@@ -152,9 +153,10 @@ def evaluate(
             args = uuid_to_dts[uuid], sweep_gts, cfg, avm, city_SE3_ego
         args_list.append(args)
 
-    outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = Parallel(
-        n_jobs=-1, backend="multiprocessing", verbose=10
-    )(delayed(accumulate)(*args) for args in args_list)
+    logger.info("Starting evaluation ...")
+    outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = Parallel(n_jobs=-1, verbose=1)(
+        delayed(accumulate)(*args) for args in args_list
+    )
     dts_list, gts_list = zip(*outputs)
     dts_npy: NDArrayFloat = np.concatenate(dts_list)
     gts_npy: NDArrayFloat = np.concatenate(gts_list)
