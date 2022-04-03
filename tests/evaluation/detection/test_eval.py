@@ -38,6 +38,8 @@ DIMS_COLS: Final[List[str]] = ["length_m", "width_m", "height_m"]
 QUAT_COLS: Final[List[str]] = ["qw", "qx", "qy", "qz"]
 ANNO_COLS: Final[List[str]] = ["timestamp_ns", "category"] + DIMS_COLS + QUAT_COLS + TRANSLATION_COLS
 
+CUBOID_COLS: Final[List[str]] = ["tx_m", "ty_m", "tz_m", "length_m", "width_m", "height_m", "qw", "qx", "qy", "qz"]
+
 
 def _get_summary_identity() -> pd.DataFrame:
     """Define an evaluator that compares a set of results to itself."""
@@ -64,7 +66,6 @@ def _get_summary() -> pd.DataFrame:
     detection_cfg = DetectionCfg(categories=("REGULAR_VEHICLE",), eval_only_roi_instances=False)
     dts: pd.DataFrame = pd.read_feather(TEST_DATA_DIR / "detections.feather")
     gts: pd.DataFrame = pd.read_feather(TEST_DATA_DIR / "labels.feather")
-
     _, _, summary = evaluate(dts, gts, detection_cfg)
     return summary
 
@@ -161,7 +162,7 @@ def test_accumulate() -> None:
     gts: pd.DataFrame = pd.read_feather(TEST_DATA_DIR / "labels.feather")
 
     for _, group in gts.groupby(["log_id", "timestamp_ns"]):
-        job = (group, group, cfg)
+        job = (group.loc[:, CUBOID_COLS].to_numpy(), group.loc[:, CUBOID_COLS].to_numpy(), cfg)
         dts, gts = accumulate(*job)
 
         # Check that there's a true positive under every threshold.

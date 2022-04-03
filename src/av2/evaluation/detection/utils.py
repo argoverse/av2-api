@@ -118,10 +118,14 @@ def accumulate(
     """
     N, M = len(dts), len(gts)
 
+    # breakpoint()
+    # breakpoint()
+
     # Sort the detections by score in _descending_ order.
-    scores: NDArrayFloat = dts["score"].to_numpy()
+    scores: NDArrayFloat = dts[..., -1]
     permutation: NDArrayInt = np.argsort(-scores).tolist()
-    dts = dts.iloc[permutation, :]
+    # dts = dts.iloc[permutation, :]
+    dts = dts[permutation]
 
     is_evaluated_dts: NDArrayBool = np.ones(N, dtype=bool)
     is_evaluated_gts: NDArrayBool = np.ones(M, dtype=bool)
@@ -129,12 +133,14 @@ def accumulate(
         is_evaluated_dts &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
         is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
 
-    dts_npy: NDArrayFloat = dts.loc[:, CUBOID_COLS].to_numpy()
-    gts_npy: NDArrayFloat = gts.loc[:, CUBOID_COLS].to_numpy()
+    # dts_npy: NDArrayFloat = dts.loc[:, CUBOID_COLS].to_numpy()
+    # gts_npy: NDArrayFloat = gts.loc[:, CUBOID_COLS].to_numpy()
+    dts_npy = dts
+    gts_npy = gts
 
-    num_interior_pts: NDArrayFloat = gts["num_interior_pts"].to_numpy()
-    is_evaluated_dts &= compute_evaluated_dts_mask(dts_npy, cfg)
-    is_evaluated_gts &= compute_evaluated_gts_mask(gts_npy, num_interior_pts, cfg)
+    # num_interior_pts: NDArrayFloat = gts["num_interior_pts"].to_numpy()
+    # is_evaluated_dts &= compute_evaluated_dts_mask(dts_npy, cfg)
+    # is_evaluated_gts &= compute_evaluated_gts_mask(gts_npy, num_interior_pts, cfg)
 
     N, M = len(dts), len(gts)
     dt_results: NDArrayFloat = np.zeros((N, 8))
@@ -213,6 +219,7 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
         translation_errors = distance(tps_dts[:, :3], tps_gts[:, :3], DistanceType.TRANSLATION)
         scale_errors = distance(tps_dts[:, 3:6], tps_gts[:, 3:6], DistanceType.SCALE)
         orientation_errors = distance(tps_dts[:, 6:10], tps_gts[:, 6:10], DistanceType.ORIENTATION)
+
 
         dts_table[idx_tps_dts, 4:] = np.stack((translation_errors, scale_errors, orientation_errors), axis=-1)
     return dts_table, gts_table

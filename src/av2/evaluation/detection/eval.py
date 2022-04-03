@@ -52,7 +52,7 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -67,11 +67,19 @@ from av2.evaluation.detection.utils import (
 )
 from av2.map.map_api import ArgoverseStaticMap
 from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego
-from av2.utils.typing import NDArrayBool, NDArrayFloat
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayObject
 
 logger = logging.getLogger(__name__)
 
+import numba
+@numba.njit
+def groupby(uuids, values):
+    N = len(uuids)
+    for i in range(N):
+        uuid = uuids[i]
 
+
+CUBOID_COLS: Final[List[str]] = ["tx_m", "ty_m", "tz_m", "length_m", "width_m", "height_m", "qw", "qx", "qy", "qz"]
 def evaluate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
@@ -90,29 +98,61 @@ def evaluate(
         (C+1,K) Table of evaluation metrics where C is the number of classes. Plus a row for their means.
         K refers to the number of evaluation metrics.
     """
-    log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
-    log_id_to_timestamped_poses: Optional[Dict[str, TimestampedCitySE3EgoPoses]] = None
-
-    # Load maps and egoposes if roi-pruning is enabled.
-    if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
-        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(gts, cfg.dataset_dir)
-
     column_names = ["log_id", "timestamp_ns", "category"]
-    uuid_to_dts = {uuid: x for uuid, x in dts.groupby(column_names, sort=False)}
-    uuid_to_gts = {uuid: x for uuid, x in gts.groupby(column_names, sort=False)}
+    dts = dts.sort_values(column_names)
+    gts = gts.sort_values(column_names)
+
+    dts_npy = dts.loc[:, CUBOID_COLS + ["score"]].to_numpy()
+    gts_npy = gts.loc[:, CUBOID_COLS].to_numpy()
+
+    dts_uuids: NDArrayFloat = dts[column_names].to_numpy()
+    dts_uuids = dts_uuids.astype("U64")
+
+    gts_uuids: NDArrayFloat = gts[column_names].to_numpy()
+    gts_uuids = gts_uuids.astype("U64")
+
+    unique_dts_uuids, dts_indices = np.unique(dts_uuids, axis=0, return_index=True)
+    unique_gts_uuids, gts_indices = np.unique(gts_uuids, axis=0, return_index=True)
+    
+    dts_groups = np.split(dts_npy, dts_indices[1:])
+    gts_groups = np.split(gts_npy, gts_indices[1:])
+
+    uuid_to_dts = {tuple(unique_dts_uuids[i].tolist()): x for i, x in enumerate(dts_groups)}
+    uuid_to_gts = {tuple(unique_gts_uuids[i].tolist()): x for i, x in enumerate(gts_groups)}
 
     dts_list = []
     gts_list = []
-    for uuid, sweep_gts in track(uuid_to_gts.items()):
-        args = uuid_to_dts[uuid], sweep_gts, cfg, None, None
-        if log_id_to_avm is not None and log_id_to_timestamped_poses is not None:
-            avm = log_id_to_avm[uuid[0]]
-            city_SE3_ego = log_id_to_timestamped_poses[uuid[0]][uuid[1]]
-            args = uuid_to_dts[uuid], sweep_gts, cfg, avm, city_SE3_ego
-        dts_accum, gts_accum = accumulate(*args)
+    for k, v in track(uuid_to_gts.items()):
+        dts_accum, gts_accum = accumulate(uuid_to_dts[k], v, cfg, None, None)
         dts_list.append(dts_accum)
         gts_list.append(gts_accum)
 
+        # breakpoint()
+
+
+    # log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
+    # log_id_to_timestamped_poses: Optional[Dict[str, TimestampedCitySE3EgoPoses]] = None
+
+    # # Load maps and egoposes if roi-pruning is enabled.
+    # if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
+    #     log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(gts, cfg.dataset_dir)
+
+    # column_names = ["log_id", "timestamp_ns", "category"]
+    # uuid_to_dts = {uuid: x for uuid, x in dts.groupby(column_names, sort=False)}
+    # uuid_to_gts = {uuid: x for uuid, x in gts.groupby(column_names, sort=False)}
+
+    # dts_list = []
+    # gts_list = []
+    # for uuid, sweep_gts in track(uuid_to_gts.items()):
+    #     args = uuid_to_dts[uuid], sweep_gts, cfg, None, None
+    #     if log_id_to_avm is not None and log_id_to_timestamped_poses is not None:
+    #         avm = log_id_to_avm[uuid[0]]
+    #         city_SE3_ego = log_id_to_timestamped_poses[uuid[0]][uuid[1]]
+    #         args = uuid_to_dts[uuid], sweep_gts, cfg, avm, city_SE3_ego
+    #     dts_accum, gts_accum = accumulate(*args)
+    #     dts_list.append(dts_accum)
+    #     gts_list.append(gts_accum)
+    # breakpoint()
     cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames)
     dts_npy: NDArrayFloat = np.concatenate(dts_list)
     gts_npy: NDArrayFloat = np.concatenate(gts_list)
