@@ -56,6 +56,7 @@ from typing import Dict, Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from joblib import Parallel, delayed
 from rich.progress import track
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
@@ -66,9 +67,10 @@ from av2.evaluation.detection.utils import (
     compute_average_precision,
     load_mapped_avm_and_egoposes,
 )
+from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap
-from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt, NDArrayObject
+from av2.utils.io import TimestampedCitySE3EgoPoses
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveErrorNames)
 
@@ -140,6 +142,7 @@ def evaluate(
 
     dts_list = []
     gts_list = []
+    args_list: List[Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
     for uuid, sweep_gts in track(uuid_to_gts.items()):
         log_id, timestamp_ns, _ = uuid.split(":")
         args = uuid_to_dts[uuid], sweep_gts, cfg, None, None
@@ -147,9 +150,12 @@ def evaluate(
             avm = log_id_to_avm[log_id]
             city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
             args = uuid_to_dts[uuid], sweep_gts, cfg, avm, city_SE3_ego
-        dts_accum, gts_accum = accumulate(*args)
-        dts_list.append(dts_accum)
-        gts_list.append(gts_accum)
+        args_list.append(args)
+
+    outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = Parallel(
+        n_jobs=-1, backend="multiprocessing", verbose=10
+    )(delayed(accumulate)(*args) for args in args_list)
+    dts_list, gts_list = zip(*outputs)
     dts_npy: NDArrayFloat = np.concatenate(dts_list)
     gts_npy: NDArrayFloat = np.concatenate(gts_list)
 

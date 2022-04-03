@@ -14,10 +14,10 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Final, List, Optional, Tuple
-from unicodedata import category
 
 import numpy as np
 import pandas as pd
+from joblib import Parallel, delayed
 from scipy.spatial.distance import cdist
 
 from av2.evaluation.detection.constants import (
@@ -435,7 +435,8 @@ def load_mapped_avm_and_egoposes(
 ) -> Tuple[Dict[str, ArgoverseStaticMap], Dict[str, TimestampedCitySE3EgoPoses]]:
     log_ids: List[str] = gts["log_id"].unique().tolist()
     log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(dataset_dir / log_id) for log_id in log_ids}
-    log_id_to_avm = {
-        log_id: ArgoverseStaticMap.from_map_dir(dataset_dir / log_id / "map", build_raster=True) for log_id in log_ids
-    }
+    avms: List[ArgoverseStaticMap] = Parallel(n_jobs=-1, backend="threading", verbose=10)(
+        delayed(ArgoverseStaticMap.from_map_dir)(dataset_dir / log_id / "map", build_raster=True) for log_id in log_ids
+    )
+    log_id_to_avm = {log_ids[i]: avm for i, avm in enumerate(avms)}
     return log_id_to_avm, log_id_to_timestamped_poses
