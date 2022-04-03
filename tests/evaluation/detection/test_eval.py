@@ -23,12 +23,16 @@ from av2.evaluation.detection.utils import (
     compute_affinity_matrix,
     compute_evaluated_dts_mask,
     compute_evaluated_gts_mask,
+    compute_objects_in_roi_mask,
     distance,
     interpolate_precision,
 )
 from av2.geometry.geometry import wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
+from av2.map.map_api import ArgoverseStaticMap
+from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
 from av2.utils.constants import PI
+from av2.utils.io import read_city_SE3_ego, read_feather
 from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 TEST_DATA_DIR: Final[Path] = Path(__file__).parent.resolve() / "data"
@@ -303,6 +307,24 @@ def test_compute_evaluated_gts_mask() -> None:
     gts_mask = compute_evaluated_gts_mask(gts, detection_cfg)
     gts_mask_: NDArrayBool = np.array([True, False, False, False])
     np.testing.assert_array_equal(gts_mask, gts_mask_)  # type: ignore
+
+def test_compute_objects_in_roi_mask() -> None:
+    log_dir = TEST_DATA_DIR / "adcf7d18-0510-35b0-a2fa-b4cea13a6d76"
+    annotations_path = log_dir / "annotations.feather"
+    annotations = read_feather(annotations_path)
+
+    timestamp_to_egoposes = read_city_SE3_ego(log_dir)
+    params = annotations.loc[:, ORDERED_CUBOID_COL_NAMES]
+
+    avm = ArgoverseStaticMap.from_map_dir(log_dir / "map", build_raster=True)
+
+    
+    avm.raster_roi_layer.array
+    breakpoint()
+    # read_city_SE3_ego()
+    compute_objects_in_roi_mask(params)
+    breakpoint()
+
 
 
 # def test_val_identity() -> None:
