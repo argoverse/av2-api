@@ -14,6 +14,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Final, List, Optional, Tuple
+from unicodedata import category
 
 import numpy as np
 import pandas as pd
@@ -30,20 +31,30 @@ from av2.evaluation.detection.constants import (
     DistanceType,
     FilterMetricType,
     InterpType,
-    TruePositiveErrorNames,
 )
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat, wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
 from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
-from av2.structures.cuboid import CuboidList
+from av2.structures.cuboid import Cuboid, CuboidList
 from av2.utils.constants import EPS
 from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt, NDArrayObject
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 logger = logging.getLogger(__name__)
 
-CUBOID_COLS: Final[List[str]] = ["tx_m", "ty_m", "tz_m", "length_m", "width_m", "height_m", "qw", "qx", "qy", "qz"]
+ORDERED_CUBOID_COL_NAMES: Final[List[str]] = [
+    "tx_m",
+    "ty_m",
+    "tz_m",
+    "length_m",
+    "width_m",
+    "height_m",
+    "qw",
+    "qx",
+    "qy",
+    "qz",
+]
 
 
 @dataclass(frozen=True)
@@ -129,18 +140,14 @@ def accumulate(
         is_evaluated_dts &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
         is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
 
-    # num_interior_pts: NDArrayFloat = gts["num_interior_pts"].to_numpy()
-    # is_evaluated_dts &= compute_evaluated_dts_mask(dts_npy, cfg)
-    # is_evaluated_gts &= compute_evaluated_gts_mask(gts_npy, num_interior_pts, cfg)
+    num_interior_pts: NDArrayFloat = gts[..., -1]
+    is_evaluated_dts &= compute_evaluated_dts_mask(dts, cfg)
+    is_evaluated_gts &= compute_evaluated_gts_mask(gts, num_interior_pts, cfg)
 
-    N, M = len(dts), len(gts)
     dt_results: NDArrayFloat = np.zeros((N, 8))
     gt_results: NDArrayFloat = np.zeros((M, 8))
     if is_evaluated_dts.sum() == 0 or is_evaluated_gts.sum() == 0:
         return dt_results, gt_results
-
-    # dts_npy = dts_npy[is_evaluated_dts]
-    # gts_npy = gts_npy[is_evaluated_gts]
 
     # Compute true positives through assigning detections and ground truths.
     dts_assignments, gts_assignments = assign(dts[is_evaluated_dts], gts[is_evaluated_gts], cfg)
@@ -331,9 +338,7 @@ def distance(dts: NDArrayFloat, gts: NDArrayFloat, metric: DistanceType) -> NDAr
         raise NotImplementedError("This distance metric is not implemented!")
 
 
-def compute_objects_in_roi_mask(
-    cuboids_dataframe: NDArrayFloat, city_SE3_ego: SE3, avm: ArgoverseStaticMap
-) -> NDArrayBool:
+def compute_objects_in_roi_mask(cuboids: NDArrayFloat, city_SE3_ego: SE3, avm: ArgoverseStaticMap) -> NDArrayBool:
     """Compute the evaluated cuboids mask based off whether _any_ of their vertices fall into the ROI.
 
     Args:
@@ -344,9 +349,27 @@ def compute_objects_in_roi_mask(
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
-    cuboids_dataframe = cuboids_dataframe.sort_values("timestamp_ns").reset_index(drop=True)
 
-    cuboid_list_ego = CuboidList.from_dataframe(cuboids_dataframe)
+    translation = cuboids[:, :3]
+    length_m, width_m, height_m = cuboids[:, 3:6].T
+    quat_wxyz = cuboids[:, 6:10]
+
+    cuboid_list: List[Cuboid] = []
+    for c in cuboids:
+        translation = c[:3]
+        length_m, width_m, height_m = c[3:6]
+        quat_wxyz = c[6:10]
+        cuboid = Cuboid(
+            dst_SE3_object=SE3(rotation=quat_to_mat(quat_wxyz), translation=translation),
+            length_m=length_m,
+            width_m=width_m,
+            height_m=height_m,
+            category="",
+            timestamp_ns=0,
+        )
+        cuboid_list.append(cuboid)
+    cuboid_list_ego = CuboidList(cuboid_list)
+
     cuboid_list_city = cuboid_list_ego.transform(city_SE3_ego)
     cuboid_list_vertices_m = cuboid_list_city.vertices_m
 

@@ -162,7 +162,7 @@ def test_accumulate() -> None:
     gts: pd.DataFrame = pd.read_feather(TEST_DATA_DIR / "labels.feather")
 
     for _, group in gts.groupby(["log_id", "timestamp_ns"]):
-        job = (group.loc[:, CUBOID_COLS].to_numpy(), group.loc[:, CUBOID_COLS].to_numpy(), cfg)
+        job = (group.loc[:, CUBOID_COLS].to_numpy(), group.loc[:, CUBOID_COLS + ["num_interior_pts"]].to_numpy(), cfg)
         dts, gts = accumulate(*job)
 
         # Check that there's a true positive under every threshold.

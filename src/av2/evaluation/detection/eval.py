@@ -52,7 +52,7 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import logging
-from typing import Any, Dict, Final, List, Optional, Tuple
+from typing import Dict, Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -60,6 +60,7 @@ from rich.progress import track
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import (
+    ORDERED_CUBOID_COL_NAMES,
     DetectionCfg,
     accumulate,
     compute_average_precision,
@@ -74,15 +75,21 @@ TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveEr
 logger = logging.getLogger(__name__)
 
 
-def groupby_mapping(uuids: List[str], values: NDArrayFloat) -> Dict[Tuple[str, ...], NDArrayFloat]:
-    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(uuids, return_index=True)
+def groupby(names: List[str], values: NDArrayFloat) -> Dict[str, NDArrayFloat]:
+    """Groups a set of values by their corresponding names.
+
+    Args:
+        names: String which maps data to a "bin".
+        values: Data which will be grouped by their names.
+
+    Returns:
+        Dictionary mapping the group name to the corresponding group.
+    """
+    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(names, return_index=True)
     unique_items, unique_items_indices = outputs
     dts_groups: List[NDArrayFloat] = np.split(values, unique_items_indices[1:])
-    uuid_to_groups = {tuple(unique_items[i].tolist()): x for i, x in enumerate(dts_groups)}
+    uuid_to_groups = {unique_items[i]: x for i, x in enumerate(dts_groups)}
     return uuid_to_groups
-
-
-CUBOID_COLS: Final[List[str]] = ["tx_m", "ty_m", "tz_m", "length_m", "width_m", "height_m", "qw", "qx", "qy", "qz"]
 
 
 def evaluate(
@@ -104,49 +111,45 @@ def evaluate(
         K refers to the number of evaluation metrics.
     """
     uuid_column_names = ["log_id", "timestamp_ns", "category"]
+
+    # Sort both the detections and annotations by in lexicographic order for grouping.
     dts = dts.sort_values(uuid_column_names)
     gts = gts.sort_values(uuid_column_names)
 
-    dts_cols = CUBOID_COLS + ["score"]
-    gts_cols = CUBOID_COLS
+    dts_cols = ORDERED_CUBOID_COL_NAMES + ["score"]
+    gts_cols = ORDERED_CUBOID_COL_NAMES + ["num_interior_pts"]
     dts_npy = dts.loc[:, dts_cols].to_numpy()
     gts_npy = gts.loc[:, gts_cols].to_numpy()
 
     dts_uuids: List[str] = dts[uuid_column_names].to_numpy().astype(str).tolist()
     gts_uuids: List[str] = gts[uuid_column_names].to_numpy().astype(str).tolist()
 
-    uuid_to_dts = groupby_mapping(["".join(x) for x in dts_uuids], dts_npy)
-    uuid_to_gts = groupby_mapping(["".join(x) for x in gts_uuids], gts_npy)
+    # We merge the unique identifier -- the tuple of ("log_id", "timestamp_ns", "category")
+    # into a single string to optimize the subsequent grouping operation.
+    # `groupby_mapping` produces a mapping from the uuid to the group of detections / annotations
+    # which fall into that group.
+    uuid_to_dts = groupby([":".join(x) for x in dts_uuids], dts_npy)
+    uuid_to_gts = groupby([":".join(x) for x in gts_uuids], gts_npy)
+
+    log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
+    log_id_to_timestamped_poses: Optional[Dict[str, TimestampedCitySE3EgoPoses]] = None
+
+    # # Load maps and egoposes if roi-pruning is enabled.
+    if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
+        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(gts, cfg.dataset_dir)
 
     dts_list = []
     gts_list = []
-    for k, v in track(uuid_to_gts.items()):
-        dts_accum, gts_accum = accumulate(uuid_to_dts[k], v, cfg, None, None)
+    for uuid, sweep_gts in track(uuid_to_gts.items()):
+        log_id, timestamp_ns, _ = uuid.split(":")
+        args = uuid_to_dts[uuid], sweep_gts, cfg, None, None
+        if log_id_to_avm is not None and log_id_to_timestamped_poses is not None:
+            avm = log_id_to_avm[log_id]
+            city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
+            args = uuid_to_dts[uuid], sweep_gts, cfg, avm, city_SE3_ego
+        dts_accum, gts_accum = accumulate(*args)
         dts_list.append(dts_accum)
         gts_list.append(gts_accum)
-
-    # log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
-    # log_id_to_timestamped_poses: Optional[Dict[str, TimestampedCitySE3EgoPoses]] = None
-
-    # # Load maps and egoposes if roi-pruning is enabled.
-    # if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
-    #     log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(gts, cfg.dataset_dir)
-
-    # column_names = ["log_id", "timestamp_ns", "category"]
-    # uuid_to_dts = {uuid: x for uuid, x in dts.groupby(column_names, sort=False)}
-    # uuid_to_gts = {uuid: x for uuid, x in gts.groupby(column_names, sort=False)}
-
-    # dts_list = []
-    # gts_list = []
-    # for uuid, sweep_gts in track(uuid_to_gts.items()):
-    #     args = uuid_to_dts[uuid], sweep_gts, cfg, None, None
-    #     if log_id_to_avm is not None and log_id_to_timestamped_poses is not None:
-    #         avm = log_id_to_avm[uuid[0]]
-    #         city_SE3_ego = log_id_to_timestamped_poses[uuid[0]][uuid[1]]
-    #         args = uuid_to_dts[uuid], sweep_gts, cfg, avm, city_SE3_ego
-    #     dts_accum, gts_accum = accumulate(*args)
-    #     dts_list.append(dts_accum)
-    #     gts_list.append(gts_accum)
     dts_npy: NDArrayFloat = np.concatenate(dts_list)
     gts_npy: NDArrayFloat = np.concatenate(gts_list)
 

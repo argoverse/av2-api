@@ -20,7 +20,7 @@ from av2.geometry.se3 import SE3
 from av2.rendering.color import BLUE_BGR, TRAFFIC_YELLOW1_BGR
 from av2.rendering.vector import draw_line_frustum
 from av2.utils.io import read_feather
-from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat
+from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt, NDArrayObject
 
 
 @dataclass
@@ -391,13 +391,14 @@ class CuboidList:
         Returns:
             Constructed cuboids.
         """
-        rotation = quat_to_mat(data.loc[:, ["qw", "qx", "qy", "qz"]].to_numpy())
-        translation_m = data.loc[:, ["tx_m", "ty_m", "tz_m"]].to_numpy()
-        length_m = data.loc[:, "length_m"].to_numpy()
-        width_m = data.loc[:, "width_m"].to_numpy()
-        height_m = data.loc[:, "height_m"].to_numpy()
-        category = data.loc[:, "category"].to_numpy()
-        timestamp_ns = data.loc[:, "timestamp_ns"].to_numpy()
+        quat_wxyz: NDArrayFloat = data.loc[:, ["qw", "qx", "qy", "qz"]].to_numpy()
+        rotation = quat_to_mat(quat_wxyz)
+        translation_m: NDArrayFloat = data.loc[:, ["tx_m", "ty_m", "tz_m"]].to_numpy()
+        length_m: NDArrayFloat = data.loc[:, "length_m"].to_numpy()
+        width_m: NDArrayFloat = data.loc[:, "width_m"].to_numpy()
+        height_m: NDArrayFloat = data.loc[:, "height_m"].to_numpy()
+        category: NDArrayObject = data.loc[:, "category"].to_numpy()
+        timestamp_ns: NDArrayInt = data.loc[:, "timestamp_ns"].to_numpy()
         N = len(data)
 
         cuboid_list: List[Cuboid] = []
