@@ -52,12 +52,11 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import logging
-from typing import Dict, Final, List, Optional, Tuple
+from typing import Dict, Final, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from rich.progress import track
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import (
@@ -65,33 +64,17 @@ from av2.evaluation.detection.utils import (
     DetectionCfg,
     accumulate,
     compute_average_precision,
+    groupby,
     load_mapped_avm_and_egoposes,
 )
 from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap
 from av2.utils.io import TimestampedCitySE3EgoPoses
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
+from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveErrorNames)
 
 logger = logging.getLogger(__name__)
-
-
-def groupby(names: List[str], values: NDArrayFloat) -> Dict[str, NDArrayFloat]:
-    """Groups a set of values by their corresponding names.
-
-    Args:
-        names: String which maps data to a "bin".
-        values: Data which will be grouped by their names.
-
-    Returns:
-        Dictionary mapping the group name to the corresponding group.
-    """
-    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(names, return_index=True)
-    unique_items, unique_items_indices = outputs
-    dts_groups: List[NDArrayFloat] = np.split(values, unique_items_indices[1:])
-    uuid_to_groups = {unique_items[i]: x for i, x in enumerate(dts_groups)}
-    return uuid_to_groups
 
 
 def evaluate(
@@ -139,13 +122,13 @@ def evaluate(
     # # Load maps and egoposes if roi-pruning is enabled.
     if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
         logger.info("Loading maps and egoposes ...")
-        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(gts, cfg.dataset_dir)
+        log_ids = gts["log_id"].unique().tolist()
+        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
 
-    dts_list = []
-    gts_list = []
     args_list: List[Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
     for uuid, sweep_gts in uuid_to_gts.items():
         log_id, timestamp_ns, _ = uuid.split(":")
+        args: Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]
         args = uuid_to_dts[uuid], sweep_gts, cfg, None, None
         if log_id_to_avm is not None and log_id_to_timestamped_poses is not None:
             avm = log_id_to_avm[log_id]
@@ -157,13 +140,15 @@ def evaluate(
     outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = Parallel(n_jobs=-1, verbose=1)(
         delayed(accumulate)(*args) for args in args_list
     )
+    if outputs is None:
+        raise RuntimeError("Accumulation has failed! Please check the integrity of your detections and annotations.")
     dts_list, gts_list = zip(*outputs)
-    dts_npy: NDArrayFloat = np.concatenate(dts_list)
-    gts_npy: NDArrayFloat = np.concatenate(gts_list)
 
     COLS = cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
-    dts.loc[:, COLS] = dts_npy
-    gts.loc[:, COLS] = gts_npy
+    dts_metrics: NDArrayFloat = np.concatenate(dts_list)  # type: ignore
+    gts_metrics: NDArrayFloat = np.concatenate(gts_list)  # type: ignore
+    dts.loc[:, COLS] = dts_metrics
+    gts.loc[:, COLS] = gts_metrics
 
     # Compute summary metrics.
     metrics = summarize_metrics(dts, gts, cfg)
@@ -237,7 +222,7 @@ def summarize_metrics(
         is_tp_t = category_dts[middle_threshold].to_numpy().astype(bool)
 
         # Initialize true positive metrics.
-        tp_errors = np.array(cfg.tp_normalization_terms)
+        tp_errors: NDArrayFloat = np.array(cfg.tp_normalization_terms)
 
         # Check whether any true positives exist under the current threshold.
         has_true_positives = np.any(is_tp_t)
@@ -245,7 +230,7 @@ def summarize_metrics(
         # If true positives exist, compute the metrics.
         if has_true_positives:
             tp_error_cols = [str(x.value) for x in TruePositiveErrorNames]
-            tp_errors: NDArrayFloat = category_dts.loc[is_tp_t, tp_error_cols].to_numpy().mean(axis=0)
+            tp_errors = category_dts.loc[is_tp_t, tp_error_cols].to_numpy().mean(axis=0)
 
         # Convert errors to scores.
         tp_scores = 1 - np.divide(tp_errors, cfg.tp_normalization_terms)

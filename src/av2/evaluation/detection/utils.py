@@ -140,9 +140,9 @@ def accumulate(
         is_evaluated_dts &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
         is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
 
-    num_interior_pts: NDArrayFloat = gts[..., -1]
+    # num_interior_pts: NDArrayFloat = gts[..., -1]
     is_evaluated_dts &= compute_evaluated_dts_mask(dts, cfg)
-    is_evaluated_gts &= compute_evaluated_gts_mask(gts, num_interior_pts, cfg)
+    is_evaluated_gts &= compute_evaluated_gts_mask(gts, cfg)
 
     dt_results: NDArrayFloat = np.zeros((N, 8))
     gt_results: NDArrayFloat = np.zeros((M, 8))
@@ -159,7 +159,7 @@ def accumulate(
     gt_results[is_evaluated_gts, -1] = True
 
     # Permute the detections according to the original ordering.
-    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(permutation, return_index=True)
+    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(permutation, return_index=True)  # type: ignore
     _, inverse_permutation = outputs
     dt_results = dt_results[inverse_permutation]
     return dt_results, gt_results
@@ -342,14 +342,13 @@ def compute_objects_in_roi_mask(cuboids: NDArrayFloat, city_SE3_ego: SE3, avm: A
     """Compute the evaluated cuboids mask based off whether _any_ of their vertices fall into the ROI.
 
     Args:
-        cuboids_dataframe: Dataframes containing cuboids.
+        cuboids: (N,10) Array of cuboid parameters corresponding to `ORDERED_CUBOID_COL_NAMES`.
         city_SE3_ego: Egovehicle pose in the city reference frame.
         avm: Argoverse map object.
 
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
-
     translation = cuboids[:, :3]
     length_m, width_m, height_m = cuboids[:, 3:6].T
     quat_wxyz = cuboids[:, 6:10]
@@ -407,7 +406,6 @@ def compute_evaluated_dts_mask(
 
 def compute_evaluated_gts_mask(
     gts: NDArrayFloat,
-    num_interior_pts: NDArrayFloat,
     cfg: DetectionCfg,
 ) -> NDArrayBool:
     """Compute the evaluated cuboids mask.
@@ -417,7 +415,7 @@ def compute_evaluated_gts_mask(
         2. The cuboid must have at _least_ one point in its interior.
 
     Args:
-        gts: Dataframes containing ground truth cuboids.
+        gts: (N,11) Array of cuboid parameters corresponding to `ORDERED_CUBOID_COL_NAMES` + "num_interior_pts".
         cfg: Detection configuration object.
 
     Returns:
@@ -425,15 +423,26 @@ def compute_evaluated_gts_mask(
     """
     norm: NDArrayFloat = np.linalg.norm(gts[:, :3], axis=1)  # type: ignore
     is_within_radius: NDArrayBool = norm < cfg.max_range_m
-    is_valid_num_points: NDArrayBool = num_interior_pts > 0
+    is_valid_num_points: NDArrayBool = gts[:, -1] > 0
     is_evaluated: NDArrayBool = is_within_radius & is_valid_num_points
     return is_evaluated
 
 
 def load_mapped_avm_and_egoposes(
-    gts: pd.DataFrame, dataset_dir: Path
+    log_ids: List[str], dataset_dir: Path
 ) -> Tuple[Dict[str, ArgoverseStaticMap], Dict[str, TimestampedCitySE3EgoPoses]]:
-    log_ids: List[str] = gts["log_id"].unique().tolist()
+    """Load the maps and egoposes for each log in the dataset directory.
+
+    Args:
+        log_ids: List of the log_ids.
+        dataset_dir: Directory to the dataset.
+
+    Returns:
+        A tuple of mappings from log id to maps and timestamped-egoposes, respectively.
+
+    Raises:
+        RuntimeError: If the process for loading maps and timestamped egoposes fails.
+    """
     log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(dataset_dir / log_id) for log_id in log_ids}
     avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, backend="threading", verbose=1)(
         delayed(ArgoverseStaticMap.from_map_dir)(dataset_dir / log_id / "map", build_raster=True) for log_id in log_ids
@@ -442,3 +451,20 @@ def load_mapped_avm_and_egoposes(
         raise RuntimeError("Map and egopose loading has failed!")
     log_id_to_avm = {log_ids[i]: avm for i, avm in enumerate(avms)}
     return log_id_to_avm, log_id_to_timestamped_poses
+
+
+def groupby(names: List[str], values: NDArrayFloat) -> Dict[str, NDArrayFloat]:
+    """Group a set of values by their corresponding names.
+
+    Args:
+        names: String which maps data to a "bin".
+        values: Data which will be grouped by their names.
+
+    Returns:
+        Dictionary mapping the group name to the corresponding group.
+    """
+    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(names, return_index=True)  # type: ignore
+    unique_items, unique_items_indices = outputs
+    dts_groups: List[NDArrayFloat] = np.split(values, unique_items_indices[1:])  # type: ignore
+    uuid_to_groups = {unique_items[i]: x for i, x in enumerate(dts_groups)}
+    return uuid_to_groups
