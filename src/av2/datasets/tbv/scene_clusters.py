@@ -346,7 +346,7 @@ PAO_CLUSTERS: Final[Dict[int, List[str]]] = {
     5: ["453e5558636338e3bf9b42b5ba0a6f1d__Summer_2020"],
 }
 
-TBV_LOG_CLUSTERS = {
+TBV_LOG_CLUSTERS: Final[str, Dict[int, List[str]]] = {
     "ATX": ATX_CLUSTERS,
     "MIA": MIA_CLUSTERS,
     "PIT": PIT_CLUSTERS,
