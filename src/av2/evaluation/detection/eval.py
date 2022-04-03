@@ -52,7 +52,7 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import logging
-from typing import Dict, Final, List, Optional, Tuple
+from typing import Any, Dict, Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -74,8 +74,8 @@ TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveEr
 logger = logging.getLogger(__name__)
 
 
-def groupby_mapping(uuids: NDArrayObject, values: NDArrayFloat) -> Dict[Tuple[str, ...], NDArrayFloat]:
-    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(uuids, axis=0, return_index=True)
+def groupby_mapping(uuids: List[str], values: NDArrayFloat) -> Dict[Tuple[str, ...], NDArrayFloat]:
+    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(uuids, return_index=True)
     unique_items, unique_items_indices = outputs
     dts_groups: List[NDArrayFloat] = np.split(values, unique_items_indices[1:])
     uuid_to_groups = {tuple(unique_items[i].tolist()): x for i, x in enumerate(dts_groups)}
@@ -103,7 +103,7 @@ def evaluate(
         (C+1,K) Table of evaluation metrics where C is the number of classes. Plus a row for their means.
         K refers to the number of evaluation metrics.
     """
-    uuid_column_names = ("log_id", "timestamp_ns", "category")
+    uuid_column_names = ["log_id", "timestamp_ns", "category"]
     dts = dts.sort_values(uuid_column_names)
     gts = gts.sort_values(uuid_column_names)
 
@@ -112,12 +112,11 @@ def evaluate(
     dts_npy = dts.loc[:, dts_cols].to_numpy()
     gts_npy = gts.loc[:, gts_cols].to_numpy()
 
-    # Convert UUID into fixed bitwidth for unique computation.
-    dts_uuids: NDArrayFloat = dts[uuid_column_names].to_numpy().astype("U64")
-    gts_uuids: NDArrayFloat = gts[uuid_column_names].to_numpy().astype("U64")
+    dts_uuids: List[str] = dts[uuid_column_names].to_numpy().astype(str).tolist()
+    gts_uuids: List[str] = gts[uuid_column_names].to_numpy().astype(str).tolist()
 
-    uuid_to_dts = groupby_mapping(dts_uuids, dts_npy)
-    uuid_to_gts = groupby_mapping(gts_uuids, gts_npy)
+    uuid_to_dts = groupby_mapping(["".join(x) for x in dts_uuids], dts_npy)
+    uuid_to_gts = groupby_mapping(["".join(x) for x in gts_uuids], gts_npy)
 
     dts_list = []
     gts_list = []

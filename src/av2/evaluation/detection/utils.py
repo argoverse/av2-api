@@ -121,7 +121,6 @@ def accumulate(
     # Sort the detections by score in _descending_ order.
     scores: NDArrayFloat = dts[..., -1]
     permutation: NDArrayInt = np.argsort(-scores).tolist()
-    # dts = dts.iloc[permutation, :]
     dts = dts[permutation]
 
     is_evaluated_dts: NDArrayBool = np.ones(N, dtype=bool)
@@ -129,9 +128,6 @@ def accumulate(
     if avm is not None and city_SE3_ego is not None:
         is_evaluated_dts &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
         is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
-
-    # dts_npy = dts.copy()
-    # gts_npy = gts.copy()
 
     # num_interior_pts: NDArrayFloat = gts["num_interior_pts"].to_numpy()
     # is_evaluated_dts &= compute_evaluated_dts_mask(dts_npy, cfg)
