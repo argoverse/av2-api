@@ -97,8 +97,8 @@ class DetectionCfg:
 
 
 def accumulate(
-    dts: pd.DataFrame,
-    gts: pd.DataFrame,
+    dts: NDArrayFloat,
+    gts: NDArrayFloat,
     cfg: DetectionCfg,
     avm: Optional[ArgoverseStaticMap] = None,
     city_SE3_ego: Optional[SE3] = None,
@@ -118,9 +118,6 @@ def accumulate(
     """
     N, M = len(dts), len(gts)
 
-    # breakpoint()
-    # breakpoint()
-
     # Sort the detections by score in _descending_ order.
     scores: NDArrayFloat = dts[..., -1]
     permutation: NDArrayInt = np.argsort(-scores).tolist()
@@ -133,10 +130,8 @@ def accumulate(
         is_evaluated_dts &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
         is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
 
-    # dts_npy: NDArrayFloat = dts.loc[:, CUBOID_COLS].to_numpy()
-    # gts_npy: NDArrayFloat = gts.loc[:, CUBOID_COLS].to_numpy()
-    dts_npy = dts
-    gts_npy = gts
+    # dts_npy = dts.copy()
+    # gts_npy = gts.copy()
 
     # num_interior_pts: NDArrayFloat = gts["num_interior_pts"].to_numpy()
     # is_evaluated_dts &= compute_evaluated_dts_mask(dts_npy, cfg)
@@ -144,15 +139,15 @@ def accumulate(
 
     N, M = len(dts), len(gts)
     dt_results: NDArrayFloat = np.zeros((N, 8))
-    gt_results: NDArrayFloat = np.zeros((M, 5))
+    gt_results: NDArrayFloat = np.zeros((M, 8))
     if is_evaluated_dts.sum() == 0 or is_evaluated_gts.sum() == 0:
         return dt_results, gt_results
 
-    dts_npy = dts_npy[is_evaluated_dts]
-    gts_npy = gts_npy[is_evaluated_gts]
+    # dts_npy = dts_npy[is_evaluated_dts]
+    # gts_npy = gts_npy[is_evaluated_gts]
 
     # Compute true positives through assigning detections and ground truths.
-    dts_assignments, gts_assignments = assign(dts_npy, gts_npy, cfg)
+    dts_assignments, gts_assignments = assign(dts[is_evaluated_dts], gts[is_evaluated_gts], cfg)
     dt_results[is_evaluated_dts, :-1] = dts_assignments
     gt_results[is_evaluated_gts, :-1] = gts_assignments
 
@@ -195,10 +190,11 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
     assignments: Tuple[NDArrayInt, NDArrayInt] = np.unique(idx_gts, return_index=True)  # type: ignore
 
     idx_gts, idx_dts = assignments
-    K = len(cfg.affinity_thresholds_m)
-    dts_table: NDArrayFloat = np.zeros((len(dts), K + 3))
+    K = len(cfg.affinity_thresholds_m) + 3
+    dts_table: NDArrayFloat = np.zeros((len(dts), K))
     dts_table[:, 4:] = cfg.metrics_defaults[1:4]
     gts_table: NDArrayFloat = np.zeros((len(gts), K))
+    gts_table[:, 4:] = cfg.metrics_defaults[1:4]
     for i, threshold_m in enumerate(cfg.affinity_thresholds_m):
         is_tp: NDArrayBool = affinities[idx_dts] > -threshold_m
 
@@ -219,7 +215,6 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
         translation_errors = distance(tps_dts[:, :3], tps_gts[:, :3], DistanceType.TRANSLATION)
         scale_errors = distance(tps_dts[:, 3:6], tps_gts[:, 3:6], DistanceType.SCALE)
         orientation_errors = distance(tps_dts[:, 6:10], tps_gts[:, 6:10], DistanceType.ORIENTATION)
-
 
         dts_table[idx_tps_dts, 4:] = np.stack((translation_errors, scale_errors, orientation_errors), axis=-1)
     return dts_table, gts_table
@@ -341,7 +336,7 @@ def distance(dts: NDArrayFloat, gts: NDArrayFloat, metric: DistanceType) -> NDAr
 
 
 def compute_objects_in_roi_mask(
-    cuboids_dataframe: pd.DataFrame, city_SE3_ego: SE3, avm: ArgoverseStaticMap
+    cuboids_dataframe: NDArrayFloat, city_SE3_ego: SE3, avm: ArgoverseStaticMap
 ) -> NDArrayBool:
     """Compute the evaluated cuboids mask based off whether _any_ of their vertices fall into the ROI.
 

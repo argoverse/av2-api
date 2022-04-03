@@ -67,19 +67,24 @@ from av2.evaluation.detection.utils import (
 )
 from av2.map.map_api import ArgoverseStaticMap
 from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayObject
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt, NDArrayObject
+
+TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveErrorNames)
 
 logger = logging.getLogger(__name__)
 
-import numba
-@numba.njit
-def groupby(uuids, values):
-    N = len(uuids)
-    for i in range(N):
-        uuid = uuids[i]
+
+def groupby_mapping(uuids: NDArrayObject, values: NDArrayFloat) -> Dict[Tuple[str, ...], NDArrayFloat]:
+    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(uuids, axis=0, return_index=True)
+    unique_items, unique_items_indices = outputs
+    dts_groups: List[NDArrayFloat] = np.split(values, unique_items_indices[1:])
+    uuid_to_groups = {tuple(unique_items[i].tolist()): x for i, x in enumerate(dts_groups)}
+    return uuid_to_groups
 
 
 CUBOID_COLS: Final[List[str]] = ["tx_m", "ty_m", "tz_m", "length_m", "width_m", "height_m", "qw", "qx", "qy", "qz"]
+
+
 def evaluate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
@@ -98,27 +103,21 @@ def evaluate(
         (C+1,K) Table of evaluation metrics where C is the number of classes. Plus a row for their means.
         K refers to the number of evaluation metrics.
     """
-    column_names = ["log_id", "timestamp_ns", "category"]
-    dts = dts.sort_values(column_names)
-    gts = gts.sort_values(column_names)
+    uuid_column_names = ("log_id", "timestamp_ns", "category")
+    dts = dts.sort_values(uuid_column_names)
+    gts = gts.sort_values(uuid_column_names)
 
-    dts_npy = dts.loc[:, CUBOID_COLS + ["score"]].to_numpy()
-    gts_npy = gts.loc[:, CUBOID_COLS].to_numpy()
+    dts_cols = CUBOID_COLS + ["score"]
+    gts_cols = CUBOID_COLS
+    dts_npy = dts.loc[:, dts_cols].to_numpy()
+    gts_npy = gts.loc[:, gts_cols].to_numpy()
 
-    dts_uuids: NDArrayFloat = dts[column_names].to_numpy()
-    dts_uuids = dts_uuids.astype("U64")
+    # Convert UUID into fixed bitwidth for unique computation.
+    dts_uuids: NDArrayFloat = dts[uuid_column_names].to_numpy().astype("U64")
+    gts_uuids: NDArrayFloat = gts[uuid_column_names].to_numpy().astype("U64")
 
-    gts_uuids: NDArrayFloat = gts[column_names].to_numpy()
-    gts_uuids = gts_uuids.astype("U64")
-
-    unique_dts_uuids, dts_indices = np.unique(dts_uuids, axis=0, return_index=True)
-    unique_gts_uuids, gts_indices = np.unique(gts_uuids, axis=0, return_index=True)
-    
-    dts_groups = np.split(dts_npy, dts_indices[1:])
-    gts_groups = np.split(gts_npy, gts_indices[1:])
-
-    uuid_to_dts = {tuple(unique_dts_uuids[i].tolist()): x for i, x in enumerate(dts_groups)}
-    uuid_to_gts = {tuple(unique_gts_uuids[i].tolist()): x for i, x in enumerate(gts_groups)}
+    uuid_to_dts = groupby_mapping(dts_uuids, dts_npy)
+    uuid_to_gts = groupby_mapping(gts_uuids, gts_npy)
 
     dts_list = []
     gts_list = []
@@ -126,9 +125,6 @@ def evaluate(
         dts_accum, gts_accum = accumulate(uuid_to_dts[k], v, cfg, None, None)
         dts_list.append(dts_accum)
         gts_list.append(gts_accum)
-
-        # breakpoint()
-
 
     # log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
     # log_id_to_timestamped_poses: Optional[Dict[str, TimestampedCitySE3EgoPoses]] = None
@@ -152,13 +148,12 @@ def evaluate(
     #     dts_accum, gts_accum = accumulate(*args)
     #     dts_list.append(dts_accum)
     #     gts_list.append(gts_accum)
-    # breakpoint()
-    cols = cfg.affinity_thresholds_m + tuple(x.value for x in TruePositiveErrorNames)
     dts_npy: NDArrayFloat = np.concatenate(dts_list)
     gts_npy: NDArrayFloat = np.concatenate(gts_list)
 
-    dts.loc[:, cols + ("is_evaluated",)] = dts_npy
-    gts.loc[:, cfg.affinity_thresholds_m + ("is_evaluated",)] = gts_npy
+    COLS = cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
+    dts.loc[:, COLS] = dts_npy
+    gts.loc[:, COLS] = gts_npy
 
     # Compute summary metrics.
     metrics = summarize_metrics(dts, gts, cfg)
