@@ -39,7 +39,7 @@ jobs:
           pip install
           build
           --user
-          
+
       - name: Build a binary wheel and a source tarball.
         run: >-
           python -m
@@ -48,18 +48,18 @@ jobs:
           --wheel
           --outdir dist/
           .
-          
-      - name: Publish package to Test PyPI.
-        if: matrix.os == 'ubuntu-latest'
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/
-          print_hash: true
-          skip_existing: true
-          verbose: true
-          
+
+      # - name: Publish package to Test PyPI.
+      #   if: matrix.os == 'ubuntu-latest'
+      #   uses: pypa/gh-action-pypi-publish@master
+      #   with:
+      #     user: __token__
+      #     password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      #     repository_url: https://test.pypi.org/legacy/
+      #     print_hash: true
+      #     skip_existing: true
+      #     verbose: true
+
       - name: Publish package to PyPI.
         if: matrix.os == 'ubuntu-latest' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@master
