@@ -124,7 +124,7 @@ class Sweep:
             sweep: Lidar sweep.
 
         Returns:
-            Sweep object.
+            A stacked Sweep object.
         """
         self.xyz = np.vstack([self.xyz, sweep.xyz])
         self.intensity = np.concatenate([self.intensity, sweep.intensity])  # type: ignore
@@ -153,14 +153,14 @@ def equalize_distribution(intensity: NDArrayByte) -> NDArrayByte:
     Note: we add one to intensity to map 0 values to 0 under logarithm.
 
     Args:
-        intensity: intensity per return, in the range [0,255]
+        intensity: Intensity per return, in the range [0,255].
 
     Returns:
         Log of intensity per return, in the range [0,255]
     """
     log_intensity: NDArrayFloat = np.log((intensity + 1.0))  # note: must add a float, not an int.
-    # normalize to [0,1]
+    # Normalize to [0,1].
     log_intensity_n: NDArrayFloat = normalize_array(log_intensity)
-    # convert to byte in [0,255]
+    # Convert to byte in [0,255].
     log_intensity_b: NDArrayByte = np.round(log_intensity_n * 255).astype(np.uint8)  # type: ignore
     return log_intensity_b

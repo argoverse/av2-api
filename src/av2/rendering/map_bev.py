@@ -22,10 +22,10 @@ from av2.rendering.color import HANDICAP_BLUE_BGR, LIGHT_RED_BGR, TRAFFIC_YELLOW
 from av2.structures.ndgrid import BEVGrid
 from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayInt
 
-# apply uniform dashes. in reality, there is often a roughly 2:1 ratio between empty space and dashes.
-DASH_INTERVAL_M: Final[float] = 2.0  # every 1 meter
+# Apply uniform dashes. in reality, there is often a roughly 2:1 ratio between empty space and dashes.
+DASH_INTERVAL_M: Final[float] = 2.0  # Every 1 meter.
 
-# number of sampled waypoints per polyline.
+# Number of sampled waypoints per polyline.
 N_INTERP_PTS: Final[int] = 1000
 
 
@@ -34,7 +34,7 @@ class BirdsEyeViewMapRenderer:
     """Rendering engine for map entities in the bird's eye view (BEV).
 
     Args:
-        avm: map, with vector and raster elements, for querying ground height at arbitrary locations.
+        avm: Map, with vector and raster elements, for querying ground height at arbitrary locations.
         city_SE3_ego: AV pose at a single timestamp.
         bev_grid: Parameters for BEV rendering.
         render_north_as_up: Whether to render north as up in (as opposed to using the +y axis of the egovehicle
@@ -53,7 +53,7 @@ class BirdsEyeViewMapRenderer:
 
     @property
     def city_SO3_ego(self) -> SE3:
-        """Retrieve transformation to center frame at egovehicle with the city's orientation."""
+        """Retrieve the egovehicle pose in the city reference frame."""
         return SE3(rotation=self.city_SE3_ego.rotation, translation=np.zeros(3))
 
     def render_lane_boundary_bev(
@@ -65,17 +65,17 @@ class BirdsEyeViewMapRenderer:
     ) -> NDArrayByte:
         """Draw left or right lane boundary (only one is rendered here).
 
-        Double lines are to be understood from the inside out.  e.g. DASHED_SOLID means that the dashed line is adjacent
+        Double lines are to be understood from the inside out.  e.g., DASHED_SOLID means that the dashed line is adjacent
         to the lane carrying the property and the solid line is adjacent to the neighbor lane.
 
         Args:
-            img_bgr: array of shape (H,W,3) representing BGR image (canvas), to render on.
-            lane_segment: vector lane segment object.
-            side: lane side to render. should be "left" or "right"
-            line_width_px: thickness (in pixels) to use when rendering the polyline.
+            img_bgr: Array of shape (H,W,3) representing BGR image (canvas), to render on.
+            lane_segment: Vector lane segment object.
+            side: Lane side to render. should be "left" or "right"
+            line_width_px: Thickness (in pixels) to use when rendering the polyline.
 
         Returns:
-            array of shape (H,W,3) representing BGR image (canvas), with lane boundary rendered on it.
+            Array of shape (H,W,3) representing BGR image (canvas), with lane boundary rendered on it.
 
         Raises:
             ValueError: If `mark_type` is unknown.
@@ -87,7 +87,7 @@ class BirdsEyeViewMapRenderer:
             polyline = lane_segment.left_lane_boundary.xyz
             mark_type = lane_segment.left_mark_type
 
-        # interpolation needs to happen before rounded to integer coordinates.
+        # Interpolation needs to happen before rounded to integer coordinates.
         polyline_city_frame = interp_utils.interp_arc(t=N_INTERP_PTS, points=polyline)
 
         if "WHITE" in mark_type:
@@ -167,19 +167,19 @@ class BirdsEyeViewMapRenderer:
         Ignoring residual at ends, since assume lanes quite long.
 
         Args:
-            polyline: Array of shape (K, 2) representing the coordinates of each line segment
+            polyline: Array of shape (K, 2) representing the coordinates of each line segment.
             img_bgr: Array of shape (M, N, 3), representing a 3-channel BGR image, passed by reference.
-            bound_color: Tuple of shape (3,) with a BGR format color
-            thickness_px: thickness (in pixels) to use when rendering the polyline.
-            dash_interval_m: length of one dash, in meters.
-            dash_frequency: for each dash_interval_m, we will discretize the length into n sections.
+            bound_color: Tuple of shape (3,) with a BGR format color.
+            thickness_px: Thickness (in pixels) to use when rendering the polyline.
+            dash_interval_m: Length of one dash, in meters.
+            dash_frequency: For each dash_interval_m, we will discretize the length into n sections.
                 1 of n sections will contain a marked dash, and the other (n-1) spaces will be empty (non-marked).
         """
         interp_polyline, num_waypts = polyline_utils.interp_polyline_by_fixed_waypt_interval(polyline, dash_interval_m)
         for i in range(num_waypts - 1):
 
-            # every other segment is a gap
-            # (first the next dash interval is a line, and then the dash interval is empty, ...)
+            # Every other segment is a gap
+            # (first the next dash interval is a line, and then the dash interval is empty, ...).
             if (i % dash_frequency) != 0:
                 continue
 
@@ -201,15 +201,15 @@ class BirdsEyeViewMapRenderer:
         """Rasterize a polygon onto an image canvas in the bird's-eye-view (BEV).
 
         Args:
-            polyline_city_frame: array of shape (N,3) representing a polyline in city coordinates
-                (e.g. crosswalk boundary or lane segment boundary).
-            img_bgr: array of shape (H,W,3) representing a BGR image to write to (the canvas).
-            bound_color: tuple of BGR intensities to use as color for rendering the lane boundary (i.e. polyline).
-            thickness_px: thickness (in pixels) to use when rendering the polyline.
+            polyline_city_frame: Array of shape (N,3) representing a polyline in city coordinates
+                (e.g., crosswalk boundary or lane segment boundary).
+            img_bgr: Array of shape (H,W,3) representing a BGR image to write to (the canvas).
+            bound_color: Tuple of BGR intensities to use as color for rendering the lane boundary (i.e. polyline).
+            thickness_px: Thickness (in pixels) to use when rendering the polyline.
         """
         polyline_ego_frame = self.ego_SE3_city.transform_from(copy.deepcopy(polyline_city_frame))
 
-        # allow option to keep North as +y in image frame
+        # Allow option to keep North as +y in image frame.
         if self.render_north_as_up:
             polyline_ego_frame = self.city_SO3_ego.transform_from(copy.deepcopy(polyline_ego_frame))
 
@@ -229,13 +229,13 @@ class BirdsEyeViewMapRenderer:
         bound_color: Tuple[int, int, int],
         alpha: float = 0.5,
     ) -> NDArrayByte:
-        """Rasterize a filled polygon onto an image canvas in the bird's-eye-view (BEV)..
+        """Rasterize a filled polygon onto an image canvas in the bird's-eye-view (BEV).
 
         Args:
-            polyline_city_frame: array of shape (N,3) representing a polyline in city coordinates
-                (e.g. crosswalk boundary or lane segment boundary).
-            img_bgr: array of shape (H,W,3) representing a BGR image to write to (the canvas).
-            bound_color: tuple of BGR intensities to use as color for rendering the lane boundary (i.e. polyline).
+            polyline_city_frame: Array of shape (N,3) representing a polyline in city coordinates.
+                (e.g., crosswalk boundary or lane segment boundary).
+            img_bgr: Array of shape (H,W,3) representing a BGR image to write to (the canvas).
+            bound_color: Tuple of BGR intensities to use as color for rendering the lane boundary (i.e. polyline).
             alpha: Alpha blending coefficient.
 
         Returns:
@@ -243,7 +243,7 @@ class BirdsEyeViewMapRenderer:
         """
         polyline_ego_frame = self.ego_SE3_city.transform_from(copy.deepcopy(polyline_city_frame))
 
-        # allow option to keep North as +y in image frame
+        # Allow option to keep North as +y in image frame.
         if self.render_north_as_up:
             polyline_ego_frame = self.city_SO3_ego.transform_from(copy.deepcopy(polyline_ego_frame))
 
@@ -269,9 +269,9 @@ def draw_polyline_segments_cv2(
     Args:
         line_segments_arr: Array of shape (K, 2) representing the coordinates of each line segment.
             Vertices may be out of bounds (outside the image borders) and the line segment will be interpolated.
-        image: Array of shape (H, W, 3), representing a 3-channel BGR image
-        color: Tuple of shape (3,) with a BGR format color
-        thickness_px: thickness (in pixels) to use when rendering the polyline.
+        image: Array of shape (H, W, 3), representing a 3-channel BGR image.
+        color: Tuple of shape (3,) with a BGR format color.
+        thickness_px: Thickness (in pixels) to use when rendering the polyline.
     """
     line_segments_arr_int: NDArrayInt = np.round(line_segments_arr).astype(int)  # type: ignore
     for i in range(len(line_segments_arr_int) - 1):
@@ -281,5 +281,5 @@ def draw_polyline_segments_cv2(
         x2 = line_segments_arr_int[i + 1][0]
         y2 = line_segments_arr_int[i + 1][1]
 
-        # Use anti-aliasing (AA) for curves
+        # Use anti-aliasing (AA) for curves.
         image = cv2.line(image, pt1=(x1, y1), pt2=(x2, y2), color=color, thickness=thickness_px, lineType=cv2.LINE_AA)

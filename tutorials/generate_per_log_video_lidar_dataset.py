@@ -42,7 +42,7 @@ def accumulate_all_frames(loader: AV2SensorDataLoader, log_id: str) -> Sweep:
 
     Args:
         loader: The AV2 Lidar Dataset dataloader.
-        log_id: unique ID for AV2 scenario/log.
+        log_id: Unique ID for AV2 scenario/log.
 
     Returns:
         Sweep representing aggregated lidar returns, placed in the city frame.
@@ -60,7 +60,7 @@ def accumulate_all_frames(loader: AV2SensorDataLoader, log_id: str) -> Sweep:
     sweep_ego_base = Sweep.from_feather(feather_fpath)
     agg_sweep_city = city_SE3_ego.transform_sweep_from(sweep_ego_base)
 
-    for lidar_timestamp_ns in track(lidar_timestamps_ns[1:], description="Aggregating sweeps..."):
+    for lidar_timestamp_ns in track(lidar_timestamps_ns[1:], description="Aggregating sweeps ..."):
         city_SE3_ego = loader.get_city_SE3_ego(log_id=log_id, timestamp_ns=lidar_timestamp_ns)
         feather_fpath = loader.get_lidar_fpath(log_id, lidar_timestamp_ns)
         sweep_ego = Sweep.from_feather(feather_fpath)
@@ -80,14 +80,14 @@ def render_map_bev(
     marking color, or otherwise red, if markings are implicit, and drivable area in green.
 
     Args:
-        img_bgr: array of shape (H,W,3) representing BGR canvas to rasterize map elements onto.
-        bev_map_renderer: rendering engine for map elements in the bird's-eye-view (BEV).
-        line_width_px: thickness (in pixels) to use for rendering each polyline.
+        img_bgr: Array of shape (H,W,3) representing BGR canvas to rasterize map elements onto.
+        bev_map_renderer: Rendering engine for map elements in the bird's-eye-view (BEV).
+        line_width_px: Thickness (in pixels) to use for rendering each polyline.
 
     Returns:
         Array of shape (H,W,3) and type uint8 representing a BGR image.
     """
-    # Overlay drivable area
+    # Overlay drivable area.
     for da_polygon_city in bev_map_renderer.avm.vector_drivable_areas.values():
         da_polygon_city_xyz: NDArrayFloat = da_polygon_city.xyz
 
@@ -105,16 +105,16 @@ def render_map_bev(
             alpha=0.7,
         )
 
-    # Overlay lane segments
+    # Overlay lane segments.
     for ls in bev_map_renderer.avm.get_scenario_lane_segments():
         img_bgr = bev_map_renderer.render_lane_boundary_bev(img_bgr, ls, "right", line_width_px)
         img_bgr = bev_map_renderer.render_lane_boundary_bev(img_bgr, ls, "left", line_width_px)
 
-    # Overlay pedestrian crossings
+    # Overlay pedestrian crossings.
     for pc in bev_map_renderer.avm.get_scenario_ped_crossings():
-        # Render ped crossings (pc's)
+        # Render ped crossings (pc's).
         crosswalk_polygon = pc.polygon
-        # Prevent duplicate first and last coords
+        # Prevent duplicate first and last coords.
         crosswalk_polygon[:-1] += CROSSWALK_EPS
 
         bev_map_renderer.render_polyline_bev(
@@ -177,16 +177,16 @@ def render_log_lidar_dataset_video(
         city_SE3_ego = loader.get_city_SE3_ego(log_id=log_id, timestamp_ns=lidar_timestamp_ns)
         ego_SE3_city = city_SE3_ego.inverse()
 
-        # Whether or not to accumulate multiple sweeps
+        # Whether or not to accumulate multiple sweeps.
         if use_single_sweep:
             feather_fpath = loader.get_lidar_fpath(log_id, lidar_timestamp_ns)
             sweep_ego = Sweep.from_feather(feather_fpath)
             sweep_ego.equalize_intensity_distribution()
         else:
-            # Accumulate sweeps
+            # Accumulate sweeps.
             sweep_ego = ego_SE3_city.transform_sweep_from(copy.deepcopy(agg_sweep_city))
 
-        # Allow option to keep North as +y in image frame
+        # Allow option to keep North as +y in image frame.
         if render_north_as_up:
             city_SO3_ego = SE3(rotation=city_SE3_ego.rotation, translation=np.zeros(3))
             # Centered at egovehicle, but now with the city's orientation.
@@ -194,14 +194,14 @@ def render_log_lidar_dataset_video(
 
         frame_rgb = bev_grid.points_to_bev_img(sweep_ego.xyz, color=sweep_ego.intensity, diameter=1)
 
-        # Convert RGB to BGR color for OpenCV processing
+        # Convert RGB to BGR color for OpenCV processing.
         frame_bgr: NDArrayByte = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
 
-        # Draw filled circle to represent the ego vehicle
+        # Draw filled circle to represent the ego vehicle.
         h, w, _ = frame_bgr.shape
         cv2.circle(frame_bgr, (h // 2, w // 2), radius=10, color=RED_BGR, thickness=-1)
 
-        # Whether to overlay the local vector map on the lidar sweep's BEV
+        # Whether to overlay the local vector map on the lidar sweep's BEV.
         if overlay_map:
             bev_map_renderer = BirdsEyeViewMapRenderer(
                 avm=avm,
@@ -211,10 +211,10 @@ def render_log_lidar_dataset_video(
             )
             frame_bgr = render_map_bev(img_bgr=frame_bgr, bev_map_renderer=bev_map_renderer)
 
-        # Flip image along y axis, for positive y-axis mirroring
+        # Flip image along y axis, for positive y-axis mirroring.
         frame_bgr_flipup: NDArrayByte = np.flipud(frame_bgr)  # type: ignore
 
-        # Convert BGR to RGB color
+        # Convert BGR to RGB color.
         frame_rgb_final: NDArrayByte = cv2.cvtColor(frame_bgr_flipup, cv2.COLOR_BGR2RGB)
 
         if dump_single_frames:
@@ -277,7 +277,7 @@ def render_log_lidar_dataset_video(
 @click.option(
     "--range_m",
     default=50,
-    help="Maximum spatial range to include in rendering (distance to 3d points by infinity norm).",
+    help="Maximum spatial range to include in rendering (distance to 3D points by infinity norm).",
     type=float,
 )
 @click.option(

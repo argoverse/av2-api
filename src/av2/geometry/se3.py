@@ -55,10 +55,10 @@ class SE3:
 
         Args:
             point_cloud: Array of shape (N, 3). If the transform represents dst_SE3_src,
-                then point_cloud should consist of points in frame `src`
+                then point_cloud should consist of points in frame `src`.
 
         Returns:
-            Array of shape (N, 3) representing the transformed point cloud, i.e. points in frame `dst`
+            Array of shape (N, 3) representing the transformed point cloud, i.e., points in frame `dst`.
         """
         return point_cloud @ self.rotation.T + self.translation
 
@@ -67,26 +67,26 @@ class SE3:
 
         Args:
             point_cloud: Array of shape (N, 3). If the transform represents dst_SE3_src,
-                then point_cloud should consist of points in frame `src`
+                then point_cloud should consist of points in frame `src`.
 
         Returns:
-            Array of shape (N, 3) representing the transformed point cloud, i.e. points in frame `dst`
+            Array of shape (N, 3) representing the transformed point cloud, i.e. points in frame `dst`.
         """
         return self.transform_from(point_cloud)
 
     def transform_sweep_from(self, sweep: Sweep) -> Sweep:
-        """Apply the SE(3) transformation to a LiDAR sweep object.
+        """Apply the SE(3) transformation to a lidar sweep object.
 
-        This operation will transform 3d points in the sweep to a new reference frame.
+        This operation will transform 3D points in the sweep to a new reference frame.
         Example usage:
             sweep_city = city_SE3_ego.transform_sweep_from(sweep_ego)
 
         Args:
-            sweep: LiDAR sweep. If the SE(3) transform represents dst_SE3_src, then the sweep should consist of points
+            sweep: lidar sweep. If the SE(3) transform represents dst_SE3_src, then the sweep should consist of points
                 provided in the `src` frame.
 
         Returns:
-            LiDAR sweep, with points provided in the `dst` frame.
+            lidar sweep, with points provided in the `dst` frame.
         """
         return sweep.transform_from(self)
 
@@ -94,11 +94,11 @@ class SE3:
         """Apply the SE(3) transformation to the vertices of a cuboid.
 
         Args:
-            cuboid: 3d bounding box. If the SE(3) transform represents dst_SE3_src, then the cuboid should represent
+            cuboid: 3D bounding box. If the SE(3) transform represents dst_SE3_src, then the cuboid should represent
                 vertices provided in the `src` frame.
 
         Returns:
-            3d bounding box, with vertices now provided in the `dst` frame.
+            3D bounding box, with vertices now provided in the `dst` frame.
         """
         return cuboid.transform(self)
 
@@ -108,7 +108,7 @@ class SE3:
         For example, if the current object represents target_SE3_src, we will return instead src_SE3_target.
 
         Returns:
-            instance of SE3 class, representing inverse of SE3 transformation target_SE3_src.
+            Instance of SE3 class, representing inverse of SE3 transformation target_SE3_src.
         """
         return SE3(rotation=self.rotation.T, translation=self.rotation.T.dot(-self.translation))
 
