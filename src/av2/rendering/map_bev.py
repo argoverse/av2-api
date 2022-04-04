@@ -65,8 +65,8 @@ class BirdsEyeViewMapRenderer:
     ) -> NDArrayByte:
         """Draw left or right lane boundary (only one is rendered here).
 
-        Double lines are to be understood from the inside out.  e.g., DASHED_SOLID means that the dashed line is adjacent
-        to the lane carrying the property and the solid line is adjacent to the neighbor lane.
+        Double lines are to be understood from the inside out.  e.g., DASHED_SOLID means that the dashed line
+        is adjacent to the lane carrying the property and the solid line is adjacent to the neighbor lane.
 
         Args:
             img_bgr: Array of shape (H,W,3) representing BGR image (canvas), to render on.
