@@ -45,7 +45,7 @@ class Sweep:
     ego_SE3_down_lidar: SE3
 
     def __len__(self) -> int:
-        """Return the number of LiDAR returns in the sweep."""
+        """Return the number of lidar returns in the sweep."""
         return int(self.xyz.shape[0])
 
     @classmethod
@@ -105,7 +105,7 @@ class Sweep:
             target_SE3_src: SE(3) transformation. Assumes the sweep points are provided in the `src` frame.
 
         Returns:
-            a new Sweep object, with points provided in the the `target` frame.
+            A new Sweep object, with points provided in the the `target` frame.
         """
         return Sweep(
             xyz=target_SE3_src.transform_from(self.xyz),
@@ -117,15 +117,20 @@ class Sweep:
             ego_SE3_down_lidar=self.ego_SE3_down_lidar,
         )
 
-    def stack(self, sweep: Sweep) -> None:
+    def stack(self, sweep: Sweep) -> Sweep:
         """Stack sweeps. Used for lidar sweep aggregation.
 
         Args:
             sweep: Lidar sweep.
+
+        Returns:
+            Sweep object.
         """
         self.xyz = np.vstack([self.xyz, sweep.xyz])
         self.intensity = np.concatenate([self.intensity, sweep.intensity])  # type: ignore
         self.laser_number = np.concatenate([self.laser_number, sweep.laser_number])  # type: ignore
+
+        return sweep
 
 
 def normalize_array(array: NDArrayFloat) -> NDArrayFloat:

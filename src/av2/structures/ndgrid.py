@@ -130,7 +130,7 @@ class BEVGrid(NDGrid):
 
         Args:
             points: (N,D) List of points in R^D.
-            color: RGB color or list of grayscale values (0-255) representing lidar intensity.
+            color: RGB color or list of grayscale values [0-255] representing lidar intensity.
             diameter: Point diameter for the drawn points.
 
         Returns:
@@ -145,7 +145,7 @@ class BEVGrid(NDGrid):
 
         points_xy = points[..., :2].copy()  # Prevent modifying input.
         indices = self.transform_to_grid_coordinates(points_xy)
-        indices_int, valid_mask = crop_points(
+        indices_crop, is_valid_points = crop_points(
             indices,
             lower_bound_inclusive=(0.0, 0.0),
             upper_bound_exclusive=self.dims,
@@ -153,15 +153,15 @@ class BEVGrid(NDGrid):
 
         # Construct uv coordinates.
         H, W = (self.dims[0], self.dims[1])
-        uv = indices_int[..., :2]
+        uv = indices_crop[..., :2]
 
         shape = (H, W, 3)
         img: NDArrayByte = np.zeros(shape, dtype=np.uint8)
 
         if isinstance(color, tuple):
-            colors: NDArrayByte = np.array([color for _ in range(len(points_xy))], dtype=np.uint8)
+            colors: NDArrayByte = np.repeat([color], repeats=len(points_xy), axis=0)
         else:
-            # Use lidar intensity
-            colors = np.array([[gray_val] * 3 for gray_val in color[valid_mask]], dtype=np.uint8)
+            # Use lidar intensity.
+            colors = np.repeat(color[is_valid_points][:, None], repeats=3, axis=1)
         img = draw_points_xy_in_img(img, uv, colors, diameter=diameter)
         return img
