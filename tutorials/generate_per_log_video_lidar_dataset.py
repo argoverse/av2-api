@@ -38,7 +38,7 @@ CROSSWALK_EPS: Final[float] = 1e-5
 
 
 def accumulate_all_frames(loader: AV2SensorDataLoader, log_id: str) -> Sweep:
-    """Aggregate sweeps representing (x,y,z) in city coordinate system and reflectance.
+    """Aggregate sweeps representing (x,y,z) in city coordinate system and intensity.
 
     Args:
         loader: The AV2 Lidar Dataset dataloader.
@@ -144,7 +144,7 @@ def render_log_lidar_dataset_video(
     bev_grid: BEVGrid,
     overlay_map: bool,
 ) -> None:
-    """Render lidar reflectance and map in the BEV for each frame (sweep) of an AV2 log.
+    """Render lidar intensity and map in the BEV for each frame (sweep) of an AV2 log.
 
     Args:
         data_root: Path to local directory where the Argoverse 2 Lidar Dataset logs are stored.

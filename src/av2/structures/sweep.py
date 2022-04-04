@@ -142,20 +142,20 @@ def normalize_array(array: NDArrayFloat) -> NDArrayFloat:
     return array
 
 
-def equalize_distribution(reflectance: NDArrayByte) -> NDArrayByte:
+def equalize_distribution(intensity: NDArrayByte) -> NDArrayByte:
     """Re-distribute mass of distribution.
 
-    Note: we add one to reflectance to map 0 values to 0 under logarithm.
+    Note: we add one to intensity to map 0 values to 0 under logarithm.
 
     Args:
-        reflectance: intensity per return, in the range [0,255]
+        intensity: intensity per return, in the range [0,255]
 
     Returns:
         Log of intensity per return, in the range [0,255]
     """
-    log_reflectance: NDArrayFloat = np.log((reflectance + 1.0))  # note: must add a float, not an int.
+    log_intensity: NDArrayFloat = np.log((intensity + 1.0))  # note: must add a float, not an int.
     # normalize to [0,1]
-    log_reflectance_n: NDArrayFloat = normalize_array(log_reflectance)
+    log_intensity_n: NDArrayFloat = normalize_array(log_intensity)
     # convert to byte in [0,255]
-    log_reflectance_b: NDArrayByte = np.round(log_reflectance_n * 255).astype(np.uint8)  # type: ignore
-    return log_reflectance_b
+    log_intensity_b: NDArrayByte = np.round(log_intensity_n * 255).astype(np.uint8)  # type: ignore
+    return log_intensity_b
