@@ -132,17 +132,16 @@ def accumulate(
 
     dt_results: NDArrayFloat = np.zeros((N, 8))
     gt_results: NDArrayFloat = np.zeros((M, 8))
-    if is_evaluated_dts.sum() == 0 or is_evaluated_gts.sum() == 0:
-        return dt_results, gt_results
-
-    # Compute true positives through assigning detections and ground truths.
-    dts_assignments, gts_assignments = assign(dts[is_evaluated_dts], gts[is_evaluated_gts], cfg)
-    dt_results[is_evaluated_dts, :-1] = dts_assignments
-    gt_results[is_evaluated_gts, :-1] = gts_assignments
 
     # `is_evaluated` boolean flag is always the last column of the array.
     dt_results[is_evaluated_dts, -1] = True
     gt_results[is_evaluated_gts, -1] = True
+
+    if is_evaluated_dts.sum() > 0 and is_evaluated_gts.sum() > 0:
+        # Compute true positives through assigning detections and ground truths.
+        dts_assignments, gts_assignments = assign(dts[is_evaluated_dts], gts[is_evaluated_gts], cfg)
+        dt_results[is_evaluated_dts, :-1] = dts_assignments
+        gt_results[is_evaluated_gts, :-1] = gts_assignments
 
     # Permute the detections according to the original ordering.
     outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(permutation, return_index=True)  # type: ignore
@@ -337,6 +336,9 @@ def compute_objects_in_roi_mask(
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
+    if len(cuboids_parameters) == 0:
+        is_within_roi: NDArrayBool = np.zeros((0,), dtype=bool)
+        return is_within_roi
     cuboid_list_ego: CuboidList = CuboidList([Cuboid.from_numpy(params) for params in cuboids_parameters])
     cuboid_list_city = cuboid_list_ego.transform(city_SE3_ego)
     cuboid_list_vertices_m = cuboid_list_city.vertices_m
@@ -366,6 +368,9 @@ def compute_evaluated_dts_mask(
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
+    if len(dts) == 0:
+        is_evaluated: NDArrayBool = np.zeros((0,), dtype=bool)
+        return is_evaluated
     norm: NDArrayFloat = np.linalg.norm(dts[:, :3], axis=1)  # type: ignore
     is_within_radius: NDArrayBool = norm < cfg.max_range_m
     is_evaluated: NDArrayBool = is_within_radius
@@ -390,6 +395,9 @@ def compute_evaluated_gts_mask(
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
+    if len(gts) == 0:
+        is_evaluated: NDArrayBool = np.zeros((0,), dtype=bool)
+        return is_evaluated
     norm: NDArrayFloat = np.linalg.norm(gts[:, :3], axis=1)  # type: ignore
     is_within_radius: NDArrayBool = norm < cfg.max_range_m
     is_valid_num_points: NDArrayBool = gts[:, -1] > 0

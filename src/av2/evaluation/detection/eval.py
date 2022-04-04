@@ -129,14 +129,23 @@ def evaluate(
         log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
 
     args_list: List[Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
-    for uuid, sweep_gts in uuid_to_gts.items():
+    uuids = sorted(uuid_to_dts.keys() | uuid_to_gts.keys())
+    for uuid in uuids:
         log_id, timestamp_ns, _ = uuid.split(":")
         args: Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]
-        args = uuid_to_dts[uuid], sweep_gts, cfg, None, None
+
+        sweep_dts: NDArrayFloat = np.zeros((0, 10))
+        sweep_gts: NDArrayFloat = np.zeros((0, 10))
+        if uuid in uuid_to_dts:
+            sweep_dts = uuid_to_dts[uuid]
+        if uuid in uuid_to_gts:
+            sweep_gts = uuid_to_gts[uuid]
+
+        args = sweep_dts, sweep_gts, cfg, None, None
         if log_id_to_avm is not None and log_id_to_timestamped_poses is not None:
             avm = log_id_to_avm[log_id]
             city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
-            args = uuid_to_dts[uuid], sweep_gts, cfg, avm, city_SE3_ego
+            args = sweep_dts, sweep_gts, cfg, avm, city_SE3_ego
         args_list.append(args)
 
     logger.info("Starting evaluation ...")
