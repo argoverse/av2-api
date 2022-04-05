@@ -51,7 +51,7 @@ class DetectionCfg:
         affinity_thresholds_m: Affinity thresholds for determining a true positive (in meters).
         affinity_type: Type of affinity function to be used for calculating average precision.
         categories: Detection classes for evaluation.
-        eval_only_roi_instances: Only use dets and ground truth that lie within region of interest during eval.
+        eval_only_roi_instances: Only use detections and ground truth annotations that lie within region of interest during eval.
         filter_metric: Detection metric to use for filtering of both detections and ground truth annotations.
         max_range_m: Max distance (under a specific metric in meters) for a detection or ground truth cuboid to be
             considered for evaluation.
@@ -138,8 +138,8 @@ def accumulate(
     is_evaluated_dts: NDArrayBool = np.ones(N, dtype=bool)
     is_evaluated_gts: NDArrayBool = np.ones(M, dtype=bool)
     if avm is not None and city_SE3_ego is not None:
-        is_evaluated_dts &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
-        is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
+        is_evaluated_dts &= compute_objects_in_roi(dts, city_SE3_ego, avm)
+        is_evaluated_gts &= compute_objects_in_roi(gts, city_SE3_ego, avm)
 
     is_evaluated_dts &= compute_evaluated_dts_mask(dts[..., :3], cfg)
     is_evaluated_gts &= compute_evaluated_gts_mask(gts[..., :3], gts[..., -1], cfg)
@@ -350,9 +350,9 @@ def distance(dts: NDArrayFloat, gts: NDArrayFloat, metric: DistanceType) -> NDAr
         raise NotImplementedError("This distance metric is not implemented!")
 
 
-def compute_objects_in_roi_mask(
+def compute_objects_in_roi(
     cuboids_parameters: NDArrayFloat, city_SE3_ego: SE3, avm: ArgoverseStaticMap
-) -> NDArrayBool:
+) -> Tuple[NDArrayFloat, NDArrayBool]:
     """Compute the evaluated cuboids mask based off whether _any_ of their vertices fall into the ROI.
 
     Args:
@@ -363,8 +363,9 @@ def compute_objects_in_roi_mask(
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
+    is_within_roi: NDArrayBool
     if len(cuboids_parameters) == 0:
-        is_within_roi: NDArrayBool = np.zeros((0,), dtype=bool)
+        is_within_roi = np.zeros((0,), dtype=bool)
         return is_within_roi
     cuboid_list_ego: CuboidList = CuboidList([Cuboid.from_numpy(params) for params in cuboids_parameters])
     cuboid_list_city = cuboid_list_ego.transform(city_SE3_ego)
