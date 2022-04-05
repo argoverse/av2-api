@@ -383,7 +383,8 @@ def compute_evaluated_dts_mask(
     """Compute the evaluated cuboids mask.
 
     Valid detections cuboids meet _two_ conditions:
-        1. The cuboid's centroid (x,y,z) must lie within the maximum range in the detection configuration.
+        1. The cuboid's centroid (x,y,z) must lie within the maximum range
+            defined in the detection configuration.
         2. The total number of cuboids must not exceed `cfg.max_num_dts_per_category`.
 
     Args:
@@ -398,7 +399,7 @@ def compute_evaluated_dts_mask(
         is_evaluated = np.zeros((0,), dtype=bool)
         return is_evaluated
     norm: NDArrayFloat = np.linalg.norm(xyz_m_ego, axis=1)  # type: ignore
-    is_evaluated: NDArrayBool = norm < cfg.max_range_m
+    is_evaluated = norm < cfg.max_range_m
     is_evaluated[cfg.max_num_dts_per_category :] = False  # Limit the number of detections.
     return is_evaluated
 

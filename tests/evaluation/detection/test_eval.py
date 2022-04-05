@@ -358,5 +358,5 @@ def test_compute_evaluated_gts_mask() -> None:
 #     dts_, gts_, metrics_ = evaluate(dts, annotations, detection_cfg)
 
 
-if __name__ == "__main__":
-    test_compute_objects_in_roi_mask()
+# if __name__ == "__main__":
+#     test_compute_objects_in_roi_mask()
