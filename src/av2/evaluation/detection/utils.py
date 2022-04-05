@@ -138,8 +138,8 @@ def accumulate(
     is_evaluated_dts: NDArrayBool = np.ones(N, dtype=bool)
     is_evaluated_gts: NDArrayBool = np.ones(M, dtype=bool)
     if avm is not None and city_SE3_ego is not None:
-        is_evaluated_dts &= compute_objects_in_roi(dts, city_SE3_ego, avm)
-        is_evaluated_gts &= compute_objects_in_roi(gts, city_SE3_ego, avm)
+        is_evaluated_dts &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
+        is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
 
     is_evaluated_dts &= compute_evaluated_dts_mask(dts[..., :3], cfg)
     is_evaluated_gts &= compute_evaluated_gts_mask(gts[..., :3], gts[..., -1], cfg)
@@ -269,8 +269,8 @@ def compute_affinity_matrix(dts: NDArrayFloat, gts: NDArrayFloat, metric: Affini
     """Calculate the affinity matrix between detections and ground truth annotations.
 
     Args:
-        dts: (N,) Detections.
-        gts: (M,) Ground truth annotations.
+        dts: (N,K) Detections.
+        gts: (M,K) Ground truth annotations.
         metric: Affinity metric type.
 
     Returns:
@@ -350,9 +350,7 @@ def distance(dts: NDArrayFloat, gts: NDArrayFloat, metric: DistanceType) -> NDAr
         raise NotImplementedError("This distance metric is not implemented!")
 
 
-def compute_objects_in_roi(
-    cuboids_ego: NDArrayFloat, city_SE3_ego: SE3, avm: ArgoverseStaticMap
-) -> Tuple[NDArrayFloat, NDArrayBool]:
+def compute_objects_in_roi_mask(cuboids_ego: NDArrayFloat, city_SE3_ego: SE3, avm: ArgoverseStaticMap) -> NDArrayBool:
     """Compute the evaluated cuboids mask based off whether _any_ of their vertices fall into the ROI.
 
     Args:
@@ -361,14 +359,12 @@ def compute_objects_in_roi(
         avm: Argoverse map object.
 
     Returns:
-        (N,8,3) Cuboid vertices in _city_ coordinates.
         (N,) Boolean mask indicating which cuboids will be evaluated.
     """
     is_within_roi: NDArrayBool
     if len(cuboids_ego) == 0:
         is_within_roi = np.zeros((0,), dtype=bool)
-        cuboid_list_vertices_m_city: NDArrayFloat = np.zeros((len(cuboids_ego), 8, 3))
-        return cuboid_list_vertices_m_city, is_within_roi
+        return is_within_roi
     cuboid_list_ego: CuboidList = CuboidList([Cuboid.from_numpy(params) for params in cuboids_ego])
     cuboid_list_city = cuboid_list_ego.transform(city_SE3_ego)
     cuboid_list_vertices_m_city = cuboid_list_city.vertices_m
@@ -378,7 +374,7 @@ def compute_objects_in_roi(
     )
     is_within_roi = is_within_roi.reshape(-1, 8)
     is_within_roi = is_within_roi.any(axis=1)
-    return cuboid_list_vertices_m_city, is_within_roi
+    return is_within_roi
 
 
 def compute_evaluated_dts_mask(
