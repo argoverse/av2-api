@@ -3,18 +3,19 @@
 """Detection evaluation unit tests.
 
 Only the last two unit tests here use map ROI information.
-The rest apply no filtering to objects that have their corners located outside of the ROI).
+The rest apply no filtering to objects that have their corners located outside of the ROI.
 """
 
 import math
 from pathlib import Path
+from time import sleep
 from typing import Final, List
 
 import numpy as np
 import pandas as pd
 from scipy.spatial.transform import Rotation
 
-from av2.evaluation.detection.constants import AffinityType, DistanceType, TruePositiveErrorNames
+from av2.evaluation.detection.constants import AffinityType, DistanceType
 from av2.evaluation.detection.eval import evaluate
 from av2.evaluation.detection.utils import (
     DetectionCfg,
@@ -32,7 +33,7 @@ from av2.geometry.iou import iou_3d_axis_aligned
 from av2.map.map_api import ArgoverseStaticMap
 from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
 from av2.utils.constants import PI
-from av2.utils.io import read_city_SE3_ego, read_feather
+from av2.utils.io import read_city_SE3_ego, read_feather, write_img
 from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 TEST_DATA_DIR: Final[Path] = Path(__file__).parent.resolve() / "data"
@@ -308,23 +309,42 @@ def test_compute_evaluated_gts_mask() -> None:
     gts_mask_: NDArrayBool = np.array([True, False, False, False])
     np.testing.assert_array_equal(gts_mask, gts_mask_)  # type: ignore
 
+
 def test_compute_objects_in_roi_mask() -> None:
     log_dir = TEST_DATA_DIR / "adcf7d18-0510-35b0-a2fa-b4cea13a6d76"
     annotations_path = log_dir / "annotations.feather"
     annotations = read_feather(annotations_path)
 
-    timestamp_to_egoposes = read_city_SE3_ego(log_dir)
-    params = annotations.loc[:, ORDERED_CUBOID_COL_NAMES]
+    root = Path.home() / "data" / "datasets" / "av2" / "sensor" / "val"
+    logs = sorted(root.iterdir())
+    from av2.rendering.rasterize import draw_points_xy_in_img
 
-    avm = ArgoverseStaticMap.from_map_dir(log_dir / "map", build_raster=True)
+    for log_dir in logs:
+        if not log_dir.is_dir():
+            continue
 
-    
-    avm.raster_roi_layer.array
-    breakpoint()
-    # read_city_SE3_ego()
-    compute_objects_in_roi_mask(params)
-    breakpoint()
+        annotations_path = log_dir / "annotations.feather"
+        annotations = read_feather(annotations_path)
 
+        # breakpoint()
+        timestamp_to_egoposes = read_city_SE3_ego(log_dir)
+        # params = annotations.loc[:, ORDERED_CUBOID_COL_NAMES]
+        avm = ArgoverseStaticMap.from_map_dir(log_dir / "map", build_raster=True)
+        for timestamp_ns, sweep_annotations in annotations.groupby("timestamp_ns"):
+            vertices, mask = compute_objects_in_roi_mask(
+                sweep_annotations.loc[:, ORDERED_CUBOID_COL_NAMES].to_numpy(), timestamp_to_egoposes[timestamp_ns], avm
+            )
+            if (~mask).sum() == 0:
+                continue
+            roi, sim2 = avm.get_rasterized_roi()
+            points_arr = sim2.transform_point_cloud(vertices.reshape(-1, 3)[..., :2]).round().astype(int)
+            points = points_arr.reshape(-1, 8, 2)[~mask].reshape(-1, 2)
+            roi = roi.astype(np.uint8)[..., None].repeat(3, axis=2)
+            draw_points_xy_in_img(roi, points, colors=np.full((len(points_arr), 3), fill_value=(0, 0, 1)), diameter=100)
+            # print((~mask).sum())
+            write_img(Path("roi.png"), roi * 255)
+            sleep(0.05)
+            # breakpoint()
 
 
 # def test_val_identity() -> None:
@@ -345,5 +365,5 @@ def test_compute_objects_in_roi_mask() -> None:
 #     dts_, gts_, metrics_ = evaluate(dts, annotations, detection_cfg)
 
 
-# if __name__ == "__main__":
-#     test_val_identity()
+if __name__ == "__main__":
+    test_compute_objects_in_roi_mask()

@@ -68,7 +68,7 @@ class DetectionCfg:
     filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN
     max_num_dts_per_category: int = 100
     max_range_m: float = 200.0
-    num_recall_samples: int = 101
+    num_recall_samples: int = 100
     split: str = "val"
     tp_threshold_m: float = 2.0
 
@@ -126,7 +126,6 @@ def accumulate(
         is_evaluated_dts &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
         is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
 
-    # num_interior_pts: NDArrayFloat = gts[..., -1]
     is_evaluated_dts &= compute_evaluated_dts_mask(dts, cfg)
     is_evaluated_gts &= compute_evaluated_gts_mask(gts, cfg)
 
@@ -348,7 +347,7 @@ def compute_objects_in_roi_mask(
     )
     is_within_roi = is_within_roi.reshape(-1, 8)
     is_within_roi = is_within_roi.any(axis=1)
-    return is_within_roi
+    return cuboid_list_vertices_m, is_within_roi
 
 
 def compute_evaluated_dts_mask(

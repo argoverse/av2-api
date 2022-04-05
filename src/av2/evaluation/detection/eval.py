@@ -100,7 +100,7 @@ def evaluate(
     """
     uuid_column_names = ["log_id", "timestamp_ns", "category"]
 
-    # Sort both the detections and annotations by in lexicographic order for grouping.
+    # Sort both the detections and annotations by lexicographic order for grouping.
     dts = dts.sort_values(uuid_column_names)
     gts = gts.sort_values(uuid_column_names)
 
@@ -122,7 +122,7 @@ def evaluate(
     log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
     log_id_to_timestamped_poses: Optional[Dict[str, TimestampedCitySE3EgoPoses]] = None
 
-    # # Load maps and egoposes if roi-pruning is enabled.
+    # Load maps and egoposes if roi-pruning is enabled.
     if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
         logger.info("Loading maps and egoposes ...")
         log_ids = gts["log_id"].unique().tolist()
@@ -185,7 +185,7 @@ def summarize_metrics(
         The summary metrics.
     """
     # Sample recall values in the [0, 1] interval.
-    recall_interpolated: NDArrayFloat = np.linspace(0, 1, cfg.num_recall_samples)
+    recall_interpolated: NDArrayFloat = np.linspace(0, 1, cfg.num_recall_samples, endpoint=True)
 
     # Initialize the summary metrics.
     summary = pd.DataFrame(
