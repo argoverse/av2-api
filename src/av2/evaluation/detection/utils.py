@@ -102,16 +102,30 @@ def accumulate(
 ) -> Tuple[NDArrayFloat, NDArrayFloat]:
     """Accumulate the true / false positives (boolean flags) and true positive errors for each class.
 
+    The detections (gts) and ground truth annotations (gts) are expected to be shape (N,11) and (M,11)
+    respectively. Their _ordered_ columns are shown below:
+
+    dts: tx_m, ty_m, tz_m, length_m, width_m, height_m, qw, qx, qy, qz, score
+    gts: tx_m, ty_m, tz_m, length_m, width_m, height_m, qw, qx, qy, qz, num_interior_pts
+
+    NOTE: The columns for dts and gts only differ by their _last_ column. Score represents the
+        "confidence" of the detection and `num_interior_pts` are the number of points interior
+        to the ground truth cuboid at the time of annotation.
+
     Args:
-        dts: (N,len(AnnotationColumns)) Detections of shape. Must contain all of the columns in AnnotationColumns.
-        gts: (M,len(AnnotationColumns) + 1) Ground truth labels. Must contain all of the columns in AnnotationColumns
-            and the `num_interior_pts` column.
-        cfg: Detection configuration.
+        dts: (N,11) Detections array.
+        gts: (M,11) Ground truth annotations array.
+        cfg: 3D object detection configuration.
         avm: Argoverse static map for the log.
         city_SE3_ego: Egovehicle pose in the city reference frame.
 
     Returns:
-        The detection and ground truth cuboids augmented with assigment and evaluation fields.
+        (N,11+8) Augmented detections
+        (M,11+8) Augmented ground truth annotations.
+        NOTE: The eight additional columns consist of the following:
+            *cfg.affinity_thresholds_m (0.5, 1.0, 2.0, 4.0 by default), ATE, ASE, AOE, is_evaluated.
+            `is_evaluated` indicates whether the ground truth or detection was filtered and consequently
+            not considered during the assignment process.
     """
     N, M = len(dts), len(gts)
 
@@ -129,6 +143,7 @@ def accumulate(
     is_evaluated_dts &= compute_evaluated_dts_mask(dts, cfg)
     is_evaluated_gts &= compute_evaluated_gts_mask(gts, cfg)
 
+    # Initialize results array.
     dt_results: NDArrayFloat = np.zeros((N, 8))
     gt_results: NDArrayFloat = np.zeros((M, 8))
 
@@ -137,7 +152,7 @@ def accumulate(
     gt_results[is_evaluated_gts, -1] = True
 
     if is_evaluated_dts.sum() > 0 and is_evaluated_gts.sum() > 0:
-        # Compute true positives through assigning detections and ground truths.
+        # Compute true positives by assigning detections and ground truths.
         dts_assignments, gts_assignments = assign(dts[is_evaluated_dts], gts[is_evaluated_gts], cfg)
         dt_results[is_evaluated_dts, :-1] = dts_assignments
         gt_results[is_evaluated_gts, :-1] = gts_assignments
