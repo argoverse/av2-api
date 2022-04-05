@@ -105,8 +105,8 @@ def accumulate(
     The detections (gts) and ground truth annotations (gts) are expected to be shape (N,11) and (M,11)
     respectively. Their _ordered_ columns are shown below:
 
-    dts: tx_m, ty_m, tz_m, length_m, width_m, height_m, qw, qx, qy, qz, score
-    gts: tx_m, ty_m, tz_m, length_m, width_m, height_m, qw, qx, qy, qz, num_interior_pts
+    dts: tx_m, ty_m, tz_m, length_m, width_m, height_m, qw, qx, qy, qz, score.
+    gts: tx_m, ty_m, tz_m, length_m, width_m, height_m, qw, qx, qy, qz, num_interior_pts.
 
     NOTE: The columns for dts and gts only differ by their _last_ column. Score represents the
         "confidence" of the detection and `num_interior_pts` are the number of points interior
@@ -120,12 +120,13 @@ def accumulate(
         city_SE3_ego: Egovehicle pose in the city reference frame.
 
     Returns:
-        (N,11+8) Augmented detections
-        (M,11+8) Augmented ground truth annotations.
-        NOTE: The eight additional columns consist of the following:
-            *cfg.affinity_thresholds_m (0.5, 1.0, 2.0, 4.0 by default), ATE, ASE, AOE, is_evaluated.
-            `is_evaluated` indicates whether the ground truth or detection was filtered and consequently
-            not considered during the assignment process.
+        (N,11+T+E+1) Augmented detections.
+        (M,11+T+E+1) Augmented ground truth annotations.
+        NOTE: The $$T+E+1$$ additional columns consist of the following:
+            $$T$$: cfg.affinity_thresholds_m (0.5, 1.0, 2.0, 4.0 by default).
+            $$E$$: ATE, ASE, AOE.
+            1: `is_evaluated` flag indicating whether the detections or ground truth annotations
+                are considered during assignment.
     """
     N, M = len(dts), len(gts)
 
@@ -140,43 +141,54 @@ def accumulate(
         is_evaluated_dts &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
         is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
 
-    is_evaluated_dts &= compute_evaluated_dts_mask(dts, cfg)
-    is_evaluated_gts &= compute_evaluated_gts_mask(gts, cfg)
+    is_evaluated_dts &= compute_evaluated_dts_mask(dts[..., :3], cfg)
+    is_evaluated_gts &= compute_evaluated_gts_mask(gts[..., :3], gts[..., -1], cfg)
 
     # Initialize results array.
-    dt_results: NDArrayFloat = np.zeros((N, 8))
-    gt_results: NDArrayFloat = np.zeros((M, 8))
+    dts_augmented: NDArrayFloat = np.zeros((N, 8))
+    gts_augmented: NDArrayFloat = np.zeros((M, 8))
 
     # `is_evaluated` boolean flag is always the last column of the array.
-    dt_results[is_evaluated_dts, -1] = True
-    gt_results[is_evaluated_gts, -1] = True
+    dts_augmented[is_evaluated_dts, -1] = True
+    gts_augmented[is_evaluated_gts, -1] = True
 
     if is_evaluated_dts.sum() > 0 and is_evaluated_gts.sum() > 0:
         # Compute true positives by assigning detections and ground truths.
         dts_assignments, gts_assignments = assign(dts[is_evaluated_dts], gts[is_evaluated_gts], cfg)
-        dt_results[is_evaluated_dts, :-1] = dts_assignments
-        gt_results[is_evaluated_gts, :-1] = gts_assignments
+        dts_augmented[is_evaluated_dts, :-1] = dts_assignments
+        gts_augmented[is_evaluated_gts, :-1] = gts_assignments
 
     # Permute the detections according to the original ordering.
     outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(permutation, return_index=True)  # type: ignore
     _, inverse_permutation = outputs
-    dt_results = dt_results[inverse_permutation]
-    return dt_results, gt_results
+    dts_augmented = dts_augmented[inverse_permutation]
+    return dts_augmented, gts_augmented
 
 
 def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDArrayFloat, NDArrayFloat]:
     """Attempt assignment of each detection to a ground truth label.
 
+    The detections (gts) and ground truth annotations (gts) are expected to be shape (N,10) and (M,10)
+    respectively. Their _ordered_ columns are shown below:
+
+    dts: tx_m, ty_m, tz_m, length_m, width_m, height_m, qw, qx, qy, qz.
+    gts: tx_m, ty_m, tz_m, length_m, width_m, height_m, qw, qx, qy, qz.
+
+    NOTE: The columns for dts and gts only differ by their _last_ column. Score represents the
+        "confidence" of the detection and `num_interior_pts` are the number of points interior
+        to the ground truth cuboid at the time of annotation.
+
     Args:
-        dts: (N,23) Detections of shape. Must contain all columns in AnnotationColumns and the
-            additional columns: (is_evaluated, *cfg.affinity_thresholds_m, *TruePositiveErrorNames).
-        gts: (M,23) Ground truth labels. Must contain all columns in AnnotationColumns and the
-            additional columns: (is_evaluated, *cfg.affinity_thresholds_m, *TruePositiveErrorNames).
-        cfg: Detection configuration.
+        dts: (N,10) Detections array.
+        gts: (M,10) Ground truth annotations array.
+        cfg: 3D object detection configuration.
 
     Returns:
-        The (N,K+S) confusion table containing the true and false positives augmented with the true positive errors
-            where K is the number of thresholds and S is the number of true positive error names.
+        (N,T+E) Detections metrics table.
+        (M,T+E) Ground truth annotations metrics table.
+        NOTE: The $$T+E$$ additional columns consist of the following:
+            $$T$$: cfg.affinity_thresholds_m (0.5, 1.0, 2.0, 4.0 by default).
+            $$E$$: ATE, ASE, AOE.
     """
     affinity_matrix = compute_affinity_matrix(dts, gts, cfg.affinity_type)
 
@@ -192,10 +204,11 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
     assignments: Tuple[NDArrayInt, NDArrayInt] = np.unique(idx_gts, return_index=True)  # type: ignore
 
     idx_gts, idx_dts = assignments
-    K = len(cfg.affinity_thresholds_m) + 3
-    dts_table: NDArrayFloat = np.zeros((len(dts), K))
+    T = len(cfg.affinity_thresholds_m)
+    E = 3
+    dts_table: NDArrayFloat = np.zeros((len(dts), T + E))
     dts_table[:, 4:] = cfg.metrics_defaults[1:4]
-    gts_table: NDArrayFloat = np.zeros((len(gts), K))
+    gts_table: NDArrayFloat = np.zeros((len(gts), T + E))
     gts_table[:, 4:] = cfg.metrics_defaults[1:4]
     for i, threshold_m in enumerate(cfg.affinity_thresholds_m):
         is_tp: NDArrayBool = affinities[idx_dts] > -threshold_m
@@ -366,56 +379,57 @@ def compute_objects_in_roi_mask(
 
 
 def compute_evaluated_dts_mask(
-    dts: NDArrayFloat,
+    xyz_m_ego: NDArrayFloat,
     cfg: DetectionCfg,
 ) -> NDArrayBool:
     """Compute the evaluated cuboids mask.
 
-    Valid cuboids meet _two_ conditions:
+    Valid detections cuboids meet _two_ conditions:
         1. The cuboid's centroid (x,y,z) must lie within the maximum range in the detection configuration.
-        2. The cuboid must have at _least_ one point in its interior.
+        2. The total number of cuboids must not exceed `cfg.max_num_dts_per_category`.
 
     Args:
-        dts: Dataframes containing cuboids.
-        cfg: Detection configuration object.
+        xyz_m_ego: (N,3) Center of the detections in the egovehicle frame.
+        cfg: 3D object detection configuration.
 
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
-    if len(dts) == 0:
-        is_evaluated: NDArrayBool = np.zeros((0,), dtype=bool)
+    is_evaluated: NDArrayBool
+    if len(xyz_m_ego) == 0:
+        is_evaluated = np.zeros((0,), dtype=bool)
         return is_evaluated
-    norm: NDArrayFloat = np.linalg.norm(dts[:, :3], axis=1)  # type: ignore
-    is_within_radius: NDArrayBool = norm < cfg.max_range_m
-    is_evaluated: NDArrayBool = is_within_radius
+    norm: NDArrayFloat = np.linalg.norm(xyz_m_ego, axis=1)  # type: ignore
+    is_evaluated: NDArrayBool = norm < cfg.max_range_m
     is_evaluated[cfg.max_num_dts_per_category :] = False  # Limit the number of detections.
     return is_evaluated
 
 
 def compute_evaluated_gts_mask(
-    gts: NDArrayFloat,
+    xyz_m_ego: NDArrayFloat,
+    num_interior_pts: NDArrayInt,
     cfg: DetectionCfg,
 ) -> NDArrayBool:
-    """Compute the evaluated cuboids mask.
+    """Compute the ground truth annotations evaluated cuboids mask.
 
-    Valid cuboids meet _two_ conditions:
+    Valid detections cuboids meet _two_ conditions:
         1. The cuboid's centroid (x,y,z) must lie within the maximum range in the detection configuration.
-        2. The cuboid must have at _least_ one point in its interior.
+        2. The cuboid must have at _least_ one point in each cuboid.
 
     Args:
-        gts: (N,11) Array of cuboid parameters corresponding to `ORDERED_CUBOID_COL_NAMES` + "num_interior_pts".
-        cfg: Detection configuration object.
+        xyz_m_ego: (M,3) Center of the ground truth annotations in the egovehicle frame.
+        num_interior_pts: (M,) Number of points interior to each cuboid.
+        cfg: 3D object detection configuration.
 
     Returns:
         The boolean mask indicating which cuboids will be evaluated.
     """
-    if len(gts) == 0:
-        is_evaluated: NDArrayBool = np.zeros((0,), dtype=bool)
+    is_evaluated: NDArrayBool
+    if len(xyz_m_ego) == 0:
+        is_evaluated = np.zeros((0,), dtype=bool)
         return is_evaluated
-    norm: NDArrayFloat = np.linalg.norm(gts[:, :3], axis=1)  # type: ignore
-    is_within_radius: NDArrayBool = norm < cfg.max_range_m
-    is_valid_num_points: NDArrayBool = gts[:, -1] > 0
-    is_evaluated: NDArrayBool = is_within_radius & is_valid_num_points
+    norm: NDArrayFloat = np.linalg.norm(xyz_m_ego, axis=1)  # type: ignore
+    is_evaluated = np.logical_and(norm < cfg.max_range_m, num_interior_pts > 0)
     return is_evaluated
 
 
