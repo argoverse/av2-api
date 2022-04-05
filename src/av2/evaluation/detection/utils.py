@@ -129,6 +129,7 @@ def accumulate(
                 are considered during assignment.
     """
     N, M = len(dts), len(gts)
+    T, E = len(cfg.affinity_thresholds_m), 3
 
     # Sort the detections by score in _descending_ order.
     scores: NDArrayFloat = dts[..., -1]
@@ -145,8 +146,8 @@ def accumulate(
     is_evaluated_gts &= compute_evaluated_gts_mask(gts[..., :3], gts[..., -1], cfg)
 
     # Initialize results array.
-    dts_augmented: NDArrayFloat = np.zeros((N, 8))
-    gts_augmented: NDArrayFloat = np.zeros((M, 8))
+    dts_augmented: NDArrayFloat = np.zeros((N, T + E + 1))
+    gts_augmented: NDArrayFloat = np.zeros((M, T + E + 1))
 
     # `is_evaluated` boolean flag is always the last column of the array.
     dts_augmented[is_evaluated_dts, -1] = True
@@ -190,7 +191,7 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
             $$T$$: cfg.affinity_thresholds_m (0.5, 1.0, 2.0, 4.0 by default).
             $$E$$: ATE, ASE, AOE.
     """
-    affinity_matrix = compute_affinity_matrix(dts, gts, cfg.affinity_type)
+    affinity_matrix = compute_affinity_matrix(dts[..., :2], gts[..., :2], cfg.affinity_type)
 
     # Get the GT label for each max-affinity GT label, detection pair.
     idx_gts = affinity_matrix.argmax(axis=1)[None]
@@ -202,19 +203,18 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
 
     # Find the indices of the _first_ detection assigned to each GT.
     assignments: Tuple[NDArrayInt, NDArrayInt] = np.unique(idx_gts, return_index=True)  # type: ignore
-
     idx_gts, idx_dts = assignments
-    T = len(cfg.affinity_thresholds_m)
-    E = 3
-    dts_table: NDArrayFloat = np.zeros((len(dts), T + E))
-    dts_table[:, 4:] = cfg.metrics_defaults[1:4]
-    gts_table: NDArrayFloat = np.zeros((len(gts), T + E))
-    gts_table[:, 4:] = cfg.metrics_defaults[1:4]
+
+    T, E = len(cfg.affinity_thresholds_m), 3
+    dts_metrics: NDArrayFloat = np.zeros((len(dts), T + E))
+    dts_metrics[:, 4:] = cfg.metrics_defaults[1:4]
+    gts_metrics: NDArrayFloat = np.zeros((len(gts), T + E))
+    gts_metrics[:, 4:] = cfg.metrics_defaults[1:4]
     for i, threshold_m in enumerate(cfg.affinity_thresholds_m):
         is_tp: NDArrayBool = affinities[idx_dts] > -threshold_m
 
-        dts_table[idx_dts[is_tp], i] = True
-        gts_table[idx_gts, i] = True
+        dts_metrics[idx_dts[is_tp], i] = True
+        gts_metrics[idx_gts, i] = True
 
         if threshold_m != cfg.tp_threshold_m:
             continue  # Skip if threshold isn't the true positive threshold.
@@ -230,9 +230,8 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
         translation_errors = distance(tps_dts[:, :3], tps_gts[:, :3], DistanceType.TRANSLATION)
         scale_errors = distance(tps_dts[:, 3:6], tps_gts[:, 3:6], DistanceType.SCALE)
         orientation_errors = distance(tps_dts[:, 6:10], tps_gts[:, 6:10], DistanceType.ORIENTATION)
-
-        dts_table[idx_tps_dts, 4:] = np.stack((translation_errors, scale_errors, orientation_errors), axis=-1)
-    return dts_table, gts_table
+        dts_metrics[idx_tps_dts, 4:] = np.stack((translation_errors, scale_errors, orientation_errors), axis=-1)
+    return dts_metrics, gts_metrics
 
 
 def interpolate_precision(precision: NDArrayFloat, interpolation_method: InterpType = InterpType.ALL) -> NDArrayFloat:
@@ -280,8 +279,8 @@ def compute_affinity_matrix(dts: NDArrayFloat, gts: NDArrayFloat, metric: Affini
         NotImplementedError: If the affinity metric is not implemented.
     """
     if metric == AffinityType.CENTER:
-        dts_xy_m = dts[:, :2]
-        gts_xy_m = gts[:, :2]
+        dts_xy_m = dts
+        gts_xy_m = gts
         affinities: NDArrayFloat = -cdist(dts_xy_m, gts_xy_m)
     else:
         raise NotImplementedError("This affinity metric is not implemented!")
