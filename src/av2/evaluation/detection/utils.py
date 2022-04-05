@@ -51,7 +51,8 @@ class DetectionCfg:
         affinity_thresholds_m: Affinity thresholds for determining a true positive (in meters).
         affinity_type: Type of affinity function to be used for calculating average precision.
         categories: Detection classes for evaluation.
-        eval_only_roi_instances: Only use detections and ground truth annotations that lie within region of interest during eval.
+        eval_only_roi_instances: Only use detections and ground truth annotations that lie
+            within region of interest during eval.
         filter_metric: Detection metric to use for filtering of both detections and ground truth annotations.
         max_range_m: Max distance (under a specific metric in meters) for a detection or ground truth cuboid to be
             considered for evaluation.
