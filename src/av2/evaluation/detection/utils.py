@@ -351,32 +351,34 @@ def distance(dts: NDArrayFloat, gts: NDArrayFloat, metric: DistanceType) -> NDAr
 
 
 def compute_objects_in_roi(
-    cuboids_parameters: NDArrayFloat, city_SE3_ego: SE3, avm: ArgoverseStaticMap
+    cuboids_ego: NDArrayFloat, city_SE3_ego: SE3, avm: ArgoverseStaticMap
 ) -> Tuple[NDArrayFloat, NDArrayBool]:
     """Compute the evaluated cuboids mask based off whether _any_ of their vertices fall into the ROI.
 
     Args:
-        cuboids_parameters: (N,10) Array of cuboid parameters corresponding to `ORDERED_CUBOID_COL_NAMES`.
+        cuboids_ego: (N,10) Array of cuboid parameters corresponding to `ORDERED_CUBOID_COL_NAMES`.
         city_SE3_ego: Egovehicle pose in the city reference frame.
         avm: Argoverse map object.
 
     Returns:
-        The boolean mask indicating which cuboids will be evaluated.
+        (N,8,3) Cuboid vertices in _city_ coordinates.
+        (N,) Boolean mask indicating which cuboids will be evaluated.
     """
     is_within_roi: NDArrayBool
-    if len(cuboids_parameters) == 0:
+    if len(cuboids_ego) == 0:
         is_within_roi = np.zeros((0,), dtype=bool)
-        return is_within_roi
-    cuboid_list_ego: CuboidList = CuboidList([Cuboid.from_numpy(params) for params in cuboids_parameters])
+        cuboid_list_vertices_m_city: NDArrayFloat = np.zeros((len(cuboids_ego), 8, 3))
+        return cuboid_list_vertices_m_city, is_within_roi
+    cuboid_list_ego: CuboidList = CuboidList([Cuboid.from_numpy(params) for params in cuboids_ego])
     cuboid_list_city = cuboid_list_ego.transform(city_SE3_ego)
-    cuboid_list_vertices_m = cuboid_list_city.vertices_m
+    cuboid_list_vertices_m_city = cuboid_list_city.vertices_m
 
     is_within_roi = avm.get_raster_layer_points_boolean(
-        cuboid_list_vertices_m.reshape(-1, 3)[..., :2], RasterLayerType.ROI
+        cuboid_list_vertices_m_city.reshape(-1, 3)[..., :2], RasterLayerType.ROI
     )
     is_within_roi = is_within_roi.reshape(-1, 8)
     is_within_roi = is_within_roi.any(axis=1)
-    return cuboid_list_vertices_m, is_within_roi
+    return cuboid_list_vertices_m_city, is_within_roi
 
 
 def compute_evaluated_dts_mask(
