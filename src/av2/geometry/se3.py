@@ -93,7 +93,7 @@ class SE3:
         """Apply the SE(3) transformation to the vertices of a cuboid.
 
         Args:
-            cuboid: 3D bounding box in the `src` reference frame.
+            cuboid_src: 3D bounding box in the `src` reference frame.
 
         Returns:
             3D bounding box, with vertices now provided in the `dst` frame.
