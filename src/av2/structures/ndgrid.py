@@ -122,14 +122,14 @@ class BEVGrid(NDGrid):
 
     def points_to_bev_img(
         self,
-        points: NDArrayFloat,
+        points_m: NDArrayFloat,
         color: Union[Tuple[int, int, int], NDArrayByte] = GRAY_BGR,
         diameter: int = 2,
     ) -> NDArrayByte:
         """Convert a set of points in Cartesian space to a bird's-eye-view image.
 
         Args:
-            points: (N,D) List of points in R^D.
+            points_m: (N,D) List of points in R^D (in meters).
             color: RGB color or list of grayscale values [0-255] representing lidar intensity.
             diameter: Point diameter for the drawn points.
 
@@ -139,14 +139,14 @@ class BEVGrid(NDGrid):
         Raises:
             ValueError: If points are less than 2-dimensional.
         """
-        D = points.shape[-1]
+        D = points_m.shape[-1]
         if D < 2:
             raise ValueError("Points must be at least 2d!")
 
-        points_xy = points[..., :2].copy()  # Prevent modifying input.
-        indices = self.transform_to_grid_coordinates(points_xy)
+        points_xy_m = points_m[..., :2].copy()  # Prevent modifying input.
+        indices_grid = self.transform_to_grid_coordinates(points_xy_m)
         indices_crop, is_valid_points = crop_points(
-            indices,
+            indices_grid,
             lower_bound_inclusive=(0.0, 0.0),
             upper_bound_exclusive=self.dims,
         )
@@ -159,7 +159,7 @@ class BEVGrid(NDGrid):
         img: NDArrayByte = np.zeros(shape, dtype=np.uint8)
 
         if isinstance(color, tuple):
-            colors: NDArrayByte = np.repeat([color], repeats=len(points_xy), axis=0)
+            colors: NDArrayByte = np.repeat([color], repeats=len(points_xy_m), axis=0)
         else:
             # Use lidar intensity.
             colors = np.repeat(color[is_valid_points][:, None], repeats=3, axis=1)
