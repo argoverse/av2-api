@@ -192,7 +192,7 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
             $$T$$: cfg.affinity_thresholds_m (0.5, 1.0, 2.0, 4.0 by default).
             $$E$$: ATE, ASE, AOE.
     """
-    affinity_matrix = compute_affinity_matrix(dts[..., :2], gts[..., :2], cfg.affinity_type)
+    affinity_matrix = compute_affinity_matrix(dts[..., :3], gts[..., :3], cfg.affinity_type)
 
     # Get the GT label for each max-affinity GT label, detection pair.
     idx_gts = affinity_matrix.argmax(axis=1)[None]
@@ -374,7 +374,7 @@ def compute_objects_in_roi_mask(cuboids_ego: NDArrayFloat, city_SE3_ego: SE3, av
     )
     is_within_roi = is_within_roi.reshape(-1, 8)
     is_within_roi = is_within_roi.any(axis=1)
-    return is_within_roi
+    return cuboid_list_vertices_m_city, is_within_roi
 
 
 def compute_evaluated_dts_mask(
@@ -401,7 +401,10 @@ def compute_evaluated_dts_mask(
         return is_evaluated
     norm: NDArrayFloat = np.linalg.norm(xyz_m_ego, axis=1)  # type: ignore
     is_evaluated = norm < cfg.max_range_m
-    is_evaluated[cfg.max_num_dts_per_category :] = False  # Limit the number of detections.
+
+    cumsum: NDArrayInt = np.cumsum(is_evaluated)
+    max_idx: int = np.where(cumsum > cfg.max_num_dts_per_category)[0][0]
+    is_evaluated[max_idx:] = False  # Limit the number of detections.
     return is_evaluated
 
 
