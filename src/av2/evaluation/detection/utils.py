@@ -403,8 +403,10 @@ def compute_evaluated_dts_mask(
     is_evaluated = norm < cfg.max_range_m
 
     cumsum: NDArrayInt = np.cumsum(is_evaluated)
-    max_idx: int = np.where(cumsum > cfg.max_num_dts_per_category)[0][0]
-    is_evaluated[max_idx:] = False  # Limit the number of detections.
+    max_idx_arr: NDArrayInt = np.where(cumsum > cfg.max_num_dts_per_category)[0]
+    if len(max_idx_arr) > 0:
+        max_idx = max_idx_arr[0]
+        is_evaluated[max_idx:] = False  # type: ignore
     return is_evaluated
 
 
