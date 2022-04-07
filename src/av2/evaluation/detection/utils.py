@@ -374,7 +374,7 @@ def compute_objects_in_roi_mask(cuboids_ego: NDArrayFloat, city_SE3_ego: SE3, av
     )
     is_within_roi = is_within_roi.reshape(-1, 8)
     is_within_roi = is_within_roi.any(axis=1)
-    return cuboid_list_vertices_m_city, is_within_roi
+    return is_within_roi
 
 
 def compute_evaluated_dts_mask(
