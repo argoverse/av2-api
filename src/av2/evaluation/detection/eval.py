@@ -73,6 +73,13 @@ from av2.utils.io import TimestampedCitySE3EgoPoses
 from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveErrorNames)
+DTS_COLUMN_NAMES: Final[Tuple[str, ...]] = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)
+GTS_COLUMN_NAMES: Final[Tuple[str, ...]] = tuple(ORDERED_CUBOID_COL_NAMES) + ("num_interior_pts",)
+UUID_COLUMN_NAMES: Final[Tuple[str, ...]] = (
+    "log_id",
+    "timestamp_ns",
+    "category",
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +88,7 @@ def evaluate(
     dts: pd.DataFrame,
     gts: pd.DataFrame,
     cfg: DetectionCfg,
+    n_jobs: int = 8,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Evaluate a set of detections against the ground truth annotations.
 
@@ -90,6 +98,7 @@ def evaluate(
         dts: (N,15) Table of detections.
         gts: (M,15) Table of ground truth annotations.
         cfg: Detection configuration.
+        n_jobs: Number of jobs running concurrently during evaluation.
 
     Returns:
         (C+1,K) Table of evaluation metrics where C is the number of classes. Plus a row for their means.
@@ -98,19 +107,15 @@ def evaluate(
     Raises:
         RuntimeError: If accumulation fails.
     """
-    uuid_column_names = ["log_id", "timestamp_ns", "category"]
-
     # Sort both the detections and annotations by lexicographic order for grouping.
-    dts = dts.sort_values(uuid_column_names)
-    gts = gts.sort_values(uuid_column_names)
+    dts = dts.sort_values(list(UUID_COLUMN_NAMES))
+    gts = gts.sort_values(list(UUID_COLUMN_NAMES))
 
-    dts_cols = ORDERED_CUBOID_COL_NAMES + ["score"]
-    gts_cols = ORDERED_CUBOID_COL_NAMES + ["num_interior_pts"]
-    dts_npy: NDArrayFloat = dts.loc[:, dts_cols].to_numpy()
-    gts_npy: NDArrayFloat = gts.loc[:, gts_cols].to_numpy()
+    dts_npy: NDArrayFloat = dts.loc[:, DTS_COLUMN_NAMES].to_numpy()
+    gts_npy: NDArrayFloat = gts.loc[:, GTS_COLUMN_NAMES].to_numpy()
 
-    dts_uuids: List[str] = dts[uuid_column_names].to_numpy().astype(str).tolist()
-    gts_uuids: List[str] = gts[uuid_column_names].to_numpy().astype(str).tolist()
+    dts_uuids: List[str] = dts.loc[:, UUID_COLUMN_NAMES].to_numpy().astype(str).tolist()
+    gts_uuids: List[str] = gts.loc[:, UUID_COLUMN_NAMES].to_numpy().astype(str).tolist()
 
     # We merge the unique identifier -- the tuple of ("log_id", "timestamp_ns", "category")
     # into a single string to optimize the subsequent grouping operation.
@@ -125,7 +130,7 @@ def evaluate(
     # Load maps and egoposes if roi-pruning is enabled.
     if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
         logger.info("Loading maps and egoposes ...")
-        log_ids = gts["log_id"].unique().tolist()
+        log_ids: List[str] = gts.loc[:, "log_id"].unique().tolist()
         log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
 
     args_list: List[Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
@@ -149,18 +154,18 @@ def evaluate(
         args_list.append(args)
 
     logger.info("Starting evaluation ...")
-    outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = Parallel(n_jobs=-1, verbose=1)(
+    outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = Parallel(n_jobs=n_jobs, verbose=1)(
         delayed(accumulate)(*args) for args in args_list
     )
     if outputs is None:
         raise RuntimeError("Accumulation has failed! Please check the integrity of your detections and annotations.")
     dts_list, gts_list = zip(*outputs)
 
-    COLS = cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
+    METRIC_COLUMN_NAMES = cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
     dts_metrics: NDArrayFloat = np.concatenate(dts_list)  # type: ignore
     gts_metrics: NDArrayFloat = np.concatenate(gts_list)  # type: ignore
-    dts.loc[:, COLS] = dts_metrics
-    gts.loc[:, COLS] = gts_metrics
+    dts.loc[:, METRIC_COLUMN_NAMES] = dts_metrics
+    gts.loc[:, METRIC_COLUMN_NAMES] = gts_metrics
 
     # Compute summary metrics.
     metrics = summarize_metrics(dts, gts, cfg)
