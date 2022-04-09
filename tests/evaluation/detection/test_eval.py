@@ -15,7 +15,7 @@ import pandas as pd
 from scipy.spatial.transform import Rotation
 
 from av2.evaluation.detection.constants import AffinityType, DistanceType
-from av2.evaluation.detection.eval import evaluate
+from av2.evaluation.detection.eval import ORDERED_CUBOID_COL_NAMES, evaluate
 from av2.evaluation.detection.utils import (
     DetectionCfg,
     accumulate,
@@ -23,12 +23,15 @@ from av2.evaluation.detection.utils import (
     compute_affinity_matrix,
     compute_evaluated_dts_mask,
     compute_evaluated_gts_mask,
+    compute_objects_in_roi_mask,
     distance,
     interpolate_precision,
 )
 from av2.geometry.geometry import wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
+from av2.map.map_api import ArgoverseStaticMap
 from av2.utils.constants import PI
+from av2.utils.io import read_city_SE3_ego, read_feather, write_img
 from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 TEST_DATA_DIR: Final[Path] = Path(__file__).parent.resolve() / "data"
@@ -286,6 +289,17 @@ def test_compute_evaluated_dts_mask() -> None:
     np.testing.assert_array_equal(dts_mask, dts_mask_)  # type: ignore
 
 
+def test_compute_evaluated_dts_mask_2() -> None:
+    """Randomly generate detections and ensure that they never exceed the maximum detection limit."""
+    detection_cfg = DetectionCfg(categories=("REGULAR_VEHICLE",), eval_only_roi_instances=False)
+    for i in range(1000):
+        dts: NDArrayFloat = np.random.randint(0, 250, size=(detection_cfg.max_num_dts_per_category + i, 10)).astype(
+            float
+        )
+        dts_mask = compute_evaluated_dts_mask(dts, detection_cfg)
+        assert dts_mask.sum() <= detection_cfg.max_num_dts_per_category
+
+
 def test_compute_evaluated_gts_mask() -> None:
     """Unit test for computing valid ground truth cuboids."""
     gts: NDArrayFloat = np.array(
@@ -305,23 +319,56 @@ def test_compute_evaluated_gts_mask() -> None:
     np.testing.assert_array_equal(gts_mask, gts_mask_)  # type: ignore
 
 
-# def test_val_identity() -> None:
-#     root_dir = Path.home() / "data" / "datasets" / "av2" / "sensor" / "val"
-#     paths = sorted(root_dir.glob("*/annotations.feather"))
+def test_compute_objects_in_roi_mask() -> None:
+    """Test filtering ground truth annotations by the ROI.
 
-#     annotations = []
-#     for p in paths:
-#         df = pd.read_feather(p)
-#         df["log_id"] = p.parent.stem
-#         annotations.append(df)
-#     annotations = pd.concat(annotations).reset_index(drop=True)
-#     dts = annotations.copy()
-#     dts["score"] = 1.0
-#     annotations.loc[:, "num_interior_pts"] = 1
+    Three annotations are tested. The first and third are partially in the ROI --- these
+    are both considered VALID since they have at least on of their cuboid vertices within
+    the ROI.
 
-#     detection_cfg = DetectionCfg(eval_only_roi_instances=True, max_num_dts_per_category=1000, dataset_dir=root_dir)
-#     dts_, gts_, metrics_ = evaluate(dts, annotations, detection_cfg)
+    The second annotations is _FULLY_ outside of the ROI, thus it is filtered.
+    """
+    map_dir = TEST_DATA_DIR / "adcf7d18-0510-35b0-a2fa-b4cea13a6d76" / "map"
+
+    timestamp_ns = 315973157959879000
+    track_uuids = [
+        "f53639ef-794e-420e-bb2a-d0cde0203b3a",  # Two vertices within ROI.
+        "6c198de2-cb7d-4c09-96aa-52547d9bbe37",  # Completely outside of ROI.
+        "a7c8f6a2-26b6-4610-9eb3-294799f9846c",  # Two vertices within ROI.
+    ]
+    avm = ArgoverseStaticMap.from_map_dir(map_dir, build_raster=True)
+    annotations = read_feather(TEST_DATA_DIR / "adcf7d18-0510-35b0-a2fa-b4cea13a6d76" / "annotations.feather")
+    timestamped_city_SE3_egoposes = read_city_SE3_ego(TEST_DATA_DIR / "adcf7d18-0510-35b0-a2fa-b4cea13a6d76")
+
+    selected_cuboids_mask = np.logical_and(
+        annotations.timestamp_ns == timestamp_ns, annotations["track_uuid"].isin(track_uuids)
+    )
+    sweep_annotations = annotations.loc[selected_cuboids_mask]
+
+    mask = compute_objects_in_roi_mask(
+        sweep_annotations.loc[:, ORDERED_CUBOID_COL_NAMES].to_numpy(), timestamped_city_SE3_egoposes[timestamp_ns], avm
+    )
+    mask_: NDArrayBool = np.array([True, False, True])
+    np.testing.assert_array_equal(mask, mask_)  # type: ignore
 
 
-# if __name__ == "__main__":
-#     test_compute_objects_in_roi_mask()
+def test_val_identity() -> None:
+    root_dir = Path.home() / "data" / "datasets" / "av2" / "sensor" / "val"
+    paths = sorted(root_dir.glob("*/annotations.feather"))
+
+    annotations = []
+    for p in paths:
+        df = pd.read_feather(p)
+        df["log_id"] = p.parent.stem
+        annotations.append(df)
+    annotations = pd.concat(annotations).reset_index(drop=True)
+    dts = annotations.copy()
+    dts["score"] = 1.0
+    annotations.loc[:, "num_interior_pts"] = 1
+
+    detection_cfg = DetectionCfg(eval_only_roi_instances=True, max_num_dts_per_category=1000, dataset_dir=root_dir)
+    dts_, gts_, metrics_ = evaluate(dts, annotations, detection_cfg)
+
+
+if __name__ == "__main__":
+    test_val_identity()
