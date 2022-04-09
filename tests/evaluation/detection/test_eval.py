@@ -15,7 +15,7 @@ import pandas as pd
 from scipy.spatial.transform import Rotation
 
 from av2.evaluation.detection.constants import AffinityType, DistanceType
-from av2.evaluation.detection.eval import ORDERED_CUBOID_COL_NAMES, evaluate
+from av2.evaluation.detection.eval import evaluate
 from av2.evaluation.detection.utils import (
     DetectionCfg,
     accumulate,
@@ -30,6 +30,7 @@ from av2.evaluation.detection.utils import (
 from av2.geometry.geometry import wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
 from av2.map.map_api import ArgoverseStaticMap
+from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
 from av2.utils.constants import PI
 from av2.utils.io import read_city_SE3_ego, read_feather, write_img
 from av2.utils.typing import NDArrayBool, NDArrayFloat
