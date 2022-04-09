@@ -350,25 +350,3 @@ def test_compute_objects_in_roi_mask() -> None:
     )
     mask_: NDArrayBool = np.array([True, False, True])
     np.testing.assert_array_equal(mask, mask_)  # type: ignore
-
-
-def test_val_identity() -> None:
-    root_dir = Path.home() / "data" / "datasets" / "av2" / "sensor" / "val"
-    paths = sorted(root_dir.glob("*/annotations.feather"))
-
-    annotations = []
-    for p in paths:
-        df = pd.read_feather(p)
-        df["log_id"] = p.parent.stem
-        annotations.append(df)
-    annotations = pd.concat(annotations).reset_index(drop=True)
-    dts = annotations.copy()
-    dts["score"] = 1.0
-    annotations.loc[:, "num_interior_pts"] = 1
-
-    detection_cfg = DetectionCfg(eval_only_roi_instances=True, max_num_dts_per_category=1000, dataset_dir=root_dir)
-    dts_, gts_, metrics_ = evaluate(dts, annotations, detection_cfg)
-
-
-if __name__ == "__main__":
-    test_val_identity()
