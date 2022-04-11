@@ -7,7 +7,7 @@ Evaluation:
     Precision/Recall
 
         1. Average Precision: Standard VOC-style average precision calculation
-            except a true positive requires a 3D Euclidean center distance of less
+            except a true positive requires a bird's eye view center distance of less
             than a predefined threshold.
 
     True Positive Errors
@@ -95,8 +95,8 @@ def evaluate(
     Each sweep is processed independently, computing assignment between detections and ground truth annotations.
 
     Args:
-        dts: (N,15) Table of detections.
-        gts: (M,15) Table of ground truth annotations.
+        dts: (N,14) Table of detections.
+        gts: (M,14) Table of ground truth annotations.
         cfg: Detection configuration.
         n_jobs: Number of jobs running concurrently during evaluation.
 
@@ -111,11 +111,11 @@ def evaluate(
     dts = dts.sort_values(list(UUID_COLUMN_NAMES))
     gts = gts.sort_values(list(UUID_COLUMN_NAMES))
 
-    dts_npy: NDArrayFloat = dts.loc[:, DTS_COLUMN_NAMES].to_numpy()
-    gts_npy: NDArrayFloat = gts.loc[:, GTS_COLUMN_NAMES].to_numpy()
+    dts_npy: NDArrayFloat = dts[DTS_COLUMN_NAMES].to_numpy()
+    gts_npy: NDArrayFloat = gts[GTS_COLUMN_NAMES].to_numpy()
 
-    dts_uuids: List[str] = dts.loc[:, UUID_COLUMN_NAMES].to_numpy().astype(str).tolist()
-    gts_uuids: List[str] = gts.loc[:, UUID_COLUMN_NAMES].to_numpy().astype(str).tolist()
+    dts_uuids: List[str] = dts[UUID_COLUMN_NAMES].to_numpy().astype(str).tolist()
+    gts_uuids: List[str] = gts[UUID_COLUMN_NAMES].to_numpy().astype(str).tolist()
 
     # We merge the unique identifier -- the tuple of ("log_id", "timestamp_ns", "category")
     # into a single string to optimize the subsequent grouping operation.
