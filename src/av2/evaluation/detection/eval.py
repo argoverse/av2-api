@@ -7,7 +7,7 @@ Evaluation:
     Precision/Recall
 
         1. Average Precision: Standard VOC-style average precision calculation
-            except a true positive requires a bird's eye view center distance of less
+            except a true positive requires a 3D Euclidean center distance of less
             than a predefined threshold.
 
     True Positive Errors
