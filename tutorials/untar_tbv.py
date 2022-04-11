@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Final, Optional, Tuple
 
 import click
-import joblib
 from joblib import Parallel, delayed
 
 NUM_TBV_SHARDS: Final[int] = 21
