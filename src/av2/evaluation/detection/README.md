@@ -3,7 +3,7 @@
 > ### TL;DR
 > - **26** evaluation categories.
 > - **200 m** range (Euclidean distance in 3D).
-> - **CDS** is the leaderboard ranking metric.
+> - **Composite Detection Score (CDS)** is the leaderboard ranking metric.
 
 ## Overview
 
