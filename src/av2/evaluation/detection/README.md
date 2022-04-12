@@ -31,4 +31,4 @@ Our 3D object detection challenge is comprised of _26_ different annotation cate
 
 <!-- $$\text{CDS} = \text{mAP}  \sum_{x \in \mathcal{X}} 1 - x \quad \text{where} \quad  \mathcal{X} = \{ \text{mATE}_{\text{unit}}, \text{mASE}, \text{mAOE}_{\text{unit}} \}.$$ [^1] -->
 
-[^1]: We refer to metrics which aren’t upper bounded by 1 (e.g., ATE and AOE) as their normalized variants: ATEunit, AOEunit.
+[^1]: We refer to metrics which aren’t upper bounded by 1 (e.g., ATE and AOE) as their normalized variants: ATE<sub>unit</sub>, AOE<sub>unit</sub>.
