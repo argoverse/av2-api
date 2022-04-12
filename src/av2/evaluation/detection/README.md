@@ -13,7 +13,7 @@ Our 3D object detection challenge is comprised of _26_ different annotation cate
 
 - **Average Precision (AP)**: Standard VOC-style average precision calculation except a true positive requires a _3D_ Euclidean distance of less than a predefined threshold.
 
-- **Average Translation Error (ATE)**: The average _3D_ Euclidean distance (center-based) between a detection and its ground truth assignment.
+- **Average Translation Error (ATE)**: The average _3D_ Euclidean distance between a detection and its ground truth assignment (from their respective centers).
 
 - **Average Scale Error (ASE)**: The average intersection over union (IoU) after the prediction and assigned ground truth's pose has been aligned.
 
