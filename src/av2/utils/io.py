@@ -206,7 +206,7 @@ def write_img(img_path: Path, img: NDArrayByte, channel_order: str = "RGB") -> N
     cv2.imwrite(str(img_path), img)
 
 
-def read_json_file(fpath: Path) -> Any:
+def read_json_file(fpath: Path) -> Dict[str, Any]:
     """Load dictionary from JSON file.
 
     Args:
