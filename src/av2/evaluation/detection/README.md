@@ -22,10 +22,10 @@ Our 3D object detection challenge is comprised of _26_ different annotation cate
 
 - **Average Orientation Error (AOE)**: The average angular distance between the detection and the assigned ground truth. We choose the smallest angle between the two different headings when calculating the error.
 
-- **Composite Detection Score (CDS)**: The ranking metric for the detection leaderboard. This is computed as:
+- **Composite Detection Score (CDS)** [^1]: The ranking metric for the detection leaderboard. This is computed as:
 
 <p align="center">
-  <img src="https://render.githubusercontent.com/render/math?math={\text{CDS} = \text{mAP} \cdot \sum_{x \in \mathcal{X}} 1 - x \quad \text{where} \quad  \mathcal{X} = \{ \text{mATE}_{\text{unit}}, \text{mASE}, \text{mAOE}_{\text{unit}} \}}">[^1]
+  <img src="https://render.githubusercontent.com/render/math?math={\text{CDS} = \text{mAP} \cdot \sum_{x \in \mathcal{X}} 1 - x \quad \text{where} \quad  \mathcal{X} = \{ \text{mATE}_{\text{unit}}, \text{mASE}, \text{mAOE}_{\text{unit}} \}}">
 </p>
 
 
