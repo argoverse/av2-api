@@ -24,6 +24,9 @@ Our 3D object detection challenge is comprised of _26_ different compei
 
 - **Composite Detection Score (CDS)**: The ranking metric for the detection leaderboard. This is computed as:
 
-$$\text{CDS} = \text{mAP} * \sum_{x \in \mathcal{X}} 1 - x \quad \text{where} \quad  \mathcal{X} = \{ \text{mATE}_{\text{unit}}, \text{mASE}, \text{mAOE}_{\text{unit}} \}.$$ [^1]
+<img src="https://render.githubusercontent.com/render/math?math={\text{CDS} = \text{mAP} * \sum_{x \in \mathcal{X}} 1 - x \quad \text{where} \quad  \mathcal{X} = \{ \text{mATE}_{\text{unit}}, \text{mASE}, \text{mAOE}_{\text{unit}} \}}">
+
+
+<!-- $$\text{CDS} = \text{mAP} * \sum_{x \in \mathcal{X}} 1 - x \quad \text{where} \quad  \mathcal{X} = \{ \text{mATE}_{\text{unit}}, \text{mASE}, \text{mAOE}_{\text{unit}} \}.$$ [^1] -->
 
 [^1]: We refer to metrics which aren’t upper bounded by 1 (e.g., ATE and AOE) as their normalized variants: ATEunit, AOEunit.
