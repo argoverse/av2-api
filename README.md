@@ -10,7 +10,7 @@ If you have any questions or run into any problems with either the data or API, 
 
 ## TL;DR
 
-- Install the API: `pip install av2`
+- Install the API: `pip install av2` or `conda install av2 -c conda-forge`
 - Read the [instructions](DOWNLOAD.md) to download the data.
 
 ## Overview
