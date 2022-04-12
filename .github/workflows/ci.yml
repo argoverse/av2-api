@@ -33,14 +33,18 @@ jobs:
         run: |  # Cache the environments (-r), fail on missing python interpreters (--error-on-missing-interpreters), set dependency resolver backend.
           python -m nox -r --error-on-missing-interpreters --python ${{ matrix.python_version }} --default-venv-backend ${{ matrix.venv_backend }}
 
-      - name: Build wheels.
-        if: ${{ matrix.python_version }} == "virtualenv"
-        run: |
-          python -m pip wheel --wheel-dir=/tmp/wheelhouse .
+      - name: Install pypa/build.
+        run: >-
+          python -m
+          pip install
+          build
+          --user
           
-      - name: Publish package to PyPI.
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Build a binary wheel and a source tarball.
+        run: >-
+          python -m
+          build
+          --sdist
+          --wheel
+          --outdir dist/
+          .
