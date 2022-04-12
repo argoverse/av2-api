@@ -1,12 +1,9 @@
 # 3D Object Detection Evaluation
 
-Welcome to the 3D object detection API!
-
-TL;DR
-
-- **26** evaluation categories.
-- **200 m** range (Euclidean distance in 3D).
-- **CDS** is the leaderboard ranking metric.
+> ### TL;DR
+> - **26** evaluation categories.
+> - **200 m** range (Euclidean distance in 3D).
+> - **CDS** is the leaderboard ranking metric.
 
 ## Overview
 
