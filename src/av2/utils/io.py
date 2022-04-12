@@ -216,7 +216,8 @@ def read_json_file(fpath: Path) -> Dict[str, Any]:
         Deserialized Python dictionary.
     """
     with open(fpath, "rb") as f:
-        return json.load(f)
+        data: Dict[str, Any] = json.load(f)
+        return data
 
 
 def save_json_dict(
