@@ -25,7 +25,7 @@ Our 3D object detection challenge is comprised of _26_ different annotation cate
 - **Composite Detection Score (CDS)**: The ranking metric for the detection leaderboard. This is computed as:
 
 <p align="center">
-  <img src="https://render.githubusercontent.com/render/math?math={\text{CDS} = \text{mAP} \cdot \sum_{x \in \mathcal{X}} 1 - x \quad \text{where} \quad  \mathcal{X} = \{ \text{mATE}_{\text{unit}}, \text{mASE}, \text{mAOE}_{\text{unit}} \}}"> [^1]
+  <img src="https://render.githubusercontent.com/render/math?math={\text{CDS} = \text{mAP} \cdot \sum_{x \in \mathcal{X}} 1 - x \quad \text{where} \quad  \mathcal{X} = \{ \text{mATE}_{\text{unit}}, \text{mASE}, \text{mAOE}_{\text{unit}} \}}">[^1]
 </p>
 
 
