@@ -125,7 +125,7 @@ def write_video(
     Args:
         video: (N,H,W,3) Array representing N RGB frames of identical dimensions.
         dst: Path to save folder.
-        color_format: The format of the color channels.
+        color_format: Format of the color channels.
         codec: Name of the codec.
         fps: Frame rate for video.
         crf: Constant rate factor (CRF) parameter of video, controlling the quality.

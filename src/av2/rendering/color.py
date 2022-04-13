@@ -35,6 +35,8 @@ TRAFFIC_YELLOW1_BGR: Final[Tuple[int, int, int]] = TRAFFIC_YELLOW1_RGB[::-1]
 
 @unique
 class ColorFormats(str, Enum):
+    """Color channel formats."""
+
     BGR = "BGR"
     RGB = "RGB"
 
