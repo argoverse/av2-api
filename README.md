@@ -10,7 +10,9 @@ If you have any questions or run into any problems with either the data or API, 
 
 ## TL;DR
 
-- Install the API: `pip install av2` or `conda install av2 -c conda-forge`
+- Choose an API installation option:
+  - PyPI: `pip install av2`
+  - Conda: `conda install av2 -c conda-forge`
 - Read the [instructions](DOWNLOAD.md) to download the data.
 
 ## Overview
@@ -26,10 +28,24 @@ If you have any questions or run into any problems with either the data or API, 
 
 ### Setup
 
-The easiest way to install the API is via [pip](https://pypi.org/project/av2/) by running the following command:
+We offer three different ways to install `av2`:
+
+#### PyPI
 
 ```bash
 pip install av2
+```
+
+#### Conda
+
+```bash
+conda install av2 -c conda-forge
+```
+
+#### Locally
+
+```bash
+pip install -e .
 ```
 
 ### Datasets
