@@ -13,9 +13,8 @@ from av2.datasets.sensor.constants import RingCameras, StereoCameras
 from av2.datasets.sensor.sensor_dataloader import SensorDataloader
 from av2.rendering.color import ColorFormats, create_range_map
 from av2.rendering.rasterize import draw_points_xy_in_img
-from av2.rendering.video import VideoCodecs, tile_cameras, write_video
+from av2.rendering.video import tile_cameras, write_video
 from av2.structures.ndgrid import BEVGrid
-from av2.utils.io import write_img
 from av2.utils.typing import NDArrayByte, NDArrayInt
 
 # Bird's-eye view parameters.
