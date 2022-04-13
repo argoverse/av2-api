@@ -3,7 +3,6 @@
 """Test automation using `nox`."""
 
 from pathlib import Path
-from sys import platform
 from typing import Dict, Final, List, Union
 
 import nox
@@ -14,8 +13,6 @@ from nox.virtualenv import CondaEnv
 PYTHON: Final[List[str]] = ["3.8", "3.9", "3.10"]
 
 nox.options.sessions = ["black", "isort", "lint", "mypy", "pytest"]
-if platform != "win32":  # pytype isn't supported on windows.
-    nox.options.sessions.append("pytype")
 
 
 def _setup(session: Session) -> None:
@@ -105,22 +102,6 @@ def mypy(session: Session) -> None:
     _setup(session)
     session.install(*env)
     session.run("mypy", ".")
-
-
-@nox.session(python=["3.8", "3.9"])  # pytype doesn't support 3.10.
-def pytype(session: Session) -> None:
-    """Run `pytype` against `av2`.
-
-    Args:
-        session: `nox` session.
-    """
-    env = [
-        "git+https://github.com/google/pytype@fc08da16d4eab1deace406c52130457a7da66020",  # Fixes typing.Final issue.
-        "pytest",  # Required for analysis in the test directory.
-    ]
-    _setup(session)
-    session.install(*env)
-    session.run("pytype", ".")
 
 
 @nox.session(python=PYTHON)

@@ -3,12 +3,12 @@
 """3D object detection evaluation constants."""
 
 from enum import Enum, unique
-from typing import Final, Tuple
+from typing import Final, List
 
 from av2.utils.constants import PI
 
 MAX_SCALE_ERROR: Final[float] = 1.0
-MAX_YAW_ERROR: Final[float] = PI
+MAX_YAW_RAD_ERROR: Final[float] = PI
 
 # Higher is better.
 MIN_AP: Final[float] = 0.0
@@ -24,45 +24,9 @@ MAX_NUM_BOXES: Final[int] = 500
 
 NUM_DECIMALS: Final[int] = 3
 
-
-@unique
-class EvaluationColumns(str, Enum):
-    """Columns needed for evaluation in the input detection and ground truth dataframes."""
-
-    LOG_ID = "log_id"
-    TIMESTAMP_NS = "timestamp_ns"
-    CATEGORY = "category"
-    LENGTH_M = "length_m"
-    WIDTH_M = "width_m"
-    HEIGHT_M = "height_m"
-    QW = "qw"
-    QX = "qx"
-    QY = "qy"
-    QZ = "qz"
-    TX_M = "tx_m"
-    TY_M = "ty_m"
-    TZ_M = "tz_m"
-    SCORE = "score"
-
-    @classmethod
-    @property
-    def DIMENSION_NAMES(cls) -> Tuple[str, str, str]:
-        return cls.LENGTH_M.value, cls.WIDTH_M.value, cls.HEIGHT_M.value
-
-    @classmethod
-    @property
-    def QUAT_COEFFICIENTS_XYZW(cls) -> Tuple[str, str, str, str]:
-        return cls.QX.value, cls.QY.value, cls.QZ.value, cls.QW.value
-
-    @classmethod
-    @property
-    def QUAT_COEFFICIENTS_WXYZ(cls) -> Tuple[str, str, str, str]:
-        return cls.QW.value, cls.QX.value, cls.QY.value, cls.QZ.value
-
-    @classmethod
-    @property
-    def TRANSLATION_NAMES(cls) -> Tuple[str, str, str]:
-        return cls.TX_M.value, cls.TY_M.value, cls.TZ_M.value
+TRANSLATION_COLS: Final[List[str]] = ["tx_m", "ty_m", "tz_m"]
+DIMENSION_COLS: Final[List[str]] = ["length_m", "width_m", "height_m"]
+QUAT_WXYZ_COLS: Final[List[str]] = ["qw", "qx", "qy", "qz"]
 
 
 @unique
@@ -89,7 +53,6 @@ class MetricNames(str, Enum):
 class CompetitionCategories(str, Enum):
     """Sensor dataset annotation categories."""
 
-    ANIMAL = "ANIMAL"
     ARTICULATED_BUS = "ARTICULATED_BUS"
     BICYCLE = "BICYCLE"
     BICYCLIST = "BICYCLIST"
@@ -104,26 +67,18 @@ class CompetitionCategories(str, Enum):
     MOBILE_PEDESTRIAN_CROSSING_SIGN = "MOBILE_PEDESTRIAN_CROSSING_SIGN"
     MOTORCYCLE = "MOTORCYCLE"
     MOTORCYCLIST = "MOTORCYCLIST"
-    OFFICIAL_SIGNALER = "OFFICIAL_SIGNALER"
     PEDESTRIAN = "PEDESTRIAN"
-    RAILED_VEHICLE = "RAILED_VEHICLE"
     REGULAR_VEHICLE = "REGULAR_VEHICLE"
     SCHOOL_BUS = "SCHOOL_BUS"
     SIGN = "SIGN"
     STOP_SIGN = "STOP_SIGN"
     STROLLER = "STROLLER"
-    TRAFFIC_LIGHT_TRAILER = "TRAFFIC_LIGHT_TRAILER"
     TRUCK = "TRUCK"
     TRUCK_CAB = "TRUCK_CAB"
     VEHICULAR_TRAILER = "VEHICULAR_TRAILER"
     WHEELCHAIR = "WHEELCHAIR"
     WHEELED_DEVICE = "WHEELED_DEVICE"
     WHEELED_RIDER = "WHEELED_RIDER"
-
-
-@unique
-class DimensionColumnNames(str, Enum):
-    pass
 
 
 @unique

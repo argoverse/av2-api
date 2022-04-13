@@ -13,5 +13,6 @@ dependencies:
   - pandas
   - pip
   - pyarrow
+  - pyproj
   - rich
   - scipy

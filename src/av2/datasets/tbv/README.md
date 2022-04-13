@@ -9,22 +9,50 @@
 
 ## Dataset Size
 
-The Trust, but Verify (TbV) Dataset consists of 1045 vehicle logs. Each vehicle log, on average, is 54 seconds in duration, including 536 LiDAR sweeps on average, and 1073 images from each of the 7 cameras (7512 images per log). Some logs are as short as 4 seconds, and other logs are up to 117 seconds in duration.
+The Trust, but Verify (TbV) Dataset consists of 1043 vehicle logs. Each vehicle log, on average, is 54 seconds in duration, including 536 LiDAR sweeps on average, and 1073 images from each of the 7 cameras (7512 images per log). Some logs are as short as 4 seconds, and other logs are up to 117 seconds in duration.
 
-The total dataset amounts to 15.57 hours of driving data, amounting to 922 GB of data in its extracted form. There are 7.85 Million images in the dataset, and 563,745 LiDAR sweeps in total.
+The total dataset amounts to 15.54 hours of driving data, amounting to 922 GB of data in its extracted form. There are 7.84 Million images in the dataset (7,837,614 exactly), and 559,440 LiDAR sweeps in total.
 
 ## Downloading TbV
 
-Install `s5cmd` using [the installation instructions here](../../../../../DOWNLOAD.md), and then run download 21 tar.gz archives from Amazon S3 as follows:
+TbV is available for download in two forms -- either zipped up as 21 tar.gz files -- or in extracted, unzipped form (without tar archives). Downloading either will produce the same result (the underlying log data is identical).
+
+Using the `tar.gz` files is recommended (depending upon your connection, this is likely faster, as there are almost 8 million images files in the extracted format). We recommend using `s5cmd` to pull down all 21 `.tar.gz` files with a single command. You can see the links to the `tar.gz` files on [the Argoverse 2 downloads page](https://www.argoverse.org/av2.html#download-link).
+
+First, install `s5cmd` using [the installation instructions here](https://github.com/argoai/argoverse2-api/blob/main/DOWNLOAD.md), and then download the 21 tar.gz archives from Amazon S3 as follows:
 
 ```bash
 SHARD_DIR={DESIRED PATH FOR TAR.GZ files}
-s5cmd cp s3://argoai-argoverse/av2/tars/tbv/*.tar.gz ${SHARD_DIR}
+s5cmd --no-sign-request cp s3://argoai-argoverse/av2/tars/tbv/*.tar.gz ${SHARD_DIR}
 ```
-Next, extract TbV tar.gz files that were just downloaded to a local disk:
+
+If you would prefer to not install a 3rd party download tool (`s5cmd`), you can use `wget` to download the `tar.gz` files:
 ```bash
-python tutorial/untar_tbv.py
+wget https://s3.amazonaws.com/argoai-argoverse/av2/tars/tbv/TbV_v1.0_shard0.tar.gz
+wget https://s3.amazonaws.com/argoai-argoverse/av2/tars/tbv/TbV_v1.0_shard1.tar.gz
+...
+wget https://s3.amazonaws.com/argoai-argoverse/av2/tars/tbv/TbV_v1.0_shard20.tar.gz
 ```
+
+Next, extract TbV tar.gz files that were just downloaded to a local disk using [`untar_tbv.py`](https://github.com/argoai/av2-api/blob/main/tutorials/untar_tbv.py):
+```bash
+python tutorials/untar_tbv.py
+```
+**Not Recommended**: If you want to directly transfer the extracted files, you may use:
+```bash
+DESIRED_TBV_DATAROOT={DESIRED LOCAL DIRECTORY PATH FOR TBV VEHICLE LOGS}
+s5cmd --no-sign-request cp s3://argoai-argoverse/av2/tbv/* ${DESIRED_TBV_DATAROOT}
+```
+
+## Log Distribution Across Cities
+TbV vehicle logs are captured in 6 cities, according to the following distribution:
+- Austin, Texas: 80 logs.
+- Detroit, Michigan: 139 logs.
+- Miami, Florida: 349 logs.
+- Pittsburgh, Pennsylvania: 318 logs.
+- Palo Alto, California: 21 logs.
+- Washington, D.C.: 136 logs.
+
 
 ## Baselines
 We provide both pre-trained models for HD map change detection and code for training such models at [https://github.com/johnwlambert/tbv](https://github.com/johnwlambert/tbv).

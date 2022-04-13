@@ -1,5 +1,5 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
-"""Implements a dataloader for the Argoverse 2.0 Sensor Dataset."""
+"""Implements a dataloader for the Argoverse 2.0 Sensor and TbV Datasets."""
 
 import logging
 from pathlib import Path
@@ -45,10 +45,6 @@ class AV2SensorDataLoader:
         self._data_dir = data_dir
         self._labels_dir = labels_dir
         self._sdb = SynchronizationDB(str(data_dir))
-
-    def get_city_name(self, log_id: str) -> str:
-        """Return the name of the city where the log of interest was captured."""
-        raise NotImplementedError("Method is not available yet.")
 
     def get_log_pinhole_camera(self, log_id: str, cam_name: str) -> PinholeCamera:
         """Return a PinholeCamera parameterized by sensor pose in vehicle frame, intrinsics, and image dimensions."""
@@ -136,6 +132,28 @@ class AV2SensorDataLoader:
         """Fetch the path to the directory containing map files for a single vehicle log."""
         return self._data_dir / log_id / "map"
 
+    def get_city_name(self, log_id: str) -> str:
+        """Return the name of the city where the log of interest was captured.
+
+        Vector map filenames contain the city name, and have a name in the following format:
+            `log_map_archive_453e5558-6363-38e3-bf9b-42b5ba0a6f1d____PAO_city_71741.json`
+
+        Args:
+            log_id: unique ID of vehicle log.
+
+        Returns:
+            Name of the city where the log of interest was captured.
+
+        Raises:
+            RuntimeError: If no vector map file is found for the query log ID.
+        """
+        vector_map_fpaths = list(self._data_dir.glob(f"{log_id}/map/log_map_archive*"))
+        if len(vector_map_fpaths) == 0:
+            raise RuntimeError(f"Vector map file is missing for {log_id}.")
+        vector_map_fpath = vector_map_fpaths[0]
+        log_city_name = vector_map_fpath.name.split("____")[1].split("_")[0]
+        return log_city_name
+
     def get_log_ids(self) -> List[str]:
         """Return a list of all vehicle log IDs available at the provided dataroot."""
         return sorted([d.name for d in self._data_dir.glob("*") if d.is_dir()])
@@ -182,7 +200,7 @@ class AV2SensorDataLoader:
             lidar_timestamp_ns: timestamp of LiDAR sweep capture, in nanoseconds
 
         Returns:
-            lidar_fpath: path to sweep .feather file if one exists at the requested timestamp, or else None.
+            Path to sweep .feather file if one exists at the requested timestamp, or else None.
         """
         lidar_fname = f"{lidar_timestamp_ns}.feather"
         lidar_fpath = self._data_dir / log_id / "sensors" / "lidar" / lidar_fname
@@ -190,6 +208,33 @@ class AV2SensorDataLoader:
             return None
 
         return lidar_fpath
+
+    def get_lidar_fpath(self, log_id: str, lidar_timestamp_ns: int) -> Path:
+        """Get file path for LiDAR sweep accumulated to the query reference timestamp.
+
+        Args:
+            log_id: unique ID of vehicle log.
+            lidar_timestamp_ns: query reference timestamp, in nanoseconds.
+
+        Returns:
+            Path to .feather file, containing sweep information.
+        """
+        lidar_fname = f"{lidar_timestamp_ns}.feather"
+        lidar_fpath = Path(self._data_dir) / log_id / "sensors" / "lidar" / lidar_fname
+        return lidar_fpath
+
+    def get_ordered_log_lidar_timestamps(self, log_id: str) -> List[int]:
+        """Return chronologically-ordered timestamps corresponding to each LiDAR sweep in a log.
+
+        Args:
+            log_id: unique ID of vehicle log.
+
+        Returns:
+            lidar_timestamps_ns: ordered timestamps, provided in nanoseconds.
+        """
+        ordered_lidar_fpaths: List[Path] = self.get_ordered_log_lidar_fpaths(log_id=log_id)
+        lidar_timestamps_ns = [int(fp.stem) for fp in ordered_lidar_fpaths]
+        return lidar_timestamps_ns
 
     def get_ordered_log_lidar_fpaths(self, log_id: str) -> List[Path]:
         """Get a list of all file paths for LiDAR sweeps in a single log (ordered chronologically).
