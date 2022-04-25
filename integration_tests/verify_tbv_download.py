@@ -13,10 +13,9 @@ from rich.progress import track
 import av2.utils.io as io_utils
 from av2.datasets.sensor.av2_sensor_dataloader import AV2SensorDataLoader
 from av2.datasets.sensor.constants import RingCameras
-from av2.datasets.tbv.splits import TRAIN, VAL, TEST
+from av2.datasets.tbv.splits import TEST, TRAIN, VAL
 from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap
-
 
 logger = logging.getLogger(__name__)
 
@@ -224,7 +223,6 @@ def verify_logs_using_dataloader(data_root: Path, log_ids: List[str]) -> None:
     help="Whether to verify the size of every image. This check is very expensive over millions of images.",
     type=bool,
 )
-
 def run_verify_all_tbv_logs(data_root: str, check_image_sizes: bool) -> None:
     """Click entry point for TbV file verification."""
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
