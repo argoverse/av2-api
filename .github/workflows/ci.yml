@@ -45,6 +45,7 @@ jobs:
           --user
           
       - name: Build a binary wheel and a source tarball.
+        if: matrix.os != 'windows-latest' || matrix.venv_backend != 'mamba'
         run: >-
           python -m
           build
