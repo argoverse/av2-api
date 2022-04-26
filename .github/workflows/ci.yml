@@ -12,7 +12,7 @@ jobs:
         python_version:
           ["3.8", "3.9", "3.10"]
         venv_backend:
-          ["virtualenv", "mamba"]  # Testing two different resolvers (pip, mamba).
+          ["virtualenv"]  # Testing two different resolvers (pip, mamba).
     defaults:
       run:
         shell: bash -l {0}
@@ -33,10 +33,6 @@ jobs:
         run: |  # Cache the environments (-r), fail on missing python interpreters (--error-on-missing-interpreters), set dependency resolver backend.
           python -m nox --error-on-missing-interpreters --python ${{ matrix.python_version }} --default-venv-backend ${{ matrix.venv_backend }}
 
-      - name: Free disk space.
-        run: |
-          mamba clean -ya
-
       - name: Install pypa/build.
         run: >-
           python -m
@@ -45,7 +41,6 @@ jobs:
           --user
           
       - name: Build a binary wheel and a source tarball.
-        if: matrix.os != 'windows-latest' || matrix.venv_backend != 'mamba'
         run: >-
           python -m
           build
