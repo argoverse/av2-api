@@ -52,11 +52,11 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import logging
+from multiprocessing import get_context
 from typing import Dict, Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import (
@@ -95,8 +95,8 @@ def evaluate(
     Each sweep is processed independently, computing assignment between detections and ground truth annotations.
 
     Args:
-        dts: (N,14) Table of detections.
-        gts: (M,14) Table of ground truth annotations.
+        dts: (N,15) Table of detections.
+        gts: (M,15) Table of ground truth annotations.
         cfg: Detection configuration.
         n_jobs: Number of jobs running concurrently during evaluation.
 
@@ -154,9 +154,9 @@ def evaluate(
         args_list.append(args)
 
     logger.info("Starting evaluation ...")
-    outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = Parallel(n_jobs=n_jobs, verbose=1)(
-        delayed(accumulate)(*args) for args in args_list
-    )
+    with get_context("spawn").Pool(processes=n_jobs) as p:
+        outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate, args_list)
+
     if outputs is None:
         raise RuntimeError("Accumulation has failed! Please check the integrity of your detections and annotations.")
     dts_list, gts_list = zip(*outputs)

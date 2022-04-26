@@ -5,7 +5,7 @@
 import numpy as np
 
 import av2.geometry.utm as geo_utils
-from av2.geometry.utm import CityName, CITY_ORIGIN_LATLONG_DICT
+from av2.geometry.utm import CITY_ORIGIN_LATLONG_DICT, CityName
 from av2.utils.typing import NDArrayFloat
 
 
