@@ -181,9 +181,10 @@ class PinholeCamera:
             is_valid_points: boolean indicator of valid cheirality and within image boundary, as
                 boolean Numpy array of shape (N,).
         """
-        uv = self.intrinsics.K @ points_cam[:3, :]
-        uv = uv.T
-        points_cam = points_cam.T
+        points_cam = points_cam.transpose()
+        uv: NDArrayFloat = self.intrinsics.K @ points_cam
+        uv = uv.transpose()
+        points_cam = points_cam.transpose()
 
         if remove_nan:
             uv, points_cam = remove_nan_values(uv, points_cam)
@@ -241,7 +242,7 @@ class PinholeCamera:
                 boolean Numpy array of shape (N,).
 
         Raises:
-            ValueError: If `city_SE3_ego_cam_t` or `city_SE3_ego_lidar_t` is `None`.
+            ValueError: If `city_SE3_egovehicle_cam_t` or `city_SE3_egovehicle_lidar_t` is `None`.
         """
         if city_SE3_ego_cam_t is None:
             raise ValueError("city_SE3_ego_cam_t cannot be `None`!")
@@ -405,6 +406,25 @@ class PinholeCamera:
         if ray_dirs.shape[1] != 3:
             raise RuntimeError("Ray directions must be (N,3)")
         return ray_dirs
+
+    def scale(self, scale: float) -> PinholeCamera:
+        """Scale the intrinsics and image size.
+
+        Args:
+            scale: Scaling factor.
+
+        Returns:
+            The scaled pinhole camera model.
+        """
+        intrinsics = Intrinsics(
+            self.intrinsics.fx_px * scale,
+            self.intrinsics.fy_px * scale,
+            self.intrinsics.cx_px * scale,
+            self.intrinsics.cy_px * scale,
+            round(self.intrinsics.width_px * scale),
+            round(self.intrinsics.height_px * scale),
+        )
+        return PinholeCamera(ego_SE3_cam=self.ego_SE3_cam, intrinsics=intrinsics, cam_name=self.cam_name)
 
 
 def remove_nan_values(uv: NDArrayFloat, points_cam: NDArrayFloat) -> Tuple[NDArrayFloat, NDArrayFloat]:
