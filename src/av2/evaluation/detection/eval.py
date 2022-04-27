@@ -52,11 +52,11 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import logging
+from multiprocessing import get_context
 from typing import Dict, Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from joblib import Parallel, delayed
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import (
@@ -95,7 +95,7 @@ def evaluate(
     Each sweep is processed independently, computing assignment between detections and ground truth annotations.
 
     Args:
-        dts: (N,15) Table of detections.
+        dts: (N,14) Table of detections.
         gts: (M,15) Table of ground truth annotations.
         cfg: Detection configuration.
         n_jobs: Number of jobs running concurrently during evaluation.
@@ -106,23 +106,30 @@ def evaluate(
 
     Raises:
         RuntimeError: If accumulation fails.
+        ValueError: If ROI pruning is enabled but a dataset directory is not specified.
     """
+    if cfg.eval_only_roi_instances and cfg.dataset_dir is None:
+        raise ValueError(
+            "ROI pruning has been enabled, but the dataset directory has not be specified. "
+            "Please set `dataset_directory` to the split root, e.g. av2/sensor/val."
+        )
+
     # Sort both the detections and annotations by lexicographic order for grouping.
     dts = dts.sort_values(list(UUID_COLUMN_NAMES))
     gts = gts.sort_values(list(UUID_COLUMN_NAMES))
 
-    dts_npy: NDArrayFloat = dts.loc[:, DTS_COLUMN_NAMES].to_numpy()
-    gts_npy: NDArrayFloat = gts.loc[:, GTS_COLUMN_NAMES].to_numpy()
+    dts_npy: NDArrayFloat = dts[list(DTS_COLUMN_NAMES)].to_numpy()
+    gts_npy: NDArrayFloat = gts[list(GTS_COLUMN_NAMES)].to_numpy()
 
-    dts_uuids: List[str] = dts.loc[:, UUID_COLUMN_NAMES].to_numpy().astype(str).tolist()
-    gts_uuids: List[str] = gts.loc[:, UUID_COLUMN_NAMES].to_numpy().astype(str).tolist()
+    dts_uuids: List[str] = dts[list(UUID_COLUMN_NAMES)].to_numpy().tolist()
+    gts_uuids: List[str] = gts[list(UUID_COLUMN_NAMES)].to_numpy().tolist()
 
     # We merge the unique identifier -- the tuple of ("log_id", "timestamp_ns", "category")
     # into a single string to optimize the subsequent grouping operation.
     # `groupby_mapping` produces a mapping from the uuid to the group of detections / annotations
     # which fall into that group.
-    uuid_to_dts = groupby([":".join(x) for x in dts_uuids], dts_npy)
-    uuid_to_gts = groupby([":".join(x) for x in gts_uuids], gts_npy)
+    uuid_to_dts = groupby([":".join(map(str, x)) for x in dts_uuids], dts_npy)
+    uuid_to_gts = groupby([":".join(map(str, x)) for x in gts_uuids], gts_npy)
 
     log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
     log_id_to_timestamped_poses: Optional[Dict[str, TimestampedCitySE3EgoPoses]] = None
@@ -154,9 +161,9 @@ def evaluate(
         args_list.append(args)
 
     logger.info("Starting evaluation ...")
-    outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = Parallel(n_jobs=n_jobs, verbose=1)(
-        delayed(accumulate)(*args) for args in args_list
-    )
+    with get_context("spawn").Pool(processes=n_jobs) as p:
+        outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate, args_list)
+
     if outputs is None:
         raise RuntimeError("Accumulation has failed! Please check the integrity of your detections and annotations.")
     dts_list, gts_list = zip(*outputs)
@@ -182,7 +189,7 @@ def summarize_metrics(
     """Calculate and print the 3D object detection metrics.
 
     Args:
-        dts: (N,15) Table of detections.
+        dts: (N,14) Table of detections.
         gts: (M,15) Table of ground truth annotations.
         cfg: Detection configuration.
 

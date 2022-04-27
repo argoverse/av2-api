@@ -12,7 +12,7 @@ jobs:
         python_version:
           ["3.8", "3.9", "3.10"]
         venv_backend:
-          ["virtualenv", "mamba"]  # Testing two different resolvers (pip, mamba).
+          ["virtualenv"]
     defaults:
       run:
         shell: bash -l {0}
