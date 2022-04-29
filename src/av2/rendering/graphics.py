@@ -43,7 +43,7 @@ def points(sweep: Sweep):
     return vedo.Points(inputobj=sweep.xyz[..., :3].tolist(), r=0.2)
 
 
-def annotations_meshes(annotations: CuboidList) -> List[vedo.Mesh]:
+def cuboids(annotations: CuboidList) -> List[vedo.Mesh]:
     vertices = annotations.vertices_m
     meshes: List[vedo.Mesh] = [
         vedo.Mesh(
