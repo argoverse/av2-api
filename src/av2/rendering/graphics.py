@@ -35,12 +35,15 @@ def plotter():
         offscreen=False,
         bg="black",
         sharecam=False,
-        backend="k3d",
+        resetcam=False,
+        # backend="k3d",
     )
 
 
 def points(sweep: Sweep):
-    return vedo.Points(inputobj=sweep.xyz[..., :3].tolist(), r=0.2)
+    pts = vedo.Points(inputobj=sweep.xyz[..., :3].tolist(), r=4, c="grey")
+    pts = pts.cmap("Spectral", sweep.xyz[..., -1], vmin=-3, vmax=3)
+    return pts
 
 
 def cuboids(annotations: CuboidList) -> List[vedo.Mesh]:
@@ -52,4 +55,11 @@ def cuboids(annotations: CuboidList) -> List[vedo.Mesh]:
         ).lighting("off")
         for x in vertices
     ]
+    for mesh in meshes:
+        mesh.celldata["mycolors"] = COLORS
+        mesh.celldata.select("mycolors")
     return meshes
+
+
+def map():
+    pass
