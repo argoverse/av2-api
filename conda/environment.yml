@@ -16,3 +16,4 @@ dependencies:
   - pyproj
   - rich
   - scipy
+  - vedo
