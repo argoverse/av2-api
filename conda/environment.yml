@@ -5,6 +5,7 @@ dependencies:
   - av
   - click
   - joblib
+  - k3d
   - matplotlib-base
   - nox
   - numba
