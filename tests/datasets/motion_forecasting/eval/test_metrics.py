@@ -2,6 +2,8 @@
 
 """Unit tests for motion forecasting metrics."""
 
+from contextlib import AbstractContextManager
+from contextlib import nullcontext as does_not_raise
 from typing import Final
 
 import numpy as np
@@ -114,3 +116,147 @@ def test_compute_is_missed_prediction(
     # Check that is_missed labels are of the correct shape and have the correct value
     assert is_missed_prediction.shape == forecasted_trajectories.shape[:1]
     assert np.all(is_missed_prediction == expected_is_missed_label)
+
+
+uniform_probabilities_k1: NDArrayFloat = np.ones((1,))
+uniform_probabilities_k6: NDArrayFloat = np.ones((6,)) / 6
+confident_probabilities_k6: NDArrayFloat = np.array([0.9, 0.02, 0.02, 0.02, 0.02, 0.02])
+non_normalized_probabilities_k6: NDArrayFloat = confident_probabilities_k6 / 10
+out_of_range_probabilities_k6: NDArrayFloat = confident_probabilities_k6 * 10
+wrong_shape_probabilities_k6: NDArrayFloat = np.ones((5,)) / 5
+
+expected_bade_uniform_k1 = expected_ade_stationary_k1
+expected_bade_uniform_k6 = expected_ade_straight_k6 + np.square((1 - uniform_probabilities_k6))
+expected_bade_confident_k6 = expected_ade_straight_k6 + np.square((1 - confident_probabilities_k6))
+
+expected_bfde_uniform_k1 = expected_fde_stationary_k1
+expected_bfde_uniform_k6 = expected_fde_straight_k6 + np.square((1 - uniform_probabilities_k6))
+expected_bfde_confident_k6 = expected_fde_straight_k6 + np.square((1 - confident_probabilities_k6))
+
+
+@pytest.mark.parametrize(
+    "forecasted_trajectories, forecast_probabilities, normalize, expected_brier_ade",
+    [
+        (forecasted_trajectories_stationary_k1, uniform_probabilities_k1, False, expected_bade_uniform_k1),
+        (forecasted_trajectories_straight_k6, uniform_probabilities_k6, False, expected_bade_uniform_k6),
+        (forecasted_trajectories_straight_k6, confident_probabilities_k6, False, expected_bade_confident_k6),
+        (forecasted_trajectories_straight_k6, non_normalized_probabilities_k6, True, expected_bade_confident_k6),
+    ],
+    ids=[
+        "uniform_stationary_k1",
+        "uniform_k6",
+        "confident_k6",
+        "normalize_probabilities_k6",
+    ],
+)
+def test_compute_brier_ade(
+    forecasted_trajectories: NDArrayNumber,
+    forecast_probabilities: NDArrayNumber,
+    normalize: bool,
+    expected_brier_ade: NDArrayFloat,
+) -> None:
+    """Test that test_compute_brier_ade returns the correct output with valid inputs.
+
+    Args:
+        forecasted_trajectories: Forecasted trajectories for test case.
+        forecast_probabilities: Forecast probabilities for test case.
+        normalize: Controls whether forecast probabilities should be normalized for test case.
+        expected_brier_ade: Expected probability-weighted ADE for test case.
+    """
+    brier_ade = metrics.compute_brier_ade(
+        forecasted_trajectories, _STATIONARY_GT_TRAJ, forecast_probabilities, normalize
+    )
+    assert np.allclose(brier_ade, expected_brier_ade)
+
+
+@pytest.mark.parametrize(
+    "forecast_probabilities, normalize, expectation",
+    [
+        (non_normalized_probabilities_k6, True, does_not_raise()),
+        (out_of_range_probabilities_k6, False, pytest.raises(ValueError)),
+        (wrong_shape_probabilities_k6, True, pytest.raises(ValueError)),
+    ],
+    ids=[
+        "valid_probabilities",
+        "out_of_range_probabilities",
+        "wrong_shape_probabilities",
+    ],
+)
+def test_compute_brier_ade_data_validation(
+    forecast_probabilities: NDArrayNumber, normalize: bool, expectation: AbstractContextManager  # type: ignore
+) -> None:
+    """Test that test_compute_brier_ade raises the correct errors when inputs are invalid.
+
+    Args:
+        forecast_probabilities: Forecast probabilities for test case.
+        normalize: Controls whether forecast probabilities should be normalized for test case.
+        expectation: Context manager to capture the expected exception for each test case.
+    """
+    with expectation:
+        metrics.compute_brier_ade(
+            forecasted_trajectories_straight_k6, _STATIONARY_GT_TRAJ, forecast_probabilities, normalize
+        )
+
+
+@pytest.mark.parametrize(
+    "forecasted_trajectories, forecast_probabilities, normalize, expected_brier_fde",
+    [
+        (forecasted_trajectories_stationary_k1, uniform_probabilities_k1, False, expected_bfde_uniform_k1),
+        (forecasted_trajectories_straight_k6, uniform_probabilities_k6, False, expected_bfde_uniform_k6),
+        (forecasted_trajectories_straight_k6, confident_probabilities_k6, False, expected_bfde_confident_k6),
+        (forecasted_trajectories_straight_k6, non_normalized_probabilities_k6, True, expected_bfde_confident_k6),
+    ],
+    ids=[
+        "uniform_stationary_k1",
+        "uniform_k6",
+        "confident_k6",
+        "normalize_probabilities_k6",
+    ],
+)
+def test_compute_brier_fde(
+    forecasted_trajectories: NDArrayNumber,
+    forecast_probabilities: NDArrayNumber,
+    normalize: bool,
+    expected_brier_fde: NDArrayFloat,
+) -> None:
+    """Test that test_compute_brier_fde returns the correct output with valid inputs.
+
+    Args:
+        forecasted_trajectories: Forecasted trajectories for test case.
+        forecast_probabilities: Forecast probabilities for test case.
+        normalize: Controls whether forecast probabilities should be normalized for test case.
+        expected_brier_fde: Expected probability-weighted FDE for test case.
+    """
+    brier_fde = metrics.compute_brier_fde(
+        forecasted_trajectories, _STATIONARY_GT_TRAJ, forecast_probabilities, normalize
+    )
+    assert np.allclose(brier_fde, expected_brier_fde)
+
+
+@pytest.mark.parametrize(
+    "forecast_probabilities, normalize, expectation",
+    [
+        (non_normalized_probabilities_k6, True, does_not_raise()),
+        (out_of_range_probabilities_k6, False, pytest.raises(ValueError)),
+        (wrong_shape_probabilities_k6, True, pytest.raises(ValueError)),
+    ],
+    ids=[
+        "valid_probabilities",
+        "out_of_range_probabilities",
+        "wrong_shape_probabilities",
+    ],
+)
+def test_compute_brier_fde_data_validation(
+    forecast_probabilities: NDArrayNumber, normalize: bool, expectation: AbstractContextManager  # type: ignore
+) -> None:
+    """Test that test_compute_brier_fde raises the correct errors when inputs are invalid.
+
+    Args:
+        forecast_probabilities: Forecast probabilities for test case.
+        normalize: Controls whether forecast probabilities should be normalized for test case.
+        expectation: Context manager to capture the expected exception for each test case.
+    """
+    with expectation:
+        metrics.compute_brier_fde(
+            forecasted_trajectories_straight_k6, _STATIONARY_GT_TRAJ, forecast_probabilities, normalize
+        )
