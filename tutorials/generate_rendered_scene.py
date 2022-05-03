@@ -6,8 +6,8 @@ import numpy as np
 import vedo
 
 from av2.datasets.sensor.sensor_dataloader import SensorDataloader
-from av2.rendering.graphics import cuboids, egovehicle, lanes, plotter, points
-from av2.utils.typing import NDArrayByte
+from av2.rendering.graphics import cuboids, egovehicle, lanes, plotter, point_cloud
+from av2.utils.typing import NDArrayByte, NDArrayInt
 
 vedo.settings.allowInteraction = True
 
@@ -25,13 +25,15 @@ def render_scene() -> None:
     for i, datum in enumerate(dataloader):
         plot += egovehicle()
         plot += cuboids(datum.annotations)
-        plot += lanes(datum.avm, datum.timestamp_city_SE3_ego_dict[datum.timestamp_ns])
 
-        pts = datum.sweep.xyz
-        city_SE3_ego = datum.timestamp_city_SE3_ego_dict[datum.timestamp_ns]
-        points_city = city_SE3_ego.transform_point_cloud(pts)
-        points_city = datum.avm.remove_ground_surface(points_city)
-        datum.sweep.xyz = city_SE3_ego.inverse().transform_point_cloud(points_city)
+        if datum.avm is not None:
+            plot += lanes(datum.avm, datum.timestamp_city_SE3_ego_dict[datum.timestamp_ns])
+
+            pts = datum.sweep.xyz
+            city_SE3_ego = datum.timestamp_city_SE3_ego_dict[datum.timestamp_ns]
+            points_city = city_SE3_ego.transform_point_cloud(pts)
+            points_city = datum.avm.remove_ground_surface(points_city)
+            datum.sweep.xyz = city_SE3_ego.inverse().transform_point_cloud(points_city)
 
         rgba: NDArrayByte = np.full((datum.sweep.xyz.shape[0], 4), dtype=np.uint8, fill_value=32)
         rgba[..., -1] = 255
@@ -41,12 +43,12 @@ def render_scene() -> None:
                 datum.timestamp_city_SE3_ego_dict[v.timestamp_ns],
                 datum.timestamp_city_SE3_ego_dict[datum.timestamp_ns],
             )
-            uv_int = np.round(uv).astype(int)[is_valid]
+            uv_int: NDArrayInt = np.round(uv).astype(int)[is_valid]
 
             rgb_cam = v.img[uv_int[..., 1], uv_int[..., 0]][..., ::-1]
-            rgba_cam = np.concatenate((rgb_cam, np.full_like(rgb_cam[..., -1:], fill_value=255)), axis=-1)
+            rgba_cam: NDArrayByte = np.concatenate((rgb_cam, np.full_like(rgb_cam[..., -1:], fill_value=255)), axis=-1)
             rgba[is_valid] = rgba_cam
-        plot += points(datum.sweep, colors=rgba.tolist())
+        plot += point_cloud(datum.sweep, colors=rgba.tolist())
 
         plot.show(camera={"pos": [-60, 0, 20], "viewup": [1, 0, 0]}, interactive=False)
         video.addFrame()

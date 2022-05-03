@@ -1,5 +1,7 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
 
+"""Methods to construct Vedo objects for rendering."""
+
 from typing import Dict, Final, List
 
 import cv2
@@ -57,6 +59,15 @@ def egovehicle() -> Sphere:
 
 
 def point_cloud(sweep: Sweep, colors: List[List[int]]) -> Points:
+    """Return a rendered point cloud object.
+
+    Args:
+        sweep: Lidar sweep.
+        colors: List of RGB colors.
+
+    Returns:
+        Rendered points object.
+    """
     points: Points = Points(inputobj=sweep.xyz[..., :3].tolist(), r=4, c=colors).lighting("off")
     return points
 
@@ -110,7 +121,3 @@ def lanes(avm: ArgoverseStaticMap, city_SE3_ego: SE3, alpha: float = 0.5) -> Lis
         lanes.append(left_lane)
         lanes.append(right_lane)
     return lanes
-
-
-def map():
-    pass
