@@ -1,5 +1,7 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
 
+"""Render a colorized point cloud from the sensor dataset."""
+
 from pathlib import Path
 
 import numpy as np
