@@ -24,7 +24,9 @@ def render_scene() -> None:
     video.options = "-c:v libx264 -crf 24 -preset veryfast -pix_fmt yuv420p"
     for i, datum in enumerate(dataloader):
         plot += egovehicle()
-        plot += cuboids(datum.annotations)
+
+        if datum.annotations is not None:
+            plot += cuboids(datum.annotations)
 
         if datum.avm is not None:
             plot += lanes(datum.avm, datum.timestamp_city_SE3_ego_dict[datum.timestamp_ns])
@@ -37,17 +39,21 @@ def render_scene() -> None:
 
         rgba: NDArrayByte = np.full((datum.sweep.xyz.shape[0], 4), dtype=np.uint8, fill_value=32)
         rgba[..., -1] = 255
-        for _, v in datum.synchronized_imagery.items():
-            uv, _, is_valid = v.camera_model.project_ego_to_img_motion_compensated(
-                datum.sweep.xyz,
-                datum.timestamp_city_SE3_ego_dict[v.timestamp_ns],
-                datum.timestamp_city_SE3_ego_dict[datum.timestamp_ns],
-            )
-            uv_int: NDArrayInt = np.round(uv).astype(int)[is_valid]
 
-            rgb_cam = v.img[uv_int[..., 1], uv_int[..., 0]][..., ::-1]
-            rgba_cam: NDArrayByte = np.concatenate((rgb_cam, np.full_like(rgb_cam[..., -1:], fill_value=255)), axis=-1)
-            rgba[is_valid] = rgba_cam
+        if datum.synchronized_imagery is not None:
+            for _, v in datum.synchronized_imagery.items():
+                uv, _, is_valid = v.camera_model.project_ego_to_img_motion_compensated(
+                    datum.sweep.xyz,
+                    datum.timestamp_city_SE3_ego_dict[v.timestamp_ns],
+                    datum.timestamp_city_SE3_ego_dict[datum.timestamp_ns],
+                )
+                uv_int: NDArrayInt = np.round(uv).astype(int)[is_valid]  # type: ignore
+
+                rgb_cam = v.img[uv_int[..., 1], uv_int[..., 0]][..., ::-1]
+                rgba_cam: NDArrayByte = np.concatenate(  # type: ignore
+                    (rgb_cam, np.full_like(rgb_cam[..., -1:], fill_value=255)), axis=-1
+                )
+                rgba[is_valid] = rgba_cam
         plot += point_cloud(datum.sweep, colors=rgba.tolist())
 
         plot.show(camera={"pos": [-60, 0, 20], "viewup": [1, 0, 0]}, interactive=False)
