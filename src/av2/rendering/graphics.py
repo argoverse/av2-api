@@ -1,11 +1,10 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
 
-from typing import Final, List
+from typing import Dict, Final, List
 
 import cv2
 import numpy as np
-import vedo
-from vedo import Line, Mesh, Points
+from vedo import Line, Mesh, Picture, Plotter, Points, Sphere
 
 from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap
@@ -33,8 +32,9 @@ MESH_CUBOID_COLORS: NDArrayByte = np.array(
 )
 
 
-def plotter():
-    return vedo.Plotter(
+def plotter() -> Plotter:
+    """Return a plotter object for rendering."""
+    return Plotter(
         title="AV2",
         interactive=False,
         offscreen=False,
@@ -45,14 +45,15 @@ def plotter():
     )
 
 
-def imagery(imagery: List[TimestampedImage]):
-    imgs = [cv2.cvtColor(v.img, cv2.COLOR_BGR2RGB) for v in imagery.values()]
-    imgs = [vedo.Picture(v) for v in imgs]
-    return [vedo.Picture(v) for v in imgs]
+def imagery(imagery: Dict[str, TimestampedImage]) -> List[Picture]:
+    """Return ring camera imagery for rendering."""
+    imgs: List[NDArrayByte] = [cv2.cvtColor(v.img, cv2.COLOR_BGR2RGB) for v in imagery.values()]
+    return [Picture(v) for v in imgs]
 
 
-def egovehicle():
-    return vedo.Sphere(r=0.5, c="white")
+def egovehicle() -> Sphere:
+    """Return a sphere representing the egovehicle."""
+    return Sphere(r=0.5, c="white")
 
 
 def point_cloud(sweep: Sweep, colors: List[List[int]]) -> Points:
@@ -60,10 +61,18 @@ def point_cloud(sweep: Sweep, colors: List[List[int]]) -> Points:
     return points
 
 
-def cuboids(annotations: CuboidList) -> List[vedo.Mesh]:
-    vertices = annotations.vertices_m
-    meshes: List[vedo.Mesh] = [
-        vedo.Mesh(
+def cuboids(cuboid_list: CuboidList) -> List[Mesh]:
+    """Return meshes representing ground truth annotations or detections.
+
+    Args:
+        cuboid_list: List of cuboids.
+
+    Returns:
+        List of mesh objects.
+    """
+    vertices = cuboid_list.vertices_m
+    meshes: List[Mesh] = [
+        Mesh(
             [x, MESH_EDGES],
             alpha=0.4,
         ).lighting("off")
@@ -76,11 +85,23 @@ def cuboids(annotations: CuboidList) -> List[vedo.Mesh]:
 
 
 def lanes(avm: ArgoverseStaticMap, city_SE3_ego: SE3, alpha: float = 0.5) -> List[Line]:
+    """Return lanes represented as rendered lines.
+
+    Args:
+        avm: AV2 static maps for a particular log.
+        city_SE3_ego: Egopose the city reference frame.
+        alpha: Opacity for the rendered lines.
+
+    Returns:
+        List of rendered lines.
+    """
     lanes: List[Line] = []
     lane_segments = avm.get_nearby_lane_segments(city_SE3_ego.translation[:2], search_radius_m=75.0)
     for lane in lane_segments:
         left_lane: NDArrayFloat = np.array([[point.x, point.y, point.z] for point in lane.left_lane_boundary.waypoints])
-        right_lane: NDArrayFloat = np.array([[point.x, point.y, point.z] for point in lane.right_lane_boundary.waypoints])
+        right_lane: NDArrayFloat = np.array(
+            [[point.x, point.y, point.z] for point in lane.right_lane_boundary.waypoints]
+        )
 
         left_lane = city_SE3_ego.inverse().transform_from(left_lane)
         right_lane = city_SE3_ego.inverse().transform_from(right_lane)

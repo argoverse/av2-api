@@ -15,6 +15,7 @@ dependencies:
   - pip
   - pyarrow
   - pyproj
+  - python<3.10
   - rich
   - scipy
   - vedo
