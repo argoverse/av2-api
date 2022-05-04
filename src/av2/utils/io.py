@@ -232,3 +232,23 @@ def save_json_dict(
     """
     with open(json_fpath, "w") as f:
         json.dump(dictionary, f)
+
+
+def read_all_annotations(dataset_dir: Path, split: str) -> pd.DataFrame:
+    """Read all annotations for a particular split.
+
+    Args:
+        dataset_dir: Root directory to the dataset.
+        split: Name of the dataset split.
+
+    Returns:
+        Dataframe which contains all of the ground truth annotations from the split.
+    """
+    split_dir = dataset_dir / split
+    annotations_path_list = split_dir.glob("*/annotations.feather")
+
+    annotations_list: List[pd.DataFrame] = []
+    for annotations_path in annotations_path_list:
+        annotations = read_feather(annotations_path)
+        annotations_list.append(annotations)
+    return pd.concat(annotations_list).reset_index(drop=True)

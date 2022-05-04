@@ -17,6 +17,7 @@ from rich.progress import track
 from av2.datasets.sensor.constants import RingCameras, StereoCameras
 from av2.datasets.sensor.utils import convert_path_to_named_record
 from av2.geometry.camera.pinhole_camera import PinholeCamera
+from av2.map.map_api import ArgoverseStaticMap
 from av2.structures.cuboid import CuboidList
 from av2.structures.sweep import Sweep
 from av2.structures.timestamped_image import TimestampedImage
@@ -72,7 +73,9 @@ class SynchronizedSensorData:
     log_id: str
     sweep_number: int
     num_sweeps_in_log: int
+    timestamp_ns: int
     annotations: Optional[CuboidList] = None
+    avm: Optional[ArgoverseStaticMap] = None
     synchronized_imagery: Optional[Dict[str, TimestampedImage]] = None
 
 
@@ -320,6 +323,8 @@ class SensorDataloader:
         sweep = Sweep.from_feather(lidar_feather_path=lidar_feather_path)
         timestamp_city_SE3_ego_dict = read_city_SE3_ego(log_dir=log_dir)
 
+        avm = ArgoverseStaticMap.from_map_dir(log_dir / "map", build_raster=True)
+
         # Construct output datum.
         datum = SynchronizedSensorData(
             sweep=sweep,
@@ -327,6 +332,8 @@ class SensorDataloader:
             timestamp_city_SE3_ego_dict=timestamp_city_SE3_ego_dict,
             sweep_number=idx,
             num_sweeps_in_log=num_frames,
+            avm=avm,
+            timestamp_ns=timestamp_ns,
         )
 
         # Load annotations if enabled.

@@ -67,7 +67,7 @@ class DetectionCfg:
     eval_only_roi_instances: bool = True
     filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN
     max_num_dts_per_category: int = 100
-    max_range_m: float = 200.0
+    max_range_m: float = 150.0
     num_recall_samples: int = 100
     tp_threshold_m: float = 2.0
 
