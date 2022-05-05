@@ -12,7 +12,7 @@ jobs:
         python_version:
           ["3.8", "3.9", "3.10"]
         venv_backend:
-          ["virtualenv", "mamba"]  # Testing two different resolvers (pip, mamba).
+          ["virtualenv"]
     defaults:
       run:
         shell: bash -l {0}
@@ -49,17 +49,6 @@ jobs:
           --outdir dist/
           .
 
-      # - name: Publish package to Test PyPI.
-      #   if: matrix.os == 'ubuntu-latest'
-      #   uses: pypa/gh-action-pypi-publish@master
-      #   with:
-      #     user: __token__
-      #     password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-      #     repository_url: https://test.pypi.org/legacy/
-      #     print_hash: true
-      #     skip_existing: true
-      #     verbose: true
-
       - name: Publish package to PyPI.
         if: matrix.os == 'ubuntu-latest' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@master
@@ -69,3 +58,4 @@ jobs:
           print_hash: true
           skip_existing: true
           verbose: true
+

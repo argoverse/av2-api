@@ -1,5 +1,5 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
-"""Implements a dataloader for the Argoverse 2.0 Sensor Dataset."""
+"""Implements a dataloader for the Argoverse 2.0 Sensor and TbV Datasets."""
 
 import logging
 from pathlib import Path
@@ -200,7 +200,8 @@ class AV2SensorDataLoader:
             lidar_timestamp_ns: Timestamp of lidar sweep capture, in nanoseconds.
 
         Returns:
-            lidar_fpath: Path to sweep .feather file if one exists at the requested timestamp, or else None.
+            Path to sweep .feather file if one exists at the requested timestamp, or else None.
+
         """
         lidar_fname = f"{lidar_timestamp_ns}.feather"
         lidar_fpath = self._data_dir / log_id / "sensors" / "lidar" / lidar_fname
@@ -227,10 +228,10 @@ class AV2SensorDataLoader:
         """Return chronologically-ordered timestamps corresponding to each lidar sweep in a log.
 
         Args:
-            log_id: Unique ID of vehicle log.
+            log_id: unique ID of vehicle log.
 
         Returns:
-            lidar_timestamps_ns: Ordered timestamps, provided in nanoseconds.
+            lidar_timestamps_ns: ordered timestamps, provided in nanoseconds.
         """
         ordered_lidar_fpaths: List[Path] = self.get_ordered_log_lidar_fpaths(log_id=log_id)
         lidar_timestamps_ns = [int(fp.stem) for fp in ordered_lidar_fpaths]

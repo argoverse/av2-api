@@ -2,20 +2,46 @@
 
 """Rendering tools for video visualizations."""
 
+from __future__ import annotations
+
+from enum import Enum, unique
 from pathlib import Path
-from typing import Dict, Final, Union
+from typing import Dict, Final, Mapping, Optional, Set, Union
 
 import av
-import cv2
 import numpy as np
 import pandas as pd
 
+from av2.rendering.color import ColorFormats
 from av2.utils.typing import NDArrayByte
 
+COLOR_FORMAT_TO_PYAV_COLOR_FORMAT: Final[Dict[ColorFormats, str]] = {
+    ColorFormats.RGB: "rgb24",
+    ColorFormats.BGR: "bgr24",
+}
 FFMPEG_OPTIONS: Final[Dict[str, str]] = {"crf": "27"}
 
 
-def tile_cameras(named_sensors: Dict[str, Union[NDArrayByte, pd.DataFrame]]) -> NDArrayByte:
+@unique
+class VideoCodecs(str, Enum):
+    """Available video codecs for encoding mp4 videos.
+
+    NOTE: The codecs available are dependent on the FFmpeg build that
+        you are using. We recommend defaulting to LIBX264.
+    """
+
+    LIBX264 = "libx264"  # https://en.wikipedia.org/wiki/Advanced_Video_Coding
+    LIBX265 = "libx265"  # https://en.wikipedia.org/wiki/High_Efficiency_Video_Coding
+    HEVC_VIDEOTOOLBOX = "hevc_videotoolbox"  # macOS GPU acceleration.
+
+
+HIGH_EFFICIENCY_VIDEO_CODECS: Final[Set[VideoCodecs]] = set([VideoCodecs.LIBX265, VideoCodecs.HEVC_VIDEOTOOLBOX])
+
+
+def tile_cameras(
+    named_sensors: Mapping[str, Union[NDArrayByte, pd.DataFrame]],
+    bev_img: Optional[NDArrayByte] = None,
+) -> NDArrayByte:
     """Combine ring cameras into a tiled image.
 
     NOTE: Images are expected in BGR ordering.
@@ -32,43 +58,62 @@ def tile_cameras(named_sensors: Dict[str, Union[NDArrayByte, pd.DataFrame]]) -> 
 
     Args:
         named_sensors: Dictionary of camera names to the (width, height, 3) images.
+        bev_img: (H,W,3) Bird's-eye view image.
 
     Returns:
         Tiled image.
     """
-    landscape_width = 2048
-    landscape_height = 1550
+    landscape_height = 2048
+    landscape_width = 1550
+    for _, v in named_sensors.items():
+        landscape_width = max(v.shape[0], v.shape[1])
+        landscape_height = min(v.shape[0], v.shape[1])
+        break
 
     height = landscape_height + landscape_height + landscape_height
     width = landscape_width + landscape_height + landscape_width
     tiled_im_bgr: NDArrayByte = np.zeros((height, width, 3), dtype=np.uint8)
 
-    ring_rear_left = named_sensors["ring_rear_left"]
-    ring_side_left = named_sensors["ring_side_left"]
-    ring_front_center = named_sensors["ring_front_center"]
-    ring_front_left = named_sensors["ring_front_left"]
-    ring_front_right = named_sensors["ring_front_right"]
-    ring_side_right = named_sensors["ring_side_right"]
-    ring_rear_right = named_sensors["ring_rear_right"]
+    if "ring_front_left" in named_sensors:
+        ring_front_left = named_sensors["ring_front_left"]
+        tiled_im_bgr[:landscape_height, :landscape_width] = ring_front_left
 
-    tiled_im_bgr[:landscape_height, :landscape_width] = ring_front_left
-    tiled_im_bgr[:landscape_width, landscape_width : landscape_width + landscape_height] = ring_front_center
-    tiled_im_bgr[:landscape_height, landscape_width + landscape_height :] = ring_front_right
+    if "ring_front_center" in named_sensors:
+        ring_front_center = named_sensors["ring_front_center"]
+        tiled_im_bgr[:landscape_width, landscape_width : landscape_width + landscape_height] = ring_front_center
 
-    tiled_im_bgr[landscape_height:3100, :landscape_width] = ring_side_left
-    tiled_im_bgr[landscape_height:3100, landscape_width + landscape_height :] = ring_side_right
+    if "ring_front_right" in named_sensors:
+        ring_front_right = named_sensors["ring_front_right"]
+        tiled_im_bgr[:landscape_height, landscape_width + landscape_height :] = ring_front_right
 
-    start = (width - 4096) // 2
-    tiled_im_bgr[3100:4650, start : start + landscape_width] = np.fliplr(ring_rear_left)  # type: ignore
-    tiled_im_bgr[3100:4650, start + landscape_width : start + 4096] = np.fliplr(ring_rear_right)  # type: ignore
-    tiled_im_rgb: NDArrayByte = cv2.cvtColor(tiled_im_bgr, cv2.COLOR_BGR2RGB)
-    return tiled_im_rgb
+    if "ring_side_left" in named_sensors:
+        ring_side_left = named_sensors["ring_side_left"]
+        tiled_im_bgr[landscape_height : 2 * landscape_height, :landscape_width] = ring_side_left
+
+    if "ring_side_right" in named_sensors:
+        ring_side_right = named_sensors["ring_side_right"]
+        tiled_im_bgr[landscape_height : 2 * landscape_height, landscape_width + landscape_height :] = ring_side_right
+
+    if bev_img is not None:
+        tiled_im_bgr[
+            landscape_width : 2 * landscape_width, landscape_width : landscape_width + landscape_height
+        ] = bev_img
+
+    if "ring_rear_left" in named_sensors:
+        ring_rear_left = named_sensors["ring_rear_left"]
+        tiled_im_bgr[2 * landscape_height : 3 * landscape_height, :landscape_width] = ring_rear_left
+
+    if "ring_rear_right" in named_sensors:
+        ring_rear_right = named_sensors["ring_rear_right"]
+        tiled_im_bgr[2 * landscape_height : 3 * landscape_height, width - landscape_width :] = ring_rear_right
+    return tiled_im_bgr
 
 
 def write_video(
     video: NDArrayByte,
     dst: Path,
-    codec: str = "libx264",
+    color_format: ColorFormats = ColorFormats.RGB,
+    codec: VideoCodecs = VideoCodecs.LIBX264,
     fps: int = 10,
     crf: int = 27,
     preset: str = "veryfast",
@@ -78,14 +123,15 @@ def write_video(
     Reference: https://github.com/PyAV-Org/PyAV
 
     Args:
-        video: (N,H,W,3) array representing N RGB frames of identical dimensions.
-        dst: path to save folder.
-        codec: the name of a codec.
-        fps: the frame rate for video.
-        crf: constant rate factor (CRF) parameter of video, controlling the quality.
+        video: (N,H,W,3) Array representing N RGB frames of identical dimensions.
+        dst: Path to save folder.
+        color_format: Format of the color channels.
+        codec: Name of the codec.
+        fps: Frame rate for video.
+        crf: Constant rate factor (CRF) parameter of video, controlling the quality.
             Lower values would result in better quality, at the expense of higher file sizes.
             For x264, the valid Constant Rate Factor (crf) range is 0-51.
-        preset: file encoding speed. Options range from "ultrafast", ..., "fast", ..., "medium", ..., "slow", ...
+        preset: File encoding speed. Options range from "ultrafast", ..., "fast", ..., "medium", ..., "slow", ...
             Higher compression efficiency often translates to slower video encoding speed, at file write time.
     """
     _, H, W, _ = video.shape
@@ -98,6 +144,8 @@ def write_video(
     dst.parent.mkdir(parents=True, exist_ok=True)
     with av.open(str(dst), "w") as output:
         stream = output.add_stream(codec, fps)
+        if codec in HIGH_EFFICIENCY_VIDEO_CODECS:
+            stream.codec_tag = "hvc1"
         stream.width = W
         stream.height = H
         stream.options = {
@@ -106,10 +154,11 @@ def write_video(
             "movflags": "+faststart",
             "preset": preset,
             "profile:v": "main",
-            "tag": "hvc1",
         }
+
+        format = COLOR_FORMAT_TO_PYAV_COLOR_FORMAT[color_format]
         for _, img in enumerate(video):
-            frame = av.VideoFrame.from_ndarray(img)
+            frame = av.VideoFrame.from_ndarray(img, format=format)
             output.mux(stream.encode(frame))
         output.mux(stream.encode(None))
 

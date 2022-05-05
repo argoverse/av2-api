@@ -3,7 +3,6 @@
 """Test automation using `nox`."""
 
 from pathlib import Path
-from sys import platform
 from typing import Dict, Final, List, Union
 
 import nox
