@@ -57,7 +57,6 @@ class DetectionCfg:
         max_range_m: Max distance (under a specific metric in meters) for a detection or ground truth cuboid to be
             considered for evaluation.
         num_recall_samples: Number of recall points to sample uniformly in [0, 1].
-        splits: Tuple of split names to evaluate.
         tp_threshold_m: Center distance threshold for the true positive metrics (in meters).
     """
 
@@ -68,9 +67,8 @@ class DetectionCfg:
     eval_only_roi_instances: bool = True
     filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN
     max_num_dts_per_category: int = 100
-    max_range_m: float = 200.0
+    max_range_m: float = 150.0
     num_recall_samples: int = 100
-    split: str = "val"
     tp_threshold_m: float = 2.0
 
     @property

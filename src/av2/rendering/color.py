@@ -2,12 +2,14 @@
 
 """Colormap related constants and functions."""
 
+from enum import Enum, unique
 from typing import Final, Sequence, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
-from av2.utils.typing import NDArrayFloat
+from av2.utils.typing import NDArrayByte, NDArrayFloat
 
 RED_HEX: Final[str] = "#df0101"
 GREEN_HEX: Final[str] = "#31b404"
@@ -29,6 +31,31 @@ DARK_GRAY_BGR: Final[Tuple[int, int, int]] = (100, 100, 100)
 
 TRAFFIC_YELLOW1_RGB: Final[Tuple[int, int, int]] = (250, 210, 1)
 TRAFFIC_YELLOW1_BGR: Final[Tuple[int, int, int]] = TRAFFIC_YELLOW1_RGB[::-1]
+
+
+@unique
+class ColorFormats(str, Enum):
+    """Color channel formats."""
+
+    BGR = "BGR"
+    RGB = "RGB"
+
+
+def create_range_map(points_xyz: NDArrayFloat) -> NDArrayByte:
+    """Generate an RGB colormap as a function of the lidar range.
+
+    Args:
+        points_xyz: (N,3) Points (x,y,z).
+
+    Returns:
+        (N,3) RGB colormap.
+    """
+    range = points_xyz[..., 2]
+    range = np.round(range).astype(int)  # type: ignore
+    color = plt.get_cmap("turbo")(np.arange(0, range.max() + 1))
+    color = color[range]
+    range_cmap: NDArrayByte = (color * 255.0).astype(np.uint8)
+    return range_cmap
 
 
 def create_colormap(color_list: Sequence[str], n_colors: int) -> NDArrayFloat:
