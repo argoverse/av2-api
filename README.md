@@ -17,11 +17,9 @@ If you have any questions or run into any problems with either the data or API, 
       - Baseline: https://github.com/benjaminrwilson/torchbox3d
     - Motion Forecasting
       - Challenge Link: https://eval.ai/challenge/1719/overview
-      - Baseline: Coming soon!
   - Argoverse 1
     - Stereo
       - Challenge Link: https://eval.ai/challenge/1704/overview
-      - Baseline: Coming soon!
 
 ## TL;DR
 
