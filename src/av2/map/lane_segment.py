@@ -48,6 +48,7 @@ class LaneMarkType(str, Enum):
     SOLID_DASH_YELLOW: str = "SOLID_DASH_YELLOW"
     SOLID_BLUE: str = "SOLID_BLUE"
     NONE: str = "NONE"
+    UNKNOWN: str = "UNKNOWN"
 
 
 @dataclass
