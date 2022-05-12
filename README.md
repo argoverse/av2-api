@@ -8,9 +8,9 @@
 
 If you have any questions or run into any problems with either the data or API, please feel free to open a [GitHub issue](https://github.com/argoai/av2-api/issues)!
 
-# Announcements
+## Announcements
 
-- Argoverse competitions are live!
+### Argoverse competitions are live!
   - Argoverse 2
     - 3D Object Detection
       - Challenge Link: https://eval.ai/challenge/1710/overview
