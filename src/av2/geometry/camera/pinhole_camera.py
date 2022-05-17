@@ -150,7 +150,7 @@ class PinholeCamera:
                 boolean Numpy array of shape (N,).
         """
         # convert cartesian to homogeneous coordinates.
-        points_ego_hom = geometry_utils.cart_to_hom(points_ego)
+        points_ego_hom = geometry_utils.cartesian_to_homogeneous(points_ego)
         points_cam: NDArrayFloat = self.extrinsics @ points_ego_hom.T
 
         # remove bottom row of all 1s.
