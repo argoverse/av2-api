@@ -61,7 +61,7 @@ def spherical_to_cartesian(coordinates_spherical: NDArrayFloat) -> NDArrayFloat:
     return coordinates_cartesian
 
 
-def cartesian_to_homogeneous(coordinates_cartesian: NDArrayFloat) -> NDArrayFloat:
+def cartesian_to_homogeneous(coordinates_cartesian_m: NDArrayFloat) -> NDArrayFloat:
     """Convert Cartesian coordinates into Homogenous coordinates.
 
     This function converts a set of points in R^N to its homogeneous representation in R^(N+1).
@@ -72,9 +72,9 @@ def cartesian_to_homogeneous(coordinates_cartesian: NDArrayFloat) -> NDArrayFloa
     Returns:
         (M,N+1) Array in Homogeneous space.
     """
-    num_coordinates, num_dimensions = coordinates_cartesian.shape
+    num_coordinates, num_dimensions = coordinates_cartesian_m.shape
     coordinates_homogeneous: NDArrayFloat = np.ones((num_coordinates, num_dimensions + 1))
-    coordinates_homogeneous[:, :num_dimensions] = coordinates_cartesian
+    coordinates_homogeneous[:, :num_dimensions] = coordinates_cartesian_m
     return coordinates_homogeneous
 
 
