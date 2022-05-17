@@ -67,7 +67,7 @@ def cartesian_to_homogeneous(coordinates_cartesian_m: NDArrayFloat) -> NDArrayFl
     This function converts a set of points in R^N to its homogeneous representation in R^(N+1).
 
     Args:
-        coordinates_cartesian: (M,N) Array of points in Cartesian space.
+        coordinates_cartesian_m: (M,N) Array of points in Cartesian space in meters.
 
     Returns:
         (M,N+1) Array in Homogeneous space.
