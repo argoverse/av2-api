@@ -8,6 +8,19 @@
 
 If you have any questions or run into any problems with either the data or API, please feel free to open a [GitHub issue](https://github.com/argoai/av2-api/issues)!
 
+## Announcements
+
+### Argoverse competitions are live!
+  - Argoverse 2
+    - 3D Object Detection
+      - Challenge Link: https://eval.ai/challenge/1710/overview
+      - Baseline: https://github.com/benjaminrwilson/torchbox3d
+    - Motion Forecasting
+      - Challenge Link: https://eval.ai/challenge/1719/overview
+  - Argoverse 1
+    - Stereo
+      - Challenge Link: https://eval.ai/challenge/1704/overview
+
 ## TL;DR
 
 - Install the API: `pip install av2`
