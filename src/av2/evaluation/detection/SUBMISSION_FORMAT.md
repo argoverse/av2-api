@@ -8,7 +8,7 @@ The evaluation expects the following fields within a `pandas.DataFrame`:
 - `length_m`: Object extent along the x-axis in meters.
 - `width_m`: Object extent along the y-axis in meters.
 - `height_m`: Object extent along the z-axis in meters.
-- `qw`: Scalar quaternion coefficient.
+- `qw`: Real quaternion coefficient.
 - `qx`: First quaternion coefficient.
 - `qy`: Second quaternion coefficient.
 - `qz`: Third quaternion coefficient.
