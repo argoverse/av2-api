@@ -9,9 +9,9 @@ The evaluation expects the following fields within a `pandas.DataFrame`:
 - `width_m`: Object extent along the y-axis in meters.
 - `height_m`: Object extent along the z-axis in meters.
 - `qw`: Scalar quaternion coefficient.
-- `qx`: First complex quaternion coefficient.
-- `qy`: Second complex quaternion coefficient.
-- `qz`: Third complex quaternion coefficient.
+- `qx`: First quaternion coefficient.
+- `qy`: Second quaternion coefficient.
+- `qz`: Third quaternion coefficient.
 - `score`: Object confidence.
 - `log_id`: Log id associated with the detection.
 - `timestamp_ns`: Timestamp associated with the detection.
