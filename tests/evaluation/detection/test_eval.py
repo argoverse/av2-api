@@ -313,7 +313,7 @@ def test_compute_evaluated_gts_mask() -> None:
     )
     detection_cfg = DetectionCfg(categories=("REGULAR_VEHICLE",), eval_only_roi_instances=False)
     gts_xyz_ego = gts[..., :3]
-    num_interior_pts = gts[..., -1]
+    num_interior_pts = gts[..., -1].astype(int)
 
     gts_mask = compute_evaluated_gts_mask(gts_xyz_ego, num_interior_pts, detection_cfg)
     gts_mask_: NDArrayBool = np.array([True, False, False, False])

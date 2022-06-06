@@ -134,7 +134,7 @@ class GroundHeightLayer(RasterMapLayer):
 
         array_Sim2_city = Sim2.from_json(Sim2_json_fpaths[0])
 
-        return cls(array=ground_height_array.astype(np.float32), array_Sim2_city=array_Sim2_city)
+        return cls(array=ground_height_array.astype(float), array_Sim2_city=array_Sim2_city)
 
     def get_ground_points_boolean(self, points_xyz: NDArrayFloat) -> NDArrayBool:
         """Check whether each 3d point is likely to be from the ground surface.

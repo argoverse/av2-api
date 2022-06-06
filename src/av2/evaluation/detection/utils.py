@@ -142,7 +142,7 @@ def accumulate(
         is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
 
     is_evaluated_dts &= compute_evaluated_dts_mask(dts[..., :3], cfg)
-    is_evaluated_gts &= compute_evaluated_gts_mask(gts[..., :3], gts[..., -1], cfg)
+    is_evaluated_gts &= compute_evaluated_gts_mask(gts[..., :3], gts[..., -1].astype(int), cfg)
 
     # Initialize results array.
     dts_augmented: NDArrayFloat = np.zeros((N, T + E + 1))
@@ -193,7 +193,7 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
     affinity_matrix = compute_affinity_matrix(dts[..., :3], gts[..., :3], cfg.affinity_type)
 
     # Get the GT label for each max-affinity GT label, detection pair.
-    idx_gts = affinity_matrix.argmax(axis=1)[None]
+    idx_gts: NDArrayInt = affinity_matrix.argmax(axis=1)[None]
 
     # The affinity matrix is an N by M matrix of the detections and ground truth labels respectively.
     # We want to take the corresponding affinity for each of the initial assignments using `gt_matches`.
