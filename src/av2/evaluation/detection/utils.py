@@ -11,6 +11,7 @@ increased interpretability of the error modes in a set of detections.
 """
 
 import logging
+import os.path as osp
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -18,7 +19,6 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 from joblib import Parallel, delayed
 from scipy.spatial.distance import cdist
-import os.path as osp
 
 from av2.evaluation.detection.constants import (
     MAX_NORMALIZED_ASE,
@@ -454,7 +454,7 @@ def load_mapped_avm_and_egoposes(
     """
 
     log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(osp.join(dataset_dir, log_id)) for log_id in log_ids}
-    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, backend="threading", verbose=1)(
+    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, verbose=1)(
         delayed(ArgoverseStaticMap.from_map_dir)(osp.join(dataset_dir, log_id, "map"), build_raster=True)
         for log_id in log_ids
     )

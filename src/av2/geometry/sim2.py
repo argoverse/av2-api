@@ -15,6 +15,7 @@ import numbers
 from dataclasses import dataclass
 from pathlib import Path
 
+import fsspec
 import numpy as np
 
 import av2.utils.io as io_utils
@@ -189,7 +190,7 @@ class Sim2:
     @classmethod
     def from_json(cls, json_fpath: Path) -> Sim2:
         """Generate class inst. from a JSON file containing Sim(2) parameters as flattened matrices (row-major)."""
-        with open(json_fpath, "r") as f:
+        with fsspec.open(json_fpath, "r") as f:
             json_data = json.load(f)
 
         R: NDArrayFloat = np.array(json_data["R"]).reshape(2, 2)

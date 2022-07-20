@@ -52,9 +52,12 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import logging
+import os.path as osp
+import warnings
 from multiprocessing import get_context
 from typing import Dict, Final, List, Optional, Tuple
 
+import fsspec.asyn
 import numpy as np
 import pandas as pd
 
@@ -71,7 +74,12 @@ from av2.map.map_api import ArgoverseStaticMap
 from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
 from av2.utils.io import TimestampedCitySE3EgoPoses
 from av2.utils.typing import NDArrayBool, NDArrayFloat
-import os.path as osp
+
+warnings.filterwarnings("ignore", module="google")
+
+# Hack to fix multi-processing.
+fsspec.asyn.iothread[0] = None
+fsspec.asyn.loop[0] = None
 
 TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveErrorNames)
 DTS_COLUMN_NAMES: Final[Tuple[str, ...]] = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)

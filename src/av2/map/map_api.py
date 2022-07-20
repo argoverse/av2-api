@@ -13,13 +13,16 @@ of the egovehicle (AV).
 from __future__ import annotations
 
 import copy
+import json
 import logging
 import math
+import os.path as osp
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Dict, Final, List, Optional, Tuple, Union
 
+import fsspec
 import numpy as np
 
 import av2.geometry.interpolate as interp_utils
@@ -121,18 +124,25 @@ class GroundHeightLayer(RasterMapLayer):
             RuntimeError: If raster ground height layer file is missing or Sim(2) mapping from city to image coordinates
                 is missing.
         """
-        ground_height_npy_fpaths = sorted(log_map_dirpath.glob("*_ground_height_surface____*.npy"))
-        if not len(ground_height_npy_fpaths) == 1:
-            raise RuntimeError("Raster ground height layer file is missing")
+        import os.path as osp
 
-        Sim2_json_fpaths = sorted(log_map_dirpath.glob("*___img_Sim2_city.json"))
-        if not len(Sim2_json_fpaths) == 1:
-            raise RuntimeError("Sim(2) mapping from city to image coordinates is missing")
+        import fsspec
 
-        # load the file with rasterized values
-        ground_height_array: NDArrayFloat = np.load(ground_height_npy_fpaths[0])  # type: ignore
+        # # ground_height_npy_fpaths = sorted(log_map_dirpath.glob("*_ground_height_surface____*.npy"))
+        # # if not len(ground_height_npy_fpaths) == 1:
+        # #     raise RuntimeError("Raster ground height layer file is missing")
+        # # Sim2_json_fpaths = sorted(log_map_dirpath.glob("*___img_Sim2_city.json"))
+        # Sim2_json_fpaths = [fsspec.open(osp.join(log_map_dirpath, "*___img_Sim2_city.json"))]
+        # # if not len(Sim2_json_fpaths) == 1:
+        # #     raise RuntimeError("Sim(2) mapping from city to image coordinates is missing")
+        # # ground_height_npy_fpaths = [fsspec.open(osp.join(log_map_dirpath, "*_ground_height_surface____*.npy"))]
+        # # breakpoint()
 
-        array_Sim2_city = Sim2.from_json(Sim2_json_fpaths[0])
+        with fsspec.open(osp.join(log_map_dirpath, "*_ground_height_surface____*.npy")) as f:
+            # load the file with rasterized values
+            ground_height_array: NDArrayFloat = np.load(f)  # type: ignore
+
+        array_Sim2_city = Sim2.from_json(osp.join(log_map_dirpath, "*___img_Sim2_city.json"))
 
         return cls(array=ground_height_array.astype(np.float32), array_Sim2_city=array_Sim2_city)
 
@@ -321,8 +331,11 @@ class ArgoverseStaticMap:
         Returns:
             An Argoverse HD map.
         """
-        log_id = static_map_path.stem.split("log_map_archive_")[1]
-        vector_data = io_utils.read_json_file(static_map_path)
+        log_id = Path(static_map_path).stem.split("log_map_archive_")[1]
+        # vector_data = io_utils.read_json_file(static_map_path)
+
+        with fsspec.open(static_map_path) as f:
+            vector_data = json.load(f)
 
         vector_drivable_areas = {da["id"]: DrivableArea.from_dict(da) for da in vector_data["drivable_areas"].values()}
         vector_lane_segments = {ls["id"]: LaneSegment.from_dict(ls) for ls in vector_data["lane_segments"].values()}
@@ -366,14 +379,22 @@ class ArgoverseStaticMap:
             RuntimeError: If the vector map data JSON file is missing.
         """
         # Load vector map data from JSON file
-        vector_data_fnames = sorted(log_map_dirpath.glob("log_map_archive_*.json"))
-        if not len(vector_data_fnames) == 1:
-            raise RuntimeError(f"JSON file containing vector map data is missing (searched in {log_map_dirpath})")
-        vector_data_fname = vector_data_fnames[0]
+        import os.path as osp
 
-        vector_data_json_path = log_map_dirpath / vector_data_fname
+        import fsspec
+
+        # from fsspec.implementations.
+        vector_data_json_path = osp.join(log_map_dirpath, "log_map_archive_*.json")
+
+        # vector_data_fnames = sorted(log_map_dirpath.glob("log_map_archive_*.json"))
+        # if not len(vector_data_fnames) == 1:
+        #     raise RuntimeError(f"JSON file containing vector map data is missing (searched in {log_map_dirpath})")
+        # vector_data_fname = vector_data_fnames[0]
+
+        # vector_data_json_path = log_map_dirpath / vector_data_fname
+        # vector_data_json_path = log_map_dirpath / vector_data_fname
         static_map = cls.from_json(vector_data_json_path)
-        static_map.log_id = log_map_dirpath.parent.stem
+        static_map.log_id = Path(log_map_dirpath).parent.stem
 
         # Avoid file I/O and polygon rasterization when not needed
         if build_raster:

@@ -3,16 +3,17 @@
 """Helper functions for deserializing AV2 data."""
 
 import json
+import os.path as osp
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
+import fsspec
 import numpy as np
 import pandas as pd
 from pyarrow import feather
 
 import av2.geometry.geometry as geometry_utils
-import os.path as osp
 from av2.geometry.se3 import SE3
 from av2.utils.typing import NDArrayByte, NDArrayFloat
 
@@ -37,7 +38,7 @@ def read_feather(path: str, columns: Optional[Tuple[str, ...]] = None) -> pd.Dat
     Returns:
         (N,len(columns)) Apache Feather data represented as a `pandas` DataFrame.
     """
-    data: pd.DataFrame = feather.read_feather(path, columns=columns)
+    data: pd.DataFrame = pd.read_feather(path, columns=columns)
     return data
 
 
@@ -216,7 +217,7 @@ def read_json_file(fpath: Path) -> Dict[str, Any]:
     Returns:
         Deserialized Python dictionary.
     """
-    with open(fpath, "rb") as f:
+    with fsspec.open(fpath, "rb") as f:
         data: Dict[str, Any] = json.load(f)
         return data
 
