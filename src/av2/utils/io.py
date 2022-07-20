@@ -12,6 +12,7 @@ import pandas as pd
 from pyarrow import feather
 
 import av2.geometry.geometry as geometry_utils
+import os.path as osp
 from av2.geometry.se3 import SE3
 from av2.utils.typing import NDArrayByte, NDArrayFloat
 
@@ -22,7 +23,7 @@ TimestampedCitySE3EgoPoses = Dict[int, SE3]
 SensorPosesMapping = Dict[str, SE3]
 
 
-def read_feather(path: Path, columns: Optional[Tuple[str, ...]] = None) -> pd.DataFrame:
+def read_feather(path: str, columns: Optional[Tuple[str, ...]] = None) -> pd.DataFrame:
     """Read Apache Feather data from a .feather file.
 
     AV2 uses .feather to serialize much of its data. This function handles the deserialization
@@ -116,7 +117,7 @@ def read_ego_SE3_sensor(log_dir: Path) -> SensorPosesMapping:
     return sensor_name_to_pose
 
 
-def read_city_SE3_ego(log_dir: Path) -> TimestampedCitySE3EgoPoses:
+def read_city_SE3_ego(log_dir: str) -> TimestampedCitySE3EgoPoses:
     """Read the egovehicle poses in the city reference frame.
 
     The egovehicle city pose defines an SE3 transformation from the egovehicle reference frame to the city ref. frame.
@@ -148,7 +149,7 @@ def read_city_SE3_ego(log_dir: Path) -> TimestampedCitySE3EgoPoses:
     Returns:
         Mapping from egovehicle time (in nanoseconds) to egovehicle pose in the city reference frame.
     """
-    city_SE3_ego_path = Path(log_dir, "city_SE3_egovehicle.feather")
+    city_SE3_ego_path = osp.join(log_dir, "city_SE3_egovehicle.feather")
     city_SE3_ego = read_feather(city_SE3_ego_path)
 
     quat_wxyz = city_SE3_ego.loc[:, ["qw", "qx", "qy", "qz"]].to_numpy()

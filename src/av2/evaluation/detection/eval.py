@@ -71,6 +71,7 @@ from av2.map.map_api import ArgoverseStaticMap
 from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
 from av2.utils.io import TimestampedCitySE3EgoPoses
 from av2.utils.typing import NDArrayBool, NDArrayFloat
+import os.path as osp
 
 TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveErrorNames)
 DTS_COLUMN_NAMES: Final[Tuple[str, ...]] = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)
