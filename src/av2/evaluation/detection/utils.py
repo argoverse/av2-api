@@ -457,11 +457,9 @@ def load_mapped_avm_and_egoposes(
 
     log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(osp.join(dataset_dir, log_id)) for log_id in log_ids}
 
-    # with get_context("spawn").Pool(processes=mp.cpu_count()) as p:
-    # avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, verbose=1)(
-    #     delayed(ArgoverseStaticMap.from_map_dir)(osp.join(dataset_dir, log_id, "map"), build_raster=True)for log_id in log_ids
-    # )
-    avms = [ArgoverseStaticMap.from_map_dir(log_id, build_raster=True) for log_id in log_ids]
+    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, backend="multiprocessing", verbose=1)(
+        delayed(ArgoverseStaticMap.from_map_dir)(osp.join(dataset_dir, log_id, "map"), build_raster=True)for log_id in log_ids
+    )
     if avms is None:
         raise RuntimeError("Map and egopose loading has failed!")
     log_id_to_avm = {log_ids[i]: avm for i, avm in enumerate(avms)}
