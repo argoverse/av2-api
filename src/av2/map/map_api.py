@@ -108,7 +108,7 @@ class GroundHeightLayer(RasterMapLayer):
     """
 
     @classmethod
-    def from_file(cls, log_map_dirpath: Path) -> GroundHeightLayer:
+    def from_file(cls, log_map_dirpath: Union[Path, UPath]) -> GroundHeightLayer:
         """Load ground height values (w/ values at 30 cm resolution) from .npy file, and associated Sim(2) mapping.
 
         Note: ground height values are stored on disk as a float16 2d-array, but cast to float32 once loaded for
@@ -124,25 +124,18 @@ class GroundHeightLayer(RasterMapLayer):
             RuntimeError: If raster ground height layer file is missing or Sim(2) mapping from city to image coordinates
                 is missing.
         """
-        import os.path as osp
+        ground_height_npy_fpaths = sorted(log_map_dirpath.glob("*_ground_height_surface____*.npy"))
+        if not len(ground_height_npy_fpaths) == 1:
+            raise RuntimeError("Raster ground height layer file is missing")
 
-        import fsspec
+        Sim2_json_fpaths = sorted(log_map_dirpath.glob("*___img_Sim2_city.json"))
+        if not len(Sim2_json_fpaths) == 1:
+            raise RuntimeError("Sim(2) mapping from city to image coordinates is missing")
 
-        # # ground_height_npy_fpaths = sorted(log_map_dirpath.glob("*_ground_height_surface____*.npy"))
-        # # if not len(ground_height_npy_fpaths) == 1:
-        # #     raise RuntimeError("Raster ground height layer file is missing")
-        # # Sim2_json_fpaths = sorted(log_map_dirpath.glob("*___img_Sim2_city.json"))
-        # Sim2_json_fpaths = [fsspec.open(osp.join(log_map_dirpath, "*___img_Sim2_city.json"))]
-        # # if not len(Sim2_json_fpaths) == 1:
-        # #     raise RuntimeError("Sim(2) mapping from city to image coordinates is missing")
-        # # ground_height_npy_fpaths = [fsspec.open(osp.join(log_map_dirpath, "*_ground_height_surface____*.npy"))]
-        # # breakpoint()
+        # load the file with rasterized values
+        ground_height_array: NDArrayFloat = np.load(ground_height_npy_fpaths[0])  # type: ignore
 
-        with fsspec.open(osp.join(log_map_dirpath, "*_ground_height_surface____*.npy")) as f:
-            # load the file with rasterized values
-            ground_height_array: NDArrayFloat = np.load(f)  # type: ignore
-
-        array_Sim2_city = Sim2.from_json(osp.join(log_map_dirpath, "*___img_Sim2_city.json"))
+        array_Sim2_city = Sim2.from_json(Sim2_json_fpaths[0])
 
         return cls(array=ground_height_array.astype(np.float32), array_Sim2_city=array_Sim2_city)
 

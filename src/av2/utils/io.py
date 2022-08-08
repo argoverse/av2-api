@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import cv2
 import numpy as np
 import pandas as pd
+from pyarrow import feather
 from upath import UPath
 
 import av2.geometry.geometry as geometry_utils
@@ -36,7 +37,8 @@ def read_feather(path: Union[Path, UPath], columns: Optional[Tuple[str, ...]] = 
     Returns:
         (N,len(columns)) Apache Feather data represented as a `pandas` DataFrame.
     """
-    data: pd.DataFrame = pd.read_feather(path, columns=columns)
+    with path.open("rb") as f:
+        data: pd.DataFrame = feather.read_feather(f, columns=columns)
     return data
 
 
