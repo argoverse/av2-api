@@ -356,7 +356,7 @@ class ArgoverseStaticMap:
         )
 
     @classmethod
-    def from_map_dir(cls, log_map_dirpath: Path, build_raster: bool = False) -> ArgoverseStaticMap:
+    def from_map_dir(cls, log_map_dirpath: Union[Path, UPath], build_raster: bool = False) -> ArgoverseStaticMap:
         """Instantiate an Argoverse map object from data stored within a map data directory.
 
         Note: the ground height surface file and associated coordinate mapping is not provided for the
@@ -376,20 +376,14 @@ class ArgoverseStaticMap:
             RuntimeError: If the vector map data JSON file is missing.
         """
         # Load vector map data from JSON file
-        import os.path as osp
+        vector_data_fnames = sorted(log_map_dirpath.glob("log_map_archive_*.json"))
+        if not len(vector_data_fnames) == 1:
+            raise RuntimeError(f"JSON file containing vector map data is missing (searched in {log_map_dirpath})")
+        vector_data_fname = vector_data_fnames[0]
 
-        # from fsspec.implementations.
-        vector_data_json_path = osp.join(log_map_dirpath, "log_map_archive_*.json")
-
-        # vector_data_fnames = sorted(log_map_dirpath.glob("log_map_archive_*.json"))
-        # if not len(vector_data_fnames) == 1:
-        #     raise RuntimeError(f"JSON file containing vector map data is missing (searched in {log_map_dirpath})")
-        # vector_data_fname = vector_data_fnames[0]
-
-        # vector_data_json_path = log_map_dirpath / vector_data_fname
-        # vector_data_json_path = log_map_dirpath / vector_data_fname
+        vector_data_json_path = log_map_dirpath / vector_data_fname
         static_map = cls.from_json(vector_data_json_path)
-        static_map.log_id = Path(log_map_dirpath).parent.stem
+        static_map.log_id = log_map_dirpath.parent.stem
 
         # Avoid file I/O and polygon rasterization when not needed
         if build_raster:

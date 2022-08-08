@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
-import fsspec
 import numpy as np
 import pandas as pd
 from upath import UPath
@@ -207,7 +206,7 @@ def write_img(img_path: Path, img: NDArrayByte, channel_order: str = "RGB") -> N
     cv2.imwrite(str(img_path), img)
 
 
-def read_json_file(fpath: Path) -> Dict[str, Any]:
+def read_json_file(fpath: Union[Path, UPath]) -> Dict[str, Any]:
     """Load dictionary from JSON file.
 
     Args:
@@ -216,7 +215,7 @@ def read_json_file(fpath: Path) -> Dict[str, Any]:
     Returns:
         Deserialized Python dictionary.
     """
-    with fsspec.open(fpath, "rb") as f:
+    with fpath.open("rb") as f:
         data: Dict[str, Any] = json.load(f)
         return data
 
