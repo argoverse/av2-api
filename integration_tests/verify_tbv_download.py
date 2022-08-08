@@ -140,7 +140,7 @@ def verify_log_map(data_root: Path, log_id: str) -> None:
     # every log should have one and only one raster height map. (Note: season is stripped from uuid here).
     ground_height_raster_fpaths = list(log_map_dirpath.glob("*_ground_height_surface____*.npy"))
     assert len(ground_height_raster_fpaths) == 1
-    ground_height_raster_fpath = ground_height_raster_fpaths[0]
+    ground_height_raster_fpaths[0]
 
     # every log should have a Sim(2) mapping from raster grid coordinates to city coordinates.
     Sim2_fpaths = list(log_map_dirpath.glob("*___img_Sim2_city.json"))
@@ -181,10 +181,10 @@ def verify_log_map(data_root: Path, log_id: str) -> None:
         assert left_lane_boundary.ndim == 2 and left_lane_boundary.shape[1] == 3
 
     # load every pedestrian crossing
-    pcs = avm.get_scenario_ped_crossings()
+    avm.get_scenario_ped_crossings()
 
     # load every drivable area
-    das = avm.get_scenario_vector_drivable_areas()
+    avm.get_scenario_vector_drivable_areas()
 
 
 def verify_logs_using_dataloader(data_root: Path, log_ids: List[str]) -> None:

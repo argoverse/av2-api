@@ -16,7 +16,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Union
 
-import fsspec
 import numpy as np
 from upath import UPath
 

@@ -13,7 +13,6 @@ of the egovehicle (AV).
 from __future__ import annotations
 
 import copy
-import json
 import logging
 import math
 from dataclasses import dataclass
