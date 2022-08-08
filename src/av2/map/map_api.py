@@ -23,6 +23,7 @@ from typing import Dict, Final, List, Optional, Tuple, Union
 
 import fsspec
 import numpy as np
+from upath import UPath
 
 import av2.geometry.interpolate as interp_utils
 import av2.utils.dilation_utils as dilation_utils
@@ -31,6 +32,7 @@ from av2.geometry.sim2 import Sim2
 from av2.map.drivable_area import DrivableArea
 from av2.map.lane_segment import LaneSegment
 from av2.map.pedestrian_crossing import PedestrianCrossing
+from av2.utils import io
 from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt
 
 # 1 meter resolution is insufficient for the online-generated drivable area and ROI raster grids
@@ -319,7 +321,7 @@ class ArgoverseStaticMap:
     raster_ground_height_layer: Optional[GroundHeightLayer]
 
     @classmethod
-    def from_json(cls, static_map_path: Path) -> ArgoverseStaticMap:
+    def from_json(cls, static_map_path: Union[Path, UPath]) -> ArgoverseStaticMap:
         """Instantiate an Argoverse static map object (without raster data) from a JSON file containing map data.
 
         Args:
@@ -329,11 +331,8 @@ class ArgoverseStaticMap:
         Returns:
             An Argoverse HD map.
         """
-        log_id = Path(static_map_path).stem.split("log_map_archive_")[1]
-        # vector_data = io_utils.read_json_file(static_map_path)
-
-        with fsspec.open(static_map_path) as f:
-            vector_data = json.load(f)
+        log_id = static_map_path.stem.split("log_map_archive_")[1]
+        vector_data = io.read_json_file(static_map_path)
 
         vector_drivable_areas = {da["id"]: DrivableArea.from_dict(da) for da in vector_data["drivable_areas"].values()}
         vector_lane_segments = {ls["id"]: LaneSegment.from_dict(ls) for ls in vector_data["lane_segments"].values()}
