@@ -140,7 +140,6 @@ def verify_log_map(data_root: Path, log_id: str) -> None:
     # every log should have one and only one raster height map. (Note: season is stripped from uuid here).
     ground_height_raster_fpaths = list(log_map_dirpath.glob("*_ground_height_surface____*.npy"))
     assert len(ground_height_raster_fpaths) == 1
-    ground_height_raster_fpaths[0]
 
     # every log should have a Sim(2) mapping from raster grid coordinates to city coordinates.
     Sim2_fpaths = list(log_map_dirpath.glob("*___img_Sim2_city.json"))
