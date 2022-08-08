@@ -14,13 +14,12 @@ import logging
 import os.path as osp
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-import multiprocessing as mp
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from joblib import Parallel, delayed
 from scipy.spatial.distance import cdist
-from multiprocessing import get_context, Pool
+from upath import UPath
 
 from av2.evaluation.detection.constants import (
     MAX_NORMALIZED_ASE,
@@ -440,7 +439,7 @@ def compute_evaluated_gts_mask(
 
 
 def load_mapped_avm_and_egoposes(
-    log_ids: List[str], dataset_dir: str
+    log_ids: List[str], dataset_dir: Union[Path, UPath]
 ) -> Tuple[Dict[str, ArgoverseStaticMap], Dict[str, TimestampedCitySE3EgoPoses]]:
     """Load the maps and egoposes for each log in the dataset directory.
 
@@ -455,9 +454,9 @@ def load_mapped_avm_and_egoposes(
         RuntimeError: If the process for loading maps and timestamped egoposes fails.
     """
 
-    log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(osp.join(dataset_dir, log_id)) for log_id in log_ids}
+    log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(dataset_dir / log_id) for log_id in log_ids}
 
-    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=1, verbose=1)(
+    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=8, verbose=1)(
         delayed(ArgoverseStaticMap.from_map_dir)(osp.join(dataset_dir, log_id, "map"), build_raster=True)
         for log_id in log_ids
     )

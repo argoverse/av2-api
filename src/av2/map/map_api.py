@@ -16,7 +16,6 @@ import copy
 import json
 import logging
 import math
-import os.path as osp
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -27,7 +26,6 @@ import numpy as np
 
 import av2.geometry.interpolate as interp_utils
 import av2.utils.dilation_utils as dilation_utils
-import av2.utils.io as io_utils
 import av2.utils.raster as raster_utils
 from av2.geometry.sim2 import Sim2
 from av2.map.drivable_area import DrivableArea
@@ -380,8 +378,6 @@ class ArgoverseStaticMap:
         """
         # Load vector map data from JSON file
         import os.path as osp
-
-        import fsspec
 
         # from fsspec.implementations.
         vector_data_json_path = osp.join(log_map_dirpath, "log_map_archive_*.json")

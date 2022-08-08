@@ -52,7 +52,6 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import logging
-import os.path as osp
 import warnings
 from multiprocessing import get_context
 from typing import Dict, Final, List, Optional, Tuple
