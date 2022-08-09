@@ -64,7 +64,7 @@ class DetectionCfg:
     affinity_thresholds_m: Tuple[float, ...] = (0.5, 1.0, 2.0, 4.0)
     affinity_type: AffinityType = AffinityType.CENTER
     categories: Tuple[str, ...] = tuple(x.value for x in CompetitionCategories)
-    dataset_dir: Optional[Path] = None
+    dataset_dir: Optional[Union[Path, UPath]] = None
     eval_only_roi_instances: bool = True
     filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN
     max_num_dts_per_category: int = 100

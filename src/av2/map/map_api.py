@@ -132,7 +132,8 @@ class GroundHeightLayer(RasterMapLayer):
             raise RuntimeError("Sim(2) mapping from city to image coordinates is missing")
 
         # load the file with rasterized values
-        ground_height_array: NDArrayFloat = np.load(ground_height_npy_fpaths[0])  # type: ignore
+        with ground_height_npy_fpaths[0].open("rb") as f:
+            ground_height_array: NDArrayFloat = np.load(f)  # type: ignore
 
         array_Sim2_city = Sim2.from_json(Sim2_json_fpaths[0])
 
