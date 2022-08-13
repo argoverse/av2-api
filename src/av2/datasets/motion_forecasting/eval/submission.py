@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Final, List, Tuple
+from typing import Any, Dict, Final, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -91,7 +91,7 @@ class ChallengeSubmission:
         submission_df.sort_values(by="probability", inplace=True, ascending=False)
 
         # From serialized data, build scenario-track mapping for predictions
-        submission_dict: Dict[str, ScenarioPredictions] = defaultdict(lambda: defaultdict(dict))
+        submission_dict: Dict[str, Any] = defaultdict(lambda: defaultdict(dict))
         for (scenario_id, track_id), track_df in submission_df.groupby(["scenario_id", "track_id"]):
             predicted_trajectories_x = np.stack(track_df.loc[:, "predicted_trajectory_x"].values.tolist())
             predicted_trajectories_y = np.stack(track_df.loc[:, "predicted_trajectory_y"].values.tolist())

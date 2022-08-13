@@ -3,6 +3,7 @@
 
 from enum import Enum, unique
 from pathlib import Path
+from random import choices
 from typing import Final
 
 import click
@@ -47,7 +48,7 @@ def generate_scenario_visualizations(
     scenario_file_list = (
         all_scenario_files[:num_scenarios]
         if selection_criteria == SelectionCriteria.FIRST
-        else np.random.choice(all_scenario_files, size=num_scenarios).tolist()
+        else choices(all_scenario_files, k=num_scenarios)
     )  # Ignoring type here because type of "choice" is partially unknown.
 
     # Build inner function to generate visualization for a single scenario.

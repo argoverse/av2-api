@@ -3,10 +3,10 @@
 
 import numpy as np
 
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayNumber
+from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 
-def compute_ade(forecasted_trajectories: NDArrayNumber, gt_trajectory: NDArrayNumber) -> NDArrayFloat:
+def compute_ade(forecasted_trajectories: NDArrayFloat, gt_trajectory: NDArrayFloat) -> NDArrayFloat:
     """Compute the average displacement error for a set of K predicted trajectories (for the same actor).
 
     Args:
@@ -21,7 +21,7 @@ def compute_ade(forecasted_trajectories: NDArrayNumber, gt_trajectory: NDArrayNu
     return ade
 
 
-def compute_fde(forecasted_trajectories: NDArrayNumber, gt_trajectory: NDArrayNumber) -> NDArrayFloat:
+def compute_fde(forecasted_trajectories: NDArrayFloat, gt_trajectory: NDArrayFloat) -> NDArrayFloat:
     """Compute the final displacement error for a set of K predicted trajectories (for the same actor).
 
     Args:
@@ -38,8 +38,8 @@ def compute_fde(forecasted_trajectories: NDArrayNumber, gt_trajectory: NDArrayNu
 
 
 def compute_is_missed_prediction(
-    forecasted_trajectories: NDArrayNumber,
-    gt_trajectory: NDArrayNumber,
+    forecasted_trajectories: NDArrayFloat,
+    gt_trajectory: NDArrayFloat,
     miss_threshold_m: float = 2.0,
 ) -> NDArrayBool:
     """Compute whether each of K predicted trajectories (for the same actor) missed by more than a distance threshold.
@@ -58,9 +58,9 @@ def compute_is_missed_prediction(
 
 
 def compute_brier_ade(
-    forecasted_trajectories: NDArrayNumber,
-    gt_trajectory: NDArrayNumber,
-    forecast_probabilities: NDArrayNumber,
+    forecasted_trajectories: NDArrayFloat,
+    gt_trajectory: NDArrayFloat,
+    forecast_probabilities: NDArrayFloat,
     normalize: bool = False,
 ) -> NDArrayFloat:
     """Compute a probability-weighted (using Brier score) ADE for K predicted trajectories (for the same actor).
@@ -82,9 +82,9 @@ def compute_brier_ade(
 
 
 def compute_brier_fde(
-    forecasted_trajectories: NDArrayNumber,
-    gt_trajectory: NDArrayNumber,
-    forecast_probabilities: NDArrayNumber,
+    forecasted_trajectories: NDArrayFloat,
+    gt_trajectory: NDArrayFloat,
+    forecast_probabilities: NDArrayFloat,
     normalize: bool = False,
 ) -> NDArrayFloat:
     """Compute a probability-weighted (using Brier score) FDE for K predicted trajectories (for the same actor).
@@ -106,8 +106,8 @@ def compute_brier_fde(
 
 
 def _compute_brier_score(
-    forecasted_trajectories: NDArrayNumber,
-    forecast_probabilities: NDArrayNumber,
+    forecasted_trajectories: NDArrayFloat,
+    forecast_probabilities: NDArrayFloat,
     normalize: bool = False,
 ) -> NDArrayFloat:
     """Compute Brier score for K predicted trajectories.

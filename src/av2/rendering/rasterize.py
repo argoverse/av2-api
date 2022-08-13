@@ -58,7 +58,7 @@ def xyz_to_bev(
     if xyz.shape[-1] == 3:
         intensity = np.ones_like(xyz.shape[0], np.uint8)
     else:
-        intensity = xyz[..., -1].copy()
+        intensity = xyz[..., -1].copy().astype(np.uint8)
 
     # Grab the Cartesian coordinates (xyz).
     cart = xyz[..., :-1].copy()
