@@ -54,6 +54,7 @@ Results:
 import itertools
 import logging
 import warnings
+from math import inf
 from multiprocessing import get_context
 from statistics import mean
 from typing import Dict, Final, List, Optional, Tuple
@@ -90,7 +91,7 @@ UUID_COLUMN_NAMES: Final[Tuple[str, ...]] = (
     "timestamp_ns",
     "category",
 )
-RANGE_BINS: Final[List[Tuple[(float, float)]]] = [(0.0, 150.0), (0.0, 50.0), (50.0, 100.0), (100.0, 150.0)]
+RANGE_BINS: Final[List[Tuple[(float, float)]]] = [(0.0, 150.0), (0.0, 50.0), (50.0, 100.0), (100.0, inf)]
 
 logger = logging.getLogger(__name__)
 
@@ -214,8 +215,8 @@ def summarize_metrics(
         metric_name.value: metric_default_value
         for metric_name, metric_default_value in zip(tuple(MetricNames), cfg.metrics_defaults)
     }
-    keys = itertools.product(cfg.categories, RANGE_BINS, metric_default_mapping.keys())
-    summary = {key: [metric_default_mapping[key[-1]]] for key in keys}
+    keys = itertools.product(cfg.categories, metric_default_mapping.keys(), RANGE_BINS)
+    summary = {key: [metric_default_mapping[key[-2]]] for key in keys}
     for category in cfg.categories:
         # Find detections that have the current category.
         is_category_dts = dts["category"] == category
@@ -262,12 +263,12 @@ def summarize_metrics(
                 threshold_average_precision, _ = compute_average_precision(true_positives, recall_interpolated, num_gts)
 
                 # Record the average precision.
-                key = (category, (min_range, max_range), "AP", affinity_threshold_m)
+                key = (category, "AP", (min_range, max_range), affinity_threshold_m)
                 metrics[key] = threshold_average_precision
 
             mean_average_precisions = mean(
                 [
-                    metrics[(category, (min_range, max_range), "AP", affinity_threshold_m)]
+                    metrics[(category, "AP", (min_range, max_range), affinity_threshold_m)]
                     for affinity_threshold_m in cfg.affinity_thresholds_m
                 ]
             )
@@ -293,10 +294,10 @@ def summarize_metrics(
 
             # Compute Composite Detection Score (CDS).
             cds = mean_average_precisions * np.mean(tp_scores)
-            summary[(category, (min_range, max_range), "AP")] = [mean_average_precisions]
-            summary[(category, (min_range, max_range), "ATE")] = [tp_errors[0]]
-            summary[(category, (min_range, max_range), "ASE")] = [tp_errors[1]]
-            summary[(category, (min_range, max_range), "AOE")] = [tp_errors[2]]
-            summary[(category, (min_range, max_range), "CDS")] = [cds]
+            summary[(category, "AP", (min_range, max_range))] = [mean_average_precisions]
+            summary[(category, "ATE", (min_range, max_range))] = [tp_errors[0]]
+            summary[(category, "ASE", (min_range, max_range))] = [tp_errors[1]]
+            summary[(category, "AOE", (min_range, max_range))] = [tp_errors[2]]
+            summary[(category, "CDS", (min_range, max_range))] = [cds]
     # Return the summary.
     return pd.DataFrame(summary)
