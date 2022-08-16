@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import multiprocessing as mp
+from joblib import Parallel, delayed
 from scipy.spatial.distance import cdist
 from upath import UPath
 
@@ -454,10 +454,9 @@ def load_mapped_avm_and_egoposes(
     """
 
     log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(dataset_dir / log_id) for log_id in log_ids}
-    with mp.get_context("spawn").Pool(mp.cpu_count()) as pool:
-        avms = pool.starmap(
-            ArgoverseStaticMap.from_map_dir, [(dataset_dir / log_id / "map", True) for log_id in log_ids]
-        )
+    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, backend="threading")(
+        delayed(ArgoverseStaticMap.from_map_dir)(dataset_dir / log_id / "map", build_raster=True) for log_id in log_ids
+    )
 
     if avms is None:
         raise RuntimeError("Map and egopose loading has failed!")
