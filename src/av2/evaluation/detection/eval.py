@@ -55,11 +55,10 @@ import itertools
 import logging
 import warnings
 from math import inf
-from multiprocessing import get_context
+import multiprocessing as mp
 from statistics import mean
 from typing import Dict, Final, List, Optional, Tuple
 
-import fsspec.asyn
 import numpy as np
 import pandas as pd
 
@@ -80,8 +79,8 @@ from av2.utils.typing import NDArrayBool, NDArrayFloat
 warnings.filterwarnings("ignore", module="google")
 
 # Hack to fix multi-processing.
-fsspec.asyn.iothread[0] = None
-fsspec.asyn.loop[0] = None
+# fsspec.asyn.iothread[0] = None
+# fsspec.asyn.loop[0] = None
 
 TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveErrorNames)
 DTS_COLUMN_NAMES: Final[Tuple[str, ...]] = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)
@@ -173,7 +172,7 @@ def evaluate(
         args_list.append(args)
 
     logger.info("Starting evaluation ...")
-    with get_context("spawn").Pool(processes=n_jobs) as p:
+    with mp.get_context("spawn").Pool(processes=n_jobs) as p:
         outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate, args_list)
 
     if outputs is None:
@@ -238,7 +237,6 @@ def summarize_metrics(
         if num_gts == 0:
             continue
 
-        metrics = {}
         for (min_range, max_range) in RANGE_BINS:
             categories_dts_dists = np.linalg.norm(category_dts[["tx_m", "ty_m", "tz_m"]].to_numpy(), axis=-1)
             expr = (categories_dts_dists >= min_range) & (categories_dts_dists < max_range)
@@ -247,8 +245,12 @@ def summarize_metrics(
             categories_gts_dists = np.linalg.norm(category_gts[["tx_m", "ty_m", "tz_m"]].to_numpy(), axis=-1)
             expr = (categories_gts_dists >= min_range) & (categories_gts_dists < max_range)
             num_gts = category_gts.loc[expr, "is_evaluated"].sum()
+
+            metrics = {
+                (category, "AP", (min_range, max_range), affinity_threshold_m): 0.0
+                for affinity_threshold_m in cfg.affinity_thresholds_m
+            }
             for affinity_threshold_m in cfg.affinity_thresholds_m:
-                metrics[(category, (min_range, max_range), "AP", affinity_threshold_m)] = 0.0
                 true_positives: NDArrayBool = category_dts_range[affinity_threshold_m].astype(bool).to_numpy()
 
                 # Continue if there aren't any true positives.
