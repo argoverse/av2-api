@@ -90,7 +90,7 @@ UUID_COLUMN_NAMES: Final[Tuple[str, ...]] = (
     "timestamp_ns",
     "category",
 )
-RANGE_BINS: Final[List[Tuple[(float, float)]]] = [(0.0, 150.0), (0.0, 50.0), (50.0, 100.0), (100.0, inf)]
+RANGE_BINS: Final[List[Tuple[(float, float)]]] = [(0.0, 150.0), (0.0, 50.0), (50.0, 100.0), (100.0, 150.0)]
 
 logger = logging.getLogger(__name__)
 
@@ -228,9 +228,10 @@ def summarize_metrics(
 
         # Find annotations that have the current category.
         is_category_gts = gts["category"] == category
+        is_valid_gts = np.logical_and(is_category_gts, gts["is_evaluated"])
 
         # Compute number of ground truth annotations.
-        category_gts = gts.loc[is_category_gts]
+        category_gts = gts.loc[is_valid_gts]
         num_gts = category_gts["is_evaluated"].sum()
 
         # Cannot evaluate without ground truth information.
@@ -244,7 +245,8 @@ def summarize_metrics(
 
             categories_gts_dists = np.linalg.norm(category_gts[["tx_m", "ty_m", "tz_m"]].to_numpy(), axis=-1)
             expr = (categories_gts_dists >= min_range) & (categories_gts_dists < max_range)
-            num_gts = category_gts.loc[expr, "is_evaluated"].sum()
+            category_gts_range = category_gts.iloc[expr]
+            num_gts = len(category_gts_range)
 
             metrics = {
                 (category, "AP", (min_range, max_range), affinity_threshold_m): 0.0
