@@ -113,7 +113,7 @@ def test_draw_points_kernel_9x9_aliased() -> None:
 def test_benchmark_draw_points_kernel_aliased(benchmark: Callable[..., Any]) -> None:
     """Benchmark the draw points kernel _without_ anti-aliasing."""
     img: NDArrayByte = np.zeros((2048, 2048, 3), dtype=np.uint8)
-    points_xy: NDArrayInt = np.random.randint(low=0, high=2048, size=(60000, 2))
+    points_xy: NDArrayInt = np.random.randint(low=0, high=2048, size=(60000, 2)).astype(np.int64)
     colors: NDArrayByte = np.random.randint(low=0, high=255, size=(60000, 3)).astype(np.uint8)
     diameter = 10
     benchmark(draw_points_kernel, img, points_xy, colors, diameter)
@@ -122,7 +122,7 @@ def test_benchmark_draw_points_kernel_aliased(benchmark: Callable[..., Any]) -> 
 def test_benchmark_draw_points_kernel_anti_aliased(benchmark: Callable[..., Any]) -> None:
     """Benchmark the draw points kernel _with_ anti-aliasing."""
     img: NDArrayByte = np.zeros((2048, 2048, 3), dtype=np.uint8)
-    points_xy: NDArrayInt = np.random.randint(low=0, high=2048, size=(60000, 2))
+    points_xy: NDArrayInt = np.random.randint(low=0, high=2048, size=(60000, 2)).astype(np.int64)
     colors: NDArrayByte = np.random.randint(low=0, high=255, size=(60000, 3)).astype(np.uint8)
     diameter = 10
     benchmark(draw_points_kernel, img, points_xy, colors, diameter, with_anti_alias=True)
@@ -131,7 +131,7 @@ def test_benchmark_draw_points_kernel_anti_aliased(benchmark: Callable[..., Any]
 def test_benchmark_draw_points_cv2_aliased(benchmark: Callable[..., Any]) -> None:
     """Benchmark the draw points method from OpenCV _without_ anti-aliasing."""
     img: NDArrayByte = np.zeros((2048, 2048, 3), dtype=np.uint8)
-    points_xy: NDArrayInt = np.random.randint(low=0, high=2048, size=(60000, 2))
+    points_xy: NDArrayInt = np.random.randint(low=0, high=2048, size=(60000, 2)).astype(np.int64)
     colors: NDArrayByte = np.random.randint(low=0, high=255, size=(60000, 3)).astype(np.uint8)
     radius = 10
     benchmark(_draw_points_cv2, img, points_xy, colors, radius, with_anti_alias=False)
@@ -140,7 +140,7 @@ def test_benchmark_draw_points_cv2_aliased(benchmark: Callable[..., Any]) -> Non
 def test_benchmark_draw_points_cv2_anti_aliased(benchmark: Callable[..., Any]) -> None:
     """Benchmark the draw points method from OpenCV _with_ anti-aliasing."""
     img: NDArrayByte = np.zeros((2048, 2048, 3), dtype=np.uint8)
-    points_xy: NDArrayInt = np.random.randint(low=0, high=2048, size=(60000, 2))
+    points_xy: NDArrayInt = np.random.randint(low=0, high=2048, size=(60000, 2)).astype(np.int64)
     colors: NDArrayByte = np.random.randint(low=0, high=255, size=(60000, 3)).astype(np.uint8)
     radius = 10
     benchmark(_draw_points_cv2, img, points_xy, colors, radius, with_anti_alias=True)
