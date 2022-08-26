@@ -78,10 +78,6 @@ from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 warnings.filterwarnings("ignore", module="google")
 
-# Hack to fix multi-processing.
-# fsspec.asyn.iothread[0] = None
-# fsspec.asyn.loop[0] = None
-
 TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveErrorNames)
 DTS_COLUMN_NAMES: Final[Tuple[str, ...]] = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)
 GTS_COLUMN_NAMES: Final[Tuple[str, ...]] = tuple(ORDERED_CUBOID_COL_NAMES) + ("num_interior_pts",)
