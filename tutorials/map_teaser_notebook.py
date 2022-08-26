@@ -40,7 +40,7 @@ OVERLAID_MAPS_ALPHA: Final[float] = 0.1
 
 
 def single_log_teaser(data_root: Path, log_id: str, save_figures: bool) -> None:
-    """For a single log, render all local lane segments in green, and pedestrian crossings in purple, in a bird's eye view.
+    """Render all local lane segments in green, and pedestrian crossings in purple, in a bird's eye view.
 
     Args:
         data_root: path to where the AV2 logs live.
