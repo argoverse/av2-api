@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 import av2.datasets.motion_forecasting.eval.metrics as metrics
-from av2.utils.typing import NDArrayFloat, NDArrayNumber
+from av2.utils.typing import NDArrayFloat
 
 # Build stationary GT trajectory at (0, 0)
 test_N: Final[int] = 10
@@ -32,7 +32,7 @@ expected_ade_straight_k1 = np.full((1,), np.arange(test_N).mean())
 expected_fde_straight_k1 = np.full((1,), test_N - 1)
 
 # Case 4: K=6 forecasts in straight line on X axis
-forecasted_trajectories_straight_k6: NDArrayFloat = np.concatenate(  # type: ignore
+forecasted_trajectories_straight_k6: NDArrayFloat = np.concatenate(
     [forecasted_trajectories_straight_k1] * 6, axis=0
 )  # 6xNx2
 expected_ade_straight_k6 = np.full((6,), np.arange(test_N).mean())
@@ -55,7 +55,7 @@ expected_fde_diagonal_k1 = np.full((1,), np.hypot(test_N - 1, test_N - 1))
     ],
     ids=["stationary_k1", "stationary_k6", "straight_k1", "straight_k6", "diagonal_k1"],
 )
-def test_compute_ade(forecasted_trajectories: NDArrayNumber, expected_ade: NDArrayFloat) -> None:
+def test_compute_ade(forecasted_trajectories: NDArrayFloat, expected_ade: NDArrayFloat) -> None:
     """Test that compute_ade returns the correct output with valid inputs.
 
     Args:
@@ -63,7 +63,7 @@ def test_compute_ade(forecasted_trajectories: NDArrayNumber, expected_ade: NDArr
         expected_ade: Expected average displacement error.
     """
     ade = metrics.compute_ade(forecasted_trajectories, _STATIONARY_GT_TRAJ)
-    np.testing.assert_allclose(ade, expected_ade)  # type: ignore
+    np.testing.assert_allclose(ade, expected_ade)
 
 
 @pytest.mark.parametrize(
@@ -77,7 +77,7 @@ def test_compute_ade(forecasted_trajectories: NDArrayNumber, expected_ade: NDArr
     ],
     ids=["stationary_k1", "stationary_k6", "straight_k1", "straight_k6", "diagonal_k1"],
 )
-def test_compute_fde(forecasted_trajectories: NDArrayNumber, expected_fde: NDArrayFloat) -> None:
+def test_compute_fde(forecasted_trajectories: NDArrayFloat, expected_fde: NDArrayFloat) -> None:
     """Test that compute_fde returns the correct output with valid inputs.
 
     Args:
@@ -100,7 +100,7 @@ def test_compute_fde(forecasted_trajectories: NDArrayNumber, expected_fde: NDArr
     ids=["stationary_k1", "stationary_k6", "straight_below_threshold", "straight_above_threshold", "diagonal"],
 )
 def test_compute_is_missed_prediction(
-    forecasted_trajectories: NDArrayNumber, miss_threshold_m: float, expected_is_missed_label: bool
+    forecasted_trajectories: NDArrayFloat, miss_threshold_m: float, expected_is_missed_label: bool
 ) -> None:
     """Test that compute_is_missed_prediction returns the correct output with valid inputs.
 
@@ -150,8 +150,8 @@ expected_bfde_confident_k6 = expected_fde_straight_k6 + np.square((1 - confident
     ],
 )
 def test_compute_brier_ade(
-    forecasted_trajectories: NDArrayNumber,
-    forecast_probabilities: NDArrayNumber,
+    forecasted_trajectories: NDArrayFloat,
+    forecast_probabilities: NDArrayFloat,
     normalize: bool,
     expected_brier_ade: NDArrayFloat,
 ) -> None:
@@ -183,7 +183,7 @@ def test_compute_brier_ade(
     ],
 )
 def test_compute_brier_ade_data_validation(
-    forecast_probabilities: NDArrayNumber, normalize: bool, expectation: AbstractContextManager  # type: ignore
+    forecast_probabilities: NDArrayFloat, normalize: bool, expectation: AbstractContextManager # type: ignore
 ) -> None:
     """Test that test_compute_brier_ade raises the correct errors when inputs are invalid.
 
@@ -214,8 +214,8 @@ def test_compute_brier_ade_data_validation(
     ],
 )
 def test_compute_brier_fde(
-    forecasted_trajectories: NDArrayNumber,
-    forecast_probabilities: NDArrayNumber,
+    forecasted_trajectories: NDArrayFloat,
+    forecast_probabilities: NDArrayFloat,
     normalize: bool,
     expected_brier_fde: NDArrayFloat,
 ) -> None:
@@ -247,7 +247,7 @@ def test_compute_brier_fde(
     ],
 )
 def test_compute_brier_fde_data_validation(
-    forecast_probabilities: NDArrayNumber, normalize: bool, expectation: AbstractContextManager  # type: ignore
+    forecast_probabilities: NDArrayFloat, normalize: bool, expectation: AbstractContextManager # type: ignore
 ) -> None:
     """Test that test_compute_brier_fde raises the correct errors when inputs are invalid.
 

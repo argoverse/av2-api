@@ -54,10 +54,11 @@ def xyz_to_bev(
 
     # If only xyz are provided, then assume intensity is 1.0.
     # Otherwise, use the provided intensity.
+    intensity: NDArrayByte
     if xyz.shape[-1] == 3:
-        intensity: NDArrayByte = np.ones_like(xyz.shape[0], np.uint8)
+        intensity = np.ones_like(xyz.shape[0], np.uint8)
     else:
-        intensity = xyz[..., -1].copy()
+        intensity = xyz[..., -1].copy().astype(np.uint8)
 
     # Grab the Cartesian coordinates (xyz).
     cart = xyz[..., :-1].copy()
