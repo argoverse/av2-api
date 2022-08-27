@@ -53,9 +53,9 @@ Results:
 """
 import itertools
 import logging
+import multiprocessing as mp
 import warnings
 from math import inf
-import multiprocessing as mp
 from statistics import mean
 from typing import Dict, Final, List, Optional, Tuple
 
@@ -193,12 +193,10 @@ def summarize_metrics(
     cfg: DetectionCfg,
 ) -> pd.DataFrame:
     """Calculate and print the 3D object detection metrics.
-
     Args:
         dts: (N,14) Table of detections.
         gts: (M,15) Table of ground truth annotations.
         cfg: Detection configuration.
-
     Returns:
         The summary metrics.
     """
@@ -206,12 +204,11 @@ def summarize_metrics(
     recall_interpolated: NDArrayFloat = np.linspace(0, 1, cfg.num_recall_samples, endpoint=True)
 
     # Initialize the summary metrics.
-    metric_default_mapping = {
-        metric_name.value: metric_default_value
-        for metric_name, metric_default_value in zip(tuple(MetricNames), cfg.metrics_defaults)
-    }
-    keys = itertools.product(cfg.categories, metric_default_mapping.keys(), RANGE_BINS)
-    summary = {key: [metric_default_mapping[key[-2]]] for key in keys}
+    summary = pd.DataFrame(
+        {s.value: cfg.metrics_defaults[i] for i, s in enumerate(tuple(MetricNames))}, index=cfg.categories
+    )
+
+    average_precisions = pd.DataFrame({t: 0.0 for t in cfg.affinity_thresholds_m}, index=cfg.categories)
     for category in cfg.categories:
         # Find detections that have the current category.
         is_category_dts = dts["category"] == category
@@ -224,80 +221,51 @@ def summarize_metrics(
 
         # Find annotations that have the current category.
         is_category_gts = gts["category"] == category
-        is_valid_gts = np.logical_and(is_category_gts, gts["is_evaluated"])
 
         # Compute number of ground truth annotations.
-        category_gts = gts.loc[is_valid_gts]
-        num_gts = category_gts["is_evaluated"].sum()
+        num_gts = gts.loc[is_category_gts, "is_evaluated"].sum()
 
         # Cannot evaluate without ground truth information.
         if num_gts == 0:
             continue
 
-        for (min_range, max_range) in RANGE_BINS:
-            categories_dts_dists = np.linalg.norm(category_dts[["tx_m", "ty_m", "tz_m"]].to_numpy(), axis=-1)
-            expr = (categories_dts_dists >= min_range) & (categories_dts_dists < max_range)
-            category_dts_range = category_dts.iloc[expr]
+        for affinity_threshold_m in cfg.affinity_thresholds_m:
+            true_positives: NDArrayBool = category_dts[affinity_threshold_m].astype(bool).to_numpy()
 
-            categories_gts_dists = np.linalg.norm(category_gts[["tx_m", "ty_m", "tz_m"]].to_numpy(), axis=-1)
-            expr = (categories_gts_dists >= min_range) & (categories_gts_dists < max_range)
-            category_gts_range = category_gts.iloc[expr]
-            num_gts = len(category_gts_range)
+            # Continue if there aren't any true positives.
+            if len(true_positives) == 0:
+                continue
 
-            metrics = {
-                (category, "AP", (min_range, max_range), affinity_threshold_m): 0.0
-                for affinity_threshold_m in cfg.affinity_thresholds_m
-            }
-            for affinity_threshold_m in cfg.affinity_thresholds_m:
-                true_positives: NDArrayBool = category_dts_range[affinity_threshold_m].astype(bool).to_numpy()
+            # Compute average precision for the current threshold.
+            threshold_average_precision, _ = compute_average_precision(true_positives, recall_interpolated, num_gts)
 
-                # Continue if there aren't any true positives.
-                if len(true_positives) == 0:
-                    continue
+            # Record the average precision.
+            average_precisions.loc[category, affinity_threshold_m] = threshold_average_precision
 
-                # Cannot evaluate without ground truth information.
-                if num_gts == 0:
-                    continue
+        mean_average_precisions: NDArrayFloat = average_precisions.loc[category].to_numpy().mean()
 
-                # Compute average precision for the current threshold.
-                threshold_average_precision, _ = compute_average_precision(true_positives, recall_interpolated, num_gts)
+        # Select only the true positives for each instance.
+        middle_idx = len(cfg.affinity_thresholds_m) // 2
+        middle_threshold = cfg.affinity_thresholds_m[middle_idx]
+        is_tp_t = category_dts[middle_threshold].to_numpy().astype(bool)
 
-                # Record the average precision.
-                key = (category, "AP", (min_range, max_range), affinity_threshold_m)
-                metrics[key] = threshold_average_precision
+        # Initialize true positive metrics.
+        tp_errors: NDArrayFloat = np.array(cfg.tp_normalization_terms)
 
-            mean_average_precisions = mean(
-                [
-                    metrics[(category, "AP", (min_range, max_range), affinity_threshold_m)]
-                    for affinity_threshold_m in cfg.affinity_thresholds_m
-                ]
-            )
+        # Check whether any true positives exist under the current threshold.
+        has_true_positives = np.any(is_tp_t)
 
-            # Select only the true positives for each instance.
-            middle_idx = len(cfg.affinity_thresholds_m) // 2
-            middle_threshold = cfg.affinity_thresholds_m[middle_idx]
-            is_tp_t = category_dts_range[middle_threshold].to_numpy().astype(bool)
+        # If true positives exist, compute the metrics.
+        if has_true_positives:
+            tp_error_cols = [str(x.value) for x in TruePositiveErrorNames]
+            tp_errors = category_dts.loc[is_tp_t, tp_error_cols].to_numpy().mean(axis=0)
 
-            # Initialize true positive metrics.
-            tp_errors: NDArrayFloat = np.array(cfg.tp_normalization_terms)
+        # Convert errors to scores.
+        tp_scores = 1 - np.divide(tp_errors, cfg.tp_normalization_terms)
 
-            # Check whether any true positives exist under the current threshold.
-            has_true_positives = np.any(is_tp_t)
+        # Compute Composite Detection Score (CDS).
+        cds = mean_average_precisions * np.mean(tp_scores)
+        summary.loc[category] = np.array([mean_average_precisions, *tp_errors, cds])
 
-            # If true positives exist, compute the metrics.
-            if has_true_positives:
-                tp_error_cols = [str(x.value) for x in TruePositiveErrorNames]
-                tp_errors = category_dts_range.loc[is_tp_t, tp_error_cols].to_numpy().mean(axis=0)
-
-            # Convert errors to scores.
-            tp_scores = 1 - np.divide(tp_errors, cfg.tp_normalization_terms)
-
-            # Compute Composite Detection Score (CDS).
-            cds = mean_average_precisions * np.mean(tp_scores)
-            summary[(category, "AP", (min_range, max_range))] = [mean_average_precisions]
-            summary[(category, "ATE", (min_range, max_range))] = [tp_errors[0]]
-            summary[(category, "ASE", (min_range, max_range))] = [tp_errors[1]]
-            summary[(category, "AOE", (min_range, max_range))] = [tp_errors[2]]
-            summary[(category, "CDS", (min_range, max_range))] = [cds]
     # Return the summary.
-    return pd.DataFrame(summary)
+    return summary
