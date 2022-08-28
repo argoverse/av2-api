@@ -86,7 +86,6 @@ UUID_COLUMN_NAMES: Final[Tuple[str, ...]] = (
     "timestamp_ns",
     "category",
 )
-RANGE_BINS: Final[List[Tuple[(float, float)]]] = [(0.0, 150.0), (0.0, 50.0), (50.0, 100.0), (100.0, 150.0)]
 
 logger = logging.getLogger(__name__)
 
@@ -183,6 +182,7 @@ def evaluate(
 
     # Compute summary metrics.
     metrics = summarize_metrics(dts, gts, cfg)
+    metrics.loc["AVERAGE_METRICS"] = metrics.mean()
     metrics = metrics.round(NUM_DECIMALS)
     return dts, gts, metrics
 
