@@ -193,10 +193,12 @@ def summarize_metrics(
     cfg: DetectionCfg,
 ) -> pd.DataFrame:
     """Calculate and print the 3D object detection metrics.
+
     Args:
         dts: (N,14) Table of detections.
         gts: (M,15) Table of ground truth annotations.
         cfg: Detection configuration.
+        
     Returns:
         The summary metrics.
     """
