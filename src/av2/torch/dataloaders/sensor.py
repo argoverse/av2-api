@@ -145,6 +145,15 @@ try:
             return annotations_categories, torch.as_tensor(annotations.to_numpy(dtype=np.float32))
 
         def _populate_annotations_velocity(self, index: int, annotations: pd.DataFrame) -> pd.DataFrame:
+            """Populate the annotations with their estimated velocities.
+
+            Args:
+                index: Current file index location.
+                annotations: DataFrame of annotations loaded from a feather file.
+
+            Returns:
+                DataFrame populated with velocities.
+            """
             object_centers = annotations[["tx_m", "ty_m", "tz_m"]].to_numpy()
 
             self._build_temporal_window(index, annotations)
@@ -180,7 +189,7 @@ try:
         Returns:
             Pandas dataframe containing the arrow data.
         """
-        with path.open("rb") as file_handle:
+        with path.open("rb") as file_handle:  # type: ignore
             dataframe: pd.DataFrame = feather.read_feather(file_handle)
         return dataframe
 
