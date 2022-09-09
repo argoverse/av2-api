@@ -54,8 +54,6 @@ Results:
 import itertools
 import logging
 import warnings
-from math import inf
-import multiprocessing as mp
 from statistics import mean
 from typing import Dict, Final, List, Optional, Tuple
 import polars as pl
@@ -68,7 +66,6 @@ from av2.evaluation.detection.utils import (
     DetectionCfg,
     accumulate,
     compute_average_precision,
-    groupby,
     load_mapped_avm_and_egoposes,
 )
 from av2.geometry.se3 import SE3
@@ -76,6 +73,7 @@ from av2.map.map_api import ArgoverseStaticMap
 from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
 from av2.utils.io import TimestampedCitySE3EgoPoses
 from av2.utils.typing import NDArrayBool, NDArrayFloat
+from joblib import Parallel, delayed
 
 warnings.filterwarnings("ignore", module="google")
 
@@ -172,8 +170,9 @@ def evaluate(
         args_list.append(args)
 
     logger.info("Starting evaluation ...")
-    with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate, args_list)
+    # with mp.get_context("spawn").Pool(processes=n_jobs) as p:
+    #     outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate, args_list)
+    outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = Parallel(n_jobs=-1, verbose=10)(delayed(accumulate)(*args) for args in args_list)
 
     if outputs is None:
         raise RuntimeError("Accumulation has failed! Please check the integrity of your detections and annotations.")
