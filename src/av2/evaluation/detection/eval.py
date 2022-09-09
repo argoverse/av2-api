@@ -142,6 +142,9 @@ def evaluate(
     log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
     log_id_to_timestamped_poses: Optional[Dict[str, TimestampedCitySE3EgoPoses]] = None
 
+    dts = dts.to_pandas()
+    gts = gts.to_pandas()
+
     # Load maps and egoposes if roi-pruning is enabled.
     if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
         logger.info("Loading maps and egoposes ...")
@@ -179,9 +182,6 @@ def evaluate(
     METRIC_COLUMN_NAMES = cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
     dts_metrics: NDArrayFloat = np.concatenate(dts_list)
     gts_metrics: NDArrayFloat = np.concatenate(gts_list)
-
-    dts = dts.to_pandas()
-    gts = gts.to_pandas()
 
     dts.loc[:, METRIC_COLUMN_NAMES] = dts_metrics
     gts.loc[:, METRIC_COLUMN_NAMES] = gts_metrics
