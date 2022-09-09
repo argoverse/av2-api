@@ -438,7 +438,8 @@ def compute_evaluated_gts_mask(
 
 
 def load_mapped_avm_and_egoposes(
-    log_ids: List[str], dataset_dir: Union[Path, UPath]
+    log_ids: List[str], dataset_dir: Union[Path, UPath],
+    n_jobs: int = 8,
 ) -> Tuple[Dict[str, ArgoverseStaticMap], Dict[str, TimestampedCitySE3EgoPoses]]:
     """Load the maps and egoposes for each log in the dataset directory.
 
@@ -461,7 +462,7 @@ def load_mapped_avm_and_egoposes(
         warnings.filterwarnings("ignore", module="google")
         return ArgoverseStaticMap.from_map_dir(dataset_dir / log_id / "map", build_raster=True)
 
-    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, verbose=10)(
+    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=n_jobs, verbose=10)(
         delayed(_launch_job)(log_id) for log_id in log_ids
     )
 

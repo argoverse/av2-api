@@ -147,7 +147,7 @@ def evaluate(
     if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
         logger.info("Loading maps and egoposes ...")
         log_ids: List[str] = gts.loc[:, "log_id"].unique().tolist()
-        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
+        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir, n_jobs=n_jobs)
 
     args_list: List[Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
     uuids = sorted(uuid_to_dts.keys() | uuid_to_gts.keys())
@@ -172,7 +172,7 @@ def evaluate(
     logger.info("Starting evaluation ...")
     # with mp.get_context("spawn").Pool(processes=n_jobs) as p:
     #     outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate, args_list)
-    outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = Parallel(n_jobs=-1, verbose=10)(delayed(accumulate)(*args) for args in args_list)
+    outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = Parallel(n_jobs=n_jobs, verbose=10)(delayed(accumulate)(*args) for args in args_list)
 
     if outputs is None:
         raise RuntimeError("Accumulation has failed! Please check the integrity of your detections and annotations.")
