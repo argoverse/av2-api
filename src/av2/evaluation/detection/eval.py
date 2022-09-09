@@ -58,6 +58,7 @@ from math import inf
 import multiprocessing as mp
 from statistics import mean
 from typing import Dict, Final, List, Optional, Tuple
+import polars as pl
 
 import numpy as np
 import pandas as pd
@@ -121,22 +122,22 @@ def evaluate(
             "Please set `dataset_directory` to the split root, e.g. av2/sensor/val."
         )
 
+    dts: pl.DataFrame = pl.from_pandas(dts)
+    gts: pl.DataFrame = pl.from_pandas(gts)
+
     # Sort both the detections and annotations by lexicographic order for grouping.
-    dts = dts.sort_values(list(UUID_COLUMN_NAMES))
-    gts = gts.sort_values(list(UUID_COLUMN_NAMES))
-
-    dts_npy: NDArrayFloat = dts[list(DTS_COLUMN_NAMES)].to_numpy()
-    gts_npy: NDArrayFloat = gts[list(GTS_COLUMN_NAMES)].to_numpy()
-
-    dts_uuids: List[str] = dts[list(UUID_COLUMN_NAMES)].to_numpy().tolist()
-    gts_uuids: List[str] = gts[list(UUID_COLUMN_NAMES)].to_numpy().tolist()
+    dts = dts.sort(list(UUID_COLUMN_NAMES))
+    gts = gts.sort(list(UUID_COLUMN_NAMES))
 
     # We merge the unique identifier -- the tuple of ("log_id", "timestamp_ns", "category")
     # into a single string to optimize the subsequent grouping operation.
     # `groupby_mapping` produces a mapping from the uuid to the group of detections / annotations
     # which fall into that group.
-    uuid_to_dts = groupby([":".join(map(str, x)) for x in dts_uuids], dts_npy)
-    uuid_to_gts = groupby([":".join(map(str, x)) for x in gts_uuids], gts_npy)
+    uuid_to_dts = dts.partition_by(list(UUID_COLUMN_NAMES), as_dict=True)
+    uuid_to_gts = gts.partition_by(list(UUID_COLUMN_NAMES), as_dict=True)
+
+    uuid_to_dts = {k: v[list(DTS_COLUMN_NAMES)].to_numpy() for k, v in uuid_to_dts.items()}
+    uuid_to_gts = {k: v[list(GTS_COLUMN_NAMES)].to_numpy() for k, v in uuid_to_gts.items()}
 
     log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
     log_id_to_timestamped_poses: Optional[Dict[str, TimestampedCitySE3EgoPoses]] = None
@@ -150,7 +151,7 @@ def evaluate(
     args_list: List[Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
     uuids = sorted(uuid_to_dts.keys() | uuid_to_gts.keys())
     for uuid in uuids:
-        log_id, timestamp_ns, _ = uuid.split(":")
+        log_id, timestamp_ns, _ = uuid
         args: Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]
 
         sweep_dts: NDArrayFloat = np.zeros((0, 10))
@@ -178,6 +179,10 @@ def evaluate(
     METRIC_COLUMN_NAMES = cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
     dts_metrics: NDArrayFloat = np.concatenate(dts_list)
     gts_metrics: NDArrayFloat = np.concatenate(gts_list)
+
+    dts = dts.to_pandas()
+    gts = gts.to_pandas()
+
     dts.loc[:, METRIC_COLUMN_NAMES] = dts_metrics
     gts.loc[:, METRIC_COLUMN_NAMES] = gts_metrics
 
