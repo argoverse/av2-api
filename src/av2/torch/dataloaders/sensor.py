@@ -5,12 +5,15 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Final, List, Tuple, Union, cast
+from typing import Any, Dict, Final, List, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
 from pyarrow import feather
+from scipy.spatial.transform import Rotation as R
 from upath import UPath
+
+from av2.utils.typing import NDArrayFloat
 
 logger = logging.Logger(__file__)
 
@@ -25,6 +28,9 @@ DEFAULT_ANNOTATIONS_COLS: Final[Tuple[str, ...]] = (
     "qx",
     "qy",
     "qz",
+    "vx_m",
+    "vy_m",
+    "vz_m",
     "category",
 )
 LIDAR_GLOB_PATTERN: Final[str] = "*/sensors/lidar/*"
@@ -92,6 +98,10 @@ try:
             """
             return self.split_dir / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
 
+        def pose_path(self, log_id: str) -> Union[Path, UPath]:
+            """Return the path to the city egopose feather file."""
+            return self.split_dir / log_id / "city_SE3_egovehicle.feather"
+
         def key(self, index: int) -> Tuple[str, int]:
             """Return key at the given index."""
             return self.file_index[index]
@@ -154,17 +164,74 @@ try:
             Returns:
                 DataFrame populated with velocities.
             """
-            object_centers = annotations[["tx_m", "ty_m", "tz_m"]].to_numpy()
+            current_log_id, current_timestamp_ns = self.key(index)
+            pose_path = self.pose_path(current_log_id)
+            timestamp_ns_to_city_SE3_ego: Dict[int, Any] = (
+                _read_feather(pose_path).set_index("timestamp_ns").to_dict("index")
+            )
 
-            self._build_temporal_window(index, annotations)
+            velocity_metadata = []
+            for current_track_uuid, annotation in annotations.groupby(by=["track_uuid"], sort=True):
+                annotation: Dict[int, Any] = (
+                    annotation.sort_values("timestamp_ns").set_index("timestamp_ns").to_dict("index")
+                )
+                index_to_key = dict(enumerate(annotation.keys()))
+                for i, (current_timestamp_ns, _) in enumerate(annotation.items()):
+                    previous_timestamp_ns = index_to_key.get(i - 1, None)
+                    next_timestamp_ns = index_to_key.get(i + 1, None)
+
+                    xyz_current_city = self._compute_city_annotation_coordinates(
+                        annotation, timestamp_ns_to_city_SE3_ego, current_timestamp_ns
+                    )
+
+                    est_velocity_list: List[NDArrayFloat] = []
+                    if previous_timestamp_ns is not None:
+                        xyz_previous_city = self._compute_city_annotation_coordinates(
+                            annotation, timestamp_ns_to_city_SE3_ego, previous_timestamp_ns
+                        )
+
+                        timedelta_ns_0 = current_timestamp_ns - previous_timestamp_ns
+                        xyz_delta_0 = xyz_current_city - xyz_previous_city
+                        est_velocity_list += [xyz_delta_0 / (timedelta_ns_0 * 1e-9)]
+                    if next_timestamp_ns is not None:
+                        xyz_next_city = self._compute_city_annotation_coordinates(
+                            annotation, timestamp_ns_to_city_SE3_ego, next_timestamp_ns
+                        )
+                        timedelta_ns_1 = next_timestamp_ns - current_timestamp_ns
+                        xyz_delta_1 = xyz_next_city - xyz_current_city
+                        est_velocity_list += [xyz_delta_1 / (timedelta_ns_1 * 1e-9)]
+
+                    if len(est_velocity_list) == 0:
+                        vx_m, vy_m, vz_m = 0.0, 0.0, 0.0
+                    else:
+                        vx_m, vy_m, vz_m = np.mean(est_velocity_list, axis=0).tolist()
+                    row = (current_track_uuid, current_timestamp_ns, vx_m, vy_m, vz_m)
+                    velocity_metadata.append(row)
+
+            velocity_frame = pd.DataFrame(
+                velocity_metadata, columns=["track_uuid", "timestamp_ns", "vx_m", "vy_m", "vz_m"]
+            )
+            annotations = annotations.merge(on=["track_uuid", "timestamp_ns"], right=velocity_frame)
             return annotations
 
-        def _build_temporal_window(self, index: int, annotations: pd.DataFrame) -> pd.DataFrame:
-            # TODO: Add temporal window for velocity computation.
-            # previous_frame = self.key(index - 1)
-            # current_frame = self.key(index)
-            # next_frame = self.key(index + 1)
-            return annotations
+        def _compute_city_annotation_coordinates(
+            self,
+            annotations: Dict[int, Any],
+            timestamp_ns_to_city_SE3_ego: Dict[int, Dict[str, float]],
+            timestamp_ns: int,
+        ) -> NDArrayFloat:
+            annotation = annotations[timestamp_ns]
+            city_R_ego, city_t_ego = self._construct_pose(timestamp_ns_to_city_SE3_ego[timestamp_ns])
+            xyz_ego = np.array([annotation["tx_m"], annotation["ty_m"], annotation["tz_m"]])
+            xyz_city = R.from_quat(city_R_ego).apply(xyz_ego) + city_t_ego
+            return xyz_city
+
+        def _construct_pose(self, city_SE3_ego: Dict[str, float]) -> Tuple[NDArrayFloat, NDArrayFloat]:
+            city_R_ego: NDArrayFloat = np.array(
+                [city_SE3_ego["qx"], city_SE3_ego["qy"], city_SE3_ego["qz"], city_SE3_ego["qw"]]
+            )
+            city_t_ego: NDArrayFloat = np.array([city_SE3_ego["tx_m"], city_SE3_ego["ty_m"], city_SE3_ego["tz_m"]])
+            return city_R_ego, city_t_ego
 
         def read_lidar(self, index: int) -> Tensor:
             """Read the lidar sweep.
