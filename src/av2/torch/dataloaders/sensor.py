@@ -36,6 +36,8 @@ DEFAULT_ANNOTATIONS_COLS: Final[Tuple[str, ...]] = (
 LIDAR_GLOB_PATTERN: Final[str] = "*/sensors/lidar/*"
 MAX_STR_LEN: Final[int] = 32
 
+PathType = Union[Path, UPath]
+
 try:
     import torch
     from torch import Tensor
@@ -53,7 +55,7 @@ try:
     class Av2(Dataset[Sweep]):
         """Pytorch dataloader for the sensor dataset."""
 
-        dataset_dir: Union[Path, UPath]
+        dataset_dir: PathType
         split: str
         ordered_annotations_cols: Tuple[str, ...] = DEFAULT_ANNOTATIONS_COLS
         annotations_pose_mode: str = "YAW"  # TODO: Add pose modes.
@@ -66,16 +68,16 @@ try:
             self._build_file_index()
 
         @property
-        def file_index_path(self) -> Union[Path, UPath]:
+        def file_index_path(self) -> PathType:
             """Return the file index path."""
             return Path.home() / ".cache" / "av2" / "torch" / "file_index.feather"
 
         @property
-        def split_dir(self) -> Union[Path, UPath]:
+        def split_dir(self) -> PathType:
             """Sensor dataset split directory."""
             return self.dataset_dir / self.split
 
-        def annotations_path(self, log_id: str) -> Union[Path, UPath]:
+        def annotations_path(self, log_id: str) -> PathType:
             """Return the annotations at the specified log id.
 
             Args:
@@ -86,7 +88,7 @@ try:
             """
             return self.split_dir / log_id / "annotations.feather"
 
-        def lidar_path(self, log_id: str, timestamp_ns: int) -> Union[Path, UPath]:
+        def lidar_path(self, log_id: str, timestamp_ns: int) -> PathType:
             """Return the lidar path at the specified log id and timestamp.
 
             Args:
@@ -98,7 +100,7 @@ try:
             """
             return self.split_dir / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
 
-        def pose_path(self, log_id: str) -> Union[Path, UPath]:
+        def pose_path(self, log_id: str) -> PathType:
             """Return the path to the city egopose feather file."""
             return self.split_dir / log_id / "city_SE3_egovehicle.feather"
 
@@ -171,23 +173,23 @@ try:
             )
 
             velocity_metadata = []
-            for current_track_uuid, annotation in annotations.groupby(by=["track_uuid"], sort=True):
-                annotation: Dict[int, Any] = (
-                    annotation.sort_values("timestamp_ns").set_index("timestamp_ns").to_dict("index")
+            for current_track_uuid, annotation_track in annotations.groupby(by=["track_uuid"], sort=True):
+                timestamp_ns_to_annotation: Dict[int, Any] = (
+                    annotation_track.sort_values("timestamp_ns").set_index("timestamp_ns").to_dict("index")
                 )
-                index_to_key = dict(enumerate(annotation.keys()))
-                for i, (current_timestamp_ns, _) in enumerate(annotation.items()):
+                index_to_key = dict(enumerate(timestamp_ns_to_annotation.keys()))
+                for i, (current_timestamp_ns, _) in enumerate(timestamp_ns_to_annotation.items()):
                     previous_timestamp_ns = index_to_key.get(i - 1, None)
                     next_timestamp_ns = index_to_key.get(i + 1, None)
 
                     xyz_current_city = self._compute_city_annotation_coordinates(
-                        annotation, timestamp_ns_to_city_SE3_ego, current_timestamp_ns
+                        timestamp_ns_to_annotation, timestamp_ns_to_city_SE3_ego, current_timestamp_ns
                     )
 
                     est_velocity_list: List[NDArrayFloat] = []
                     if previous_timestamp_ns is not None:
                         xyz_previous_city = self._compute_city_annotation_coordinates(
-                            annotation, timestamp_ns_to_city_SE3_ego, previous_timestamp_ns
+                            timestamp_ns_to_annotation, timestamp_ns_to_city_SE3_ego, previous_timestamp_ns
                         )
 
                         timedelta_ns_0 = current_timestamp_ns - previous_timestamp_ns
@@ -195,7 +197,7 @@ try:
                         est_velocity_list += [xyz_delta_0 / (timedelta_ns_0 * 1e-9)]
                     if next_timestamp_ns is not None:
                         xyz_next_city = self._compute_city_annotation_coordinates(
-                            annotation, timestamp_ns_to_city_SE3_ego, next_timestamp_ns
+                            timestamp_ns_to_annotation, timestamp_ns_to_city_SE3_ego, next_timestamp_ns
                         )
                         timedelta_ns_1 = next_timestamp_ns - current_timestamp_ns
                         xyz_delta_1 = xyz_next_city - xyz_current_city
@@ -247,7 +249,7 @@ try:
             dataframe = _read_feather(lidar_path)
             return torch.as_tensor(dataframe.to_numpy(dtype=np.float32))
 
-    def _read_feather(path: Union[Path, UPath]) -> pd.DataFrame:
+    def _read_feather(path: PathType) -> pd.DataFrame:
         """Read an Apache feather file.
 
         Args:
@@ -256,7 +258,7 @@ try:
         Returns:
             Pandas dataframe containing the arrow data.
         """
-        with path.open("rb") as file_handle:  # type: ignore
+        with path.open("rb") as file_handle:
             dataframe: pd.DataFrame = feather.read_feather(file_handle)
         return dataframe
 
