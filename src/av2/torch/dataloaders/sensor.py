@@ -44,12 +44,68 @@ try:
     from torch.utils.data import Dataset
 
     @dataclass
+    class Lidar:
+        """Dataclass for lidar sweeps."""
+
+        x: Tensor
+        y: Tensor
+        z: Tensor
+        intensity: Tensor
+        laser_number: Tensor
+        offset_ns: Tensor
+
+        @classmethod
+        def from_dataframe(cls, dataframe: pd.DataFrame) -> Lidar:
+            columns = dataframe.to_dict("list")
+            for k, v in columns.items():
+                elem = v[0]
+                if isinstance(elem, (int, float)):
+                    columns[k] = torch.as_tensor(v)
+            return cls(**columns)
+
+        # @property
+        def as_tensor(self, order: Tuple[str, ...] = ("x", "y", "z"), dtype: torch.dtype = torch.float32):
+            fields = []
+            for field_name in order:
+                fields.append(getattr(self, field_name))
+            return torch.stack(fields, dim=-1).type(dtype)
+
+    @dataclass
+    class Annotations:
+        """Dataclass for ground truth annotations."""
+
+        # timestamp_ns: Tensor
+        tx_m: Tensor
+        ty_m: Tensor
+        tz_m: Tensor
+        length_m: Tensor
+        width_m: Tensor
+        height_m: Tensor
+        qw: Tensor
+        qx: Tensor
+        qy: Tensor
+        qz: Tensor
+        vx_m: Tensor
+        vy_m: Tensor
+        vz_m: Tensor
+        # track_uuid: Tuple[str, ...]
+        category: Tuple[str, ...]
+
+        @classmethod
+        def from_dataframe(cls, dataframe: pd.DataFrame) -> Annotations:
+            columns = dataframe.to_dict("list")
+            for k, v in columns.items():
+                elem = v[0]
+                if isinstance(elem, (int, float)):
+                    columns[k] = torch.as_tensor(v)
+            return cls(**columns)
+
+    @dataclass
     class Sweep:
         """Stores the annotations and lidar for one sweep."""
 
-        annotations_categories: Tuple[str, ...]
-        annotations_cuboids: Tensor  # torch.float32
-        lidar: Tensor  # torch.float32
+        annotations: Annotations
+        lidar: Lidar
 
     @dataclass
     class Av2(Dataset[Sweep]):
@@ -117,9 +173,9 @@ try:
             Returns:
                 Sweep object containing annotations and lidar.
             """
-            annotations_categories, annotations_cuboids = self.read_annotations(index)
+            annotations = self.read_annotations(index)
             lidar = self.read_lidar(index)
-            return Sweep(annotations_categories, annotations_cuboids, lidar)
+            return Sweep(annotations=annotations, lidar=lidar)
 
         def _build_file_index(self) -> None:
             """Initialize the key to path mapping."""
@@ -135,7 +191,7 @@ try:
                 dataframe = pd.DataFrame.from_records(self.file_index, columns=["log_id", "timestamp_ns"])
                 dataframe.to_feather(self.file_index_path)
 
-        def read_annotations(self, index: int) -> Tuple[Tuple[str, ...], Tensor]:
+        def read_annotations(self, index: int) -> Annotations:
             """Read the sweep annotations.
 
             Args
@@ -151,10 +207,7 @@ try:
 
             query = (annotations["num_interior_pts"] > 0) & (annotations["timestamp_ns"] == timestamp_ns)
             annotations = annotations.loc[query, list(self.ordered_annotations_cols)].reset_index(drop=True)
-
-            annotations_categories = tuple(annotations["category"].to_numpy().tolist())
-            annotations = annotations.drop("category", axis=1)
-            return annotations_categories, torch.as_tensor(annotations.to_numpy(dtype=np.float32))
+            return Annotations.from_dataframe(annotations)
 
         def _populate_annotations_velocity(self, index: int, annotations: pd.DataFrame) -> pd.DataFrame:
             """Populate the annotations with their estimated velocities.
@@ -235,7 +288,7 @@ try:
             city_t_ego: NDArrayFloat = np.array([city_SE3_ego["tx_m"], city_SE3_ego["ty_m"], city_SE3_ego["tz_m"]])
             return city_R_ego, city_t_ego
 
-        def read_lidar(self, index: int) -> Tensor:
+        def read_lidar(self, index: int) -> Lidar:
             """Read the lidar sweep.
 
             Args:
@@ -247,7 +300,7 @@ try:
             log_id, timestamp_ns = self.key(index)
             lidar_path = self.lidar_path(log_id, timestamp_ns)
             dataframe = _read_feather(lidar_path)
-            return torch.as_tensor(dataframe.to_numpy(dtype=np.float32))
+            return Lidar.from_dataframe(dataframe)
 
     def _read_feather(path: PathType) -> pd.DataFrame:
         """Read an Apache feather file.
