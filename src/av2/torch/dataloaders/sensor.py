@@ -27,7 +27,6 @@ class Av2(Dataset[Sweep]):
     dataset_dir: PathType
     split: str
     ordered_annotations_cols: Tuple[str, ...] = DEFAULT_ANNOTATIONS_COLS
-    annotations_pose_mode: str = "YAW"  # TODO: Add pose modes.
     flush_file_index: bool = False
 
     file_index: List[Tuple[str, int]] = field(init=False)
