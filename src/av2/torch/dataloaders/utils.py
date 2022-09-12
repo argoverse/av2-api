@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Final, Tuple
 
+import fsspec.asyn
 import pandas as pd
 import torch
 from torch import Tensor
@@ -186,3 +187,8 @@ class Sweep:
 
     annotations: Annotations
     lidar: Lidar
+
+
+def prevent_fsspec_deadlock() -> None:
+    """Reset the fsspec global lock to prevent deadlocking in forked processes."""
+    fsspec.asyn.reset_lock()

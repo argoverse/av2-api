@@ -13,7 +13,14 @@ import pandas as pd
 from scipy.spatial.transform import Rotation as R
 from torch.utils.data import Dataset
 
-from av2.torch.dataloaders.utils import DEFAULT_ANNOTATIONS_COLS, LIDAR_GLOB_PATTERN, Annotations, Lidar, Sweep
+from av2.torch.dataloaders.utils import (
+    DEFAULT_ANNOTATIONS_COLS,
+    LIDAR_GLOB_PATTERN,
+    Annotations,
+    Lidar,
+    Sweep,
+    prevent_fsspec_deadlock,
+)
 from av2.utils.io import read_feather
 from av2.utils.typing import NDArrayFloat, PathType
 
@@ -36,6 +43,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
 
     def __post_init__(self) -> None:
         """Build the file index."""
+        prevent_fsspec_deadlock()
         self._build_file_index()
         self._log_dataloader_configuration()
 
