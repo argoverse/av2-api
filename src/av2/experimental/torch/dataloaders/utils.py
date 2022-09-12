@@ -11,7 +11,7 @@ import pandas as pd
 import torch
 from torch import Tensor
 
-from av2.torch.dataloaders.conversions import quat_to_yaw
+from .conversions import quat_to_yaw
 
 DEFAULT_ANNOTATIONS_COLS: Final[Tuple[str, ...]] = (
     "tx_m",

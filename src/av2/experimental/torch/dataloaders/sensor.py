@@ -13,7 +13,7 @@ import pandas as pd
 from scipy.spatial.transform import Rotation as R
 from torch.utils.data import Dataset
 
-from av2.torch.dataloaders.utils import (
+from .utils import (
     DEFAULT_ANNOTATIONS_COLS,
     LIDAR_GLOB_PATTERN,
     Annotations,
@@ -122,7 +122,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         return Sweep(annotations=annotations, lidar=lidar)
 
     def _build_file_index(self) -> None:
-        """Initialize the key to path mapping."""
+        """Build the file index consisting of (log_id, timestamp_ns) pairs."""
         if not self.flush_file_index and self.file_index_path.exists():
             logger.info("Using cached file index ...")
             dataframe = read_feather(self.file_index_path)
