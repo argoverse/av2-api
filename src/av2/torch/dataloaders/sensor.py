@@ -22,7 +22,7 @@ logger = logging.getLogger(__file__)
 
 
 @dataclass
-class Av2(Dataset[Sweep]):
+class Av2(Dataset[Sweep]):  # type: ignore
     """Pytorch dataloader for the sensor dataset."""
 
     dataset_dir: PathType
