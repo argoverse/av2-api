@@ -47,6 +47,7 @@ DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final[Tuple[str, ...]] = (
     "vy_m",
     "vz_m",
 )
+DEFAULT_LIDAR_TENSOR_FIELDS: Final[Tuple[str, ...]] = ("x", "y", "z", "intensity")
 
 
 @unique
@@ -163,7 +164,7 @@ class Lidar:
         return cls(**columns)
 
     def as_tensor(
-        self, field_ordering: Tuple[str, ...] = ("x", "y", "z", "intensity"), dtype: torch.dtype = torch.float32
+        self, field_ordering: Tuple[str, ...] = DEFAULT_LIDAR_TENSOR_FIELDS, dtype: torch.dtype = torch.float32
     ) -> Tensor:
         """Return the lidar sweep as a dense tensor.
 
