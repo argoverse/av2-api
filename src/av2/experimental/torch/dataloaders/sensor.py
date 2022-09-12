@@ -16,7 +16,7 @@ from torch.utils.data import Dataset
 from av2.utils.io import read_feather
 from av2.utils.typing import NDArrayFloat, PathType
 
-from .utils import DEFAULT_ANNOTATIONS_COLS, LIDAR_GLOB_PATTERN, Annotations, Lidar, Sweep, prevent_fsspec_deadlock
+from .utils import LIDAR_GLOB_PATTERN, Annotations, Lidar, Sweep, prevent_fsspec_deadlock
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
@@ -28,7 +28,6 @@ class Av2(Dataset[Sweep]):  # type: ignore
 
     dataset_dir: PathType
     split: str
-    ordered_annotations_cols: Tuple[str, ...] = DEFAULT_ANNOTATIONS_COLS
     flush_file_index: bool = False
 
     file_index: List[Tuple[str, int]] = field(init=False)
@@ -59,7 +58,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         """Log the dataloader configuration."""
         info = "Dataloader has been configured. Here are the settings:\n"
         for key, value in self.items():
-            if key in ("file_index", "ordered_annotations_cols"):
+            if key == "file_index":
                 continue
             info += f"\t{key}: {value}\n"
         logger.info("%s", info)
