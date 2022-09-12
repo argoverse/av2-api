@@ -56,6 +56,14 @@ try:
 
         @classmethod
         def from_dataframe(cls, dataframe: pd.DataFrame) -> Lidar:
+            """Build a lidar object from a Pandas DataFrame.
+
+            Args:
+                dataframe: Pandas DataFrame of lidar fields.
+
+            Returns:
+                The lidar object.
+            """
             columns = dataframe.to_dict("list")
             for k, v in columns.items():
                 elem = v[0]
@@ -63,10 +71,19 @@ try:
                     columns[k] = torch.as_tensor(v)
             return cls(**columns)
 
-        # @property
-        def as_tensor(self, order: Tuple[str, ...] = ("x", "y", "z"), dtype: torch.dtype = torch.float32):
+        def as_tensor(self, field_ordering: Tuple[str, ...] = ("x", "y", "z"), dtype: torch.dtype = torch.float32):
+            """Return the lidar sweep as a dense tensor.
+
+            Args:
+                field_ordering: Feature ordering for the tensor.
+                dtype: Target datatype for casting.
+
+            Returns:
+                (N,K) tensor where N is the number of lidar points and K
+                    is the number of features.
+            """
             fields = []
-            for field_name in order:
+            for field_name in field_ordering:
                 fields.append(getattr(self, field_name))
             return torch.stack(fields, dim=-1).type(dtype)
 
@@ -93,11 +110,19 @@ try:
 
         @classmethod
         def from_dataframe(cls, dataframe: pd.DataFrame) -> Annotations:
+            """Build an annotations object from a Pandas DataFrame.
+
+            Args:
+                dataframe: Pandas DataFrame of annotations fields.
+
+            Returns:
+                The annotations object.
+            """
             columns = dataframe.to_dict("list")
-            for k, v in columns.items():
-                elem = v[0]
+            for key, value in columns.items():
+                elem = value[0]
                 if isinstance(elem, (int, float)):
-                    columns[k] = torch.as_tensor(v)
+                    columns[key] = torch.as_tensor(value)
             return cls(**columns)
 
     @dataclass
@@ -125,7 +150,7 @@ try:
 
         @property
         def file_index_path(self) -> PathType:
-            """Return the file index path."""
+            """File index path."""
             return Path.home() / ".cache" / "av2" / "torch" / "file_index.feather"
 
         @property
@@ -157,18 +182,25 @@ try:
             return self.split_dir / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
 
         def pose_path(self, log_id: str) -> PathType:
-            """Return the path to the city egopose feather file."""
+            """City egopose path."""
             return self.split_dir / log_id / "city_SE3_egovehicle.feather"
 
-        def key(self, index: int) -> Tuple[str, int]:
-            """Return key at the given index."""
+        def sweep_uuid(self, index: int) -> Tuple[str, int]:
+            """Return sweep uuid at the given index.
+
+            Args:
+                index: Dataset index.
+
+            Returns:
+                The sweep uuid (log_id, timestamp_ns).
+            """
             return self.file_index[index]
 
         def __getitem__(self, index: int) -> Sweep:
             """Return annotations and lidar for one sweep.
 
             Args:
-                index: Integer dataset index.
+                index: Dataset index.
 
             Returns:
                 Sweep object containing annotations and lidar.
@@ -195,12 +227,12 @@ try:
             """Read the sweep annotations.
 
             Args
-                key: Unique key (log_id, timestamp_ns).
+                index: Dataset index.
 
             Returns:
-                Tensor of annotations.
+                The annotations object.
             """
-            log_id, timestamp_ns = self.key(index)
+            log_id, timestamp_ns = self.sweep_uuid(index)
             annotations_path = self.annotations_path(log_id)
             annotations = _read_feather(annotations_path)
             annotations = self._populate_annotations_velocity(index, annotations)
@@ -213,13 +245,13 @@ try:
             """Populate the annotations with their estimated velocities.
 
             Args:
-                index: Current file index location.
+                index: Dataset index.
                 annotations: DataFrame of annotations loaded from a feather file.
 
             Returns:
-                DataFrame populated with velocities.
+                The dataFrame populated with velocities.
             """
-            current_log_id, current_timestamp_ns = self.key(index)
+            current_log_id, current_timestamp_ns = self.sweep_uuid(index)
             pose_path = self.pose_path(current_log_id)
             timestamp_ns_to_city_SE3_ego: Dict[int, Any] = (
                 _read_feather(pose_path).set_index("timestamp_ns").to_dict("index")
@@ -297,7 +329,7 @@ try:
             Returns:
                 Tensor of annotations.
             """
-            log_id, timestamp_ns = self.key(index)
+            log_id, timestamp_ns = self.sweep_uuid(index)
             lidar_path = self.lidar_path(log_id, timestamp_ns)
             dataframe = _read_feather(lidar_path)
             return Lidar.from_dataframe(dataframe)
