@@ -63,7 +63,6 @@ class OrientationMode(str, Enum):
 class Annotations:
     """Dataclass for ground truth annotations."""
 
-    # timestamp_ns: Tensor
     tx_m: Tensor
     ty_m: Tensor
     tz_m: Tensor
@@ -77,8 +76,10 @@ class Annotations:
     vx_m: Tensor
     vy_m: Tensor
     vz_m: Tensor
-    # track_uuid: Tuple[str, ...]
+    timestamp_ns: Tensor
+    num_interior_pts: Tensor
     category: Tuple[str, ...]
+    track_uuid: Tuple[str, ...]
 
     @classmethod
     def from_dataframe(cls, dataframe: pd.DataFrame) -> Annotations:

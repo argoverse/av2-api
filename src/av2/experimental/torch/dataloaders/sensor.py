@@ -13,16 +13,10 @@ import pandas as pd
 from scipy.spatial.transform import Rotation as R
 from torch.utils.data import Dataset
 
-from .utils import (
-    DEFAULT_ANNOTATIONS_COLS,
-    LIDAR_GLOB_PATTERN,
-    Annotations,
-    Lidar,
-    Sweep,
-    prevent_fsspec_deadlock,
-)
 from av2.utils.io import read_feather
 from av2.utils.typing import NDArrayFloat, PathType
+
+from .utils import DEFAULT_ANNOTATIONS_COLS, LIDAR_GLOB_PATTERN, Annotations, Lidar, Sweep, prevent_fsspec_deadlock
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
@@ -151,7 +145,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         annotations = self._populate_annotations_velocity(index, annotations)
 
         query = (annotations["num_interior_pts"] > 0) & (annotations["timestamp_ns"] == timestamp_ns)
-        annotations = annotations.loc[query, list(self.ordered_annotations_cols)].reset_index(drop=True)
+        annotations = annotations.loc[query].reset_index(drop=True)
         return Annotations.from_dataframe(annotations)
 
     def _populate_annotations_velocity(self, index: int, annotations: pd.DataFrame) -> pd.DataFrame:
