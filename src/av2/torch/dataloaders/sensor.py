@@ -131,7 +131,7 @@ class Av2(Dataset[Sweep]):
     def read_annotations(self, index: int) -> Annotations:
         """Read the sweep annotations.
 
-        Args
+        Args:
             index: Dataset index.
 
         Returns:
