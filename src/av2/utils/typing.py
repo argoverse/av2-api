@@ -4,12 +4,12 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any  # noqa
+from typing import Union
 
 import numpy as np
 import numpy.typing as npt
-from typing import Union
-from pathlib import Path
 from upath import UPath
 
 NDArrayNumber = npt.NDArray["np.number[Any]"]

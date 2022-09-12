@@ -13,8 +13,7 @@ from pyarrow import feather
 
 import av2.geometry.geometry as geometry_utils
 from av2.geometry.se3 import SE3
-from av2.utils.typing import NDArrayByte, NDArrayFloat
-from av2.utils.typing import PathType
+from av2.utils.typing import NDArrayByte, NDArrayFloat, PathType
 
 # Mapping from egovehicle time in nanoseconds to egovehicle pose.
 TimestampedCitySE3EgoPoses = Dict[int, SE3]
