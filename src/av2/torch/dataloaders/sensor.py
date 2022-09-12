@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from math import inf
 from pathlib import Path
 from typing import Any, Dict, ItemsView, List, Tuple, cast
 
@@ -30,8 +31,8 @@ class Av2(Dataset[Sweep]):
     flush_file_index: bool = False
 
     file_index: List[Tuple[str, int]] = field(init=False)
-    max_annotation_range: float = 150.0
-    max_lidar_range: float = 150.0
+    max_annotation_range: float = inf
+    max_lidar_range: float = inf
 
     def __post_init__(self) -> None:
         """Build the file index."""
