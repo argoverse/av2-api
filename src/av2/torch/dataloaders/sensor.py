@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, cast
+from typing import Any, Dict, ItemsView, List, Tuple, cast
 
 import numpy as np
 import pandas as pd
@@ -16,7 +16,8 @@ from av2.torch.dataloaders.utils import DEFAULT_ANNOTATIONS_COLS, Annotations, L
 from av2.utils.io import read_feather
 from av2.utils.typing import NDArrayFloat, PathType
 
-logger = logging.Logger(__file__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__file__)
 
 
 @dataclass
@@ -36,6 +37,11 @@ class Av2(Dataset[Sweep]):
     def __post_init__(self) -> None:
         """Build the file index."""
         self._build_file_index()
+        self._log_dataloader_configuration()
+
+    def items(self) -> ItemsView[str, Any]:
+        """Return the attribute_name, attribute pairs for the dataloader."""
+        return self.__dict__.items()
 
     @property
     def file_index_path(self) -> PathType:
@@ -46,6 +52,15 @@ class Av2(Dataset[Sweep]):
     def split_dir(self) -> PathType:
         """Sensor dataset split directory."""
         return self.dataset_dir / self.split
+
+    def _log_dataloader_configuration(self) -> None:
+        """Log the dataloader configuration."""
+        info = "Dataloader has been configured. Here are the settings:\n"
+        for key, value in self.items():
+            if key in ("file_index", "ordered_annotations_cols"):
+                continue
+            info += f"\t{key}: {value}\n"
+        logger.info("%s", info)
 
     def annotations_path(self, log_id: str) -> PathType:
         """Return the annotations at the specified log id.
@@ -101,10 +116,11 @@ class Av2(Dataset[Sweep]):
     def _build_file_index(self) -> None:
         """Initialize the key to path mapping."""
         if not self.flush_file_index and self.file_index_path.exists():
+            logger.info("Using cached file index ...")
             dataframe = read_feather(self.file_index_path)
             self.file_index = [(cast(str, key[0]), cast(int, key[1])) for key in dataframe.to_numpy().tolist()]
         else:
-            logger.info("Initializing file index. This may take a few minutes.")
+            logger.info("Building file index. This may take a moment ...")
             paths = sorted(self.split_dir.glob(LIDAR_GLOB_PATTERN))
             self.file_index = [(key.parts[-4], int(key.stem)) for key in paths]
 
