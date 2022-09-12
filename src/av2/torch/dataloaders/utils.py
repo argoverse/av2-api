@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum, unique
 from typing import Final, Tuple
 
 import pandas as pd
 import torch
 from torch import Tensor
+
+from av2.torch.dataloaders.conversions import quat_to_yaw
 
 DEFAULT_ANNOTATIONS_COLS: Final[Tuple[str, ...]] = (
     "tx_m",
@@ -29,7 +32,29 @@ DEFAULT_ANNOTATIONS_COLS: Final[Tuple[str, ...]] = (
 LIDAR_GLOB_PATTERN: Final[str] = "*/sensors/lidar/*"
 MAX_STR_LEN: Final[int] = 32
 
-DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final[Tuple[str, ...]] = ("tx_m", "ty_m", "tz_m", "length_m", "width_m", "height_m")
+DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final[Tuple[str, ...]] = (
+    "tx_m",
+    "ty_m",
+    "tz_m",
+    "length_m",
+    "width_m",
+    "height_m",
+    "qw",
+    "qx",
+    "qy",
+    "qz",
+    "vx_m",
+    "vy_m",
+    "vz_m",
+)
+
+
+@unique
+class OrientationMode(str, Enum):
+    """Orientation (pose) modes for the ground truth annotations."""
+
+    QUATERNION_WXYZ = "QUATERNION_WXYZ"
+    YAW = "YAW"
 
 
 @dataclass
@@ -73,6 +98,7 @@ class Annotations:
     def as_tensor(
         self,
         field_ordering: Tuple[str, ...] = DEFAULT_ANNOTATIONS_TENSOR_FIELDS,
+        orientation_mode: OrientationMode = OrientationMode.YAW,
         dtype: torch.dtype = torch.float32,
     ):
         """Return the lidar sweep as a dense tensor.
@@ -85,10 +111,26 @@ class Annotations:
             (N,K) tensor where N is the number of lidar points and K
                 is the number of features.
         """
-        fields = []
-        for field_name in field_ordering:
-            fields.append(getattr(self, field_name))
+        if orientation_mode == OrientationMode.YAW:
+            augmented_ordering = list(
+                filter(lambda field_name: field_name not in ("qw", "qx", "qy", "qz"), field_ordering)
+            )
+            augmented_ordering.insert(6, "yaw")
+            field_ordering = tuple(augmented_ordering)
+        fields = [
+            getattr(self, field_name) if field_name != "yaw" else self.yaw_radians for field_name in field_ordering
+        ]
         return torch.stack(fields, dim=-1).type(dtype)
+
+    @property
+    def quaternion(self) -> Tensor:
+        """Quaternion in scalar first order (w, x, y, z)."""
+        return torch.stack((self.qw, self.qx, self.qy, self.qz), dim=-1)
+
+    @property
+    def yaw_radians(self) -> torch.Tensor:
+        """Rotation about the gravity-aligned axis (z) in radians."""
+        return quat_to_yaw(self.quaternion)
 
 
 @dataclass
@@ -119,7 +161,9 @@ class Lidar:
                 columns[k] = torch.as_tensor(v)
         return cls(**columns)
 
-    def as_tensor(self, field_ordering: Tuple[str, ...] = ("x", "y", "z"), dtype: torch.dtype = torch.float32):
+    def as_tensor(
+        self, field_ordering: Tuple[str, ...] = ("x", "y", "z", "intensity"), dtype: torch.dtype = torch.float32
+    ):
         """Return the lidar sweep as a dense tensor.
 
         Args:
