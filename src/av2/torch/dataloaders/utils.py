@@ -100,11 +100,12 @@ class Annotations:
         field_ordering: Tuple[str, ...] = DEFAULT_ANNOTATIONS_TENSOR_FIELDS,
         orientation_mode: OrientationMode = OrientationMode.YAW,
         dtype: torch.dtype = torch.float32,
-    ):
+    ) -> Tensor:
         """Return the lidar sweep as a dense tensor.
 
         Args:
             field_ordering: Feature ordering for the tensor.
+            orientation_mode: Orientation (pose) representation for the annotations.
             dtype: Target datatype for casting.
 
         Returns:
@@ -163,7 +164,7 @@ class Lidar:
 
     def as_tensor(
         self, field_ordering: Tuple[str, ...] = ("x", "y", "z", "intensity"), dtype: torch.dtype = torch.float32
-    ):
+    ) -> Tensor:
         """Return the lidar sweep as a dense tensor.
 
         Args:

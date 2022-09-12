@@ -227,7 +227,7 @@ class Av2(Dataset[Sweep]):
         """Read the lidar sweep.
 
         Args:
-            key: Unique key (log_id, timestamp_ns).
+            index: Dataset index.
 
         Returns:
             Tensor of annotations.
