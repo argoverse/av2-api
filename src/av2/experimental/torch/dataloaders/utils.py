@@ -13,23 +13,6 @@ from torch import Tensor
 
 from .conversions import quat_to_yaw
 
-DEFAULT_ANNOTATIONS_COLS: Final[Tuple[str, ...]] = (
-    "tx_m",
-    "ty_m",
-    "tz_m",
-    "length_m",
-    "width_m",
-    "height_m",
-    "qw",
-    "qx",
-    "qy",
-    "qz",
-    "vx_m",
-    "vy_m",
-    "vz_m",
-    "category",
-)
-
 LIDAR_GLOB_PATTERN: Final[str] = "*/sensors/lidar/*"
 MAX_STR_LEN: Final[int] = 32
 
