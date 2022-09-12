@@ -13,7 +13,7 @@ import pandas as pd
 from scipy.spatial.transform import Rotation as R
 from torch.utils.data import Dataset
 
-from av2.torch.dataloaders.utils import DEFAULT_ANNOTATIONS_COLS, Annotations, Lidar, Sweep
+from av2.torch.dataloaders.utils import DEFAULT_ANNOTATIONS_COLS, LIDAR_GLOB_PATTERN, Annotations, Lidar, Sweep
 from av2.utils.io import read_feather
 from av2.utils.typing import NDArrayFloat, PathType
 
@@ -213,7 +213,7 @@ class Av2(Dataset[Sweep]):
         annotation = annotations[timestamp_ns]
         city_R_ego, city_t_ego = self._construct_pose(timestamp_ns_to_city_SE3_ego[timestamp_ns])
         xyz_ego = np.array([annotation["tx_m"], annotation["ty_m"], annotation["tz_m"]])
-        xyz_city = R.from_quat(city_R_ego).apply(xyz_ego) + city_t_ego
+        xyz_city: NDArrayFloat = R.from_quat(city_R_ego).apply(xyz_ego) + city_t_ego
         return xyz_city
 
     def _construct_pose(self, city_SE3_ego: Dict[str, float]) -> Tuple[NDArrayFloat, NDArrayFloat]:

@@ -157,10 +157,10 @@ class Lidar:
             The lidar object.
         """
         columns = dataframe.to_dict("list")
-        for k, v in columns.items():
-            elem = v[0]
+        for field_name, field in columns.items():
+            elem = field[0]
             if isinstance(elem, (int, float)):
-                columns[k] = torch.as_tensor(v)
+                columns[field_name] = torch.as_tensor(field)
         return cls(**columns)
 
     def as_tensor(
