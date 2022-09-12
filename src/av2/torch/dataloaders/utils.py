@@ -175,9 +175,7 @@ class Lidar:
             (N,K) tensor where N is the number of lidar points and K
                 is the number of features.
         """
-        fields = []
-        for field_name in field_ordering:
-            fields.append(getattr(self, field_name))
+        fields = [getattr(self, field_name) for field_name in field_ordering]
         return torch.stack(fields, dim=-1).type(dtype)
 
 
