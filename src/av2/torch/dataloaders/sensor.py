@@ -254,7 +254,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
                 ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
 
                 dataframe = self._read_feather(self.lidar_path(log_id, timestamp_ns))
-                point_cloud: NDArrayFloat32 = dataframe[list(POINT_COORDINATE_FIELDS)].to_numpy()
+                point_cloud: NDArrayFloat = dataframe[list(POINT_COORDINATE_FIELDS)].to_numpy().astype(np.float64)
                 dataframe[list(POINT_COORDINATE_FIELDS)] = ego_current_SE3_ego_past.transform_point_cloud(
                     point_cloud
                 ).astype(np.float32)
