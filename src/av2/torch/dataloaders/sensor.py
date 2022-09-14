@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from math import inf
-from os import PathLike
 from pathlib import Path
 from typing import Any, Dict, Final, ItemsView, List, Tuple, cast
 
@@ -16,7 +15,7 @@ from scipy.spatial.transform import Rotation as R
 from torch.utils.data import Dataset
 
 from av2.utils.io import read_feather
-from av2.utils.typing import NDArrayFloat, NDArrayFloat32, PathType
+from av2.utils.typing import NDArrayFloat, PathType
 
 from .utils import LIDAR_GLOB_PATTERN, Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_SE3
 
