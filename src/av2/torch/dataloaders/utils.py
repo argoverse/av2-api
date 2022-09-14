@@ -8,6 +8,7 @@ from typing import Final, Tuple
 
 import fsspec.asyn
 import pandas as pd
+import polars as pl
 import torch
 from torch import Tensor
 
@@ -68,7 +69,7 @@ class Annotations:
     track_uuid: Tuple[str, ...]
 
     @classmethod
-    def from_dataframe(cls, dataframe: pd.DataFrame) -> Annotations:
+    def from_dataframe(cls, dataframe: pl.DataFrame) -> Annotations:
         """Build an annotations object from a Pandas DataFrame.
 
         Args:
@@ -77,11 +78,12 @@ class Annotations:
         Returns:
             The annotations object.
         """
-        columns = dataframe.to_dict("list")
-        for key, value in columns.items():
-            elem = value[0]
-            if isinstance(elem, (int, float)):
-                columns[key] = torch.as_tensor(value)
+        columns = {}
+        for field_name, field in dataframe.to_dict().items():
+            if field.dtype in (pl.Float32, pl.Float64, pl.Int32):
+                columns[field_name] = torch.as_tensor(field.to_numpy(writable=True))
+            else:
+                columns[field_name] = tuple(field.to_list())
         return cls(**columns)
 
     def as_tensor(
@@ -135,7 +137,7 @@ class Lidar:
     offset_ns: Tensor
 
     @classmethod
-    def from_dataframe(cls, dataframe: pd.DataFrame) -> Lidar:
+    def from_dataframe(cls, dataframe: pl.DataFrame) -> Lidar:
         """Build a lidar object from a Pandas DataFrame.
 
         Args:
@@ -144,11 +146,10 @@ class Lidar:
         Returns:
             The lidar object.
         """
-        columns = dataframe.to_dict("list")
+        columns = dataframe.to_dict()
         for field_name, field in columns.items():
-            elem = field[0]
-            if isinstance(elem, (int, float)):
-                columns[field_name] = torch.as_tensor(field)
+            if field.dtype in (pl.Float32, pl.Int32):
+                columns[field_name] = torch.as_tensor(field.to_numpy(writable=True))
         return cls(**columns)
 
     def as_tensor(
@@ -181,9 +182,10 @@ def prevent_fsspec_deadlock() -> None:
     fsspec.asyn.reset_lock()
 
 
-def query_SE3(poses: pd.DataFrame, timestamp_ns: int) -> SE3:
-    quat = poses.loc[timestamp_ns, ["qw", "qx", "qy", "qz"]].to_numpy()
-    translation = poses.loc[timestamp_ns, ["tx_m", "ty_m", "tz_m"]].to_numpy()
+def query_SE3(poses: pl.DataFrame, timestamp_ns: int) -> SE3:
+    pose = poses.filter(pl.col("timestamp_ns") == timestamp_ns)
+    quat = pose.select(["qw", "qx", "qy", "qz"]).to_numpy().squeeze()
+    translation = pose.select(["tx_m", "ty_m", "tz_m"]).to_numpy().squeeze()
     return SE3(
         rotation=quat_to_mat(quat),
         translation=translation,

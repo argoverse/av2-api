@@ -5,11 +5,13 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from math import inf
+from os import PathLike
 from pathlib import Path
 from typing import Any, Dict, Final, ItemsView, List, Tuple, cast
 
 import numpy as np
 import pandas as pd
+import polars as pl
 from scipy.spatial.transform import Rotation as R
 from torch.utils.data import Dataset
 
@@ -145,11 +147,10 @@ class Av2(Dataset[Sweep]):  # type: ignore
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
         annotations_path = self.annotations_path(log_id)
-        annotations = read_feather(annotations_path)
-        annotations = self._populate_annotations_velocity(index, annotations)
-
-        query = (annotations["num_interior_pts"] > 0) & (annotations["timestamp_ns"] == timestamp_ns)
-        annotations = annotations.loc[query].reset_index(drop=True)
+        annotations = self._read_feather(annotations_path)
+        annotations = self._populate_annotations_velocity(index, annotations.to_pandas())
+        query = (pl.col("num_interior_pts") > 0) & (pl.col("timestamp_ns") == timestamp_ns)
+        annotations = pl.from_pandas(annotations).filter(query)
         return Annotations.from_dataframe(annotations)
 
     def _populate_annotations_velocity(self, index: int, annotations: pd.DataFrame) -> pd.DataFrame:
@@ -244,24 +245,25 @@ class Av2(Dataset[Sweep]):  # type: ignore
         filtered_window: List[Tuple[str, int]] = list(filter(lambda sweep_uuid: sweep_uuid[0] == log_id, window))
 
         lidar_path = self.lidar_path(log_id, timestamp_ns)
-        dataframe_list = [read_feather(lidar_path)]
+        dataframe_list = [self._read_feather(lidar_path)]
         if len(window) > 0:
-            poses = read_feather(self.pose_path(log_id)).set_index("timestamp_ns")
+            poses = self._read_feather(self.pose_path(log_id))
             ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
             for log_id, timestamp_ns in filtered_window:
                 city_SE3_ego_past = query_SE3(poses, timestamp_ns)
                 ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
 
-                dataframe = read_feather(self.lidar_path(log_id, timestamp_ns))
+                dataframe = self._read_feather(self.lidar_path(log_id, timestamp_ns))
                 point_cloud: NDArrayFloat32 = dataframe[list(POINT_COORDINATE_FIELDS)].to_numpy()
-                dataframe[list(POINT_COORDINATE_FIELDS)] = ego_current_SE3_ego_past.transform_point_cloud(point_cloud)
+                dataframe[list(POINT_COORDINATE_FIELDS)] = ego_current_SE3_ego_past.transform_point_cloud(
+                    point_cloud
+                ).astype(np.float32)
                 dataframe_list.append(dataframe)
-
-        dataframe = pd.concat(dataframe_list).reset_index(drop=True)
+        dataframe = pl.concat(dataframe_list)
         dataframe = self._post_process_lidar(dataframe)
         return Lidar.from_dataframe(dataframe)
 
-    def _post_process_lidar(self, dataframe: pd.DataFrame) -> pd.DataFrame:
+    def _post_process_lidar(self, dataframe: pl.DataFrame) -> pl.DataFrame:
         """Apply post-processing operations on the point cloud.
 
         Args:
@@ -270,7 +272,9 @@ class Av2(Dataset[Sweep]):  # type: ignore
         Returns:
             The filtered lidar dataframe.
         """
-        xyz_m_ego: NDArrayFloat32 = dataframe[list(POINT_COORDINATE_FIELDS)].to_numpy(np.float32)
-        euclidean_norms: NDArrayFloat32 = np.linalg.norm(xyz_m_ego, axis=-1)
-        query = euclidean_norms <= self.max_lidar_range
-        return dataframe.iloc[query].reset_index(drop=True)
+        query = pl.col(["x"]).pow(2) + pl.col(["y"]).pow(2) + pl.col(["z"]).pow(2) <= self.max_lidar_range**2
+        return dataframe.filter(query)
+
+    def _read_feather(self, path: PathType) -> pl.DataFrame:
+        with path.open("rb") as file_handle:
+            return pl.read_ipc(file_handle)
