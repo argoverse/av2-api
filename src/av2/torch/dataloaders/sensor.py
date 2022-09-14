@@ -240,12 +240,12 @@ class Av2(Dataset[Sweep]):  # type: ignore
             Tensor of annotations.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
-        window = self.file_index[max(index - self.num_accumulated_sweeps, 0) : index + 1]
+        window = self.file_index[max(index - self.num_accumulated_sweeps + 1, 0) : index]
         filtered_window: List[Tuple[str, int]] = list(filter(lambda sweep_uuid: sweep_uuid[0] == log_id, window))
 
         lidar_path = self.lidar_path(log_id, timestamp_ns)
         dataframe_list = [read_feather(lidar_path)]
-        if len(window) > 1:
+        if len(window) > 0:
             poses = read_feather(self.pose_path(log_id)).set_index("timestamp_ns")
             ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
             for log_id, timestamp_ns in filtered_window:
