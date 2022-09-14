@@ -23,6 +23,9 @@ disallow_untyped_decorators = false
 plugins = "numpy.typing.mypy_plugin"
 strict = true
 
+[tool.pylint]
+max-line-length = 120
+
 [tool.pyright]
 include = ["src"]
 

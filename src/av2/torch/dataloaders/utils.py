@@ -11,6 +11,9 @@ import pandas as pd
 import torch
 from torch import Tensor
 
+from av2.geometry.geometry import quat_to_mat
+from av2.geometry.se3 import SE3
+
 from .conversions import quat_to_yaw
 
 LIDAR_GLOB_PATTERN: Final[str] = "*/sensors/lidar/*"
@@ -31,7 +34,7 @@ DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final[Tuple[str, ...]] = (
     "vy_m",
     "vz_m",
 )
-DEFAULT_LIDAR_TENSOR_FIELDS: Final[Tuple[str, ...]] = ("x", "y", "z", "intensity")
+DEFAULT_LIDAR_TENSOR_FIELDS: Final[Tuple[str, ...]] = ("x", "y", "z")
 
 
 @unique
@@ -176,3 +179,12 @@ class Sweep:
 def prevent_fsspec_deadlock() -> None:
     """Reset the fsspec global lock to prevent deadlocking in forked processes."""
     fsspec.asyn.reset_lock()
+
+
+def query_SE3(poses: pd.DataFrame, timestamp_ns: int) -> SE3:
+    quat = poses.loc[timestamp_ns, ["qw", "qx", "qy", "qz"]].to_numpy()
+    translation = poses.loc[timestamp_ns, ["tx_m", "ty_m", "tz_m"]].to_numpy()
+    return SE3(
+        rotation=quat_to_mat(quat),
+        translation=translation,
+    )

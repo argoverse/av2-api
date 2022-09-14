@@ -16,7 +16,7 @@ from torch.utils.data import Dataset
 from av2.utils.io import read_feather
 from av2.utils.typing import NDArrayFloat, PathType
 
-from .utils import LIDAR_GLOB_PATTERN, Annotations, Lidar, Sweep, prevent_fsspec_deadlock
+from .utils import LIDAR_GLOB_PATTERN, Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_SE3
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
@@ -33,6 +33,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
     file_index: List[Tuple[str, int]] = field(init=False)
     max_annotation_range: float = inf
     max_lidar_range: float = inf
+    num_accumulated_sweeps: int = 1
 
     def __post_init__(self) -> None:
         """Build the file index."""
@@ -234,13 +235,38 @@ class Av2(Dataset[Sweep]):  # type: ignore
             Tensor of annotations.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
+        window = self.file_index[max(index - self.num_accumulated_sweeps, 0) : index + 1]
+        window = list(filter(lambda sweep_uuid: sweep_uuid[0] == log_id, window))
+
         lidar_path = self.lidar_path(log_id, timestamp_ns)
-        dataframe = read_feather(lidar_path)
+        dataframe_list = [read_feather(lidar_path)]
+        if len(window) > 1:
+            poses = read_feather(self.pose_path(log_id)).set_index("timestamp_ns")
+            ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
+            for (log_id, timestamp_ns) in window:
+                city_SE3_ego_past = query_SE3(poses, timestamp_ns)
+                ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
+
+                dataframe = read_feather(self.lidar_path(log_id, timestamp_ns))
+                dataframe[["x", "y", "z"]] = ego_current_SE3_ego_past.transform_point_cloud(
+                    dataframe[["x", "y", "z"]].to_numpy()
+                )
+                dataframe_list.append(dataframe)
+
+        dataframe = pd.concat(dataframe_list).reset_index(drop=True)
         dataframe = self._post_process_lidar(dataframe)
         return Lidar.from_dataframe(dataframe)
 
     def _post_process_lidar(self, dataframe: pd.DataFrame) -> pd.DataFrame:
+        """Apply post-processing operations on the point cloud.
+
+        Args:
+            dataframe: Lidar dataframe.
+
+        Returns:
+            The filtered lidar dataframe.
+        """
         xyz_m_ego = dataframe[["x", "y", "z"]].to_numpy(np.float32)
-        euclidean_norms = np.linalg.norm(xyz_m_ego, axis=-1)
+        euclidean_norms: np.ndarray = np.linalg.norm(xyz_m_ego, axis=-1)
         query = euclidean_norms <= self.max_lidar_range
         return dataframe.iloc[query].reset_index(drop=True)
