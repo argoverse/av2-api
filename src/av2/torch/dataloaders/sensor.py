@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass, field
 from math import inf
 from pathlib import Path
-from typing import Any, Dict, ItemsView, List, Tuple, cast
+from typing import Any, Dict, Final, ItemsView, List, Tuple, cast
 
 import numpy as np
 import pandas as pd
@@ -14,12 +14,16 @@ from scipy.spatial.transform import Rotation as R
 from torch.utils.data import Dataset
 
 from av2.utils.io import read_feather
-from av2.utils.typing import NDArrayFloat, PathType
+from av2.utils.typing import NDArrayFloat, NDArrayFloat32, PathType
 
 from .utils import LIDAR_GLOB_PATTERN, Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_SE3
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
+
+ANNOTATION_UUID_FIELDS: Final[Tuple[str, str]] = ("track_uuid", "timestamp_ns")
+SWEEP_UUID_FIELDS: Final[Tuple[str, str]] = ("log_id", "timestamp_ns")
+POINT_COORDINATE_FIELDS: Final[Tuple[str, str, str]] = ("x", "y", "z")
 
 
 @dataclass
@@ -65,7 +69,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         logger.info("%s", info)
 
     def annotations_path(self, log_id: str) -> PathType:
-        """Return the annotations at the specified log id.
+        """Get the annotations at the specified log id.
 
         Args:
             log_id: Unique log identifier.
@@ -76,7 +80,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         return self.split_dir / log_id / "annotations.feather"
 
     def lidar_path(self, log_id: str, timestamp_ns: int) -> PathType:
-        """Return the lidar path at the specified log id and timestamp.
+        """Get the lidar path at the specified log id and timestamp.
 
         Args:
             log_id: Unique log identifier.
@@ -88,11 +92,11 @@ class Av2(Dataset[Sweep]):  # type: ignore
         return self.split_dir / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
 
     def pose_path(self, log_id: str) -> PathType:
-        """City egopose path."""
+        """Get the city egopose path."""
         return self.split_dir / log_id / "city_SE3_egovehicle.feather"
 
     def sweep_uuid(self, index: int) -> Tuple[str, int]:
-        """Return sweep uuid at the given index.
+        """Get the sweep uuid at the given index.
 
         Args:
             index: Dataset index.
@@ -103,7 +107,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         return self.file_index[index]
 
     def __getitem__(self, index: int) -> Sweep:
-        """Return annotations and lidar for one sweep.
+        """Get the annotations and lidar for one sweep.
 
         Args:
             index: Dataset index.
@@ -127,7 +131,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
             self.file_index = [(key.parts[-4], int(key.stem)) for key in paths]
 
             self.file_index_path.parent.mkdir(parents=True, exist_ok=True)
-            dataframe = pd.DataFrame.from_records(self.file_index, columns=["log_id", "timestamp_ns"])
+            dataframe = pd.DataFrame.from_records(self.file_index, columns=SWEEP_UUID_FIELDS)
             dataframe.to_feather(self.file_index_path)
 
     def read_annotations(self, index: int) -> Annotations:
@@ -202,8 +206,9 @@ class Av2(Dataset[Sweep]):  # type: ignore
                 row = (current_track_uuid, current_timestamp_ns, vx_m, vy_m, vz_m)
                 velocity_metadata.append(row)
 
-        velocity_frame = pd.DataFrame(velocity_metadata, columns=["track_uuid", "timestamp_ns", "vx_m", "vy_m", "vz_m"])
-        annotations = annotations.merge(on=["track_uuid", "timestamp_ns"], right=velocity_frame)
+        columns = ANNOTATION_UUID_FIELDS + ("vx_m", "vy_m", "vz_m")
+        velocity_frame = pd.DataFrame(velocity_metadata, columns=list(columns))
+        annotations = annotations.merge(on=ANNOTATION_UUID_FIELDS, right=velocity_frame)
         return annotations
 
     def _compute_city_annotation_coordinates(
@@ -236,21 +241,20 @@ class Av2(Dataset[Sweep]):  # type: ignore
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
         window = self.file_index[max(index - self.num_accumulated_sweeps, 0) : index + 1]
-        window = list(filter(lambda sweep_uuid: sweep_uuid[0] == log_id, window))
+        filtered_window: List[Tuple[str, int]] = list(filter(lambda sweep_uuid: sweep_uuid[0] == log_id, window))
 
         lidar_path = self.lidar_path(log_id, timestamp_ns)
         dataframe_list = [read_feather(lidar_path)]
         if len(window) > 1:
             poses = read_feather(self.pose_path(log_id)).set_index("timestamp_ns")
             ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
-            for (log_id, timestamp_ns) in window:
+            for log_id, timestamp_ns in filtered_window:
                 city_SE3_ego_past = query_SE3(poses, timestamp_ns)
                 ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
 
                 dataframe = read_feather(self.lidar_path(log_id, timestamp_ns))
-                dataframe[["x", "y", "z"]] = ego_current_SE3_ego_past.transform_point_cloud(
-                    dataframe[["x", "y", "z"]].to_numpy()
-                )
+                point_cloud: NDArrayFloat32 = dataframe[list(POINT_COORDINATE_FIELDS)].to_numpy()
+                dataframe[list(POINT_COORDINATE_FIELDS)] = ego_current_SE3_ego_past.transform_point_cloud(point_cloud)
                 dataframe_list.append(dataframe)
 
         dataframe = pd.concat(dataframe_list).reset_index(drop=True)
@@ -266,7 +270,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         Returns:
             The filtered lidar dataframe.
         """
-        xyz_m_ego = dataframe[["x", "y", "z"]].to_numpy(np.float32)
-        euclidean_norms: np.ndarray = np.linalg.norm(xyz_m_ego, axis=-1)
+        xyz_m_ego: NDArrayFloat32 = dataframe[list(POINT_COORDINATE_FIELDS)].to_numpy(np.float32)
+        euclidean_norms: NDArrayFloat32 = np.linalg.norm(xyz_m_ego, axis=-1)
         query = euclidean_norms <= self.max_lidar_range
         return dataframe.iloc[query].reset_index(drop=True)
