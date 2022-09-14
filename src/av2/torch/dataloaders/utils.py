@@ -7,7 +7,6 @@ from enum import Enum, unique
 from typing import Final, Tuple
 
 import fsspec.asyn
-import pandas as pd
 import polars as pl
 import torch
 from torch import Tensor
@@ -183,6 +182,15 @@ def prevent_fsspec_deadlock() -> None:
 
 
 def query_SE3(poses: pl.DataFrame, timestamp_ns: int) -> SE3:
+    """Query the SE(3) transformation as the provided timestamp in nanoseconds.
+
+    Args:
+        poses: DataFrame of quaternion and translation components.
+        timestamp_ns: Timestamp of interest in nanoseconds.
+
+    Returns:
+        SE(3) at timestamp_ns.
+    """
     pose = poses.filter(pl.col("timestamp_ns") == timestamp_ns)
     quat = pose.select(["qw", "qx", "qy", "qz"]).to_numpy().squeeze()
     translation = pose.select(["tx_m", "ty_m", "tz_m"]).to_numpy().squeeze()
