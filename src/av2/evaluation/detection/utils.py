@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
-from joblib import Parallel, delayed
+import multiprocessing as mp
 from scipy.spatial.distance import cdist
 from upath import UPath
 
@@ -462,9 +462,8 @@ def load_mapped_avm_and_egoposes(
         warnings.filterwarnings("ignore", module="google")
         return ArgoverseStaticMap.from_map_dir(dataset_dir / log_id / "map", build_raster=True)
 
-    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=n_jobs, verbose=10)(
-        delayed(_launch_job)(log_id) for log_id in log_ids
-    )
+    with mp.get_context("forkserver").Pool(processes=n_jobs) as p:
+        avms: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(_launch_job, log_ids)
 
     if avms is None:
         raise RuntimeError("Map and egopose loading has failed!")

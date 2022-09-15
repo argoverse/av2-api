@@ -52,6 +52,7 @@ Results:
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
 import itertools
+import multiprocessing as mp
 import logging
 import warnings
 from statistics import mean
@@ -170,9 +171,8 @@ def evaluate(
         args_list.append(args)
 
     logger.info("Starting evaluation ...")
-    # with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-    #     outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate, args_list)
-    outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = Parallel(n_jobs=n_jobs, verbose=10)(delayed(accumulate)(*args) for args in args_list)
+    with mp.get_context("forkserver").Pool(processes=n_jobs) as p:
+        outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate, args_list)
 
     if outputs is None:
         raise RuntimeError("Accumulation has failed! Please check the integrity of your detections and annotations.")
