@@ -456,14 +456,9 @@ def load_mapped_avm_and_egoposes(
 
     log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(dataset_dir / log_id) for log_id in log_ids}
 
-    def _launch_job(log_id: str):
-        import warnings
-
-        warnings.filterwarnings("ignore", module="google")
-        return ArgoverseStaticMap.from_map_dir(dataset_dir / log_id / "map", build_raster=True)
 
     with mp.get_context("forkserver").Pool(processes=n_jobs) as p:
-        avms: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(_launch_job, log_ids)
+        avms = p.starmap(_launch_job, [(log_id, dataset_dir) for log_id in log_ids])
 
     if avms is None:
         raise RuntimeError("Map and egopose loading has failed!")
@@ -486,3 +481,9 @@ def groupby(names: List[str], values: NDArrayFloat) -> Dict[str, NDArrayFloat]:
     dts_groups: List[NDArrayFloat] = np.split(values, unique_items_indices[1:])
     uuid_to_groups = {unique_items[i]: x for i, x in enumerate(dts_groups)}
     return uuid_to_groups
+
+def _launch_job(log_id: str, dataset_dir: Path):
+    import warnings
+
+    warnings.filterwarnings("ignore", module="google")
+    return ArgoverseStaticMap.from_map_dir(dataset_dir / log_id / "map", build_raster=True)
