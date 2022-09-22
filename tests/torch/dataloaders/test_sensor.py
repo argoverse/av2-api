@@ -4,6 +4,9 @@ from pathlib import Path
 from typing import Final
 
 from av2.torch.dataloaders.sensor import Av2
+import torch.multiprocessing as mp
+
+mp.set_start_method("fork")
 
 TEST_DATA_DIR: Final[Path] = Path(".").resolve() / "test_data"
 
