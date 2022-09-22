@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools
 import logging
 from dataclasses import dataclass, field
+from enum import Enum, unique
 from math import inf
 from pathlib import Path
 from typing import Any, Final, ItemsView, List, Optional, Tuple
@@ -17,7 +18,7 @@ from torch.utils.data import Dataset
 from av2.geometry.geometry import quat_to_mat
 from av2.utils.typing import NDArrayFloat, PathType
 
-from .utils import Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_SE3
+from .utils import Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_SE3, read_feather
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
@@ -28,8 +29,17 @@ POINT_COORDINATE_FIELDS: Final[Tuple[str, str, str]] = ("x", "y", "z")
 
 LIDAR_GLOB_PATTERN: Final[str] = "sensors/lidar/*.feather"
 
+CACHE_DIR: Final[PathType] = Path.home() / ".cache" / "av2"
+
 
 pl.Config.with_columns_kwargs = True
+
+
+@unique
+class CachingMode(str, Enum):
+    """Caching mode."""
+
+    DISK = "DISK"
 
 
 @dataclass
@@ -42,15 +52,15 @@ class Av2(Dataset[Sweep]):  # type: ignore
         max_annotation_range: Max Euclidean distance between the egovehicle origin and the annotation cuboid centers.
         max_lidar_range: Max Euclidean distance between the egovehicle origin and the lidar points.
         num_accumulated_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
+        caching_mode: File caching mode.
     """
 
     dataset_dir: PathType
     split_name: str
-
     max_annotation_range: float = inf
     max_lidar_range: float = inf
     num_accumulated_sweeps: int = 1
-
+    caching_mode: Optional[CachingMode] = None
     file_index: List[Tuple[str, int]] = field(init=False)
 
     def __post_init__(self) -> None:
@@ -151,11 +161,28 @@ class Av2(Dataset[Sweep]):  # type: ignore
             The annotations object.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
-        annotations_path = self.annotations_path(log_id)
-        annotations = self._read_feather(annotations_path)
-        annotations = self._populate_annotations_velocity(index, annotations)
-        annotations = annotations.filter((pl.col("num_interior_pts") > 0) & (pl.col("timestamp_ns") == timestamp_ns))
-        return Annotations(annotations)
+        maybe_cache_path = CACHE_DIR / self.split_name / log_id / "annotations.feather"
+
+        is_missing = True
+        if self.caching_mode == CachingMode.DISK:
+            if maybe_cache_path.exists():
+                dataframe = read_feather(maybe_cache_path)
+                annotations = Annotations(dataframe)
+                return annotations
+
+        if is_missing:
+            log_id, timestamp_ns = self.sweep_uuid(index)
+            annotations_path = self.annotations_path(log_id)
+            dataframe = read_feather(annotations_path)
+            dataframe = self._populate_annotations_velocity(index, dataframe)
+            dataframe = dataframe.filter((pl.col("num_interior_pts") > 0) & (pl.col("timestamp_ns") == timestamp_ns))
+
+        if self.caching_mode == CachingMode.DISK and not is_missing:
+            maybe_cache_path.parent.mkdir(parents=True, exist_ok=True)
+            dataframe.write_ipc(maybe_cache_path)
+
+        annotations = Annotations(dataframe)
+        return annotations
 
     def _populate_annotations_velocity(self, index: int, annotations: pl.DataFrame) -> pl.DataFrame:
         """Populate the annotations with their estimated velocities.
@@ -169,7 +196,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         """
         current_log_id, _ = self.sweep_uuid(index)
         pose_path = self.pose_path(current_log_id)
-        city_SE3_ego = self._read_feather(pose_path)
+        city_SE3_ego = read_feather(pose_path)
 
         annotations = annotations.sort(["track_uuid", "timestamp_ns"]).select(
             [pl.arange(0, len(annotations)).alias("index"), pl.col("*")]
@@ -209,27 +236,42 @@ class Av2(Dataset[Sweep]):  # type: ignore
             Tensor of annotations.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
-        window = self.file_index[max(index - self.num_accumulated_sweeps + 1, 0) : index]
-        filtered_window: List[Tuple[str, int]] = list(filter(lambda sweep_uuid: sweep_uuid[0] == log_id, window))
+        maybe_cache_path = CACHE_DIR / self.split_name / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
 
-        lidar_path = self.lidar_path(log_id, timestamp_ns)
-        dataframe_list = [self._read_feather(lidar_path)]
-        if len(window) > 0:
-            poses = self._read_feather(self.pose_path(log_id))
-            ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
-            for log_id, timestamp_ns in filtered_window:
-                city_SE3_ego_past = query_SE3(poses, timestamp_ns)
-                ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
+        is_missing = True
+        if self.caching_mode == CachingMode.DISK:
+            if maybe_cache_path.exists():
+                dataframe = read_feather(maybe_cache_path)
+                lidar = Lidar(dataframe)
+                return lidar
 
-                dataframe = self._read_feather(self.lidar_path(log_id, timestamp_ns))
-                point_cloud: NDArrayFloat = dataframe[list(POINT_COORDINATE_FIELDS)].to_numpy().astype(np.float64)
-                dataframe[list(POINT_COORDINATE_FIELDS)] = ego_current_SE3_ego_past.transform_point_cloud(
-                    point_cloud
-                ).astype(np.float32)
-                dataframe_list.append(dataframe)
-        dataframe = pl.concat(dataframe_list)
-        dataframe = self._post_process_lidar(dataframe)
-        return Lidar(dataframe)
+        if is_missing:
+            window = self.file_index[max(index - self.num_accumulated_sweeps + 1, 0) : index]
+            filtered_window: List[Tuple[str, int]] = list(filter(lambda sweep_uuid: sweep_uuid[0] == log_id, window))
+
+            lidar_path = self.lidar_path(log_id, timestamp_ns)
+            dataframe_list = [read_feather(lidar_path)]
+            if len(window) > 0:
+                poses = read_feather(self.pose_path(log_id))
+                ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
+                for log_id, timestamp_ns in filtered_window:
+                    city_SE3_ego_past = query_SE3(poses, timestamp_ns)
+                    ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
+
+                    dataframe = read_feather(self.lidar_path(log_id, timestamp_ns))
+                    point_cloud: NDArrayFloat = dataframe[list(POINT_COORDINATE_FIELDS)].to_numpy().astype(np.float64)
+                    dataframe[list(POINT_COORDINATE_FIELDS)] = ego_current_SE3_ego_past.transform_point_cloud(
+                        point_cloud
+                    ).astype(np.float32)
+                    dataframe_list.append(dataframe)
+            dataframe = pl.concat(dataframe_list)
+            dataframe = self._post_process_lidar(dataframe)
+        if self.caching_mode == CachingMode.DISK and not maybe_cache_path.exists():
+            maybe_cache_path.parent.mkdir(parents=True, exist_ok=True)
+            dataframe.write_ipc(maybe_cache_path)
+
+        lidar = Lidar(dataframe)
+        return lidar
 
     def _post_process_lidar(self, dataframe: pl.DataFrame) -> pl.DataFrame:
         """Apply post-processing operations on the point cloud.
@@ -243,18 +285,6 @@ class Av2(Dataset[Sweep]):  # type: ignore
         return dataframe.filter(
             pl.col(["x"]).pow(2) + pl.col(["y"]).pow(2) + pl.col(["z"]).pow(2) <= self.max_lidar_range**2
         )
-
-    def _read_feather(self, path: PathType) -> pl.DataFrame:
-        """Read a feather file and load it as a `polars` dataframe.
-
-        Args:
-            path: Path to the feather file.
-
-        Returns:
-            The feather file as a `polars` dataframe.
-        """
-        with path.open("rb") as f:
-            return pl.read_ipc(f, use_pyarrow=True, memory_map=True)
 
     @staticmethod
     def _file_index_helper(root_dir: PathType, file_pattern: str) -> List[Tuple[str, int]]:

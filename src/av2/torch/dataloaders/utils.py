@@ -16,6 +16,7 @@ from torch import Tensor
 
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
 from av2.geometry.se3 import SE3
+from av2.utils.typing import PathType
 
 MAX_STR_LEN: Final[int] = 32
 
@@ -254,3 +255,16 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
     constraint_b = torch.logical_and(dot_uvw_reference >= dot_uvw_points, dot_uvw_points >= dot_uvw_vertices)
     is_interior: Tensor = torch.logical_or(constraint_a, constraint_b).all(dim=1)
     return is_interior
+
+
+def read_feather(path: PathType) -> pl.DataFrame:
+    """Read a feather file and load it as a `polars` dataframe.
+
+    Args:
+        path: Path to the feather file.
+
+    Returns:
+        The feather file as a `polars` dataframe.
+    """
+    with path.open("rb") as f:
+        return pl.read_ipc(f, use_pyarrow=True, memory_map=True)
