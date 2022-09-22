@@ -55,6 +55,16 @@ class CuboidMode(str, Enum):
 
     @staticmethod
     def convert(dataframe: pl.DataFrame, src: CuboidMode, target: CuboidMode) -> pl.DataFrame:
+        """Convert an annotations dataframe from src to target cuboid parameterization.
+
+        Args:
+            dataframe: Annotations dataframe.
+            src: Cuboid parameterization of the dataframe.
+            target: Desired parameterization of the dataframe.
+
+        Returns:
+            The dataframe in the new parameterization format.
+        """
         if src == target:
             return dataframe
         if src == CuboidMode.XYZLWH_QWXYZ and target == CuboidMode.XYZLWH_THETA:
@@ -63,10 +73,8 @@ class CuboidMode(str, Enum):
             yaw = mat_to_xyz(mat)[:, -1]
 
             first_occurence = min(
-                [
-                    i if field_name in QUAT_WXYZ_FIELDS else math.inf
-                    for (i, field_name) in enumerate(DEFAULT_ANNOTATIONS_TENSOR_FIELDS)
-                ]
+                i if field_name in QUAT_WXYZ_FIELDS else math.inf
+                for (i, field_name) in enumerate(DEFAULT_ANNOTATIONS_TENSOR_FIELDS)
             )
             field_ordering = tuple(
                 filter(lambda field_name: field_name not in QUAT_WXYZ_FIELDS, DEFAULT_ANNOTATIONS_TENSOR_FIELDS)
