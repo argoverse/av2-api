@@ -253,7 +253,6 @@ def parse_camera_enum_types(cam_names: Tuple[str, ...]) -> List[RingCameras]:
 
 @click.command(help="Generate map visualizations on ego-view imagery from the Argoverse 2 Sensor or TbV Datasets.")
 @click.option(
-    "-d",
     "--data-root",
     required=True,
     help="Path to local directory where the Argoverse 2 Sensor Dataset or TbV logs are stored.",
