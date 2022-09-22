@@ -2,22 +2,22 @@
 
 from __future__ import annotations
 
+import itertools
 import logging
 from dataclasses import dataclass, field
 from math import inf
 from pathlib import Path
-from typing import Any, Final, ItemsView, List, Tuple, cast
+from typing import Any, Final, ItemsView, List, Optional, Tuple
 
+import joblib
 import numpy as np
-import pandas as pd
 import polars as pl
 from torch.utils.data import Dataset
 
 from av2.geometry.geometry import quat_to_mat
-from av2.utils.io import read_feather
 from av2.utils.typing import NDArrayFloat, PathType
 
-from .utils import LIDAR_GLOB_PATTERN, Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_SE3
+from .utils import Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_SE3
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
@@ -25,6 +25,9 @@ logger = logging.getLogger(__file__)
 ANNOTATION_UUID_FIELDS: Final[Tuple[str, str]] = ("track_uuid", "timestamp_ns")
 SWEEP_UUID_FIELDS: Final[Tuple[str, str]] = ("log_id", "timestamp_ns")
 POINT_COORDINATE_FIELDS: Final[Tuple[str, str, str]] = ("x", "y", "z")
+
+LIDAR_GLOB_PATTERN: Final[str] = "sensors/lidar/*.feather"
+
 
 pl.Config.with_columns_kwargs = True
 
@@ -39,13 +42,10 @@ class Av2(Dataset[Sweep]):  # type: ignore
         max_annotation_range: Maximum Euclidean distance between the egovehicle origin and the annotation cuboid centers.
         max_lidar_range: Maximum Euclidean distance between the egovehicle origin and the lidar points.
         num_accumulated_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
-
-        force_rebuild_file_index: Flag to rebuild the file index and update the cache.
     """
 
     dataset_dir: PathType
     split_name: str
-    force_rebuild_file_index: bool = False
 
     max_annotation_range: float = inf
     max_lidar_range: float = inf
@@ -134,19 +134,16 @@ class Av2(Dataset[Sweep]):  # type: ignore
         return Sweep(annotations=annotations, lidar=lidar)
 
     def _build_file_index(self) -> None:
-        """Build the file index consisting of (log_id, timestamp_ns) pairs."""
-        if not self.force_rebuild_file_index and self.file_index_path.exists():
-            logger.info("Using cached file index ...")
-            dataframe = read_feather(self.file_index_path)
-            self.file_index = [(cast(str, key[0]), cast(int, key[1])) for key in dataframe.to_numpy().tolist()]
-        else:
-            logger.info("Building file index. This may take a moment ...")
-            paths = sorted(self.split_dir.glob(LIDAR_GLOB_PATTERN))
-            self.file_index = [(key.parts[-4], int(key.stem)) for key in paths]
+        logger.info("Building file index. This may take a moment ...")
 
-            self.file_index_path.parent.mkdir(parents=True, exist_ok=True)
-            dataframe = pd.DataFrame.from_records(self.file_index, columns=SWEEP_UUID_FIELDS)
-            dataframe.to_feather(self.file_index_path)
+        log_dirs = sorted(self.split_dir.glob("*"))
+        path_lists: Optional[List[List[Tuple[str, int]]]] = joblib.Parallel(n_jobs=-1)(
+            joblib.delayed(_glob)(log_dir, LIDAR_GLOB_PATTERN) for log_dir in log_dirs
+        )
+        if path_lists is None:
+            raise RuntimeError("Error scanning the dataset directory!")
+
+        self.file_index = sorted(itertools.chain.from_iterable(path_lists))
 
     def read_annotations(self, index: int) -> Annotations:
         """Read the sweep annotations.
@@ -262,3 +259,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         """
         with path.open("rb") as f:
             return pl.read_ipc(f, use_pyarrow=True, memory_map=True)
+
+
+def _glob(path: PathType, pattern: str) -> List[Tuple[str, int]]:
+    return [(key.parts[-4], int(key.stem)) for key in path.glob(pattern)]

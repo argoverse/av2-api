@@ -17,7 +17,6 @@ from torch import Tensor
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
 from av2.geometry.se3 import SE3
 
-LIDAR_GLOB_PATTERN: Final[str] = "*/sensors/lidar/*"
 MAX_STR_LEN: Final[int] = 32
 
 DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final[Tuple[str, ...]] = (
@@ -238,7 +237,7 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
     Args:
         points_xyz: (N,3) Points in Cartesian space.
         cuboid_vertices: (K,8,3) Vertices of the cuboids.
-        
+
     Returns:
         (N,) A tensor of boolean flags indicating whether the points
             are interior to the cuboid.
