@@ -149,13 +149,11 @@ class Av2(Dataset[Sweep]):  # type: ignore
         log_id, timestamp_ns = self.sweep_uuid(index)
         annotations_path = self.annotations_path(log_id)
         annotations = self._read_feather(annotations_path)
-        annotations = self._populate_annotations_velocity(index, annotations.to_pandas())
-        annotations = pl.from_pandas(annotations).filter(
-            (pl.col("num_interior_pts") > 0) & (pl.col("timestamp_ns") == timestamp_ns)
-        )
+        annotations = self._populate_annotations_velocity(index, annotations)
+        annotations = annotations.filter((pl.col("num_interior_pts") > 0) & (pl.col("timestamp_ns") == timestamp_ns))
         return Annotations.from_dataframe(annotations)
 
-    def _populate_annotations_velocity(self, index: int, annotations: pd.DataFrame) -> pd.DataFrame:
+    def _populate_annotations_velocity(self, index: int, annotations: pl.DataFrame) -> pl.DataFrame:
         """Populate the annotations with their estimated velocities.
 
         Args:
@@ -169,7 +167,6 @@ class Av2(Dataset[Sweep]):  # type: ignore
         pose_path = self.pose_path(current_log_id)
         city_SE3_ego = self._read_feather(pose_path)
 
-        annotations: pl.DataFrame = pl.from_pandas(annotations)
         annotations = annotations.sort(["track_uuid", "timestamp_ns"]).select(
             [pl.arange(0, len(annotations)).alias("index"), pl.col("*")]
         )
@@ -196,7 +193,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
             ]
         )
         annotations = annotations.join(velocities, on=["track_uuid", "index"]).drop("index")
-        return annotations.to_pandas()
+        return annotations
 
     def read_lidar(self, index: int) -> Lidar:
         """Read the lidar sweep.
