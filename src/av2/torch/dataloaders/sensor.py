@@ -150,8 +150,9 @@ class Av2(Dataset[Sweep]):  # type: ignore
         annotations_path = self.annotations_path(log_id)
         annotations = self._read_feather(annotations_path)
         annotations = self._populate_annotations_velocity(index, annotations.to_pandas())
-        query = (pl.col("num_interior_pts") > 0) & (pl.col("timestamp_ns") == timestamp_ns)
-        annotations = pl.from_pandas(annotations).filter(query)
+        annotations = pl.from_pandas(annotations).filter(
+            (pl.col("num_interior_pts") > 0) & (pl.col("timestamp_ns") == timestamp_ns)
+        )
         return Annotations.from_dataframe(annotations)
 
     def _populate_annotations_velocity(self, index: int, annotations: pd.DataFrame) -> pd.DataFrame:
@@ -242,4 +243,5 @@ class Av2(Dataset[Sweep]):  # type: ignore
         return dataframe.filter(query)
 
     def _read_feather(self, path: PathType) -> pl.DataFrame:
-        return pl.from_pandas(read_feather(path))
+        with path.open("rb") as f:
+            return pl.read_ipc(f, use_pyarrow=True, memory_map=True)
