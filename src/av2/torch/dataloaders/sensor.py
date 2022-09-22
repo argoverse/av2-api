@@ -36,8 +36,8 @@ pl.Config.with_columns_kwargs = True
 
 
 @unique
-class CachingMode(str, Enum):
-    """Caching mode."""
+class FileCachingMode(str, Enum):
+    """File caching mode."""
 
     DISK = "DISK"
 
@@ -52,7 +52,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         max_annotation_range: Max Euclidean distance between the egovehicle origin and the annotation cuboid centers.
         max_lidar_range: Max Euclidean distance between the egovehicle origin and the lidar points.
         num_accumulated_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
-        caching_mode: File caching mode.
+        file_caching_mode: File caching mode.
     """
 
     dataset_dir: PathType
@@ -60,7 +60,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
     max_annotation_range: float = inf
     max_lidar_range: float = inf
     num_accumulated_sweeps: int = 1
-    caching_mode: Optional[CachingMode] = None
+    file_caching_mode: Optional[FileCachingMode] = None
     file_index: List[Tuple[str, int]] = field(init=False)
 
     def __post_init__(self) -> None:
@@ -164,7 +164,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         maybe_cache_path = CACHE_DIR / self.split_name / log_id / "annotations.feather"
 
         is_missing = True
-        if self.caching_mode == CachingMode.DISK:
+        if self.file_caching_mode == FileCachingMode.DISK:
             if maybe_cache_path.exists():
                 dataframe = read_feather(maybe_cache_path)
                 annotations = Annotations(dataframe)
@@ -177,7 +177,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
             dataframe = self._populate_annotations_velocity(index, dataframe)
             dataframe = dataframe.filter((pl.col("num_interior_pts") > 0) & (pl.col("timestamp_ns") == timestamp_ns))
 
-        if self.caching_mode == CachingMode.DISK and not is_missing:
+        if self.file_caching_mode == FileCachingMode.DISK and not is_missing:
             maybe_cache_path.parent.mkdir(parents=True, exist_ok=True)
             dataframe.write_ipc(maybe_cache_path)
 
@@ -239,7 +239,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         maybe_cache_path = CACHE_DIR / self.split_name / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
 
         is_missing = True
-        if self.caching_mode == CachingMode.DISK:
+        if self.file_caching_mode == FileCachingMode.DISK:
             if maybe_cache_path.exists():
                 dataframe = read_feather(maybe_cache_path)
                 lidar = Lidar(dataframe)
@@ -266,7 +266,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
                     dataframe_list.append(dataframe)
             dataframe = pl.concat(dataframe_list)
             dataframe = self._post_process_lidar(dataframe)
-        if self.caching_mode == CachingMode.DISK and not maybe_cache_path.exists():
+        if self.file_caching_mode == FileCachingMode.DISK and not maybe_cache_path.exists():
             maybe_cache_path.parent.mkdir(parents=True, exist_ok=True)
             dataframe.write_ipc(maybe_cache_path)
 
