@@ -39,8 +39,8 @@ class Av2(Dataset[Sweep]):  # type: ignore
     Args:
         dataset_dir: Path to the dataset directory.
         split_name: Name of the dataset split.
-        max_annotation_range: Maximum Euclidean distance between the egovehicle origin and the annotation cuboid centers.
-        max_lidar_range: Maximum Euclidean distance between the egovehicle origin and the lidar points.
+        max_annotation_range: Max Euclidean distance between the egovehicle origin and the annotation cuboid centers.
+        max_lidar_range: Max Euclidean distance between the egovehicle origin and the lidar points.
         num_accumulated_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
     """
 
@@ -138,7 +138,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
 
         log_dirs = sorted(self.split_dir.glob("*"))
         path_lists: Optional[List[List[Tuple[str, int]]]] = joblib.Parallel(n_jobs=-1)(
-            joblib.delayed(_glob)(log_dir, LIDAR_GLOB_PATTERN) for log_dir in log_dirs
+            joblib.delayed(Av2._file_index_helper)(log_dir, LIDAR_GLOB_PATTERN) for log_dir in log_dirs
         )
         if path_lists is None:
             raise RuntimeError("Error scanning the dataset directory!")
@@ -260,6 +260,6 @@ class Av2(Dataset[Sweep]):  # type: ignore
         with path.open("rb") as f:
             return pl.read_ipc(f, use_pyarrow=True, memory_map=True)
 
-
-def _glob(path: PathType, pattern: str) -> List[Tuple[str, int]]:
-    return [(key.parts[-4], int(key.stem)) for key in path.glob(pattern)]
+    @staticmethod
+    def _file_index_helper(path: PathType, pattern: str) -> List[Tuple[str, int]]:
+        return [(key.parts[-4], int(key.stem)) for key in path.glob(pattern)]
