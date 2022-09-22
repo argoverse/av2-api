@@ -192,6 +192,7 @@ class Sweep:
 
     annotations: Annotations
     lidar: Lidar
+    sweep_uuid: Tuple[str, int]
 
 
 def prevent_fsspec_deadlock() -> None:

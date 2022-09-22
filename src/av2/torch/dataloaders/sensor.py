@@ -137,7 +137,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         """
         annotations = self.read_annotations(index)
         lidar = self.read_lidar(index)
-        return Sweep(annotations=annotations, lidar=lidar)
+        return Sweep(annotations=annotations, lidar=lidar, sweep_uuid=self.sweep_uuid(index))
 
     def _build_file_index(self) -> None:
         """Build the file index for the dataset."""
@@ -198,32 +198,36 @@ class Av2(Dataset[Sweep]):  # type: ignore
         pose_path = self.pose_path(current_log_id)
         city_SE3_ego = read_feather(pose_path)
 
-        annotations = annotations.sort(["track_uuid", "timestamp_ns"]).select(
-            [pl.arange(0, len(annotations)).alias("index"), pl.col("*")]
+        annotations = annotations.sort(["track_uuid", "timestamp_ns"]).with_row_count()
+        annotations = annotations.with_columns(row_nr=pl.col("row_nr").cast(pl.Int64))
+
+        annotations_with_poses = annotations.select(
+            [pl.col("timestamp_ns"), pl.col(["tx_m", "ty_m", "tz_m"]).map_alias(lambda x: f"{x}_obj")]
+        ).join(city_SE3_ego, on="timestamp_ns")
+        mats = quat_to_mat(annotations_with_poses.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy())
+        translation = annotations_with_poses.select(pl.col(["tx_m", "ty_m", "tz_m"])).to_numpy()
+
+        xyz = annotations_with_poses.select(pl.col(["tx_m_obj", "ty_m_obj", "tz_m_obj"])).to_numpy()
+        xyz_city = pl.from_numpy(
+            (xyz[:, None] @ mats.transpose(0, 2, 1) + translation[:, None]).squeeze(),
+            ["tx_m_city", "ty_m_city", "tz_m_city"],
         )
 
-        annotations_with_poses = annotations.join(city_SE3_ego, on="timestamp_ns")
-        mats = quat_to_mat(annotations_with_poses.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy())
-        translation = annotations_with_poses.select(pl.col(["tx_m_right", "ty_m_right", "tz_m_right"])).to_numpy()
-
-        xyz = annotations_with_poses.select(pl.col(["tx_m", "ty_m", "tz_m"])).to_numpy()
-        xyz_city = mats @ xyz[:, :, None] + translation[:, :, None]
-
-        annotations = pl.concat(
-            (annotations.drop(["tx_m", "ty_m", "tz_m"]), pl.from_numpy(xyz_city.squeeze(), ["tx_m", "ty_m", "tz_m"])),
+        annotations_city = pl.concat(
+            [annotations.select(pl.col(["row_nr", "timestamp_ns", "track_uuid"])), xyz_city],
             how="horizontal",
         )
 
-        velocities = annotations.groupby_rolling(
-            index_column="index", period="3i", offset="-2i", by=["track_uuid"], closed="right"
+        velocities = annotations_city.groupby_rolling(
+            index_column="row_nr", period="3i", offset="-2i", by=["track_uuid"], closed="right"
         ).agg(
             [
-                (pl.col("tx_m").diff().mean() / (pl.col("timestamp_ns").diff().mean() * 1e-9)).first().alias("vx_m"),
-                (pl.col("ty_m").diff().mean() / (pl.col("timestamp_ns").diff().mean() * 1e-9)).first().alias("vy_m"),
-                (pl.col("tz_m").diff().mean() / (pl.col("timestamp_ns").diff().mean() * 1e-9)).first().alias("vz_m"),
+                (pl.col("tx_m_city").diff() / (pl.col("timestamp_ns").diff() * 1e-9)).mean().alias("vx_m"),
+                (pl.col("ty_m_city").diff() / (pl.col("timestamp_ns").diff() * 1e-9)).mean().alias("vy_m"),
+                (pl.col("tz_m_city").diff() / (pl.col("timestamp_ns").diff() * 1e-9)).mean().alias("vz_m"),
             ]
         )
-        annotations = annotations.join(velocities, on=["track_uuid", "index"]).drop("index")
+        annotations = annotations.join(velocities, on=["track_uuid", "row_nr"])
         return annotations
 
     def read_lidar(self, index: int) -> Lidar:
