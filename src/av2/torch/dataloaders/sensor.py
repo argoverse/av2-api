@@ -198,25 +198,6 @@ class Av2(Dataset[Sweep]):  # type: ignore
         annotations = annotations.join(velocities, on=["track_uuid", "index"]).drop("index")
         return annotations.to_pandas()
 
-    def _compute_city_annotation_coordinates(
-        self,
-        annotations: Dict[int, Any],
-        timestamp_ns_to_city_SE3_ego: Dict[int, Dict[str, float]],
-        timestamp_ns: int,
-    ) -> NDArrayFloat:
-        annotation = annotations[timestamp_ns]
-        city_R_ego, city_t_ego = self._construct_pose(timestamp_ns_to_city_SE3_ego[timestamp_ns])
-        xyz_ego = np.array([annotation["tx_m"], annotation["ty_m"], annotation["tz_m"]])
-        xyz_city: NDArrayFloat = R.from_quat(city_R_ego).apply(xyz_ego) + city_t_ego
-        return xyz_city
-
-    def _construct_pose(self, city_SE3_ego: Dict[str, float]) -> Tuple[NDArrayFloat, NDArrayFloat]:
-        city_R_ego: NDArrayFloat = np.array(
-            [city_SE3_ego["qx"], city_SE3_ego["qy"], city_SE3_ego["qz"], city_SE3_ego["qw"]]
-        )
-        city_t_ego: NDArrayFloat = np.array([city_SE3_ego["tx_m"], city_SE3_ego["ty_m"], city_SE3_ego["tz_m"]])
-        return city_R_ego, city_t_ego
-
     def read_lidar(self, index: int) -> Lidar:
         """Read the lidar sweep.
 
