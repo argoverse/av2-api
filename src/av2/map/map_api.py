@@ -133,7 +133,7 @@ class GroundHeightLayer(RasterMapLayer):
 
         # load the file with rasterized values
         with ground_height_npy_fpaths[0].open("rb") as f:
-            ground_height_array: NDArrayFloat = np.load(f)  # type: ignore
+            ground_height_array: NDArrayFloat = np.load(f)
 
         array_Sim2_city = Sim2.from_json(Sim2_json_fpaths[0])
 

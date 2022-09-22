@@ -316,7 +316,7 @@ def compute_average_precision(
     # Evaluate precision at different recalls.
     precision_interpolated: NDArrayFloat = np.interp(recall_interpolated, recall, precision, right=0)
 
-    average_precision: float = np.mean(precision_interpolated)
+    average_precision: float = float(np.mean(precision_interpolated))
     return average_precision, precision_interpolated
 
 
