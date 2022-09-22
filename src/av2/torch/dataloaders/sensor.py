@@ -14,6 +14,7 @@ import polars as pl
 from scipy.spatial.transform import Rotation as R
 from torch.utils.data import Dataset
 
+from av2.geometry.geometry import quat_to_mat
 from av2.utils.io import read_feather
 from av2.utils.typing import NDArrayFloat, PathType
 
@@ -25,6 +26,8 @@ logger = logging.getLogger(__file__)
 ANNOTATION_UUID_FIELDS: Final[Tuple[str, str]] = ("track_uuid", "timestamp_ns")
 SWEEP_UUID_FIELDS: Final[Tuple[str, str]] = ("log_id", "timestamp_ns")
 POINT_COORDINATE_FIELDS: Final[Tuple[str, str, str]] = ("x", "y", "z")
+
+pl.Config.with_columns_kwargs = True
 
 
 @dataclass
@@ -162,54 +165,38 @@ class Av2(Dataset[Sweep]):  # type: ignore
         Returns:
             The dataFrame populated with velocities.
         """
-        current_log_id, current_timestamp_ns = self.sweep_uuid(index)
+        current_log_id, _ = self.sweep_uuid(index)
         pose_path = self.pose_path(current_log_id)
-        timestamp_ns_to_city_SE3_ego = cast(
-            Dict[int, Any], read_feather(pose_path).set_index("timestamp_ns").to_dict("index")
+        city_SE3_ego = self._read_feather(pose_path)
+
+        annotations: pl.DataFrame = pl.from_pandas(annotations)
+        annotations = annotations.sort(["track_uuid", "timestamp_ns"]).select(
+            [pl.arange(0, len(annotations)).alias("index"), pl.col("*")]
         )
 
-        velocity_metadata = []
-        for current_track_uuid, annotation_track in annotations.groupby(by=["track_uuid"], sort=True):
-            timestamp_ns_to_annotation: Dict[int, Any] = (
-                annotation_track.sort_values("timestamp_ns").set_index("timestamp_ns").to_dict("index")
-            )
-            index_to_key = dict(enumerate(timestamp_ns_to_annotation.keys()))
-            for i, (current_timestamp_ns, _) in enumerate(timestamp_ns_to_annotation.items()):
-                previous_timestamp_ns = index_to_key.get(i - 1, None)
-                next_timestamp_ns = index_to_key.get(i + 1, None)
+        annotations_with_poses = annotations.join(city_SE3_ego, on="timestamp_ns")
+        mats = quat_to_mat(annotations_with_poses.select(pl.col(["qw", "qx", "qy", "qz"])).to_numpy())
+        translation = annotations_with_poses.select(pl.col(["tx_m_right", "ty_m_right", "tz_m_right"])).to_numpy()
 
-                xyz_current_city = self._compute_city_annotation_coordinates(
-                    timestamp_ns_to_annotation, timestamp_ns_to_city_SE3_ego, current_timestamp_ns
-                )
+        xyz = annotations_with_poses.select(pl.col(["tx_m", "ty_m", "tz_m"])).to_numpy()
+        xyz_city = mats @ xyz[:, :, None] + translation[:, :, None]
 
-                est_velocity_list: List[NDArrayFloat] = []
-                if previous_timestamp_ns is not None:
-                    xyz_previous_city = self._compute_city_annotation_coordinates(
-                        timestamp_ns_to_annotation, timestamp_ns_to_city_SE3_ego, previous_timestamp_ns
-                    )
+        annotations = pl.concat(
+            (annotations.drop(["tx_m", "ty_m", "tz_m"]), pl.from_numpy(xyz_city.squeeze(), ["tx_m", "ty_m", "tz_m"])),
+            how="horizontal",
+        )
 
-                    timedelta_ns_0 = current_timestamp_ns - previous_timestamp_ns
-                    xyz_delta_0 = xyz_current_city - xyz_previous_city
-                    est_velocity_list += [xyz_delta_0 / (timedelta_ns_0 * 1e-9)]
-                if next_timestamp_ns is not None:
-                    xyz_next_city = self._compute_city_annotation_coordinates(
-                        timestamp_ns_to_annotation, timestamp_ns_to_city_SE3_ego, next_timestamp_ns
-                    )
-                    timedelta_ns_1 = next_timestamp_ns - current_timestamp_ns
-                    xyz_delta_1 = xyz_next_city - xyz_current_city
-                    est_velocity_list += [xyz_delta_1 / (timedelta_ns_1 * 1e-9)]
-
-                if len(est_velocity_list) == 0:
-                    vx_m, vy_m, vz_m = 0.0, 0.0, 0.0
-                else:
-                    vx_m, vy_m, vz_m = np.mean(est_velocity_list, axis=0).tolist()
-                row = (current_track_uuid, current_timestamp_ns, vx_m, vy_m, vz_m)
-                velocity_metadata.append(row)
-
-        columns = ANNOTATION_UUID_FIELDS + ("vx_m", "vy_m", "vz_m")
-        velocity_frame = pd.DataFrame(velocity_metadata, columns=list(columns))
-        annotations = annotations.merge(on=ANNOTATION_UUID_FIELDS, right=velocity_frame)
-        return annotations
+        velocities = annotations.groupby_rolling(
+            index_column="index", period="3i", offset="-2i", by=["track_uuid"], closed="right"
+        ).agg(
+            [
+                (pl.col("tx_m").diff().mean() / (pl.col("timestamp_ns").diff().mean() * 1e-9)).first().alias("vx_m"),
+                (pl.col("ty_m").diff().mean() / (pl.col("timestamp_ns").diff().mean() * 1e-9)).first().alias("vy_m"),
+                (pl.col("tz_m").diff().mean() / (pl.col("timestamp_ns").diff().mean() * 1e-9)).first().alias("vz_m"),
+            ]
+        )
+        annotations = annotations.join(velocities, on=["track_uuid", "index"]).drop("index")
+        return annotations.to_pandas()
 
     def _compute_city_annotation_coordinates(
         self,
@@ -275,5 +262,4 @@ class Av2(Dataset[Sweep]):  # type: ignore
         return dataframe.filter(query)
 
     def _read_feather(self, path: PathType) -> pl.DataFrame:
-        with path.open("rb") as file_handle:
-            return pl.read_ipc(file_handle)
+        return pl.from_pandas(read_feather(path))

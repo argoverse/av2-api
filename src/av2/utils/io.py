@@ -37,7 +37,7 @@ def read_feather(path: PathType, columns: Optional[Tuple[str, ...]] = None) -> p
         (N,len(columns)) Apache Feather data represented as a `pandas` DataFrame.
     """
     with path.open("rb") as file_handle:
-        dataframe: pd.DataFrame = feather.read_feather(file_handle, columns=columns)
+        dataframe: pd.DataFrame = feather.read_feather(file_handle, columns=columns, memory_map=True)
     return dataframe
 
 
