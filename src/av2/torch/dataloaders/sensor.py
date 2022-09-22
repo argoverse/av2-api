@@ -129,6 +129,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         return Sweep(annotations=annotations, lidar=lidar)
 
     def _build_file_index(self) -> None:
+        """Build the file index for the dataset."""
         logger.info("Building file index. This may take a moment ...")
 
         log_dirs = sorted(self.split_dir.glob("*"))
@@ -256,5 +257,14 @@ class Av2(Dataset[Sweep]):  # type: ignore
             return pl.read_ipc(f, use_pyarrow=True, memory_map=True)
 
     @staticmethod
-    def _file_index_helper(path: PathType, pattern: str) -> List[Tuple[str, int]]:
-        return [(key.parts[-4], int(key.stem)) for key in path.glob(pattern)]
+    def _file_index_helper(root_dir: PathType, file_pattern: str) -> List[Tuple[str, int]]:
+        """Helper class for building the file index in a multiprocessing context.
+
+        Args:
+            root_dir: Root directory.
+            file_pattern: File pattern string.
+
+        Returns:
+            The list of keys within the glob context.
+        """
+        return [(key.parts[-4], int(key.stem)) for key in root_dir.glob(file_pattern)]
