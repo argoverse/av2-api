@@ -64,11 +64,6 @@ class Av2(Dataset[Sweep]):  # type: ignore
         return self.__dict__.items()
 
     @property
-    def file_index_path(self) -> PathType:
-        """File index path."""
-        return Path.home() / ".cache" / "av2" / "torch" / "file_index.feather"
-
-    @property
     def split_dir(self) -> PathType:
         """Sensor dataset split directory."""
         return self.dataset_dir / self.split_name
