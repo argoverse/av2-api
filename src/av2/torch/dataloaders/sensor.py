@@ -18,7 +18,7 @@ from torch.utils.data import Dataset
 from av2.geometry.geometry import quat_to_mat
 from av2.utils.typing import NDArrayFloat, PathType
 
-from .utils import Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_SE3, read_feather
+from .utils import QUAT_WXYZ_FIELDS, Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_SE3, read_feather
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
@@ -61,6 +61,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
     max_lidar_range: float = inf
     num_accumulated_sweeps: int = 1
     file_caching_mode: Optional[FileCachingMode] = None
+
     file_index: List[Tuple[str, int]] = field(init=False)
 
     def __post_init__(self) -> None:
@@ -148,6 +149,8 @@ class Av2(Dataset[Sweep]):  # type: ignore
         )
         if path_lists is None:
             raise RuntimeError("Error scanning the dataset directory!")
+        elif len(path_lists) == 0:
+            raise RuntimeError("No file paths found. Please validate `self.dataset_dir` and `self.split_name`.")
 
         self.file_index = sorted(itertools.chain.from_iterable(path_lists))
 
@@ -200,7 +203,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         )
 
         annotations_with_poses = annotations.join(city_SE3_ego, on="timestamp_ns")
-        mats = quat_to_mat(annotations_with_poses.select(pl.col(["qw", "qx", "qy", "qz"])).to_numpy())
+        mats = quat_to_mat(annotations_with_poses.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy())
         translation = annotations_with_poses.select(pl.col(["tx_m_right", "ty_m_right", "tz_m_right"])).to_numpy()
 
         xyz = annotations_with_poses.select(pl.col(["tx_m", "ty_m", "tz_m"])).to_numpy()
