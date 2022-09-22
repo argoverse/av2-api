@@ -151,7 +151,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
         annotations = self._read_feather(annotations_path)
         annotations = self._populate_annotations_velocity(index, annotations)
         annotations = annotations.filter((pl.col("num_interior_pts") > 0) & (pl.col("timestamp_ns") == timestamp_ns))
-        return Annotations.from_dataframe(annotations)
+        return Annotations(annotations)
 
     def _populate_annotations_velocity(self, index: int, annotations: pl.DataFrame) -> pl.DataFrame:
         """Populate the annotations with their estimated velocities.
@@ -225,7 +225,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
                 dataframe_list.append(dataframe)
         dataframe = pl.concat(dataframe_list)
         dataframe = self._post_process_lidar(dataframe)
-        return Lidar.from_dataframe(dataframe)
+        return Lidar(dataframe)
 
     def _post_process_lidar(self, dataframe: pl.DataFrame) -> pl.DataFrame:
         """Apply post-processing operations on the point cloud.
@@ -236,8 +236,9 @@ class Av2(Dataset[Sweep]):  # type: ignore
         Returns:
             The filtered lidar dataframe.
         """
-        query = pl.col(["x"]).pow(2) + pl.col(["y"]).pow(2) + pl.col(["z"]).pow(2) <= self.max_lidar_range**2
-        return dataframe.filter(query)
+        return dataframe.filter(
+            pl.col(["x"]).pow(2) + pl.col(["y"]).pow(2) + pl.col(["z"]).pow(2) <= self.max_lidar_range**2
+        )
 
     def _read_feather(self, path: PathType) -> pl.DataFrame:
         with path.open("rb") as f:
