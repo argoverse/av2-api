@@ -31,16 +31,27 @@ pl.Config.with_columns_kwargs = True
 
 @dataclass
 class Av2(Dataset[Sweep]):  # type: ignore
-    """Pytorch dataloader for the sensor dataset."""
+    """Pytorch dataloader for the sensor dataset.
+
+    Args:
+        dataset_dir: Path to the dataset directory.
+        split_name: Name of the dataset split.
+        max_annotation_range: Maximum Euclidean distance between the egovehicle origin and the annotation cuboid centers.
+        max_lidar_range: Maximum Euclidean distance between the egovehicle origin and the lidar points.
+        num_accumulated_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
+
+        force_rebuild_file_index: Flag to rebuild the file index and update the cache.
+    """
 
     dataset_dir: PathType
-    split: str
-    flush_file_index: bool = False
+    split_name: str
+    force_rebuild_file_index: bool = False
 
-    file_index: List[Tuple[str, int]] = field(init=False)
     max_annotation_range: float = inf
     max_lidar_range: float = inf
     num_accumulated_sweeps: int = 1
+
+    file_index: List[Tuple[str, int]] = field(init=False)
 
     def __post_init__(self) -> None:
         """Build the file index."""
@@ -60,7 +71,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
     @property
     def split_dir(self) -> PathType:
         """Sensor dataset split directory."""
-        return self.dataset_dir / self.split
+        return self.dataset_dir / self.split_name
 
     def _log_dataloader_configuration(self) -> None:
         """Log the dataloader configuration."""
@@ -124,7 +135,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
 
     def _build_file_index(self) -> None:
         """Build the file index consisting of (log_id, timestamp_ns) pairs."""
-        if not self.flush_file_index and self.file_index_path.exists():
+        if not self.force_rebuild_file_index and self.file_index_path.exists():
             logger.info("Using cached file index ...")
             dataframe = read_feather(self.file_index_path)
             self.file_index = [(cast(str, key[0]), cast(int, key[1])) for key in dataframe.to_numpy().tolist()]
@@ -241,5 +252,13 @@ class Av2(Dataset[Sweep]):  # type: ignore
         )
 
     def _read_feather(self, path: PathType) -> pl.DataFrame:
+        """Read a feather file and load it as a `polars` dataframe.
+
+        Args:
+            path: Path to the feather file.
+
+        Returns:
+            The feather file as a `polars` dataframe.
+        """
         with path.open("rb") as f:
             return pl.read_ipc(f, use_pyarrow=True, memory_map=True)
