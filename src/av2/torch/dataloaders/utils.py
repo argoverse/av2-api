@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import itertools
 import math
 from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Final, Tuple
 
 import fsspec.asyn
+import numpy as np
 import polars as pl
 import torch
 from torch import Tensor
@@ -69,8 +71,8 @@ class CuboidMode(str, Enum):
             return dataframe
         if src == CuboidMode.XYZLWH_QWXYZ and target == CuboidMode.XYZLWH_THETA:
             quaternions = dataframe.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy()
-            mat = quat_to_mat(quaternions)
-            yaw = mat_to_xyz(mat)[:, -1]
+            rotation = quat_to_mat(quaternions)
+            yaw = mat_to_xyz(rotation)[:, -1]
 
             first_occurence = min(
                 i if field_name in QUAT_WXYZ_FIELDS else math.inf
@@ -82,6 +84,43 @@ class CuboidMode(str, Enum):
             field_ordering = field_ordering[:first_occurence] + ("yaw",) + field_ordering[first_occurence:]
             dataframe = dataframe.with_columns(yaw=pl.from_numpy(yaw).to_series())
             dataframe = dataframe.select(pl.col(list(field_ordering)))
+        elif src == CuboidMode.XYZLWH_QWXYZ and target == CuboidMode.XYZ:
+            unit_vertices_obj_xyz_m = np.array(
+                [
+                    [+1, +1, +1],  # 0
+                    [+1, -1, +1],  # 1
+                    [+1, -1, -1],  # 2
+                    [+1, +1, -1],  # 3
+                    [-1, +1, +1],  # 4
+                    [-1, -1, +1],  # 5
+                    [-1, -1, -1],  # 6
+                    [-1, +1, -1],  # 7
+                ],
+            )
+
+            dims_lwh_m = dataframe.select(pl.col(["length_m", "width_m", "height_m"])).to_numpy()
+
+            # Transform unit polygons.
+            vertices_obj_xyz_m = (dims_lwh_m[:, None] / 2.0) * unit_vertices_obj_xyz_m[None]
+
+            quat = dataframe.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy()
+            rotation = quat_to_mat(quat)
+            translation = dataframe.select(pl.col(["tx_m", "ty_m", "tz_m"])).to_numpy()
+
+            vertices = (rotation @ vertices_obj_xyz_m.transpose(0, 2, 1)).transpose(0, 2, 1) + translation[:, None]
+            columns = list(
+                itertools.chain.from_iterable(
+                    [(f"tx_{i}", f"ty_{i}", f"tz_{i}") for i in range(len(unit_vertices_obj_xyz_m))]
+                )
+            )
+            dataframe = pl.concat(
+                [
+                    dataframe.select(pl.col("*").exclude(["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"])),
+                    pl.from_numpy(vertices.reshape(-1, len(unit_vertices_obj_xyz_m) * 3), columns=columns),
+                ],
+                how="horizontal",
+            )
+            return dataframe
         else:
             raise NotImplementedError("This conversion is not implemented!")
         return dataframe
@@ -92,11 +131,11 @@ class Annotations:
     """Dataclass for ground truth annotations."""
 
     dataframe: pl.DataFrame
-    box_mode: CuboidMode = CuboidMode.XYZLWH_QWXYZ
+    cuboid_mode: CuboidMode = CuboidMode.XYZLWH_QWXYZ
 
     def as_tensor(
         self,
-        box_mode: CuboidMode = CuboidMode.XYZLWH_THETA,
+        cuboid_mode: CuboidMode = CuboidMode.XYZLWH_THETA,
         dtype: torch.dtype = torch.float32,
     ) -> Tensor:
         """Return the lidar sweep as a dense tensor.
@@ -109,8 +148,19 @@ class Annotations:
             (N,K) tensor where N is the number of lidar points and K
                 is the number of features.
         """
-        dataframe = CuboidMode.convert(self.dataframe, self.box_mode, box_mode)
+        dataframe = CuboidMode.convert(self.dataframe, self.cuboid_mode, cuboid_mode)
         return torch.as_tensor(dataframe.to_numpy(), dtype=dtype)
+
+    def compute_interior_points(self, lidar: Lidar) -> Tensor:
+        dataframe = CuboidMode.convert(self.dataframe, self.cuboid_mode, CuboidMode.XYZ)
+        points_xyz = lidar.as_tensor()
+
+        columns = list(itertools.chain.from_iterable([(f"tx_{i}", f"ty_{i}", f"tz_{i}") for i in range(8)]))
+        cuboid_vertices = torch.as_tensor(
+            dataframe.select(pl.col(columns)).to_numpy().reshape(-1, 8, 3), dtype=torch.float32
+        )
+        pairwise_point_masks = compute_interior_points_mask(points_xyz, cuboid_vertices)
+        return pairwise_point_masks
 
 
 @dataclass
@@ -168,48 +218,40 @@ def query_SE3(poses: pl.DataFrame, timestamp_ns: int) -> SE3:
     )
 
 
-# @torch.jit.script
-# def compute_interior_points_mask(
-#     points_xyz: Tensor, cuboid_vertices: Tensor
-# ) -> Tensor:
-#     r"""Compute the interior points within a set of _axis-aligned_ cuboids.
-#     Reference:
-#         https://math.stackexchange.com/questions/1472049/check-if-a-point-is-inside-a-rectangular-shaped-area-3d
-#             5------4
-#             |\\    |\\
-#             | \\   | \\
-#             6--\\--7  \\
-#             \\  \\  \\ \\
-#         l    \\  1-------0    h
-#          e    \\ ||   \\ ||   e
-#           n    \\||    \\||   i
-#            g    \\2------3    g
-#             t      width.     h
-#              h.               t.
-#     Args:
-#         points_xyz: (N,3) Points in Cartesian space.
-#         cuboid_vertices: (K,8,3) Vertices of the cuboids.
-#     Returns:
-#         (N,) A tensor of boolean flags indicating whether the points
-#             are interior to the cuboid.
-#     """
-#     vertices = cuboid_vertices[:, (6, 3, 1)]
-#     uvw = cuboid_vertices[:, 2:3] - vertices
-#     reference_vertex = cuboid_vertices[:, 2:3]
+@torch.jit.script
+def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) -> Tensor:
+    r"""Compute the interior points within a set of _axis-aligned_ cuboids.
 
-#     dot_uvw_reference = uvw @ reference_vertex.transpose(1, 2)
-#     dot_uvw_vertices = torch.diagonal(uvw @ vertices.transpose(1, 2), 0, 2)[
-#         ..., None
-#     ]
-#     dot_uvw_points = uvw @ points_xyz.T
+    Reference:
+        https://math.stackexchange.com/questions/1472049/check-if-a-point-is-inside-a-rectangular-shaped-area-3d
+            5------4
+            |\\    |\\
+            | \\   | \\
+            6--\\--7  \\
+            \\  \\  \\ \\
+        l    \\  1-------0    h
+         e    \\ ||   \\ ||   e
+          n    \\||    \\||   i
+           g    \\2------3    g
+            t      width.     h
+             h.               t.
+    Args:
+        points_xyz: (N,3) Points in Cartesian space.
+        cuboid_vertices: (K,8,3) Vertices of the cuboids.
+        
+    Returns:
+        (N,) A tensor of boolean flags indicating whether the points
+            are interior to the cuboid.
+    """
+    vertices = cuboid_vertices[:, [6, 3, 1]]
+    uvw = cuboid_vertices[:, 2:3] - vertices
+    reference_vertex = cuboid_vertices[:, 2:3]
 
-#     constraint_a = torch.logical_and(
-#         dot_uvw_reference <= dot_uvw_points, dot_uvw_points <= dot_uvw_vertices
-#     )
-#     constraint_b = torch.logical_and(
-#         dot_uvw_reference >= dot_uvw_points, dot_uvw_points >= dot_uvw_vertices
-#     )
-#     is_interior: Tensor = torch.logical_or(constraint_a, constraint_b).all(
-#         dim=1
-#     )
-#     return is_interior
+    dot_uvw_reference = uvw @ reference_vertex.transpose(1, 2)
+    dot_uvw_vertices = torch.diagonal(uvw @ vertices.transpose(1, 2), 0, 2)[..., None]
+    dot_uvw_points = uvw @ points_xyz.T
+
+    constraint_a = torch.logical_and(dot_uvw_reference <= dot_uvw_points, dot_uvw_points <= dot_uvw_vertices)
+    constraint_b = torch.logical_and(dot_uvw_reference >= dot_uvw_points, dot_uvw_points >= dot_uvw_vertices)
+    is_interior: Tensor = torch.logical_or(constraint_a, constraint_b).all(dim=1)
+    return is_interior
