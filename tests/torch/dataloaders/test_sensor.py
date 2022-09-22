@@ -5,7 +5,7 @@ from typing import Final
 
 from av2.torch.dataloaders.sensor import Av2
 
-TEST_DATA_DIR: Final[Path] = Path(__file__).parent.parent.parent.resolve() / "test_data" / "sensor_dataset_logs"
+TEST_DATA_DIR: Final[Path] = Path(".").resolve() / "test_data"
 
 
 def test_av2_sensor_dataloader():
@@ -17,6 +17,9 @@ def test_av2_sensor_dataloader():
     for datum in dataloader:
         annotations = datum.annotations.as_tensor()
         lidar = datum.lidar.as_tensor()
+
+        print(annotations)
+        print(lidar)
 
 
 if __name__ == "__main__":
