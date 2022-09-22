@@ -45,48 +45,64 @@ class OrientationMode(str, Enum):
     YAW = "YAW"
 
 
-@dataclass
-class Annotations:
-    """Dataclass for ground truth annotations."""
+@unique
+class CuboidMode(str, Enum):
+    """Box mode (parameterization) of ground truth annotations."""
 
-    dataframe: pl.DataFrame
+    XYZLWH_THETA = "XYZLWH_THETA"
+    XYZLWH_QWXYZ = "XYZLWH_QWXYZ"
+    XYZ = "XYZ"
 
-    def as_tensor(
-        self,
-        field_ordering: Tuple[str, ...] = DEFAULT_ANNOTATIONS_TENSOR_FIELDS,
-        orientation_mode: OrientationMode = OrientationMode.YAW,
-        dtype: torch.dtype = torch.float32,
-    ) -> Tensor:
-        """Return the lidar sweep as a dense tensor.
-
-        Args:
-            field_ordering: Feature ordering for the tensor.
-            orientation_mode: Orientation (pose) representation for the annotations.
-            dtype: Target datatype for casting.
-
-        Returns:
-            (N,K) tensor where N is the number of lidar points and K
-                is the number of features.
-        """
-        if orientation_mode == OrientationMode.YAW:
-            quaternions = self.dataframe.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy()
+    @staticmethod
+    def convert(dataframe: pl.DataFrame, src: CuboidMode, target: CuboidMode) -> pl.DataFrame:
+        if src == target:
+            return dataframe
+        if src == CuboidMode.XYZLWH_QWXYZ and target == CuboidMode.XYZLWH_THETA:
+            quaternions = dataframe.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy()
             mat = quat_to_mat(quaternions)
             yaw = mat_to_xyz(mat)[:, -1]
 
             first_occurence = min(
                 [
                     i if field_name in QUAT_WXYZ_FIELDS else math.inf
-                    for (i, field_name) in enumerate(field_ordering)
+                    for (i, field_name) in enumerate(DEFAULT_ANNOTATIONS_TENSOR_FIELDS)
                 ]
             )
             field_ordering = tuple(
-                filter(lambda field_name: field_name not in QUAT_WXYZ_FIELDS, field_ordering)
+                filter(lambda field_name: field_name not in QUAT_WXYZ_FIELDS, DEFAULT_ANNOTATIONS_TENSOR_FIELDS)
             )
             field_ordering = field_ordering[:first_occurence] + ("yaw",) + field_ordering[first_occurence:]
-            dataframe = self.dataframe.with_columns(yaw=pl.from_numpy(yaw).to_series())
+            dataframe = dataframe.with_columns(yaw=pl.from_numpy(yaw).to_series())
+            dataframe = dataframe.select(pl.col(list(field_ordering)))
+        else:
+            raise NotImplementedError("This conversion is not implemented!")
+        return dataframe
 
-        dataframe_npy = dataframe.select(pl.col(list(field_ordering))).to_numpy()
-        return torch.as_tensor(dataframe_npy, dtype=dtype)
+
+@dataclass
+class Annotations:
+    """Dataclass for ground truth annotations."""
+
+    dataframe: pl.DataFrame
+    box_mode: CuboidMode = CuboidMode.XYZLWH_QWXYZ
+
+    def as_tensor(
+        self,
+        box_mode: CuboidMode = CuboidMode.XYZLWH_THETA,
+        dtype: torch.dtype = torch.float32,
+    ) -> Tensor:
+        """Return the lidar sweep as a dense tensor.
+
+        Args:
+            box_mode: Target parameterization for the cuboids.
+            dtype: Target datatype for casting.
+
+        Returns:
+            (N,K) tensor where N is the number of lidar points and K
+                is the number of features.
+        """
+        dataframe = CuboidMode.convert(self.dataframe, self.box_mode, box_mode)
+        return torch.as_tensor(dataframe.to_numpy(), dtype=dtype)
 
 
 @dataclass
@@ -142,3 +158,50 @@ def query_SE3(poses: pl.DataFrame, timestamp_ns: int) -> SE3:
         rotation=quat_to_mat(quat),
         translation=translation,
     )
+
+
+# @torch.jit.script
+# def compute_interior_points_mask(
+#     points_xyz: Tensor, cuboid_vertices: Tensor
+# ) -> Tensor:
+#     r"""Compute the interior points within a set of _axis-aligned_ cuboids.
+#     Reference:
+#         https://math.stackexchange.com/questions/1472049/check-if-a-point-is-inside-a-rectangular-shaped-area-3d
+#             5------4
+#             |\\    |\\
+#             | \\   | \\
+#             6--\\--7  \\
+#             \\  \\  \\ \\
+#         l    \\  1-------0    h
+#          e    \\ ||   \\ ||   e
+#           n    \\||    \\||   i
+#            g    \\2------3    g
+#             t      width.     h
+#              h.               t.
+#     Args:
+#         points_xyz: (N,3) Points in Cartesian space.
+#         cuboid_vertices: (K,8,3) Vertices of the cuboids.
+#     Returns:
+#         (N,) A tensor of boolean flags indicating whether the points
+#             are interior to the cuboid.
+#     """
+#     vertices = cuboid_vertices[:, (6, 3, 1)]
+#     uvw = cuboid_vertices[:, 2:3] - vertices
+#     reference_vertex = cuboid_vertices[:, 2:3]
+
+#     dot_uvw_reference = uvw @ reference_vertex.transpose(1, 2)
+#     dot_uvw_vertices = torch.diagonal(uvw @ vertices.transpose(1, 2), 0, 2)[
+#         ..., None
+#     ]
+#     dot_uvw_points = uvw @ points_xyz.T
+
+#     constraint_a = torch.logical_and(
+#         dot_uvw_reference <= dot_uvw_points, dot_uvw_points <= dot_uvw_vertices
+#     )
+#     constraint_b = torch.logical_and(
+#         dot_uvw_reference >= dot_uvw_points, dot_uvw_points >= dot_uvw_vertices
+#     )
+#     is_interior: Tensor = torch.logical_or(constraint_a, constraint_b).all(
+#         dim=1
+#     )
+#     return is_interior
