@@ -6,12 +6,11 @@ import logging
 from dataclasses import dataclass, field
 from math import inf
 from pathlib import Path
-from typing import Any, Dict, Final, ItemsView, List, Tuple, cast
+from typing import Any, Final, ItemsView, List, Tuple, cast
 
 import numpy as np
 import pandas as pd
 import polars as pl
-from scipy.spatial.transform import Rotation as R
 from torch.utils.data import Dataset
 
 from av2.geometry.geometry import quat_to_mat
