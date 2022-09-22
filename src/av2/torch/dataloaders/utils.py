@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Final, Tuple
 
@@ -75,7 +75,7 @@ class Annotations:
 
             first_occurence = min(
                 [
-                    i if field_name in ["qw", "qx", "qy", "qz"] else math.inf
+                    i if field_name in QUAT_WXYZ_FIELDS else math.inf
                     for (i, field_name) in enumerate(field_ordering)
                 ]
             )
@@ -85,7 +85,8 @@ class Annotations:
             field_ordering = field_ordering[:first_occurence] + ("yaw",) + field_ordering[first_occurence:]
             dataframe = self.dataframe.with_columns(yaw=pl.from_numpy(yaw).to_series())
 
-        return torch.as_tensor(dataframe.select(pl.col(list(field_ordering))).to_numpy(), dtype=dtype)
+        dataframe_npy = dataframe.select(pl.col(list(field_ordering))).to_numpy()
+        return torch.as_tensor(dataframe_npy, dtype=dtype)
 
 
 @dataclass
@@ -107,7 +108,8 @@ class Lidar:
             (N,K) tensor where N is the number of lidar points and K
                 is the number of features.
         """
-        return torch.as_tensor(self.dataframe.select(pl.col(list(field_ordering))).to_numpy())
+        dataframe_npy = self.dataframe.select(pl.col(list(field_ordering))).to_numpy()
+        return torch.as_tensor(dataframe_npy, dtype=dtype)
 
 
 @dataclass
