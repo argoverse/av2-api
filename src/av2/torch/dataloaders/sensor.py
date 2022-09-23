@@ -23,8 +23,6 @@ from .utils import QUAT_WXYZ_FIELDS, Annotations, Lidar, Sweep, prevent_fsspec_d
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
 
-ANNOTATION_UUID_FIELDS: Final[Tuple[str, str]] = ("track_uuid", "timestamp_ns")
-SWEEP_UUID_FIELDS: Final[Tuple[str, str]] = ("log_id", "timestamp_ns")
 XYZ_FIELDS: Final[Tuple[str, str, str]] = ("x", "y", "z")
 
 LIDAR_GLOB_PATTERN: Final[str] = "sensors/lidar/*.feather"
@@ -250,7 +248,7 @@ class Av2(Dataset[Sweep]):
                 file_caching_path=self.file_caching_dir / log_id / "city_SE3_egovehicle.feather",
             )
             ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
-            for k, (log_id, timestamp_ns_k) in enumerate(filtered_window):
+            for _, (log_id, timestamp_ns_k) in enumerate(filtered_window):
                 dataframe = self._read_frame(
                     src_path=self.lidar_path(log_id, timestamp_ns_k),
                     file_caching_path=self.file_caching_dir
