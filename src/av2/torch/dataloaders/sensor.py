@@ -129,7 +129,6 @@ class Av2(Dataset[Sweep]):  # type: ignore
         """
         return self.file_index[index]
 
-    @profile
     def __getitem__(self, index: int) -> Sweep:
         """Get the annotations and lidar for one sweep.
 
