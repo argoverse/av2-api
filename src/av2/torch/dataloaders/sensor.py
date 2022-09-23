@@ -39,7 +39,7 @@ class FileCachingMode(str, Enum):
 
 
 @dataclass
-class Av2(Dataset[Sweep]):
+class Av2(Dataset[Sweep]):  # type: ignore
     """Pytorch dataloader for the sensor dataset.
 
     Args:

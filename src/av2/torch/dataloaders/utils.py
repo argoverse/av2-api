@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import itertools
-import math
+import sys
 from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Final, Tuple
@@ -78,7 +78,7 @@ class CuboidMode(str, Enum):
             yaw = mat_to_xyz(rotation)[:, -1]
 
             first_occurence = min(
-                i if field_name in QUAT_WXYZ_FIELDS else math.inf
+                i if field_name in QUAT_WXYZ_FIELDS else sys.maxsize
                 for (i, field_name) in enumerate(DEFAULT_ANNOTATIONS_TENSOR_FIELDS)
             )
             field_ordering = tuple(
