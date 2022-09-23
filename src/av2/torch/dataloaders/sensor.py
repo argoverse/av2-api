@@ -41,7 +41,7 @@ class FileCachingMode(str, Enum):
 
 
 @dataclass
-class Av2(Dataset[Sweep]):  # type: ignore
+class Av2(Dataset[Sweep]):
     """Pytorch dataloader for the sensor dataset.
 
     Args:
@@ -245,13 +245,13 @@ class Av2(Dataset[Sweep]):  # type: ignore
 
         dataframe_list = []
         if len(window) > 0:
-            poses = self.read_cache(
+            poses = self._read_frame(
                 src_path=self.pose_path(log_id),
                 file_caching_path=self.file_caching_dir / log_id / "city_SE3_egovehicle.feather",
             )
             ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
             for k, (log_id, timestamp_ns_k) in enumerate(filtered_window):
-                dataframe = self.read_cache(
+                dataframe = self._read_frame(
                     src_path=self.lidar_path(log_id, timestamp_ns_k),
                     file_caching_path=self.file_caching_dir
                     / log_id
@@ -309,8 +309,17 @@ class Av2(Dataset[Sweep]):  # type: ignore
         """
         return [(key.parts[-4], int(key.stem)) for key in root_dir.glob(file_pattern)]
 
-    def read_cache(self, src_path: PathType, file_caching_path: PathType) -> pl.DataFrame:
-        if file_caching_path.exists():
+    def _read_frame(self, src_path: PathType, file_caching_path: PathType) -> pl.DataFrame:
+        """Read a dataframe from a remote source or a locally cached location.
+
+        Args:
+            src_path: Path to the non-cached file.
+            file_caching_path: Path to the cached file.
+
+        Returns:
+            DataFrame representation of the feather file.
+        """
+        if self.file_caching_mode == FileCachingMode.DISK and file_caching_path.exists():
             dataframe = read_feather(file_caching_path)
         else:
             file_caching_path.parent.mkdir(parents=True, exist_ok=True)
