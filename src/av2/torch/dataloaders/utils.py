@@ -66,6 +66,9 @@ class CuboidMode(str, Enum):
 
         Returns:
             The dataframe in the new parameterization format.
+
+        Raises:
+            NotImplementedError: If the cuboid mode conversion isn't supported.
         """
         if src == target:
             return dataframe
@@ -245,6 +248,7 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
            g    \\2------3    g
             t      width.     h
              h.               t.
+
     Args:
         points_xyz: (N,3) Points in Cartesian space.
         cuboid_vertices: (K,8,3) Vertices of the cuboids.

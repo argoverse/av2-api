@@ -290,7 +290,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
 
     @staticmethod
     def _file_index_helper(root_dir: PathType, file_pattern: str) -> List[Tuple[str, int]]:
-        """Helper class for building the file index in a multiprocessing context.
+        """Building the file index in a multiprocessing context.
 
         Args:
             root_dir: Root directory.
