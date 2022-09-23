@@ -129,7 +129,7 @@ class CuboidMode(str, Enum):
         return dataframe
 
 
-@dataclass
+@dataclass(frozen=True)
 class Annotations:
     """Dataclass for ground truth annotations."""
 
@@ -175,7 +175,7 @@ class Annotations:
         return pairwise_point_masks
 
 
-@dataclass
+@dataclass(frozen=True)
 class Lidar:
     """Dataclass for lidar sweeps."""
 
@@ -222,9 +222,14 @@ def query_SE3(poses: pl.DataFrame, timestamp_ns: int) -> SE3:
     Returns:
         SE(3) at timestamp_ns.
     """
-    pose = poses.filter(pl.col("timestamp_ns") == timestamp_ns)
-    quat = pose.select(["qw", "qx", "qy", "qz"]).to_numpy().squeeze()
-    translation = pose.select(["tx_m", "ty_m", "tz_m"]).to_numpy().squeeze()
+    pose = (
+        poses.lazy()
+        .filter(pl.col("timestamp_ns") == timestamp_ns)
+        .select(["qw", "qx", "qy", "qz", "tx_m", "ty_m", "tz_m"])
+    )
+    pose_npy = pose.collect().to_numpy().squeeze()
+    quat = pose_npy[:4]
+    translation = pose_npy[4:]
     return SE3(
         rotation=quat_to_mat(quat),
         translation=translation,
