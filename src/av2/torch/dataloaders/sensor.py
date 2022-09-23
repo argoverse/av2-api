@@ -230,7 +230,6 @@ class Av2(Dataset[Sweep]):  # type: ignore
         annotations = annotations.join(velocities, on=["track_uuid", "row_nr"])
         return annotations
 
-    @profile
     def read_lidar(self, index: int) -> Lidar:
         """Read the lidar sweep.
 
