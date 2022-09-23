@@ -61,7 +61,6 @@ class Av2(Dataset[Sweep]):
     max_lidar_range: float = inf
     num_accumulated_sweeps: int = 1
     file_caching_mode: Optional[FileCachingMode] = None
-
     file_index: List[Tuple[str, int]] = field(init=False)
 
     def __post_init__(self) -> None:
@@ -140,9 +139,9 @@ class Av2(Dataset[Sweep]):
         Returns:
             Sweep object containing annotations and lidar.
         """
-        annotations = self.read_annotations(index)
-        lidar = self.read_lidar(index)
-        return Sweep(annotations=annotations, lidar=lidar, sweep_uuid=self.sweep_uuid(index))
+        return Sweep(
+            annotations=self.read_annotations(index), lidar=self.read_lidar(index), sweep_uuid=self.sweep_uuid(index)
+        )
 
     def _build_file_index(self) -> None:
         """Build the file index for the dataset."""
