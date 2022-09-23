@@ -20,6 +20,7 @@ def test_av2_sensor_dataloader() -> None:
     dataloader = Av2(
         dataset_dir=TEST_DATA_DIR,
         split_name="",
+        num_accumulated_sweeps=5,
     )
 
     datum = next(iter(dataloader))

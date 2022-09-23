@@ -183,7 +183,7 @@ def test_compute_brier_ade(
     ],
 )
 def test_compute_brier_ade_data_validation(
-    forecast_probabilities: NDArrayFloat, normalize: bool, expectation: AbstractContextManager # type: ignore
+    forecast_probabilities: NDArrayFloat, normalize: bool, expectation: AbstractContextManager  # type: ignore
 ) -> None:
     """Test that test_compute_brier_ade raises the correct errors when inputs are invalid.
 
@@ -247,7 +247,7 @@ def test_compute_brier_fde(
     ],
 )
 def test_compute_brier_fde_data_validation(
-    forecast_probabilities: NDArrayFloat, normalize: bool, expectation: AbstractContextManager # type: ignore
+    forecast_probabilities: NDArrayFloat, normalize: bool, expectation: AbstractContextManager  # type: ignore
 ) -> None:
     """Test that test_compute_brier_fde raises the correct errors when inputs are invalid.
 

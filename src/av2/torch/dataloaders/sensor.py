@@ -253,13 +253,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
                 city_SE3_ego_past = query_SE3(poses, timestamp_ns)
                 ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
                 if self.file_caching_mode == FileCachingMode.DISK:
-                    cache_path = (
-                        self.file_caching_dir
-                        / log_id
-                        / "sensors"
-                        / "lidar"
-                        / f"{timestamp_ns}.feather"
-                    )
+                    cache_path = self.file_caching_dir / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
                     if cache_path.exists():
                         dataframe = read_feather(cache_path)
                     else:
