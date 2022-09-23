@@ -164,23 +164,20 @@ class Av2(Dataset[Sweep]):  # type: ignore
             The annotations object.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
-        maybe_cache_path = CACHE_DIR / self.split_name / log_id / "annotations.feather"
+        cache_path = CACHE_DIR / self.split_name / log_id / "annotations.feather"
 
-        if self.file_caching_mode == FileCachingMode.DISK:
-            if maybe_cache_path.exists():
-                dataframe = read_feather(maybe_cache_path)
-                annotations = Annotations(dataframe)
-                return annotations
+        if self.file_caching_mode == FileCachingMode.DISK and cache_path.exists():
+            dataframe = read_feather(cache_path)
+        else:
+            annotations_path = self.annotations_path(log_id)
+            dataframe = read_feather(annotations_path)
+            dataframe = self._populate_annotations_velocity(index, dataframe)
 
-        log_id, timestamp_ns = self.sweep_uuid(index)
-        annotations_path = self.annotations_path(log_id)
-        dataframe = read_feather(annotations_path)
-        dataframe = self._populate_annotations_velocity(index, dataframe)
+        if self.file_caching_mode == FileCachingMode.DISK and not cache_path.exists():
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            dataframe.write_ipc(cache_path)
+
         dataframe = dataframe.filter((pl.col("num_interior_pts") > 0) & (pl.col("timestamp_ns") == timestamp_ns))
-        if self.file_caching_mode == FileCachingMode.DISK and not maybe_cache_path.exists():
-            maybe_cache_path.parent.mkdir(parents=True, exist_ok=True)
-            dataframe.write_ipc(maybe_cache_path)
-
         annotations = Annotations(dataframe)
         return annotations
 
@@ -240,38 +237,35 @@ class Av2(Dataset[Sweep]):  # type: ignore
             Tensor of annotations.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
-        maybe_cache_path = CACHE_DIR / self.split_name / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
+        cache_path = CACHE_DIR / self.split_name / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
 
-        if self.file_caching_mode == FileCachingMode.DISK:
-            if maybe_cache_path.exists():
-                dataframe = read_feather(maybe_cache_path)
-                lidar = Lidar(dataframe)
-                return lidar
+        if self.file_caching_mode == FileCachingMode.DISK and cache_path.exists():
+            dataframe = read_feather(cache_path)
+        else:
+            window = self.file_index[max(index - self.num_accumulated_sweeps + 1, 0) : index]
+            filtered_window: List[Tuple[str, int]] = list(filter(lambda sweep_uuid: sweep_uuid[0] == log_id, window))
 
-        window = self.file_index[max(index - self.num_accumulated_sweeps + 1, 0) : index]
-        filtered_window: List[Tuple[str, int]] = list(filter(lambda sweep_uuid: sweep_uuid[0] == log_id, window))
+            lidar_path = self.lidar_path(log_id, timestamp_ns)
+            dataframe_list = [read_feather(lidar_path)]
+            if len(window) > 0:
+                poses = read_feather(self.pose_path(log_id))
+                ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
+                for log_id, timestamp_ns in filtered_window:
+                    city_SE3_ego_past = query_SE3(poses, timestamp_ns)
+                    ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
 
-        lidar_path = self.lidar_path(log_id, timestamp_ns)
-        dataframe_list = [read_feather(lidar_path)]
-        if len(window) > 0:
-            poses = read_feather(self.pose_path(log_id))
-            ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
-            for log_id, timestamp_ns in filtered_window:
-                city_SE3_ego_past = query_SE3(poses, timestamp_ns)
-                ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
+                    dataframe = read_feather(self.lidar_path(log_id, timestamp_ns))
+                    point_cloud: NDArrayFloat = dataframe[list(POINT_COORDINATE_FIELDS)].to_numpy().astype(np.float64)
+                    dataframe[list(POINT_COORDINATE_FIELDS)] = ego_current_SE3_ego_past.transform_point_cloud(
+                        point_cloud
+                    ).astype(np.float32)
+                    dataframe_list.append(dataframe)
+            dataframe = pl.concat(dataframe_list)
+        if self.file_caching_mode == FileCachingMode.DISK and not cache_path.exists():
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            dataframe.write_ipc(cache_path)
 
-                dataframe = read_feather(self.lidar_path(log_id, timestamp_ns))
-                point_cloud: NDArrayFloat = dataframe[list(POINT_COORDINATE_FIELDS)].to_numpy().astype(np.float64)
-                dataframe[list(POINT_COORDINATE_FIELDS)] = ego_current_SE3_ego_past.transform_point_cloud(
-                    point_cloud
-                ).astype(np.float32)
-                dataframe_list.append(dataframe)
-        dataframe = pl.concat(dataframe_list)
         dataframe = self._post_process_lidar(dataframe)
-        if self.file_caching_mode == FileCachingMode.DISK and not maybe_cache_path.exists():
-            maybe_cache_path.parent.mkdir(parents=True, exist_ok=True)
-            dataframe.write_ipc(maybe_cache_path)
-
         lidar = Lidar(dataframe)
         return lidar
 
