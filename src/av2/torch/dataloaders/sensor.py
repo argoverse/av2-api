@@ -75,7 +75,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
     @property
     def file_caching_dir(self) -> PathType:
         """File caching directory."""
-        return Path.home() / ".cache" / "av2" / f"{self.num_accumulated_sweeps}_sweeps" / self.split_name
+        return Path.home() / ".cache" / "av2" / self.split_name
 
     @property
     def split_dir(self) -> PathType:
@@ -240,40 +240,46 @@ class Av2(Dataset[Sweep]):  # type: ignore
             Tensor of annotations.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
-        cache_path = self.file_caching_dir / self.split_name / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
+        cache_path = self.file_caching_dir / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
 
-        if self.file_caching_mode == FileCachingMode.DISK and cache_path.exists():
-            dataframe = read_feather(cache_path)
-        else:
-            window = self.file_index[max(index - self.num_accumulated_sweeps + 1, 0) : index]
-            filtered_window: List[Tuple[str, int]] = list(filter(lambda sweep_uuid: sweep_uuid[0] == log_id, window))
+        window = self.file_index[max(index - self.num_accumulated_sweeps + 1, 0) : index + 1]
+        filtered_window: List[Tuple[str, int]] = list(filter(lambda sweep_uuid: sweep_uuid[0] == log_id, window))
 
-            lidar_path = self.lidar_path(log_id, timestamp_ns)
-            dataframe_list = [read_feather(lidar_path)]
-            if len(window) > 0:
-                poses = read_feather(self.pose_path(log_id))
-                ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
-                for log_id, timestamp_ns in filtered_window:
-                    city_SE3_ego_past = query_SE3(poses, timestamp_ns)
-                    ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
-
-                    dataframe = read_feather(self.lidar_path(log_id, timestamp_ns))
-                    point_cloud: NDArrayFloat = (
-                        dataframe.select(pl.col(POINT_COORDINATE_FIELDS)).to_numpy().astype(np.float64)
+        dataframe_list = []
+        if len(window) > 0:
+            poses = read_feather(self.pose_path(log_id))
+            ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
+            for log_id, timestamp_ns in filtered_window:
+                city_SE3_ego_past = query_SE3(poses, timestamp_ns)
+                ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
+                if self.file_caching_mode == FileCachingMode.DISK:
+                    cache_path = (
+                        self.file_caching_dir
+                        / log_id
+                        / "sensors"
+                        / "lidar"
+                        / f"{timestamp_ns}.feather"
                     )
-                    points_ego_current = ego_current_SE3_ego_past.transform_point_cloud(point_cloud).astype(np.float32)
-                    dataframe = pl.concat(
-                        [
-                            pl.from_numpy(points_ego_current, POINT_COORDINATE_FIELDS),
-                            dataframe.select(pl.col("*").exclude(POINT_COORDINATE_FIELDS)),
-                        ],
-                        how="horizontal",
-                    )
-                    dataframe_list.append(dataframe)
-            dataframe = pl.concat(dataframe_list)
-        if self.file_caching_mode == FileCachingMode.DISK and not cache_path.exists():
-            cache_path.parent.mkdir(parents=True, exist_ok=True)
-            dataframe.write_ipc(cache_path)
+                    if cache_path.exists():
+                        dataframe = read_feather(cache_path)
+                    else:
+                        cache_path.parent.mkdir(parents=True, exist_ok=True)
+                        dataframe = read_feather(self.lidar_path(log_id, timestamp_ns))
+                        dataframe.write_ipc(cache_path)
+
+                point_cloud: NDArrayFloat = (
+                    dataframe.select(pl.col(POINT_COORDINATE_FIELDS)).to_numpy().astype(np.float64)
+                )
+                points_ego_current = ego_current_SE3_ego_past.transform_point_cloud(point_cloud).astype(np.float32)
+                dataframe = pl.concat(
+                    [
+                        pl.from_numpy(points_ego_current, POINT_COORDINATE_FIELDS),
+                        dataframe.select(pl.col("*").exclude(POINT_COORDINATE_FIELDS)),
+                    ],
+                    how="horizontal",
+                )
+                dataframe_list.append(dataframe)
+        dataframe = pl.concat(dataframe_list)
 
         dataframe = self._post_process_lidar(dataframe)
         lidar = Lidar(dataframe)
