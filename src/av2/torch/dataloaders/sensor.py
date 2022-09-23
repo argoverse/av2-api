@@ -29,8 +29,6 @@ POINT_COORDINATE_FIELDS: Final[Tuple[str, str, str]] = ("x", "y", "z")
 
 LIDAR_GLOB_PATTERN: Final[str] = "sensors/lidar/*.feather"
 
-CACHE_DIR: Final[PathType] = Path.home() / ".cache" / "av2"
-
 
 pl.Config.with_columns_kwargs = True
 
@@ -73,6 +71,10 @@ class Av2(Dataset[Sweep]):  # type: ignore
     def items(self) -> ItemsView[str, Any]:
         """Return the attribute_name, attribute pairs for the dataloader."""
         return self.__dict__.items()
+
+    @property
+    def cache_dir(self) -> PathType:
+        return Path.home() / ".cache" / "av2" / f"{self.num_accumulated_sweeps}_sweeps" / self.split_name
 
     @property
     def split_dir(self) -> PathType:
@@ -164,7 +166,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
             The annotations object.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
-        cache_path = CACHE_DIR / self.split_name / log_id / "annotations.feather"
+        cache_path = self.cache_dir / log_id / "annotations.feather"
 
         if self.file_caching_mode == FileCachingMode.DISK and cache_path.exists():
             dataframe = read_feather(cache_path)
@@ -237,7 +239,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
             Tensor of annotations.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
-        cache_path = CACHE_DIR / self.split_name / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
+        cache_path = self.cache_dir / self.split_name / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
 
         if self.file_caching_mode == FileCachingMode.DISK and cache_path.exists():
             dataframe = read_feather(cache_path)
@@ -255,10 +257,17 @@ class Av2(Dataset[Sweep]):  # type: ignore
                     ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
 
                     dataframe = read_feather(self.lidar_path(log_id, timestamp_ns))
-                    point_cloud: NDArrayFloat = dataframe[list(POINT_COORDINATE_FIELDS)].to_numpy().astype(np.float64)
-                    dataframe[list(POINT_COORDINATE_FIELDS)] = ego_current_SE3_ego_past.transform_point_cloud(
-                        point_cloud
-                    ).astype(np.float32)
+                    point_cloud: NDArrayFloat = (
+                        dataframe.select(pl.col(POINT_COORDINATE_FIELDS)).to_numpy().astype(np.float64)
+                    )
+                    points_ego_current = ego_current_SE3_ego_past.transform_point_cloud(point_cloud).astype(np.float32)
+                    dataframe = pl.concat(
+                        [
+                            pl.from_numpy(points_ego_current, POINT_COORDINATE_FIELDS),
+                            dataframe.select(pl.col("*").exclude(POINT_COORDINATE_FIELDS)),
+                        ],
+                        how="horizontal",
+                    )
                     dataframe_list.append(dataframe)
             dataframe = pl.concat(dataframe_list)
         if self.file_caching_mode == FileCachingMode.DISK and not cache_path.exists():
@@ -284,7 +293,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
 
     @staticmethod
     def _file_index_helper(root_dir: PathType, file_pattern: str) -> List[Tuple[str, int]]:
-        """Building the file index in a multiprocessing context.
+        """Build the file index in a multiprocessing context.
 
         Args:
             root_dir: Root directory.
