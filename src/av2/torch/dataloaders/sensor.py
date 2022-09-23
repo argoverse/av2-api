@@ -207,14 +207,14 @@ class Av2(Dataset[Sweep]):  # type: ignore
         mats = quat_to_mat(annotations_with_poses.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy())
         translation = annotations_with_poses.select(pl.col(["tx_m", "ty_m", "tz_m"])).to_numpy()
 
-        xyz = annotations_with_poses.select(pl.col(["tx_m_obj", "ty_m_obj", "tz_m_obj"])).to_numpy()
-        xyz_city = pl.from_numpy(
-            (xyz[:, None] @ mats.transpose(0, 2, 1) + translation[:, None]).squeeze(),
+        t_xyz = annotations_with_poses.select(pl.col(["tx_m_obj", "ty_m_obj", "tz_m_obj"])).to_numpy()
+        t_xyz_city = pl.from_numpy(
+            (t_xyz[:, None] @ mats.transpose(0, 2, 1) + translation[:, None]).squeeze(),
             ["tx_m_city", "ty_m_city", "tz_m_city"],
         )
 
         annotations_city = pl.concat(
-            [annotations.select(pl.col(["row_nr", "timestamp_ns", "track_uuid"])), xyz_city],
+            [annotations.select(pl.col(["row_nr", "timestamp_ns", "track_uuid"])), t_xyz_city],
             how="horizontal",
         )
 

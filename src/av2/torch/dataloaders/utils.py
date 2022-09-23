@@ -141,7 +141,7 @@ class Annotations:
         """Return the lidar sweep as a dense tensor.
 
         Args:
-            box_mode: Target parameterization for the cuboids.
+            cuboid_mode: Target parameterization for the cuboids.
             dtype: Target datatype for casting.
 
         Returns:
@@ -152,6 +152,15 @@ class Annotations:
         return torch.as_tensor(dataframe.to_numpy(), dtype=dtype)
 
     def compute_interior_points(self, lidar: Lidar) -> Tensor:
+        """Compute a pairwise interior point mask.
+
+        Args:
+            lidar: Lidar object.
+
+        Returns:
+            (num_annotations,num_points) boolean tensor indicating whether the point
+                falls into the kth cuboid.
+        """
         dataframe = CuboidMode.convert(self.dataframe, self.cuboid_mode, CuboidMode.XYZ)
         points_xyz = lidar.as_tensor()
 
