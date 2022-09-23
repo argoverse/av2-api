@@ -73,7 +73,8 @@ class Av2(Dataset[Sweep]):  # type: ignore
         return self.__dict__.items()
 
     @property
-    def cache_dir(self) -> PathType:
+    def file_caching_dir(self) -> PathType:
+        """File caching directory."""
         return Path.home() / ".cache" / "av2" / f"{self.num_accumulated_sweeps}_sweeps" / self.split_name
 
     @property
@@ -166,7 +167,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
             The annotations object.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
-        cache_path = self.cache_dir / log_id / "annotations.feather"
+        cache_path = self.file_caching_dir / log_id / "annotations.feather"
 
         if self.file_caching_mode == FileCachingMode.DISK and cache_path.exists():
             dataframe = read_feather(cache_path)
@@ -239,7 +240,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
             Tensor of annotations.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
-        cache_path = self.cache_dir / self.split_name / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
+        cache_path = self.file_caching_dir / self.split_name / log_id / "sensors" / "lidar" / f"{timestamp_ns}.feather"
 
         if self.file_caching_mode == FileCachingMode.DISK and cache_path.exists():
             dataframe = read_feather(cache_path)
