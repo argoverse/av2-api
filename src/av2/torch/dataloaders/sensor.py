@@ -45,7 +45,9 @@ class Av2(Dataset[Sweep]):
     Args:
         dataset_dir: Path to the dataset directory.
         split_name: Name of the dataset split.
+        min_annotation_range: Min Euclidean distance between the egovehicle origin and the annotation cuboid centers.
         max_annotation_range: Max Euclidean distance between the egovehicle origin and the annotation cuboid centers.
+        min_lidar_range: Min Euclidean distance between the egovehicle origin and the lidar points.
         max_lidar_range: Max Euclidean distance between the egovehicle origin and the lidar points.
         num_accumulated_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
         file_caching_mode: File caching mode.
@@ -53,7 +55,9 @@ class Av2(Dataset[Sweep]):
 
     dataset_dir: PathType
     split_name: str
+    min_annotation_range: float = 0.0
     max_annotation_range: float = inf
+    min_lidar_range: float = 0.0
     max_lidar_range: float = inf
     num_accumulated_sweeps: int = 1
     file_caching_mode: Optional[FileCachingMode] = None
@@ -178,7 +182,14 @@ class Av2(Dataset[Sweep]):
             cache_path.parent.mkdir(parents=True, exist_ok=True)
             dataframe.write_ipc(cache_path)
 
-        dataframe = dataframe.filter((pl.col("num_interior_pts") > 0) & (pl.col("timestamp_ns") == timestamp_ns))
+        distance = np.linalg.norm(dataframe.select(pl.col(["tx_m", "ty_m", "tz_m"])).to_numpy(), axis=-1)
+        dataframe = pl.concat([dataframe, pl.from_numpy(distance, columns=["distance"])], how="horizontal")
+        dataframe = dataframe.filter(
+            (pl.col("num_interior_pts") > 0)
+            & (pl.col("timestamp_ns") == timestamp_ns)
+            & (pl.col("distance") > self.min_annotation_range)
+            & (pl.col("distance") <= self.max_annotation_range)
+        )
         annotations = Annotations(dataframe)
         return annotations
 
@@ -290,9 +301,12 @@ class Av2(Dataset[Sweep]):
         Returns:
             The filtered lidar dataframe.
         """
-        return dataframe.filter(
-            pl.col(["x"]).pow(2) + pl.col(["y"]).pow(2) + pl.col(["z"]).pow(2) <= self.max_lidar_range**2
+        distance = np.linalg.norm(dataframe.select(pl.col(["x", "y", "z"])).to_numpy(), axis=-1)
+        dataframe = pl.concat([dataframe, pl.from_numpy(distance, columns=["distance"])], how="horizontal")
+        dataframe = dataframe.sort(["timedelta_ns", "distance"]).filter(
+            (pl.col("distance") > self.min_lidar_range) & (pl.col("distance") <= self.max_lidar_range)
         )
+        return dataframe
 
     @staticmethod
     def _file_index_helper(root_dir: PathType, file_pattern: str) -> List[Tuple[str, int]]:
