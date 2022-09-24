@@ -198,7 +198,7 @@ class Lidar:
         return torch.as_tensor(dataframe_npy, dtype=dtype)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Sweep:
     """Stores the annotations and lidar for one sweep."""
 
@@ -212,7 +212,7 @@ def prevent_fsspec_deadlock() -> None:
     fsspec.asyn.reset_lock()
 
 
-def query_SE3(poses: pl.DataFrame, timestamp_ns: int) -> SE3:
+def query_pose(poses: pl.DataFrame, timestamp_ns: int) -> SE3:
     """Query the SE(3) transformation as the provided timestamp in nanoseconds.
 
     Args:
@@ -236,7 +236,6 @@ def query_SE3(poses: pl.DataFrame, timestamp_ns: int) -> SE3:
     )
 
 
-@torch.jit.script
 def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) -> Tensor:
     r"""Compute the interior points within a set of _axis-aligned_ cuboids.
 

@@ -18,7 +18,7 @@ from torch.utils.data import Dataset
 from av2.geometry.geometry import quat_to_mat
 from av2.utils.typing import NDArrayFloat, PathType
 
-from .utils import QUAT_WXYZ_FIELDS, Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_SE3, read_feather
+from .utils import QUAT_WXYZ_FIELDS, Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_pose, read_feather
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
@@ -39,7 +39,7 @@ class FileCachingMode(str, Enum):
 
 
 @dataclass
-class Av2(Dataset[Sweep]):  # type: ignore
+class Av2(Dataset[Sweep]):
     """Pytorch dataloader for the sensor dataset.
 
     Args:
@@ -257,7 +257,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
                 src_path=self.pose_path(log_id),
                 file_caching_path=self.file_caching_dir / log_id / "city_SE3_egovehicle.feather",
             )
-            ego_current_SE3_city = query_SE3(poses, timestamp_ns).inverse()
+            ego_current_SE3_city = query_pose(poses, timestamp_ns).inverse()
             for _, (log_id, timestamp_ns_k) in enumerate(filtered_window):
                 dataframe = self._read_frame(
                     src_path=self.lidar_path(log_id, timestamp_ns_k),
@@ -272,7 +272,7 @@ class Av2(Dataset[Sweep]):  # type: ignore
                 # Timestamps do not match, we're likely in a new reference frame.
                 timedelta = timestamp_ns - timestamp_ns_k
                 if timedelta > 0:
-                    city_SE3_ego_past = query_SE3(poses, timestamp_ns_k)
+                    city_SE3_ego_past = query_pose(poses, timestamp_ns_k)
                     ego_current_SE3_ego_past = ego_current_SE3_city.compose(city_SE3_ego_past)
                     points_ego_current = ego_current_SE3_ego_past.transform_point_cloud(points_past)
                 else:
