@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from enum import Enum, unique
 from math import inf
 from pathlib import Path
-from typing import Any, Final, ItemsView, List, Optional, Tuple
+from typing import Any, Final, ItemsView, List, Optional, Tuple, TypeVar
 
 import joblib
 import numpy as np
@@ -29,6 +29,8 @@ LIDAR_GLOB_PATTERN: Final[str] = "sensors/lidar/*.feather"
 
 
 pl.Config.with_columns_kwargs = True
+
+T = TypeVar('T', bound='Sweep')
 
 
 @unique
@@ -153,7 +155,7 @@ class Av2(Dataset[Sweep]):
         )
         if path_lists is None:
             raise RuntimeError("Error scanning the dataset directory!")
-        elif len(path_lists) == 0:
+        if len(path_lists) == 0:
             raise RuntimeError("No file paths found. Please validate `self.dataset_dir` and `self.split_name`.")
 
         self.file_index = sorted(itertools.chain.from_iterable(path_lists))

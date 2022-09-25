@@ -12,7 +12,7 @@ from av2.utils.io import read_city_SE3_ego
 
 mp.set_start_method("fork")
 
-TEST_DATA_DIR: Final[Path] = Path(".").resolve() / "test_data"
+TEST_DATA_DIR: Final[Path] = Path(__file__).resolve() / "test_data"
 
 
 def test_av2_sensor_dataloader() -> None:
