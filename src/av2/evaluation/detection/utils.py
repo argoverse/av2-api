@@ -13,11 +13,12 @@ increased interpretability of the error modes in a set of detections.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, cast
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
 from joblib import Parallel, delayed
 from scipy.spatial.distance import cdist
+from upath import UPath
 
 from av2.evaluation.detection.constants import (
     MAX_NORMALIZED_ASE,
@@ -63,7 +64,7 @@ class DetectionCfg:
     affinity_thresholds_m: Tuple[float, ...] = (0.5, 1.0, 2.0, 4.0)
     affinity_type: AffinityType = AffinityType.CENTER
     categories: Tuple[str, ...] = tuple(x.value for x in CompetitionCategories)
-    dataset_dir: Optional[Path] = None
+    dataset_dir: Optional[Union[Path, UPath]] = None
     eval_only_roi_instances: bool = True
     filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN
     max_num_dts_per_category: int = 100
@@ -437,7 +438,7 @@ def compute_evaluated_gts_mask(
 
 
 def load_mapped_avm_and_egoposes(
-    log_ids: List[str], dataset_dir: Path
+    log_ids: List[str], dataset_dir: Union[Path, UPath]
 ) -> Tuple[Dict[str, ArgoverseStaticMap], Dict[str, TimestampedCitySE3EgoPoses]]:
     """Load the maps and egoposes for each log in the dataset directory.
 
@@ -452,9 +453,10 @@ def load_mapped_avm_and_egoposes(
         RuntimeError: If the process for loading maps and timestamped egoposes fails.
     """
     log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(dataset_dir / log_id) for log_id in log_ids}
-    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, backend="threading", verbose=1)(
+    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, backend="threading")(
         delayed(ArgoverseStaticMap.from_map_dir)(dataset_dir / log_id / "map", build_raster=True) for log_id in log_ids
     )
+
     if avms is None:
         raise RuntimeError("Map and egopose loading has failed!")
     log_id_to_avm = {log_ids[i]: avm for i, avm in enumerate(avms)}
