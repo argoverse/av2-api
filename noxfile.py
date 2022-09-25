@@ -10,7 +10,7 @@ import yaml
 from nox import Session
 from nox.virtualenv import CondaEnv
 
-PYTHON: Final[List[str]] = ["3.8", "3.9", "3.10.5"]
+PYTHON: Final[List[str]] = ["3.8", "3.9", "3.10"]
 
 nox.options.sessions = ["black", "isort", "lint", "mypy", "pytest"]
 
