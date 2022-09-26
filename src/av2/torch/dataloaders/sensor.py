@@ -30,7 +30,6 @@ LIDAR_GLOB_PATTERN: Final[str] = "sensors/lidar/*.feather"
 
 pl.Config.with_columns_kwargs = True
 
-T = TypeVar('T', bound='Sweep')
 
 
 @unique
@@ -238,7 +237,7 @@ class Av2(Dataset[Sweep]):
             ]
         )
         annotations = annotations.join(velocities, on=["track_uuid", "row_nr"])
-        return annotations
+        return annotations.drop("row_nr")
 
     def read_lidar(self, index: int) -> Lidar:
         """Read the lidar sweep.
@@ -332,10 +331,17 @@ class Av2(Dataset[Sweep]):
         Returns:
             DataFrame representation of the feather file.
         """
-        if self.file_caching_mode == FileCachingMode.DISK and file_caching_path.exists():
-            dataframe = read_feather(file_caching_path)
-        else:
+        if self.file_caching_mode == FileCachingMode.DISK:
             file_caching_path.parent.mkdir(parents=True, exist_ok=True)
+            if not file_caching_path.exists():
+                dataframe = read_feather(src_path)
+                dataframe.write_ipc(file_caching_path)
+            else:
+                try:
+                    dataframe = read_feather(file_caching_path)
+                except Exception as _:  # TODO: Catch more specific error.
+                    dataframe = read_feather(src_path)
+                    dataframe.write_ipc(file_caching_path)
+        else:
             dataframe = read_feather(src_path)
-            dataframe.write_ipc(file_caching_path)
         return dataframe

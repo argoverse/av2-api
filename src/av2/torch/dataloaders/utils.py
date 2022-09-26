@@ -116,10 +116,11 @@ class CuboidMode(str, Enum):
                     [(f"tx_{i}", f"ty_{i}", f"tz_{i}") for i in range(len(unit_vertices_obj_xyz_m))]
                 )
             )
+            vertices = vertices.reshape(-1, len(unit_vertices_obj_xyz_m) * 3)
             dataframe = pl.concat(
                 [
                     dataframe.select(pl.col("*").exclude(["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"])),
-                    pl.from_numpy(vertices.reshape(-1, len(unit_vertices_obj_xyz_m) * 3), columns=columns),
+                    pl.from_numpy(vertices, columns=columns, orient="row"),
                 ],
                 how="horizontal",
             )
@@ -168,8 +169,8 @@ class Annotations:
         points_xyz = lidar.as_tensor()
 
         columns = list(itertools.chain.from_iterable([(f"tx_{i}", f"ty_{i}", f"tz_{i}") for i in range(8)]))
-        cuboid_vertices = torch.as_tensor(
-            dataframe.select(pl.col(columns)).to_numpy().reshape(-1, 8, 3), dtype=torch.float32
+        cuboid_vertices = torch.as_tensor(dataframe.select(pl.col(columns)).to_numpy(), dtype=torch.float32).reshape(
+            -1, 8, 3
         )
         pairwise_point_masks = compute_interior_points_mask(points_xyz, cuboid_vertices)
         return pairwise_point_masks
