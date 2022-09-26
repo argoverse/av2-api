@@ -163,6 +163,7 @@ class Av2(Dataset[Sweep]):
                 raise RuntimeError("No file paths found. Please validate `self.dataset_dir` and `self.split_name`.")
 
             file_index = sorted(itertools.chain.from_iterable(path_lists))
+            self.file_caching_dir.mkdir(parents=True, exist_ok=True)
             pl.DataFrame(file_index, columns=["log_id", "timestamp_ns"]).write_ipc(file_cache_path)
         self.file_index = file_index
 
