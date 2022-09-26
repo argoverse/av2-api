@@ -277,7 +277,7 @@ class Av2(Dataset[Sweep]):
                     / f"{timestamp_ns_k}.feather",
                 )
 
-                points_past: NDArrayFloat = dataframe.select(pl.col(list(XYZ_FIELDS)).to_numpy()
+                points_past: NDArrayFloat = dataframe.select(pl.col(list(XYZ_FIELDS))).to_numpy()
                 # Timestamps do not match, we're likely in a new reference frame.
                 timedelta = timestamp_ns - timestamp_ns_k
                 if timedelta > 0:
