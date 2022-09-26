@@ -146,12 +146,13 @@ class Av2(Dataset[Sweep]):
 
     def _build_file_index(self) -> None:
         """Build the file index for the dataset."""
-        logger.info("Building file index. This may take a moment ...")
 
         file_cache_path = self.file_caching_dir / f"file_index_{self.split_name}.feather"
         if file_cache_path.exists():
             file_index = read_feather(file_cache_path).to_numpy().tolist()
         else:
+            logger.info("Building file index. This may take a moment ...")
+
             log_dirs = sorted(self.split_dir.glob("*"))
             path_lists: Optional[List[List[Tuple[str, int]]]] = joblib.Parallel(n_jobs=-1, backend="multiprocessing")(
                 joblib.delayed(Av2._file_index_helper)(log_dir, LIDAR_GLOB_PATTERN) for log_dir in log_dirs
