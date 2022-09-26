@@ -277,7 +277,7 @@ class Av2(Dataset[Sweep]):
                     / f"{timestamp_ns_k}.feather",
                 )
 
-                points_past: NDArrayFloat = dataframe.select(pl.col(XYZ_FIELDS)).to_numpy()
+                points_past: NDArrayFloat = dataframe.select(pl.col(list(XYZ_FIELDS)).to_numpy()
                 # Timestamps do not match, we're likely in a new reference frame.
                 timedelta = timestamp_ns - timestamp_ns_k
                 if timedelta > 0:
@@ -309,7 +309,7 @@ class Av2(Dataset[Sweep]):
         Returns:
             The filtered lidar dataframe.
         """
-        distance = np.linalg.norm(dataframe.select(pl.col(XYZ_FIELDS)).to_numpy(), axis=-1)
+        distance = np.linalg.norm(dataframe.select(pl.col(list(XYZ_FIELDS)).to_numpy(), axis=-1)
         dataframe_distance = pl.from_numpy(distance, columns=["distance"])
         dataframe = pl.concat([dataframe, dataframe_distance], how="horizontal")
         dataframe = dataframe.filter(
