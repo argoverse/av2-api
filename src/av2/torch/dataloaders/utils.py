@@ -277,7 +277,6 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
     return is_interior
 
 
-@profile
 def read_feather(path: PathType) -> pl.DataFrame:
     """Read a feather file and load it as a `polars` dataframe.
 
