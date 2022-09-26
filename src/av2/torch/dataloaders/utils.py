@@ -12,7 +12,6 @@ import fsspec.asyn
 import numpy as np
 import polars as pl
 import torch
-from pyarrow import feather
 from torch import Tensor
 
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
