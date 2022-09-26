@@ -8,11 +8,12 @@ from dataclasses import dataclass, field
 from enum import Enum, unique
 from math import inf
 from pathlib import Path
-from typing import Any, Final, ItemsView, List, Optional, Tuple, TypeVar
+from typing import Any, Final, ItemsView, List, Optional, Tuple
 
 import joblib
 import numpy as np
 import polars as pl
+from polars.exceptions import ArrowError
 from torch.utils.data import Dataset
 
 from av2.geometry.geometry import quat_to_mat
@@ -339,7 +340,7 @@ class Av2(Dataset[Sweep]):
             else:
                 try:
                     dataframe = read_feather(file_caching_path)
-                except Exception as _:  # TODO: Catch more specific error.
+                except ArrowError as _:
                     dataframe = read_feather(src_path)
                     dataframe.write_ipc(file_caching_path)
         else:
