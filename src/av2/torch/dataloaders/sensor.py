@@ -31,7 +31,6 @@ LIDAR_GLOB_PATTERN: Final[str] = "sensors/lidar/*.feather"
 pl.Config.with_columns_kwargs = True
 
 
-
 @unique
 class FileCachingMode(str, Enum):
     """File caching mode."""
@@ -249,7 +248,7 @@ class Av2(Dataset[Sweep]):
             Tensor of annotations.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
-        window = self.file_index[max(index - self.num_accumulated_sweeps + 1, 0) : index + 1]
+        window = self.file_index[max(index - self.num_accumulated_sweeps + 1, 0) : index + 1][::-1]
         filtered_window: List[Tuple[str, int]] = list(filter(lambda sweep_uuid: sweep_uuid[0] == log_id, window))
 
         dataframe_list = []
@@ -303,9 +302,10 @@ class Av2(Dataset[Sweep]):
         """
         distance = np.linalg.norm(dataframe.select(pl.col(["x", "y", "z"])).to_numpy(), axis=-1)
         dataframe = pl.concat([dataframe, pl.from_numpy(distance, columns=["distance"])], how="horizontal")
-        dataframe = dataframe.sort(["timedelta_ns", "distance"]).filter(
+        dataframe = dataframe.filter(
             (pl.col("distance") > self.min_lidar_range) & (pl.col("distance") <= self.max_lidar_range)
         )
+        dataframe = dataframe.sort(["timedelta_ns", "distance"])
         return dataframe
 
     @staticmethod

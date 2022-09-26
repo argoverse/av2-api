@@ -12,6 +12,7 @@ import fsspec.asyn
 import numpy as np
 import polars as pl
 import torch
+from pyarrow import feather
 from torch import Tensor
 
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
@@ -276,6 +277,7 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
     return is_interior
 
 
+@profile
 def read_feather(path: PathType) -> pl.DataFrame:
     """Read a feather file and load it as a `polars` dataframe.
 
