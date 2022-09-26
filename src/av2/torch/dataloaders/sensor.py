@@ -308,8 +308,9 @@ class Av2(Dataset[Sweep]):
         Returns:
             The filtered lidar dataframe.
         """
-        distance = np.linalg.norm(dataframe.select(pl.col(["x", "y", "z"])).to_numpy(), axis=-1)
-        dataframe = pl.concat([dataframe, pl.from_numpy(distance, columns=["distance"])], how="horizontal")
+        distance = np.linalg.norm(dataframe.select(pl.col(XYZ_FIELDS)).to_numpy(), axis=-1)
+        dataframe_distance = pl.from_numpy(distance, columns=["distance"])
+        dataframe = pl.concat([dataframe, dataframe_distance], how="horizontal")
         dataframe = dataframe.filter(
             (pl.col("distance") > self.min_lidar_range) & (pl.col("distance") <= self.max_lidar_range)
         )
@@ -347,7 +348,7 @@ class Av2(Dataset[Sweep]):
             else:
                 try:
                     dataframe = read_feather(file_caching_path)
-                except ArrowError as _:
+                except ArrowError:
                     dataframe = read_feather(src_path)
                     dataframe.write_ipc(file_caching_path)
         else:
