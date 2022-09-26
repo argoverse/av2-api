@@ -19,7 +19,19 @@ from torch.utils.data import Dataset
 from av2.geometry.geometry import quat_to_mat
 from av2.utils.typing import NDArrayFloat, PathType
 
-from .utils import QUAT_WXYZ_FIELDS, Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_pose, read_feather
+from .utils import (
+    QUAT_WXYZ_FIELDS,
+    Annotations,
+    Lidar,
+    Sweep,
+    concat,
+    from_numpy,
+    prevent_fsspec_deadlock,
+    query_pose,
+    read_feather,
+    sort_dataframe,
+    write_feather,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
@@ -63,6 +75,7 @@ class Av2(Dataset[Sweep]):
     num_accumulated_sweeps: int = 1
     file_caching_mode: Optional[FileCachingMode] = None
     file_index: List[Tuple[str, int]] = field(init=False)
+    use_pandas: bool = True
 
     def __post_init__(self) -> None:
         """Build the file index."""
@@ -140,9 +153,9 @@ class Av2(Dataset[Sweep]):
         Returns:
             Sweep object containing annotations and lidar.
         """
-        return Sweep(
-            annotations=self.read_annotations(index), lidar=self.read_lidar(index), sweep_uuid=self.sweep_uuid(index)
-        )
+        annotations = self.read_annotations(index)
+        lidar = self.read_lidar(index)
+        return Sweep(annotations=annotations, lidar=lidar, sweep_uuid=self.sweep_uuid(index))
 
     def _build_file_index(self) -> None:
         """Build the file index for the dataset."""
@@ -180,24 +193,29 @@ class Av2(Dataset[Sweep]):
         cache_path = self.file_caching_dir / log_id / "annotations.feather"
 
         if self.file_caching_mode == FileCachingMode.DISK and cache_path.exists():
-            dataframe = read_feather(cache_path)
+            dataframe = read_feather(cache_path, use_pyarrow=self.use_pandas)
         else:
             annotations_path = self.annotations_path(log_id)
-            dataframe = read_feather(annotations_path)
-            dataframe = self._populate_annotations_velocity(index, dataframe)
+            dataframe = read_feather(annotations_path, use_pyarrow=self.use_pandas)
+            # dataframe = self._populate_annotations_velocity(index, dataframe)
 
         if self.file_caching_mode == FileCachingMode.DISK and not cache_path.exists():
             cache_path.parent.mkdir(parents=True, exist_ok=True)
-            dataframe.write_ipc(cache_path)
+            write_feather(cache_path, dataframe)
+            # dataframe.write_ipc(cache_path)
 
-        distance = np.linalg.norm(dataframe.select(pl.col(["tx_m", "ty_m", "tz_m"])).to_numpy(), axis=-1)
-        dataframe = pl.concat([dataframe, pl.from_numpy(distance, columns=["distance"])], how="horizontal")
-        dataframe = dataframe.filter(
-            (pl.col("num_interior_pts") > 0)
-            & (pl.col("timestamp_ns") == timestamp_ns)
-            & (pl.col("distance") > self.min_annotation_range)
-            & (pl.col("distance") <= self.max_annotation_range)
+        xyz = dataframe[["tx_m", "ty_m", "tz_m"]]
+        distance = np.linalg.norm(xyz.to_numpy(), axis=-1)
+
+        dataframe_distance = from_numpy(distance, columns=["distance"])
+        dataframe = concat([dataframe, dataframe_distance])
+        query = (
+            (dataframe["num_interior_pts"] > 0)
+            & (dataframe["timestamp_ns"] == timestamp_ns)
+            & (dataframe["distance"] > self.min_annotation_range)
+            & (dataframe["distance"] <= self.max_annotation_range)
         )
+        dataframe = dataframe[query]
         annotations = Annotations(dataframe)
         return annotations
 
@@ -277,7 +295,7 @@ class Av2(Dataset[Sweep]):
                     / f"{timestamp_ns_k}.feather",
                 )
 
-                points_past: NDArrayFloat = dataframe.select(pl.col(list(XYZ_FIELDS))).to_numpy()
+                points_past: NDArrayFloat = dataframe[list(XYZ_FIELDS)].to_numpy()
                 # Timestamps do not match, we're likely in a new reference frame.
                 timedelta = timestamp_ns - timestamp_ns_k
                 if timedelta > 0:
@@ -287,16 +305,23 @@ class Av2(Dataset[Sweep]):
                 else:
                     points_ego_current = points_past
 
-                dataframe = pl.concat(
+                dataframe_xyz = from_numpy(points_ego_current, columns=list(XYZ_FIELDS), use_pandas=self.use_pandas)
+
+                columns = list(dataframe.columns)[3:]
+                timedelta_ns = from_numpy(
+                    np.full(len(points_ego_current), fill_value=timedelta),
+                    columns=["timedelta_ns"],
+                    use_pandas=self.use_pandas,
+                )
+                dataframe = concat(
                     [
-                        pl.from_numpy(points_ego_current.astype(np.float32), XYZ_FIELDS),
-                        dataframe.select(pl.col("*").exclude(XYZ_FIELDS)),
-                        pl.from_numpy(np.full(len(points_ego_current), fill_value=timedelta), columns=["timedelta_ns"]),
+                        dataframe_xyz,
+                        dataframe[columns],
+                        timedelta_ns,
                     ],
-                    how="horizontal",
                 )
                 dataframe_list.append(dataframe)
-        dataframe = pl.concat(dataframe_list)
+        dataframe = concat(dataframe_list)
         dataframe = self._post_process_lidar(dataframe)
         return Lidar(dataframe)
 
@@ -309,13 +334,14 @@ class Av2(Dataset[Sweep]):
         Returns:
             The filtered lidar dataframe.
         """
-        distance = np.linalg.norm(dataframe.select(pl.col(list(XYZ_FIELDS))).to_numpy(), axis=-1)
-        dataframe_distance = pl.from_numpy(distance, columns=["distance"])
-        dataframe = pl.concat([dataframe, dataframe_distance], how="horizontal")
-        dataframe = dataframe.filter(
-            (pl.col("distance") > self.min_lidar_range) & (pl.col("distance") <= self.max_lidar_range)
-        )
-        dataframe = dataframe.sort(["timedelta_ns", "distance"])
+        dataframe_xyz = dataframe[list(XYZ_FIELDS)].to_numpy()
+        distance = np.linalg.norm(dataframe_xyz, axis=-1)
+        dataframe_distance = from_numpy(distance, columns=["distance"], use_pandas=self.use_pandas)
+        dataframe = concat([dataframe, dataframe_distance])
+
+        mask = (dataframe["distance"] > self.min_lidar_range) & (dataframe["distance"] <= self.max_lidar_range)
+        dataframe = dataframe[mask]
+        dataframe = sort_dataframe(dataframe, ["timedelta_ns", "distance"])
         return dataframe
 
     @staticmethod
@@ -344,14 +370,14 @@ class Av2(Dataset[Sweep]):
         if self.file_caching_mode == FileCachingMode.DISK:
             file_caching_path.parent.mkdir(parents=True, exist_ok=True)
             if not file_caching_path.exists():
-                dataframe = read_feather(src_path)
-                dataframe.write_ipc(file_caching_path)
+                dataframe = read_feather(src_path, use_pyarrow=self.use_pandas)
+                write_feather(file_caching_path, dataframe, use_pyarrow=self.use_pandas)
             else:
                 try:
-                    dataframe = read_feather(file_caching_path)
+                    dataframe = read_feather(file_caching_path, use_pyarrow=self.use_pandas)
                 except ArrowError:
-                    dataframe = read_feather(src_path)
-                    dataframe.write_ipc(file_caching_path)
+                    dataframe = read_feather(src_path, use_pyarrow=self.use_pandas)
+                    write_feather(file_caching_path, dataframe, use_pyarrow=self.use_pandas)
         else:
-            dataframe = read_feather(src_path)
+            dataframe = read_feather(src_path, use_pyarrow=self.use_pandas)
         return dataframe

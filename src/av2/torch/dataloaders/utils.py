@@ -6,12 +6,14 @@ import itertools
 import sys
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Final, Tuple
+from typing import Final, List, Tuple, Union
 
 import fsspec.asyn
 import numpy as np
+import pandas as pd
 import polars as pl
 import torch
+from pyarrow import feather
 from torch import Tensor
 
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
@@ -195,7 +197,7 @@ class Lidar:
             (N,K) tensor where N is the number of lidar points and K
                 is the number of features.
         """
-        dataframe_npy = self.dataframe.select(pl.col(list(field_ordering))).to_numpy()
+        dataframe_npy = self.dataframe[list(field_ordering)].to_numpy()
         return torch.as_tensor(dataframe_npy, dtype=dtype)
 
 
@@ -223,12 +225,8 @@ def query_pose(poses: pl.DataFrame, timestamp_ns: int) -> SE3:
     Returns:
         SE(3) at timestamp_ns.
     """
-    pose = (
-        poses.lazy()
-        .filter(pl.col("timestamp_ns") == timestamp_ns)
-        .select(["qw", "qx", "qy", "qz", "tx_m", "ty_m", "tz_m"])
-    )
-    pose_npy = pose.collect().to_numpy().squeeze()
+    pose = poses[poses["timestamp_ns"] == timestamp_ns][["qw", "qx", "qy", "qz", "tx_m", "ty_m", "tz_m"]]
+    pose_npy = pose.to_numpy().squeeze()
     quat = pose_npy[:4]
     translation = pose_npy[4:]
     return SE3(
@@ -276,7 +274,7 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
     return is_interior
 
 
-def read_feather(path: PathType) -> pl.DataFrame:
+def read_feather(path: PathType, use_pyarrow: bool = True) -> pl.DataFrame:
     """Read a feather file and load it as a `polars` dataframe.
 
     Args:
@@ -286,4 +284,35 @@ def read_feather(path: PathType) -> pl.DataFrame:
         The feather file as a `polars` dataframe.
     """
     with path.open("rb") as f:
+        if use_pyarrow:
+            return feather.read_feather(f, memory_map=True)
         return pl.read_ipc(f, use_pyarrow=False, memory_map=True)
+
+
+def write_feather(path: PathType, dataframe: Union[pd.DataFrame, pl.DataFrame], use_pyarrow: bool = True) -> None:
+    with path.open("rb") as f:
+        if use_pyarrow:
+            feather.write_feather(dataframe, f, compression="uncompressed")
+        else:
+            dataframe.write_ipc(f)
+
+
+def concat(dataframes: List[Union[pd.DataFrame, pl.DataFrame]]) -> Union[pd.DataFrame, pl.DataFrame]:
+    if all(isinstance(dataframe, pd.DataFrame) for dataframe in dataframes):
+        return pd.concat(dataframes, axis=1)
+    pass
+
+
+def query():
+    pass
+
+
+def from_numpy(arr: np.ndarray, columns: List[str], use_pandas: bool = True):
+    if use_pandas:
+        return pd.DataFrame(arr, columns=columns)
+    return pl.DataFrame(arr, columns=columns)
+
+
+def sort_dataframe(dataframe: Union[pd.DataFrame, pl.DataFrame], columns: List[str]):
+    if isinstance(dataframe, pd.DataFrame):
+        return dataframe.sort_values(columns)
