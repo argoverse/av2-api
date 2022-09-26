@@ -14,7 +14,7 @@ import pandas as pd
 import polars as pl
 from upath import UPath
 
-NDArrayNumber = npt.NDArray["np.number[Any]"]
+NDArrayNumber = npt.NDArray[Union[np.uint8, np.uint16, np.int32, np.int64, np.float32, np.float64]]
 NDArrayBool = npt.NDArray[np.bool_]
 NDArrayFloat = npt.NDArray[np.float64]
 NDArrayFloat32 = npt.NDArray[np.float32]

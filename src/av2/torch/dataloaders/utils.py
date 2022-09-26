@@ -18,7 +18,7 @@ from torch import Tensor
 
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
 from av2.geometry.se3 import SE3
-from av2.utils.typing import DataFrameType, PathType
+from av2.utils.typing import DataFrameType, NDArrayNumber, PathType
 
 MAX_STR_LEN: Final[int] = 32
 
@@ -274,7 +274,7 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
     return is_interior
 
 
-def read_feather(path: PathType, use_pyarrow: bool = True) -> DataFrameType:
+def dataframe_read_feather(path: PathType, use_pyarrow: bool = True) -> DataFrameType:
     """Read a feather file and load it as a `polars` dataframe.
 
     Args:
@@ -289,7 +289,7 @@ def read_feather(path: PathType, use_pyarrow: bool = True) -> DataFrameType:
         return pl.read_ipc(f, use_pyarrow=False, memory_map=True)
 
 
-def write_feather(path: PathType, dataframe: DataFrameType, use_pyarrow: bool = True) -> None:
+def dataframe_write_feather(path: PathType, dataframe: DataFrameType, use_pyarrow: bool = True) -> None:
     with path.open("rb") as f:
         if use_pyarrow:
             feather.write_feather(dataframe, f, compression="uncompressed")
@@ -297,29 +297,25 @@ def write_feather(path: PathType, dataframe: DataFrameType, use_pyarrow: bool = 
             dataframe.write_ipc(f)
 
 
-def concat(dataframes: List[DataFrameType], axis: int = 0) -> DataFrameType:
+def dataframe_concat(dataframes: List[DataFrameType], axis: int = 0) -> DataFrameType:
     if all(isinstance(dataframe, pd.DataFrame) for dataframe in dataframes):
         dataframes_pandas = cast(List[pd.DataFrame], dataframes)
         dataframe_pandas: pd.DataFrame = pd.concat(dataframes_pandas, axis=axis).reset_index(drop=True)
         return dataframe_pandas
-    elif all(isinstance(dataframe, pl.DataFrame) for dataframe in dataframes):
+    if all(isinstance(dataframe, pl.DataFrame) for dataframe in dataframes):
         dataframes_polars = cast(List[pl.DataFrame], dataframes)
         dataframe_polars: pl.DataFrame = pl.concat(dataframes_polars, how="vertical" if axis == 0 else "horizontal")
         return dataframe_polars
-    else:
-        raise RuntimeError("Dataframes must all be the same type.")
+    raise RuntimeError("Dataframes must all be the same type.")
 
 
-def query():
-    pass
-
-
-def from_numpy(arr: np.ndarray, columns: List[str], use_pandas: bool = True):
+def dataframe_from_numpy(arr: NDArrayNumber, columns: List[str], use_pandas: bool = True):
     if use_pandas:
         return pd.DataFrame(arr, columns=columns)
     return pl.DataFrame(arr, columns=columns)
 
 
-def sort_dataframe(dataframe: DataFrameType, columns: List[str]):
+def dataframe_sort(dataframe: DataFrameType, columns: List[str]):
     if isinstance(dataframe, pd.DataFrame):
         return dataframe.sort_values(columns)
+    return dataframe.sort(columns)
