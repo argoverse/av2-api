@@ -297,13 +297,17 @@ def write_feather(path: PathType, dataframe: DataFrameType, use_pyarrow: bool = 
             dataframe.write_ipc(f)
 
 
-def concat(dataframes: List[DataFrameType]) -> DataFrameType:
+def concat(dataframes: List[DataFrameType], axis: int = 0) -> DataFrameType:
     if all(isinstance(dataframe, pd.DataFrame) for dataframe in dataframes):
         dataframes_pandas = cast(List[pd.DataFrame], dataframes)
-        return pd.concat(dataframes_pandas, axis=1)
+        dataframe_pandas: pd.DataFrame = pd.concat(dataframes_pandas, axis=axis).reset_index(drop=True)
+        return dataframe_pandas
     elif all(isinstance(dataframe, pl.DataFrame) for dataframe in dataframes):
-        dataframes_polars = cast(List[pd.DataFrame], dataframes)
-        raise NotImplementedError()
+        dataframes_polars = cast(List[pl.DataFrame], dataframes)
+        dataframe_polars: pl.DataFrame = pl.concat(dataframes_polars, how="vertical" if axis == 0 else "horizontal")
+        return dataframe_polars
+    else:
+        raise RuntimeError("Dataframes must all be the same type.")
 
 
 def query():

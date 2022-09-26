@@ -212,7 +212,7 @@ class Av2(Dataset[Sweep]):
         distance = np.linalg.norm(xyz.to_numpy(), axis=-1)
 
         dataframe_distance = from_numpy(distance, columns=["distance"])
-        dataframe = concat([dataframe, dataframe_distance])
+        dataframe = concat([dataframe, dataframe_distance], axis=1)
         query = (
             (dataframe["num_interior_pts"] > 0)
             & (dataframe["timestamp_ns"] == timestamp_ns)
@@ -323,9 +323,10 @@ class Av2(Dataset[Sweep]):
                         dataframe[columns],
                         timedelta_ns,
                     ],
+                    axis=1,
                 )
                 dataframe_list.append(dataframe)
-        dataframe = concat(dataframe_list)
+        dataframe = concat(dataframe_list, axis=0)
         dataframe = self._post_process_lidar(dataframe)
         return Lidar(dataframe)
 
@@ -341,7 +342,7 @@ class Av2(Dataset[Sweep]):
         dataframe_xyz = dataframe[list(XYZ_FIELDS)].to_numpy()
         distance = np.linalg.norm(dataframe_xyz, axis=-1)
         dataframe_distance = from_numpy(distance, columns=["distance"], use_pandas=self.use_pandas)
-        dataframe = concat([dataframe, dataframe_distance])
+        dataframe = concat([dataframe, dataframe_distance], axis=1)
 
         mask = (dataframe["distance"] > self.min_lidar_range) & (dataframe["distance"] <= self.max_lidar_range)
         dataframe = dataframe[mask]
