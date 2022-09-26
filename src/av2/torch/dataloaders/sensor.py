@@ -14,6 +14,7 @@ import joblib
 import numpy as np
 import polars as pl
 from polars.exceptions import ArrowError
+from pyarrow.feather import FeatherError
 from torch.utils.data import Dataset
 
 from av2.geometry.geometry import quat_to_mat
@@ -378,7 +379,7 @@ class Av2(Dataset[Sweep]):
             else:
                 try:
                     dataframe = read_feather(file_caching_path, use_pyarrow=self.use_pandas)
-                except ArrowError:
+                except (ArrowError, FeatherError):
                     dataframe = read_feather(src_path, use_pyarrow=self.use_pandas)
                     write_feather(file_caching_path, dataframe, use_pyarrow=self.use_pandas)
         else:
