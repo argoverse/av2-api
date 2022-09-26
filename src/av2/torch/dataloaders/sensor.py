@@ -148,16 +148,22 @@ class Av2(Dataset[Sweep]):
         """Build the file index for the dataset."""
         logger.info("Building file index. This may take a moment ...")
 
-        log_dirs = sorted(self.split_dir.glob("*"))
-        path_lists: Optional[List[List[Tuple[str, int]]]] = joblib.Parallel(n_jobs=-1, backend="threading")(
-            joblib.delayed(Av2._file_index_helper)(log_dir, LIDAR_GLOB_PATTERN) for log_dir in log_dirs
-        )
-        if path_lists is None:
-            raise RuntimeError("Error scanning the dataset directory!")
-        if len(path_lists) == 0:
-            raise RuntimeError("No file paths found. Please validate `self.dataset_dir` and `self.split_name`.")
+        file_cache_path = self.file_caching_dir / f"file_index_{self.split_name}.feather"
+        if file_cache_path.exists():
+            file_index = read_feather(file_cache_path).to_numpy().tolist()
+        else:
+            log_dirs = sorted(self.split_dir.glob("*"))
+            path_lists: Optional[List[List[Tuple[str, int]]]] = joblib.Parallel(n_jobs=-1, backend="multiprocessing")(
+                joblib.delayed(Av2._file_index_helper)(log_dir, LIDAR_GLOB_PATTERN) for log_dir in log_dirs
+            )
+            if path_lists is None:
+                raise RuntimeError("Error scanning the dataset directory!")
+            if len(path_lists) == 0:
+                raise RuntimeError("No file paths found. Please validate `self.dataset_dir` and `self.split_name`.")
 
-        self.file_index = sorted(itertools.chain.from_iterable(path_lists))
+            file_index = sorted(itertools.chain.from_iterable(path_lists))
+            pl.DataFrame(file_index, columns=["log_id", "timestamp_ns"]).write_ipc(file_cache_path)
+        self.file_index = file_index
 
     def read_annotations(self, index: int) -> Annotations:
         """Read the sweep annotations.
