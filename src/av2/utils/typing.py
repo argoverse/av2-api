@@ -10,6 +10,8 @@ from typing import Union
 
 import numpy as np
 import numpy.typing as npt
+import pandas as pd
+import polars as pl
 from upath import UPath
 
 NDArrayNumber = npt.NDArray["np.number[Any]"]
@@ -20,4 +22,5 @@ NDArrayByte = npt.NDArray[np.uint8]
 NDArrayInt = npt.NDArray[np.int64]
 NDArrayObject = npt.NDArray[np.object_]
 
+DataFrameType = Union[pd.DataFrame, pl.DataFrame]
 PathType = Union[Path, UPath]

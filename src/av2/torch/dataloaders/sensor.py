@@ -17,7 +17,7 @@ from polars.exceptions import ArrowError
 from torch.utils.data import Dataset
 
 from av2.geometry.geometry import quat_to_mat
-from av2.utils.typing import NDArrayFloat, PathType
+from av2.utils.typing import DataFrameType, NDArrayFloat, PathType
 
 from .utils import (
     QUAT_WXYZ_FIELDS,
@@ -155,7 +155,8 @@ class Av2(Dataset[Sweep]):
         """
         annotations = self.read_annotations(index)
         lidar = self.read_lidar(index)
-        return Sweep(annotations=annotations, lidar=lidar, sweep_uuid=self.sweep_uuid(index))
+        sweep_uuid = self.sweep_uuid(index)
+        return Sweep(annotations=annotations, lidar=lidar, sweep_uuid=sweep_uuid)
 
     def _build_file_index(self) -> None:
         """Build the file index for the dataset."""
@@ -177,7 +178,9 @@ class Av2(Dataset[Sweep]):
 
             file_index = sorted(itertools.chain.from_iterable(path_lists))
             self.file_caching_dir.mkdir(parents=True, exist_ok=True)
-            pl.DataFrame(file_index, columns=["log_id", "timestamp_ns"]).write_ipc(file_cache_path)
+
+            dataframe = from_numpy(np.array(file_index), ["log_id", "timestamp_ns"], use_pandas=self.use_pandas)
+            write_feather(file_cache_path, dataframe)
         self.file_index = file_index
 
     def read_annotations(self, index: int) -> Annotations:
@@ -219,7 +222,7 @@ class Av2(Dataset[Sweep]):
         annotations = Annotations(dataframe)
         return annotations
 
-    def _populate_annotations_velocity(self, index: int, annotations: pl.DataFrame) -> pl.DataFrame:
+    def _populate_annotations_velocity(self, index: int, annotations: DataFrameType) -> DataFrameType:
         """Populate the annotations with their estimated velocities.
 
         Args:
@@ -325,7 +328,7 @@ class Av2(Dataset[Sweep]):
         dataframe = self._post_process_lidar(dataframe)
         return Lidar(dataframe)
 
-    def _post_process_lidar(self, dataframe: pl.DataFrame) -> pl.DataFrame:
+    def _post_process_lidar(self, dataframe: DataFrameType) -> DataFrameType:
         """Apply post-processing operations on the point cloud.
 
         Args:
@@ -357,7 +360,7 @@ class Av2(Dataset[Sweep]):
         """
         return [(key.parts[-4], int(key.stem)) for key in root_dir.glob(file_pattern)]
 
-    def _read_frame(self, src_path: PathType, file_caching_path: PathType) -> pl.DataFrame:
+    def _read_frame(self, src_path: PathType, file_caching_path: PathType) -> DataFrameType:
         """Read a dataframe from a remote source or a locally cached location.
 
         Args:
