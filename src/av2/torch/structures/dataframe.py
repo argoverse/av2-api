@@ -25,8 +25,8 @@ class DataFrameBackendType(str, Enum):
 class DataFrame:
     """Backend agnostic dataframe."""
 
-    _dataframe: Union[pd.DataFrame, pl.DataFrame]
-    _backend: DataFrameBackendType = DataFrameBackendType.PANDAS
+    storage: Union[pd.DataFrame, pl.DataFrame]
+    backend: DataFrameBackendType = DataFrameBackendType.PANDAS
 
     def __getitem__(self, index: Union[List[str], pd.DataFrame]) -> DataFrame:
         """Get the item at the specified indices.
@@ -37,25 +37,25 @@ class DataFrame:
         Returns:
             DataFrame with the selected elements.
         """
-        if self._backend == DataFrameBackendType.POLARS:
-            dataframe_polars: pl.DataFrame = self._dataframe.select(pl.col(index))
-            return DataFrame(dataframe_polars, _backend=self._backend)
+        if self.backend == DataFrameBackendType.POLARS:
+            dataframe_polars: pl.DataFrame = self.storage.select(pl.col(index))
+            return DataFrame(dataframe_polars, backend=self.backend)
         if isinstance(index, (List, str)):
-            return DataFrame(self._dataframe[index], _backend=self._backend)
+            return DataFrame(self.storage[index], backend=self.backend)
 
         # TODO: Better communicate types.
         index_npy: NDArrayBool = index.to_numpy()
-        return DataFrame(self._dataframe[index_npy], _backend=self._backend)
+        return DataFrame(self.storage[index_npy], backend=self.backend)
 
     @property
     def shape(self) -> Tuple[int, int]:
         """Return the shape of the DataFrame."""
-        return self._dataframe.shape
+        return self.storage.shape
 
     @property
     def columns(self) -> List[str]:
         """Return the columns of the DataFrame."""
-        return list(self._dataframe.columns)
+        return list(self.storage.columns)
 
     @classmethod
     def read(cls, path: PathType, backend: DataFrameBackendType = DataFrameBackendType.PANDAS) -> DataFrame:
@@ -71,10 +71,10 @@ class DataFrame:
         with path.open("rb") as file_handle:
             if backend == DataFrameBackendType.PANDAS:
                 dataframe_pandas: pd.DataFrame = feather.read_feather(file_handle, memory_map=True)
-                return cls(dataframe_pandas, _backend=backend)
+                return cls(dataframe_pandas, backend=backend)
             if backend == DataFrameBackendType.POLARS:
                 dataframe_polars = pl.read_ipc(file_handle, memory_map=True)
-                return cls(dataframe_polars, _backend=backend)
+                return cls(dataframe_polars, backend=backend)
             raise NotImplementedError("This backend is not implemented!")
 
     def write(self, path: PathType) -> None:
@@ -84,10 +84,10 @@ class DataFrame:
             path: Feather file destination path.
         """
         with path.open("wb") as file_handle:
-            if self._backend == DataFrameBackendType.PANDAS:
-                feather.write_feather(self._dataframe, file_handle, compression=None)
-            if self._backend == DataFrameBackendType.POLARS:
-                self._dataframe.write_ipc(file_handle)
+            if self.backend == DataFrameBackendType.PANDAS:
+                feather.write_feather(self.storage, file_handle, compression=None)
+            if self.backend == DataFrameBackendType.POLARS:
+                self.storage.write_ipc(file_handle)
             raise NotImplementedError("This backend is not implemented!")
 
     @classmethod
@@ -101,15 +101,15 @@ class DataFrame:
         Returns:
             The DataFrame.
         """
-        dataframe_backend_type = dataframe_list[0]._backend
+        dataframe_backend_type = dataframe_list[0].backend
         if dataframe_backend_type == DataFrameBackendType.PANDAS:
-            _dataframe_pandas_list: List[pd.DataFrame] = [dataframe._dataframe for dataframe in dataframe_list]
+            _dataframe_pandas_list: List[pd.DataFrame] = [dataframe.storage for dataframe in dataframe_list]
             dataframe_pandas: pd.DataFrame = pd.concat(_dataframe_pandas_list, axis=axis).reset_index(drop=True)
-            return cls(dataframe_pandas, _backend=dataframe_backend_type)
+            return cls(dataframe_pandas, backend=dataframe_backend_type)
         if dataframe_backend_type == DataFrameBackendType.POLARS:
-            _dataframe_polars_list: List[pl.DataFrame] = [dataframe._dataframe for dataframe in dataframe_list]
+            _dataframe_polars_list: List[pl.DataFrame] = [dataframe.storage for dataframe in dataframe_list]
             dataframe_polars = pl.concat(_dataframe_polars_list, how="vertical" if axis == 0 else "horizontal")
-            return cls(dataframe_polars, _backend=dataframe_backend_type)
+            return cls(dataframe_polars, backend=dataframe_backend_type)
         raise NotImplementedError("This backend is not implemented!")
 
     @classmethod
@@ -136,20 +136,20 @@ class DataFrame:
 
     def to_numpy(self) -> NDArrayNumber:
         """Convert the DataFrame into a numpy ndarray."""
-        arr: NDArrayNumber = self._dataframe.to_numpy()
+        arr: NDArrayNumber = self.storage.to_numpy()
         return arr
 
     def __gt__(self, x) -> DataFrame:
-        return DataFrame(self._dataframe > x, _backend=self._backend)
+        return DataFrame(self.storage > x, backend=self.backend)
 
     def __le__(self, x) -> DataFrame:
-        return DataFrame(self._dataframe < x, _backend=self._backend)
+        return DataFrame(self.storage < x, backend=self.backend)
 
     def __eq__(self, x) -> DataFrame:
-        return DataFrame(self._dataframe == x, _backend=self._backend)
+        return DataFrame(self.storage == x, backend=self.backend)
 
     def __and__(self, x) -> DataFrame:
-        return DataFrame(self._dataframe & x._dataframe, _backend=self._backend)
+        return DataFrame(self.storage & x.storage, backend=self.backend)
 
     def sort(self, columns: List[str]) -> DataFrame:
         """Sort the DataFrame with respect to the columns.
@@ -160,10 +160,10 @@ class DataFrame:
         Returns:
             The sorted DataFrame.
         """
-        if self._backend == DataFrameBackendType.PANDAS:
-            dataframe_pandas: pd.DataFrame = self._dataframe.sort_values(columns)
+        if self.backend == DataFrameBackendType.PANDAS:
+            dataframe_pandas: pd.DataFrame = self.storage.sort_values(columns)
             return DataFrame(dataframe_pandas)
-        if self._backend == DataFrameBackendType.POLARS:
-            dataframe_polars: pl.DataFrame = self._dataframe.sort(columns)
+        if self.backend == DataFrameBackendType.POLARS:
+            dataframe_polars: pl.DataFrame = self.storage.sort(columns)
             return DataFrame(dataframe_polars)
         raise NotImplementedError("This backend is not implemented!")
