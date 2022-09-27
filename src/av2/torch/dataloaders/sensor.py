@@ -153,11 +153,11 @@ class Av2(Dataset[Sweep]):
             file_index = DataFrame.read(file_cache_path, self.dataframe_backend).to_numpy().tolist()
         else:
             logger.info("Building file index. This may take a moment ...")
-
             log_dirs = sorted(self.split_dir.glob("*"))
             path_lists: Optional[List[List[Tuple[str, int]]]] = joblib.Parallel(n_jobs=-1, backend="multiprocessing")(
                 joblib.delayed(Av2._file_index_helper)(log_dir, LIDAR_GLOB_PATTERN) for log_dir in log_dirs
             )
+            logger.info("File indexing complete.")
             if path_lists is None:
                 raise RuntimeError("Error scanning the dataset directory!")
             if len(path_lists) == 0:
