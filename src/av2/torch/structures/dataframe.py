@@ -106,9 +106,10 @@ class DataFrame:
         with path.open("wb") as file_handle:
             if self.backend == DataFrameBackendType.PANDAS:
                 feather.write_feather(self.storage, file_handle, compression=None)
-            if self.backend == DataFrameBackendType.POLARS:
+            elif self.backend == DataFrameBackendType.POLARS:
                 self.storage.write_ipc(file_handle)
-            raise NotImplementedError("This backend is not implemented!")
+            else:
+                raise NotImplementedError("This backend is not implemented!")
 
     @classmethod
     def concat(cls, dataframe_list: List["DataFrame"], axis: int = 0) -> DataFrame:
