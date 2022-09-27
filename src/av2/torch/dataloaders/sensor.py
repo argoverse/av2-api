@@ -365,6 +365,8 @@ class Av2(Dataset[Sweep]):
                 try:
                     dataframe = DataFrame.read(file_caching_path, backend=self.dataframe_backend)
                 except (ArrowError, FeatherError):
+                    # File is corrupted. Read from the source directory.
+                    logging.warning("%s is corrupted. Reading from source: %s ...", file_caching_path, src_path)
                     dataframe = DataFrame.read(src_path, backend=self.dataframe_backend)
                     dataframe.write(file_caching_path)
         else:
