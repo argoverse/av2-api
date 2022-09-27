@@ -10,7 +10,7 @@ import pandas as pd
 import polars as pl
 from pyarrow import feather
 
-from av2.utils.typing import NDArrayNumber, PathType
+from av2.utils.typing import NDArrayBool, NDArrayNumber, PathType
 
 
 @unique
@@ -28,13 +28,24 @@ class DataFrame:
     _dataframe: Union[pd.DataFrame, pl.DataFrame]
     _backend: DataFrameBackendType = DataFrameBackendType.PANDAS
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: Union[List[str], pd.DataFrame]) -> DataFrame:
+        """Get the item at the specified indices.
+
+        Args:
+            index: Mask or index.
+
+        Returns:
+            DataFrame with the selected elements.
+        """
         if self._backend == DataFrameBackendType.POLARS:
             dataframe_polars: pl.DataFrame = self._dataframe.select(pl.col(index))
             return DataFrame(dataframe_polars, _backend=self._backend)
         if isinstance(index, (List, str)):
             return DataFrame(self._dataframe[index], _backend=self._backend)
-        return DataFrame(self._dataframe[index.to_numpy()], _backend=self._backend)
+
+        # TODO: Better communicate types.
+        index_npy: NDArrayBool = index.to_numpy()
+        return DataFrame(self._dataframe[index_npy], _backend=self._backend)
 
     @property
     def shape(self) -> Tuple[int, int]:
