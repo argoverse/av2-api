@@ -114,12 +114,12 @@ class DataFrame:
 
     @classmethod
     def from_numpy(
-        cls, arr: NDArrayNumber, columns: List[str], backend: DataFrameBackendType = DataFrameBackendType.PANDAS
+        cls, arr_npy: NDArrayNumber, columns: List[str], backend: DataFrameBackendType = DataFrameBackendType.PANDAS
     ) -> DataFrame:
         """Convert the numpy ndarray into a DataFrame.
 
         Args:
-            arr: Numpy array.
+            arr_npy: Numpy array.
             columns: List of column names.
             backend: DataFrame backend for initialization.
 
@@ -127,29 +127,29 @@ class DataFrame:
             The DataFrame.
         """
         if backend == DataFrameBackendType.PANDAS:
-            dataframe_pandas = pd.DataFrame(arr, columns=columns)
+            dataframe_pandas = pd.DataFrame(arr_npy, columns=columns)
             return cls(dataframe_pandas)
         if backend == DataFrameBackendType.POLARS:
-            dataframe_polars = pl.DataFrame(arr, columns=columns)
+            dataframe_polars = pl.DataFrame(arr_npy, columns=columns)
             return cls(dataframe_polars)
         raise NotImplementedError("This backend is not implemented!")
 
     def to_numpy(self) -> NDArrayNumber:
         """Convert the DataFrame into a numpy ndarray."""
-        arr: NDArrayNumber = self.storage.to_numpy()
-        return arr
+        arr_npy: NDArrayNumber = self.storage.to_numpy()
+        return arr_npy
 
-    def __gt__(self, x) -> DataFrame:
-        return DataFrame(self.storage > x, backend=self.backend)
+    def __gt__(self, other: Union[float, int, str, DataFrame]) -> DataFrame:
+        return DataFrame(self.storage > other, backend=self.backend)
 
-    def __le__(self, x) -> DataFrame:
-        return DataFrame(self.storage < x, backend=self.backend)
+    def __le__(self, other: Union[float, int, DataFrame]) -> DataFrame:
+        return DataFrame(self.storage < other, backend=self.backend)
 
-    def __eq__(self, x) -> DataFrame:
-        return DataFrame(self.storage == x, backend=self.backend)
+    def __eq__(self, other: Union[float, int, DataFrame]) -> DataFrame:
+        return DataFrame(self.storage == other, backend=self.backend)
 
-    def __and__(self, x) -> DataFrame:
-        return DataFrame(self.storage & x.storage, backend=self.backend)
+    def __and__(self, other: DataFrame) -> DataFrame:
+        return DataFrame(self.storage & other.storage, backend=self.backend)
 
     def sort(self, columns: List[str]) -> DataFrame:
         """Sort the DataFrame with respect to the columns.
