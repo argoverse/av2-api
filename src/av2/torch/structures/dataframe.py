@@ -6,11 +6,25 @@ from dataclasses import dataclass
 from enum import Enum, unique
 from typing import List, Tuple, Union
 
-import pandas as pd
-import polars as pl
 from pyarrow import feather
 
 from av2.utils.typing import NDArrayBool, NDArrayNumber, PathType
+
+try:
+    import pandas as pd
+
+    _PANDAS_AVAILABLE = True
+except ImportError:
+    _PANDAS_AVAILABLE = False
+
+try:
+    import polars as pl
+
+    pl.Config.with_columns_kwargs = True
+
+    _POLARS_AVAILABLE = True
+except ImportError:
+    _POLARS_AVAILABLE = False
 
 
 @unique
@@ -27,6 +41,12 @@ class DataFrame:
 
     storage: Union[pd.DataFrame, pl.DataFrame]
     backend: DataFrameBackendType = DataFrameBackendType.PANDAS
+
+    def __post_init__(self) -> None:
+        if self.backend == DataFrameBackendType.PANDAS and not _PANDAS_AVAILABLE:
+            raise RuntimeError("`pandas` must be installed to use this backend!")
+        if self.backend == DataFrameBackendType.POLARS and not _POLARS_AVAILABLE:
+            raise RuntimeError("`polars` must be installed to use this backend!")
 
     def __getitem__(self, index: Union[List[str], pd.DataFrame]) -> DataFrame:
         """Get the item at the specified indices.

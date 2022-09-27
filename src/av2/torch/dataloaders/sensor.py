@@ -12,7 +12,6 @@ from typing import Any, Final, ItemsView, List, Optional, Tuple
 
 import joblib
 import numpy as np
-import polars as pl
 from polars.exceptions import ArrowError
 from pyarrow.feather import FeatherError
 from torch.utils.data import Dataset
@@ -30,9 +29,6 @@ logger = logging.getLogger(__file__)
 XYZ_FIELDS: Final[Tuple[str, str, str]] = ("x", "y", "z")
 
 LIDAR_GLOB_PATTERN: Final[str] = "sensors/lidar/*.feather"
-
-
-pl.Config.with_columns_kwargs = True
 
 
 @unique
@@ -90,12 +86,15 @@ class Av2(Dataset[Sweep]):
 
     def _log_dataloader_configuration(self) -> None:
         """Log the dataloader configuration."""
+        if _HAS_LOGGED_SETTINGS:
+            return
         info = "Dataloader has been configured. Here are the settings:\n"
         for key, value in self.items():
             if key == "file_index":
                 continue
             info += f"\t{key}: {value}\n"
         logger.info("%s", info)
+        _HAS_LOGGED_SETTINGS = True
 
     def annotations_path(self, log_id: str) -> PathType:
         """Get the annotations at the specified log id.
@@ -203,51 +202,51 @@ class Av2(Dataset[Sweep]):
         annotations = Annotations(dataframe)
         return annotations
 
-    def _populate_annotations_velocity(self, index: int, annotations: DataFrame) -> DataFrame:
-        """Populate the annotations with their estimated velocities.
+    # def _populate_annotations_velocity(self, index: int, annotations: DataFrame) -> DataFrame:
+    #     """Populate the annotations with their estimated velocities.
 
-        Args:
-            index: Dataset index.
-            annotations: DataFrame of annotations loaded from a feather file.
+    #     Args:
+    #         index: Dataset index.
+    #         annotations: DataFrame of annotations loaded from a feather file.
 
-        Returns:
-            The dataFrame populated with velocities.
-        """
-        current_log_id, _ = self.sweep_uuid(index)
-        pose_path = self.pose_path(current_log_id)
-        city_SE3_ego = dataframe_read_feather(pose_path)
+    # Returns:
+    #     The dataFrame populated with velocities.
+    # """
+    # current_log_id, _ = self.sweep_uuid(index)
+    # pose_path = self.pose_path(current_log_id)
+    # city_SE3_ego = dataframe_read_feather(pose_path)
 
-        annotations = annotations.sort(["track_uuid", "timestamp_ns"]).with_row_count()
-        annotations = annotations.with_columns(row_nr=pl.col("row_nr").cast(pl.Int64))
+    # annotations = annotations.sort(["track_uuid", "timestamp_ns"]).with_row_count()
+    # annotations = annotations.with_columns(row_nr=pl.col("row_nr").cast(pl.Int64))
 
-        annotations_with_poses = annotations.select(
-            [pl.col("timestamp_ns"), pl.col(["tx_m", "ty_m", "tz_m"]).map_alias(lambda x: f"{x}_obj")]
-        ).join(city_SE3_ego, on="timestamp_ns")
-        mats = quat_to_mat(annotations_with_poses.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy())
-        translation = annotations_with_poses.select(pl.col(["tx_m", "ty_m", "tz_m"])).to_numpy()
+    # annotations_with_poses = annotations.select(
+    #     [pl.col("timestamp_ns"), pl.col(["tx_m", "ty_m", "tz_m"]).map_alias(lambda x: f"{x}_obj")]
+    # ).join(city_SE3_ego, on="timestamp_ns")
+    # mats = quat_to_mat(annotations_with_poses.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy())
+    # translation = annotations_with_poses.select(pl.col(["tx_m", "ty_m", "tz_m"])).to_numpy()
 
-        t_xyz = annotations_with_poses.select(pl.col(["tx_m_obj", "ty_m_obj", "tz_m_obj"])).to_numpy()
-        t_xyz_city = pl.from_numpy(
-            (t_xyz[:, None] @ mats.transpose(0, 2, 1) + translation[:, None]).squeeze(),
-            ["tx_m_city", "ty_m_city", "tz_m_city"],
-        )
+    # t_xyz = annotations_with_poses.select(pl.col(["tx_m_obj", "ty_m_obj", "tz_m_obj"])).to_numpy()
+    # t_xyz_city = pl.from_numpy(
+    #     (t_xyz[:, None] @ mats.transpose(0, 2, 1) + translation[:, None]).squeeze(),
+    #     ["tx_m_city", "ty_m_city", "tz_m_city"],
+    # )
 
-        annotations_city = pl.concat(
-            [annotations.select(pl.col(["row_nr", "timestamp_ns", "track_uuid"])), t_xyz_city],
-            how="horizontal",
-        )
+    # annotations_city = pl.concat(
+    #     [annotations.select(pl.col(["row_nr", "timestamp_ns", "track_uuid"])), t_xyz_city],
+    #     how="horizontal",
+    # )
 
-        velocities = annotations_city.groupby_rolling(
-            index_column="row_nr", period="3i", offset="-2i", by=["track_uuid"], closed="right"
-        ).agg(
-            [
-                (pl.col("tx_m_city").diff() / (pl.col("timestamp_ns").diff() * 1e-9)).mean().alias("vx_m"),
-                (pl.col("ty_m_city").diff() / (pl.col("timestamp_ns").diff() * 1e-9)).mean().alias("vy_m"),
-                (pl.col("tz_m_city").diff() / (pl.col("timestamp_ns").diff() * 1e-9)).mean().alias("vz_m"),
-            ]
-        )
-        annotations = annotations.join(velocities, on=["track_uuid", "row_nr"])
-        return annotations.drop("row_nr")
+    # velocities = annotations_city.groupby_rolling(
+    #     index_column="row_nr", period="3i", offset="-2i", by=["track_uuid"], closed="right"
+    # ).agg(
+    #     [
+    #         (pl.col("tx_m_city").diff() / (pl.col("timestamp_ns").diff() * 1e-9)).mean().alias("vx_m"),
+    #         (pl.col("ty_m_city").diff() / (pl.col("timestamp_ns").diff() * 1e-9)).mean().alias("vy_m"),
+    #         (pl.col("tz_m_city").diff() / (pl.col("timestamp_ns").diff() * 1e-9)).mean().alias("vz_m"),
+    #     ]
+    # )
+    # annotations = annotations.join(velocities, on=["track_uuid", "row_nr"])
+    # return annotations.drop("row_nr")
 
     def read_lidar(self, index: int) -> Lidar:
         """Read the lidar sweep.
