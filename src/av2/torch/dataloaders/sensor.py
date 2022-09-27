@@ -150,7 +150,7 @@ class Av2(Dataset[Sweep]):
 
         file_cache_path = self.file_caching_dir / f"file_index_{self.split_name}.feather"
         if file_cache_path.exists():
-            file_index = DataFrame.read(file_cache_path).to_numpy().tolist()
+            file_index = DataFrame.read(file_cache_path, self.dataframe_backend).to_numpy().tolist()
         else:
             logger.info("Building file index. This may take a moment ...")
 
@@ -165,7 +165,7 @@ class Av2(Dataset[Sweep]):
 
             file_index = sorted(itertools.chain.from_iterable(path_lists))
             self.file_caching_dir.mkdir(parents=True, exist_ok=True)
-            dataframe = DataFrame.from_numpy(file_index, ["log_id", "timestamp_ns"])
+            dataframe = DataFrame.from_numpy(file_index, ["log_id", "timestamp_ns"], self.dataframe_backend)
             dataframe.write(file_cache_path)
         self.file_index = file_index
 
