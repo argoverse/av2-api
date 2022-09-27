@@ -165,7 +165,7 @@ class Av2(Dataset[Sweep]):
 
             file_index = sorted(itertools.chain.from_iterable(path_lists))
             self.file_caching_dir.mkdir(parents=True, exist_ok=True)
-            dataframe = DataFrame.from_numpy(np.array(file_index), ["log_id", "timestamp_ns"])
+            dataframe = DataFrame.from_numpy(file_index, ["log_id", "timestamp_ns"])
             dataframe.write(file_cache_path)
         self.file_index = file_index
 
