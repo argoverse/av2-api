@@ -16,6 +16,7 @@ import polars as pl
 from polars.exceptions import ArrowError
 from pyarrow.feather import FeatherError
 from torch.utils.data import Dataset
+from upath import UPath
 
 from av2.geometry.geometry import quat_to_mat
 from av2.torch.structures.dataframe import DataFrame, DataFrameBackendType
@@ -85,7 +86,7 @@ class Av2(Dataset[Sweep]):
     @property
     def split_dir(self) -> PathType:
         """Sensor dataset split directory."""
-        return self.dataset_dir / self.split_name
+        return UPath(self.dataset_dir) / self.split_name
 
     def _log_dataloader_configuration(self) -> None:
         """Log the dataloader configuration."""
