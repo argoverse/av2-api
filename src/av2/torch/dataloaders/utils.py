@@ -270,5 +270,3 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
     constraint_b = torch.logical_and(dot_uvw_reference >= dot_uvw_points, dot_uvw_points >= dot_uvw_vertices)
     is_interior: Tensor = torch.logical_or(constraint_a, constraint_b).all(dim=1)
     return is_interior
-
-

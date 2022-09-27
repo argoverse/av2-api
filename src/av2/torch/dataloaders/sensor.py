@@ -21,17 +21,7 @@ from av2.geometry.geometry import quat_to_mat
 from av2.torch.structures.dataframe import DataFrame, DataFrameBackendType
 from av2.utils.typing import NDArrayFloat, NDArrayNumber, PathType
 
-from .utils import (
-    QUAT_WXYZ_FIELDS,
-    Annotations,
-    Lidar,
-    Sweep,
-    dataframe_from_numpy,
-    dataframe_read_feather,
-    dataframe_write_feather,
-    prevent_fsspec_deadlock,
-    query_pose,
-)
+from .utils import QUAT_WXYZ_FIELDS, Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_pose
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
@@ -178,9 +168,7 @@ class Av2(Dataset[Sweep]):
 
             file_index = sorted(itertools.chain.from_iterable(path_lists))
             self.file_caching_dir.mkdir(parents=True, exist_ok=True)
-            dataframe = DataFrame.from_numpy(
-                np.array(file_index), ["log_id", "timestamp_ns"]
-            )
+            dataframe = DataFrame.from_numpy(np.array(file_index), ["log_id", "timestamp_ns"])
             dataframe.write(file_cache_path)
         self.file_index = file_index
 
@@ -204,7 +192,8 @@ class Av2(Dataset[Sweep]):
         dataframe = DataFrame.concat([dataframe, dataframe_distance], axis=1)
 
         query = (
-            (dataframe["num_interior_pts"] > 0) & (dataframe["timestamp_ns"] == timestamp_ns)
+            (dataframe["num_interior_pts"] > 0)
+            & (dataframe["timestamp_ns"] == timestamp_ns)
             & (dataframe["distance"] > self.min_annotation_range)
             & (dataframe["distance"] <= self.max_annotation_range)
         )

@@ -1,3 +1,5 @@
+"""Backend agnostic DataFrame abstraction."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,6 +15,7 @@ from av2.utils.typing import NDArrayNumber, PathType
 
 @unique
 class DataFrameBackendType(str, Enum):
+    """DataFrame compute backends."""
 
     PANDAS = "PANDAS"
     POLARS = "POLARS"
@@ -27,7 +30,8 @@ class DataFrame:
 
     def __getitem__(self, index):
         if self._backend == DataFrameBackendType.POLARS:
-            return DataFrame(self._dataframe.select(pl.col(index)), _backend=self._backend)
+            dataframe_polars: pl.DataFrame = self._dataframe.select(pl.col(index))
+            return DataFrame(dataframe_polars, _backend=self._backend)
         if isinstance(index, (List, str)):
             return DataFrame(self._dataframe[index], _backend=self._backend)
         return DataFrame(self._dataframe[index.to_numpy()], _backend=self._backend)
