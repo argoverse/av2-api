@@ -18,6 +18,7 @@ from pyarrow.feather import FeatherError
 from torch.utils.data import Dataset
 
 from av2.geometry.geometry import quat_to_mat
+from av2.torch.structures.dataframe import DataFrame, DataFrameBackendType
 from av2.utils.typing import DataFrameType, NDArrayFloat, NDArrayNumber, PathType
 
 from .utils import (
@@ -25,10 +26,8 @@ from .utils import (
     Annotations,
     Lidar,
     Sweep,
-    dataframe_concat,
     dataframe_from_numpy,
     dataframe_read_feather,
-    dataframe_sort,
     dataframe_write_feather,
     prevent_fsspec_deadlock,
     query_pose,
@@ -76,7 +75,7 @@ class Av2(Dataset[Sweep]):
     num_accumulated_sweeps: int = 1
     file_caching_mode: Optional[FileCachingMode] = None
     file_index: List[Tuple[str, int]] = field(init=False)
-    use_pandas: bool = True
+    dataframe_backend: DataFrameBackendType = DataFrameBackendType.PANDAS
 
     def __post_init__(self) -> None:
         """Build the file index."""
@@ -164,7 +163,7 @@ class Av2(Dataset[Sweep]):
 
         file_cache_path = self.file_caching_dir / f"file_index_{self.split_name}.feather"
         if file_cache_path.exists():
-            file_index = dataframe_read_feather(file_cache_path).to_numpy().tolist()
+            file_index = DataFrame.read(file_cache_path).to_numpy().tolist()
         else:
             logger.info("Building file index. This may take a moment ...")
 
@@ -179,11 +178,10 @@ class Av2(Dataset[Sweep]):
 
             file_index = sorted(itertools.chain.from_iterable(path_lists))
             self.file_caching_dir.mkdir(parents=True, exist_ok=True)
-
-            dataframe = dataframe_from_numpy(
-                np.array(file_index), ["log_id", "timestamp_ns"], use_pandas=self.use_pandas
+            dataframe = DataFrame.from_numpy(
+                np.array(file_index), ["log_id", "timestamp_ns"]
             )
-            dataframe_write_feather(file_cache_path, dataframe)
+            dataframe.write(file_cache_path)
         self.file_index = file_index
 
     def read_annotations(self, index: int) -> Annotations:
@@ -196,31 +194,21 @@ class Av2(Dataset[Sweep]):
             The annotations object.
         """
         log_id, timestamp_ns = self.sweep_uuid(index)
-        cache_path = self.file_caching_dir / log_id / "annotations.feather"
-
-        if self.file_caching_mode == FileCachingMode.DISK and cache_path.exists():
-            dataframe = dataframe_read_feather(cache_path, use_pyarrow=self.use_pandas)
-        else:
-            annotations_path = self.annotations_path(log_id)
-            dataframe = dataframe_read_feather(annotations_path, use_pyarrow=self.use_pandas)
-            # dataframe = self._populate_annotations_velocity(index, dataframe)
-
-        if self.file_caching_mode == FileCachingMode.DISK and not cache_path.exists():
-            cache_path.parent.mkdir(parents=True, exist_ok=True)
-            dataframe_write_feather(cache_path, dataframe)
-            # dataframe.write_ipc(cache_path)
-
+        file_caching_path = self.file_caching_dir / log_id / "annotations.feather"
+        annotations_path = self.annotations_path(log_id)
+        dataframe = self.read_dataframe(annotations_path, file_caching_path)
         xyz = dataframe[["tx_m", "ty_m", "tz_m"]]
-        distance = np.linalg.norm(xyz.to_numpy(), axis=-1)
 
-        dataframe_distance = dataframe_from_numpy(distance, columns=["distance"])
-        dataframe = dataframe_concat([dataframe, dataframe_distance], axis=1)
+        distance = np.linalg.norm(xyz.to_numpy(), axis=-1)
+        dataframe_distance = DataFrame.from_numpy(distance, columns=["distance"], backend=self.dataframe_backend)
+        dataframe = DataFrame.concat([dataframe, dataframe_distance], axis=1)
+
         query = (
-            (dataframe["num_interior_pts"] > 0)
-            & (dataframe["timestamp_ns"] == timestamp_ns)
+            (dataframe["num_interior_pts"] > 0) & (dataframe["timestamp_ns"] == timestamp_ns)
             & (dataframe["distance"] > self.min_annotation_range)
             & (dataframe["distance"] <= self.max_annotation_range)
         )
+
         dataframe = dataframe[query]
         annotations = Annotations(dataframe)
         return annotations
@@ -286,14 +274,15 @@ class Av2(Dataset[Sweep]):
 
         dataframe_list = []
         if len(window) > 0:
-            poses = self._read_frame(
+            poses = self.read_dataframe(
                 src_path=self.pose_path(log_id),
                 file_caching_path=self.file_caching_dir / log_id / "city_SE3_egovehicle.feather",
             )
             ego_current_SE3_city = query_pose(poses, timestamp_ns).inverse()
             for _, (log_id, timestamp_ns_k) in enumerate(filtered_window):
-                dataframe = self._read_frame(
-                    src_path=self.lidar_path(log_id, timestamp_ns_k),
+                lidar_path = self.lidar_path(log_id, timestamp_ns_k)
+                dataframe = self.read_dataframe(
+                    src_path=lidar_path,
                     file_caching_path=self.file_caching_dir
                     / log_id
                     / "sensors"
@@ -311,17 +300,17 @@ class Av2(Dataset[Sweep]):
                 else:
                     points_ego_current = points_past
 
-                dataframe_xyz = dataframe_from_numpy(
-                    points_ego_current, columns=list(XYZ_FIELDS), use_pandas=self.use_pandas
+                dataframe_xyz = DataFrame.from_numpy(
+                    points_ego_current, columns=list(XYZ_FIELDS), backend=self.dataframe_backend
                 )
 
                 columns = list(dataframe.columns)[3:]
-                timedelta_ns = dataframe_from_numpy(
+                timedelta_ns = DataFrame.from_numpy(
                     np.full(len(points_ego_current), fill_value=timedelta),
                     columns=["timedelta_ns"],
-                    use_pandas=self.use_pandas,
+                    backend=self.dataframe_backend,
                 )
-                dataframe = dataframe_concat(
+                dataframe = DataFrame.concat(
                     [
                         dataframe_xyz,
                         dataframe[columns],
@@ -330,7 +319,8 @@ class Av2(Dataset[Sweep]):
                     axis=1,
                 )
                 dataframe_list.append(dataframe)
-        dataframe = dataframe_concat(dataframe_list, axis=0)
+
+        dataframe = DataFrame.concat(dataframe_list, axis=0)
         dataframe = self._post_process_lidar(dataframe)
         return Lidar(dataframe)
 
@@ -345,12 +335,12 @@ class Av2(Dataset[Sweep]):
         """
         dataframe_xyz: NDArrayNumber = dataframe[list(XYZ_FIELDS)].to_numpy()
         distance = np.linalg.norm(dataframe_xyz, axis=-1)
-        dataframe_distance = dataframe_from_numpy(distance, columns=["distance"], use_pandas=self.use_pandas)
-        dataframe = dataframe_concat([dataframe, dataframe_distance], axis=1)
+        dataframe_distance = DataFrame.from_numpy(distance, columns=["distance"])
+        dataframe = DataFrame.concat([dataframe, dataframe_distance], axis=1)
 
         mask = (dataframe["distance"] > self.min_lidar_range) & (dataframe["distance"] <= self.max_lidar_range)
         dataframe = dataframe[mask]
-        dataframe = dataframe_sort(dataframe, ["timedelta_ns", "distance"])
+        dataframe = dataframe.sort(["timedelta_ns", "distance"])
         return dataframe
 
     @staticmethod
@@ -366,7 +356,7 @@ class Av2(Dataset[Sweep]):
         """
         return [(key.parts[-4], int(key.stem)) for key in root_dir.glob(file_pattern)]
 
-    def _read_frame(self, src_path: PathType, file_caching_path: PathType) -> DataFrameType:
+    def read_dataframe(self, src_path: PathType, file_caching_path: PathType) -> DataFrame:
         """Read a dataframe from a remote source or a locally cached location.
 
         Args:
@@ -379,14 +369,14 @@ class Av2(Dataset[Sweep]):
         if self.file_caching_mode == FileCachingMode.DISK:
             file_caching_path.parent.mkdir(parents=True, exist_ok=True)
             if not file_caching_path.exists():
-                dataframe = dataframe_read_feather(src_path, use_pyarrow=self.use_pandas)
-                dataframe_write_feather(file_caching_path, dataframe, use_pyarrow=self.use_pandas)
+                dataframe = DataFrame.read(src_path, backend=self.dataframe_backend)
+                dataframe.write(file_caching_path)
             else:
                 try:
-                    dataframe = dataframe_read_feather(file_caching_path, use_pyarrow=self.use_pandas)
+                    dataframe = DataFrame.read(file_caching_path, backend=self.dataframe_backend)
                 except (ArrowError, FeatherError):
-                    dataframe = dataframe_read_feather(src_path, use_pyarrow=self.use_pandas)
-                    dataframe_write_feather(file_caching_path, dataframe, use_pyarrow=self.use_pandas)
+                    dataframe = DataFrame.read(src_path, backend=self.dataframe_backend)
+                    dataframe.write(file_caching_path)
         else:
-            dataframe = dataframe_read_feather(src_path, use_pyarrow=self.use_pandas)
+            dataframe = DataFrame.read(src_path, backend=self.dataframe_backend)
         return dataframe
