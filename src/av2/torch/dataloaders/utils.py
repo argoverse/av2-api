@@ -6,19 +6,17 @@ import itertools
 import sys
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Final, List, Tuple, Union, cast
+from typing import Final, Tuple
 
 import fsspec.asyn
 import numpy as np
-import pandas as pd
 import polars as pl
 import torch
-from pyarrow import feather
 from torch import Tensor
 
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
 from av2.geometry.se3 import SE3
-from av2.utils.typing import DataFrameType, NDArrayNumber, PathType
+from av2.torch.structures.dataframe import DataFrame
 
 MAX_STR_LEN: Final[int] = 32
 
@@ -136,7 +134,7 @@ class CuboidMode(str, Enum):
 class Annotations:
     """Dataclass for ground truth annotations."""
 
-    dataframe: DataFrameType
+    dataframe: DataFrame
     cuboid_mode: CuboidMode = CuboidMode.XYZLWH_QWXYZ
 
     def as_tensor(
@@ -182,7 +180,7 @@ class Annotations:
 class Lidar:
     """Dataclass for lidar sweeps."""
 
-    dataframe: DataFrameType
+    dataframe: DataFrame
 
     def as_tensor(
         self, field_ordering: Tuple[str, ...] = DEFAULT_LIDAR_TENSOR_FIELDS, dtype: torch.dtype = torch.float32
@@ -215,7 +213,7 @@ def prevent_fsspec_deadlock() -> None:
     fsspec.asyn.reset_lock()
 
 
-def query_pose(poses: DataFrameType, timestamp_ns: int) -> SE3:
+def query_pose(poses: DataFrame, timestamp_ns: int) -> SE3:
     """Query the SE(3) transformation as the provided timestamp in nanoseconds.
 
     Args:
@@ -274,48 +272,3 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
     return is_interior
 
 
-def dataframe_read_feather(path: PathType, use_pyarrow: bool = True) -> DataFrameType:
-    """Read a feather file and load it as a `polars` dataframe.
-
-    Args:
-        path: Path to the feather file.
-
-    Returns:
-        The feather file as a `polars` dataframe.
-    """
-    with path.open("rb") as f:
-        if use_pyarrow:
-            return feather.read_feather(f, memory_map=True)
-        return pl.read_ipc(f, use_pyarrow=False, memory_map=True)
-
-
-def dataframe_write_feather(path: PathType, dataframe: DataFrameType, use_pyarrow: bool = True) -> None:
-    with path.open("rb") as f:
-        if use_pyarrow:
-            feather.write_feather(dataframe, f, compression="uncompressed")
-        else:
-            dataframe.write_ipc(f)
-
-
-def dataframe_concat(dataframes: List[DataFrameType], axis: int = 0) -> DataFrameType:
-    if all(isinstance(dataframe, pd.DataFrame) for dataframe in dataframes):
-        dataframes_pandas = cast(List[pd.DataFrame], dataframes)
-        dataframe_pandas: pd.DataFrame = pd.concat(dataframes_pandas, axis=axis).reset_index(drop=True)
-        return dataframe_pandas
-    if all(isinstance(dataframe, pl.DataFrame) for dataframe in dataframes):
-        dataframes_polars = cast(List[pl.DataFrame], dataframes)
-        dataframe_polars: pl.DataFrame = pl.concat(dataframes_polars, how="vertical" if axis == 0 else "horizontal")
-        return dataframe_polars
-    raise RuntimeError("Dataframes must all be the same type.")
-
-
-def dataframe_from_numpy(arr: NDArrayNumber, columns: List[str], use_pandas: bool = True):
-    if use_pandas:
-        return pd.DataFrame(arr, columns=columns)
-    return pl.DataFrame(arr, columns=columns)
-
-
-def dataframe_sort(dataframe: DataFrameType, columns: List[str]):
-    if isinstance(dataframe, pd.DataFrame):
-        return dataframe.sort_values(columns)
-    return dataframe.sort(columns)

@@ -19,7 +19,7 @@ from torch.utils.data import Dataset
 
 from av2.geometry.geometry import quat_to_mat
 from av2.torch.structures.dataframe import DataFrame, DataFrameBackendType
-from av2.utils.typing import DataFrameType, NDArrayFloat, NDArrayNumber, PathType
+from av2.utils.typing import NDArrayFloat, NDArrayNumber, PathType
 
 from .utils import (
     QUAT_WXYZ_FIELDS,
@@ -213,7 +213,7 @@ class Av2(Dataset[Sweep]):
         annotations = Annotations(dataframe)
         return annotations
 
-    def _populate_annotations_velocity(self, index: int, annotations: DataFrameType) -> DataFrameType:
+    def _populate_annotations_velocity(self, index: int, annotations: DataFrame) -> DataFrame:
         """Populate the annotations with their estimated velocities.
 
         Args:
@@ -324,7 +324,7 @@ class Av2(Dataset[Sweep]):
         dataframe = self._post_process_lidar(dataframe)
         return Lidar(dataframe)
 
-    def _post_process_lidar(self, dataframe: DataFrameType) -> DataFrameType:
+    def _post_process_lidar(self, dataframe: DataFrame) -> DataFrame:
         """Apply post-processing operations on the point cloud.
 
         Args:
