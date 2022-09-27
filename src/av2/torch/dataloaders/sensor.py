@@ -340,6 +340,7 @@ class Av2(Dataset[Sweep]):
         Returns:
             The list of keys within the glob context.
         """
+        prevent_fsspec_deadlock()
         return [(key.parts[-4], int(key.stem)) for key in root_dir.glob(file_pattern)]
 
     def read_dataframe(self, src_path: PathType, file_caching_path: PathType) -> DataFrame:
