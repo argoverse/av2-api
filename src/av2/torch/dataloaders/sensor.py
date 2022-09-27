@@ -86,15 +86,12 @@ class Av2(Dataset[Sweep]):
 
     def _log_dataloader_configuration(self) -> None:
         """Log the dataloader configuration."""
-        if _HAS_LOGGED_SETTINGS:
-            return
         info = "Dataloader has been configured. Here are the settings:\n"
         for key, value in self.items():
             if key == "file_index":
                 continue
             info += f"\t{key}: {value}\n"
         logger.info("%s", info)
-        _HAS_LOGGED_SETTINGS = True
 
     def annotations_path(self, log_id: str) -> PathType:
         """Get the annotations at the specified log id.

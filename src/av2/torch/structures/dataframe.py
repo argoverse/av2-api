@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, cast
 
 from pyarrow import feather
 
@@ -123,11 +123,17 @@ class DataFrame:
         """
         dataframe_backend_type = dataframe_list[0].backend
         if dataframe_backend_type == DataFrameBackendType.PANDAS:
-            _dataframe_pandas_list: List[pd.DataFrame] = [dataframe.storage for dataframe in dataframe_list]
+            assert all(isinstance(dataframe.storage, pd.DataFrame) for dataframe in dataframe_list)
+            _dataframe_pandas_list: List[pd.DataFrame] = [
+                cast(pd.DataFrame, dataframe.storage) for dataframe in dataframe_list
+            ]
             dataframe_pandas: pd.DataFrame = pd.concat(_dataframe_pandas_list, axis=axis).reset_index(drop=True)
             return cls(dataframe_pandas, backend=dataframe_backend_type)
         if dataframe_backend_type == DataFrameBackendType.POLARS:
-            _dataframe_polars_list: List[pl.DataFrame] = [dataframe.storage for dataframe in dataframe_list]
+            assert all(isinstance(dataframe.storage, pl.DataFrame) for dataframe in dataframe_list)
+            _dataframe_polars_list: List[pl.DataFrame] = [
+                cast(pl.DataFrame, dataframe.storage) for dataframe in dataframe_list
+            ]
             dataframe_polars = pl.concat(_dataframe_polars_list, how="vertical" if axis == 0 else "horizontal")
             return cls(dataframe_polars, backend=dataframe_backend_type)
         raise NotImplementedError("This backend is not implemented!")
