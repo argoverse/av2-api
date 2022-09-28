@@ -94,10 +94,10 @@ class DataFrame:
         """
         if backend == DataFrameBackendType.PANDAS:
             if not isinstance(path, UPath):
-                dataframe_pandas: pd.DataFrame = feather.read_feather(str(path), memory_map=True)
+                dataframe_pandas = cast(pd.DataFrame, feather.read_feather(str(path), memory_map=True))
                 return cls(dataframe_pandas, backend=backend)
             with path.open("rb") as file_handle:
-                dataframe_pandas: pd.DataFrame = feather.read_feather(file_handle)
+                dataframe_pandas = cast(pd.DataFrame, feather.read_feather(file_handle))
             return cls(dataframe_pandas, backend=backend)
         if backend == DataFrameBackendType.POLARS:
             dataframe_polars = pl.read_ipc(file_handle, memory_map=True)
@@ -179,22 +179,34 @@ class DataFrame:
         arr_npy: NDArrayNumber = self.storage.to_numpy()
         return arr_npy
 
-    def __ge__(self, other: Union[float, int, DataFrame]) -> DataFrame:
+    def __ge__(self, other: object) -> DataFrame:
+        if not isinstance(other, (DataFrame, float, int)):
+            return NotImplemented
         return DataFrame(self.storage >= other, backend=self.backend)
 
-    def __gt__(self, other: Union[float, int, str, DataFrame]) -> DataFrame:
+    def __gt__(self, other: object) -> DataFrame:
+        if not isinstance(other, (DataFrame, float, int)):
+            return NotImplemented
         return DataFrame(self.storage > other, backend=self.backend)
 
-    def __le__(self, other: Union[float, int, DataFrame]) -> DataFrame:
+    def __le__(self, other: object) -> DataFrame:
+        if not isinstance(other, (DataFrame, float, int)):
+            return NotImplemented
         return DataFrame(self.storage <= other, backend=self.backend)
 
-    def __lt__(self, other: Union[float, int, DataFrame]) -> DataFrame:
+    def __lt__(self, other: object) -> DataFrame:
+        if not isinstance(other, (DataFrame, float, int)):
+            return NotImplemented
         return DataFrame(self.storage < other, backend=self.backend)
 
-    def __eq__(self, other: Union[float, int, DataFrame]) -> DataFrame:
+    def __eq__(self, other: object) -> DataFrame:
+        if not isinstance(other, (DataFrame, float, int)):
+            return NotImplemented
         return DataFrame(self.storage == other, backend=self.backend)
 
-    def __and__(self, other: DataFrame) -> DataFrame:
+    def __and__(self, other: object) -> DataFrame:
+        if not isinstance(other, DataFrame):
+            return NotImplemented
         return DataFrame(self.storage & other.storage, backend=self.backend)
 
     def sort(self, columns: List[str]) -> DataFrame:
