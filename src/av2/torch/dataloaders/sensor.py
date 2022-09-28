@@ -75,7 +75,7 @@ class Av2(Dataset[Sweep]):
     @property
     def file_caching_dir(self) -> PathType:
         """File caching directory."""
-        return Path.home() / ".cache" / "av2" / self.split_name
+        return Path("/") / "tmp" / "cache" / "av2" / self.split_name
 
     @property
     def split_dir(self) -> PathType:
