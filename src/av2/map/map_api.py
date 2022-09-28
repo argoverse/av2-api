@@ -20,16 +20,18 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, Final, List, Optional, Tuple, Union
 
+import fsspec
 import numpy as np
+from upath import UPath
 
 import av2.geometry.interpolate as interp_utils
 import av2.utils.dilation_utils as dilation_utils
-import av2.utils.io as io_utils
 import av2.utils.raster as raster_utils
 from av2.geometry.sim2 import Sim2
 from av2.map.drivable_area import DrivableArea
 from av2.map.lane_segment import LaneSegment
 from av2.map.pedestrian_crossing import PedestrianCrossing
+from av2.utils import io
 from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt
 
 # 1 meter resolution is insufficient for the online-generated drivable area and ROI raster grids
@@ -105,7 +107,7 @@ class GroundHeightLayer(RasterMapLayer):
     """
 
     @classmethod
-    def from_file(cls, log_map_dirpath: Path) -> GroundHeightLayer:
+    def from_file(cls, log_map_dirpath: Union[Path, UPath]) -> GroundHeightLayer:
         """Load ground height values (w/ values at 30 cm resolution) from .npy file, and associated Sim(2) mapping.
 
         Note: ground height values are stored on disk as a float16 2d-array, but cast to float32 once loaded for
@@ -130,11 +132,12 @@ class GroundHeightLayer(RasterMapLayer):
             raise RuntimeError("Sim(2) mapping from city to image coordinates is missing")
 
         # load the file with rasterized values
-        ground_height_array: NDArrayFloat = np.load(ground_height_npy_fpaths[0])  # type: ignore
+        with ground_height_npy_fpaths[0].open("rb") as f:
+            ground_height_array: NDArrayFloat = np.load(f)
 
         array_Sim2_city = Sim2.from_json(Sim2_json_fpaths[0])
 
-        return cls(array=ground_height_array.astype(np.float32), array_Sim2_city=array_Sim2_city)
+        return cls(array=ground_height_array.astype(float), array_Sim2_city=array_Sim2_city)
 
     def get_ground_points_boolean(self, points_xyz: NDArrayFloat) -> NDArrayBool:
         """Check whether each 3d point is likely to be from the ground surface.
@@ -221,7 +224,7 @@ class DrivableAreaMapLayer(RasterMapLayer):
         da_polygons_img = []
         for da_polygon_city in drivable_areas:
             da_polygon_img = array_Sim2_city.transform_from(da_polygon_city.xyz[:, :2])
-            da_polygon_img = np.round(da_polygon_img).astype(np.int32)  # type: ignore
+            da_polygon_img = np.round(da_polygon_img).astype(np.int32)
             da_polygons_img.append(da_polygon_img)
 
         da_mask = raster_utils.get_mask_from_polygons(da_polygons_img, img_h, img_w)
@@ -311,7 +314,7 @@ class ArgoverseStaticMap:
     raster_ground_height_layer: Optional[GroundHeightLayer]
 
     @classmethod
-    def from_json(cls, static_map_path: Path) -> ArgoverseStaticMap:
+    def from_json(cls, static_map_path: Union[Path, UPath]) -> ArgoverseStaticMap:
         """Instantiate an Argoverse static map object (without raster data) from a JSON file containing map data.
 
         Args:
@@ -322,7 +325,7 @@ class ArgoverseStaticMap:
             An Argoverse HD map.
         """
         log_id = static_map_path.stem.split("log_map_archive_")[1]
-        vector_data = io_utils.read_json_file(static_map_path)
+        vector_data = io.read_json_file(static_map_path)
 
         vector_drivable_areas = {da["id"]: DrivableArea.from_dict(da) for da in vector_data["drivable_areas"].values()}
         vector_lane_segments = {ls["id"]: LaneSegment.from_dict(ls) for ls in vector_data["lane_segments"].values()}
@@ -346,7 +349,7 @@ class ArgoverseStaticMap:
         )
 
     @classmethod
-    def from_map_dir(cls, log_map_dirpath: Path, build_raster: bool = False) -> ArgoverseStaticMap:
+    def from_map_dir(cls, log_map_dirpath: Union[Path, UPath], build_raster: bool = False) -> ArgoverseStaticMap:
         """Instantiate an Argoverse map object from data stored within a map data directory.
 
         Note: the ground height surface file and associated coordinate mapping is not provided for the

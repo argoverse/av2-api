@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, unique
 from typing import Any, Dict, Final, List, Optional
 
 import av2.geometry.infinity_norm_utils as infinity_norm_utils
@@ -20,6 +20,7 @@ WPT_INFINITY_NORM_INTERP_NUM: Final[int] = 50
 logger = logging.getLogger(__name__)
 
 
+@unique
 class LaneType(str, Enum):
     """Describes the sorts of objects that may use the lane for travel."""
 
@@ -28,6 +29,7 @@ class LaneType(str, Enum):
     BUS: str = "BUS"
 
 
+@unique
 class LaneMarkType(str, Enum):
     """Color and pattern of a painted lane marking, located on either the left or ride side of a lane segment.
 
@@ -48,6 +50,7 @@ class LaneMarkType(str, Enum):
     SOLID_DASH_YELLOW: str = "SOLID_DASH_YELLOW"
     SOLID_BLUE: str = "SOLID_BLUE"
     NONE: str = "NONE"
+    UNKNOWN: str = "UNKNOWN"
 
 
 @dataclass

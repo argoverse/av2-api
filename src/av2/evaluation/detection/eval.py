@@ -51,8 +51,12 @@ Results:
     in addition to the mean statistics average across all classes, and P refers to the number of included statistics,
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
+import itertools
 import logging
-from multiprocessing import get_context
+import multiprocessing as mp
+import warnings
+from math import inf
+from statistics import mean
 from typing import Dict, Final, List, Optional, Tuple
 
 import numpy as np
@@ -71,6 +75,8 @@ from av2.map.map_api import ArgoverseStaticMap
 from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
 from av2.utils.io import TimestampedCitySE3EgoPoses
 from av2.utils.typing import NDArrayBool, NDArrayFloat
+
+warnings.filterwarnings("ignore", module="google")
 
 TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveErrorNames)
 DTS_COLUMN_NAMES: Final[Tuple[str, ...]] = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)
@@ -161,7 +167,7 @@ def evaluate(
         args_list.append(args)
 
     logger.info("Starting evaluation ...")
-    with get_context("spawn").Pool(processes=n_jobs) as p:
+    with mp.get_context("spawn").Pool(processes=n_jobs) as p:
         outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate, args_list)
 
     if outputs is None:
@@ -169,8 +175,8 @@ def evaluate(
     dts_list, gts_list = zip(*outputs)
 
     METRIC_COLUMN_NAMES = cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
-    dts_metrics: NDArrayFloat = np.concatenate(dts_list)  # type: ignore
-    gts_metrics: NDArrayFloat = np.concatenate(gts_list)  # type: ignore
+    dts_metrics: NDArrayFloat = np.concatenate(dts_list)
+    gts_metrics: NDArrayFloat = np.concatenate(gts_list)
     dts.loc[:, METRIC_COLUMN_NAMES] = dts_metrics
     gts.loc[:, METRIC_COLUMN_NAMES] = gts_metrics
 
@@ -192,7 +198,7 @@ def summarize_metrics(
         dts: (N,14) Table of detections.
         gts: (M,15) Table of ground truth annotations.
         cfg: Detection configuration.
-
+        
     Returns:
         The summary metrics.
     """

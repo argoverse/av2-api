@@ -14,8 +14,10 @@ import math
 import numbers
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Union
 
 import numpy as np
+from upath import UPath
 
 import av2.utils.io as io_utils
 from av2.utils.helpers import assert_np_array_shape
@@ -71,7 +73,7 @@ class Sim2:
 
     def __repr__(self) -> str:
         """Return a human-readable string representation of the class."""
-        trans = np.round(self.t, 2)  # type: ignore
+        trans = np.round(self.t, 2)
         return f"Angle (deg.): {self.theta_deg:.1f}, Trans.: {trans}, Scale: {self.s:.1f}"
 
     def __eq__(self, other: object) -> bool:
@@ -132,7 +134,7 @@ class Sim2:
         # fmt: off
         return Sim2(
             R=self.R @ S.R,
-            t=self.R @ S.t + ((1.0 / S.s) * self.t),  # type: ignore
+            t=self.R @ S.t + ((1.0 / S.s) * self.t), 
             s=self.s * S.s
         )
         # fmt: on
@@ -187,9 +189,9 @@ class Sim2:
         io_utils.save_json_dict(save_fpath, dict_for_serialization)
 
     @classmethod
-    def from_json(cls, json_fpath: Path) -> Sim2:
+    def from_json(cls, json_fpath: Union[Path, UPath]) -> Sim2:
         """Generate class inst. from a JSON file containing Sim(2) parameters as flattened matrices (row-major)."""
-        with open(json_fpath, "r") as f:
+        with json_fpath.open("r") as f:
             json_data = json.load(f)
 
         R: NDArrayFloat = np.array(json_data["R"]).reshape(2, 2)

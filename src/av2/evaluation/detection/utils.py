@@ -13,11 +13,12 @@ increased interpretability of the error modes in a set of detections.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from joblib import Parallel, delayed
 from scipy.spatial.distance import cdist
+from upath import UPath
 
 from av2.evaluation.detection.constants import (
     MAX_NORMALIZED_ASE,
@@ -63,7 +64,7 @@ class DetectionCfg:
     affinity_thresholds_m: Tuple[float, ...] = (0.5, 1.0, 2.0, 4.0)
     affinity_type: AffinityType = AffinityType.CENTER
     categories: Tuple[str, ...] = tuple(x.value for x in CompetitionCategories)
-    dataset_dir: Optional[Path] = None
+    dataset_dir: Optional[Union[Path, UPath]] = None
     eval_only_roi_instances: bool = True
     filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN
     max_num_dts_per_category: int = 100
@@ -142,7 +143,7 @@ def accumulate(
         is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
 
     is_evaluated_dts &= compute_evaluated_dts_mask(dts[..., :3], cfg)
-    is_evaluated_gts &= compute_evaluated_gts_mask(gts[..., :3], gts[..., -1], cfg)
+    is_evaluated_gts &= compute_evaluated_gts_mask(gts[..., :3], gts[..., -1].astype(int), cfg)
 
     # Initialize results array.
     dts_augmented: NDArrayFloat = np.zeros((N, T + E + 1))
@@ -159,7 +160,7 @@ def accumulate(
         gts_augmented[is_evaluated_gts, :-1] = gts_assignments
 
     # Permute the detections according to the original ordering.
-    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(permutation, return_index=True)  # type: ignore
+    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(permutation, return_index=True)
     _, inverse_permutation = outputs
     dts_augmented = dts_augmented[inverse_permutation]
     return dts_augmented, gts_augmented
@@ -193,15 +194,15 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
     affinity_matrix = compute_affinity_matrix(dts[..., :3], gts[..., :3], cfg.affinity_type)
 
     # Get the GT label for each max-affinity GT label, detection pair.
-    idx_gts = affinity_matrix.argmax(axis=1)[None]
+    idx_gts: NDArrayInt = affinity_matrix.argmax(axis=1)[None]
 
     # The affinity matrix is an N by M matrix of the detections and ground truth labels respectively.
     # We want to take the corresponding affinity for each of the initial assignments using `gt_matches`.
     # The following line grabs the max affinity for each detection to a ground truth label.
-    affinities: NDArrayFloat = np.take_along_axis(affinity_matrix.transpose(), idx_gts, axis=0)[0]  # type: ignore
+    affinities: NDArrayFloat = np.take_along_axis(affinity_matrix.transpose(), idx_gts, axis=0)[0]
 
     # Find the indices of the _first_ detection assigned to each GT.
-    assignments: Tuple[NDArrayInt, NDArrayInt] = np.unique(idx_gts, return_index=True)  # type: ignore
+    assignments: Tuple[NDArrayInt, NDArrayInt] = np.unique(idx_gts, return_index=True)
     idx_gts, idx_dts = assignments
 
     T, E = len(cfg.affinity_thresholds_m), 3
@@ -313,9 +314,9 @@ def compute_average_precision(
     precision = interpolate_precision(precision)
 
     # Evaluate precision at different recalls.
-    precision_interpolated: NDArrayFloat = np.interp(recall_interpolated, recall, precision, right=0)  # type: ignore
+    precision_interpolated: NDArrayFloat = np.interp(recall_interpolated, recall, precision, right=0)
 
-    average_precision: float = np.mean(precision_interpolated)
+    average_precision: float = float(np.mean(precision_interpolated))
     return average_precision, precision_interpolated
 
 
@@ -334,7 +335,7 @@ def distance(dts: NDArrayFloat, gts: NDArrayFloat, metric: DistanceType) -> NDAr
         NotImplementedError: If the distance type is not supported.
     """
     if metric == DistanceType.TRANSLATION:
-        translation_errors: NDArrayFloat = np.linalg.norm(dts - gts, axis=1)  # type: ignore
+        translation_errors: NDArrayFloat = np.linalg.norm(dts - gts, axis=1)
         return translation_errors
     elif metric == DistanceType.SCALE:
         scale_errors: NDArrayFloat = 1 - iou_3d_axis_aligned(dts, gts)
@@ -397,14 +398,14 @@ def compute_evaluated_dts_mask(
     if len(xyz_m_ego) == 0:
         is_evaluated = np.zeros((0,), dtype=bool)
         return is_evaluated
-    norm: NDArrayFloat = np.linalg.norm(xyz_m_ego, axis=1)  # type: ignore
+    norm: NDArrayFloat = np.linalg.norm(xyz_m_ego, axis=1)
     is_evaluated = norm < cfg.max_range_m
 
     cumsum: NDArrayInt = np.cumsum(is_evaluated)
     max_idx_arr: NDArrayInt = np.where(cumsum > cfg.max_num_dts_per_category)[0]
     if len(max_idx_arr) > 0:
         max_idx = max_idx_arr[0]
-        is_evaluated[max_idx:] = False  # type: ignore
+        is_evaluated[max_idx:] = False
     return is_evaluated
 
 
@@ -431,13 +432,13 @@ def compute_evaluated_gts_mask(
     if len(xyz_m_ego) == 0:
         is_evaluated = np.zeros((0,), dtype=bool)
         return is_evaluated
-    norm: NDArrayFloat = np.linalg.norm(xyz_m_ego, axis=1)  # type: ignore
+    norm: NDArrayFloat = np.linalg.norm(xyz_m_ego, axis=1)
     is_evaluated = np.logical_and(norm < cfg.max_range_m, num_interior_pts > 0)
     return is_evaluated
 
 
 def load_mapped_avm_and_egoposes(
-    log_ids: List[str], dataset_dir: Path
+    log_ids: List[str], dataset_dir: Union[Path, UPath]
 ) -> Tuple[Dict[str, ArgoverseStaticMap], Dict[str, TimestampedCitySE3EgoPoses]]:
     """Load the maps and egoposes for each log in the dataset directory.
 
@@ -452,9 +453,10 @@ def load_mapped_avm_and_egoposes(
         RuntimeError: If the process for loading maps and timestamped egoposes fails.
     """
     log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(dataset_dir / log_id) for log_id in log_ids}
-    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, backend="threading", verbose=1)(
+    avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, backend="threading")(
         delayed(ArgoverseStaticMap.from_map_dir)(dataset_dir / log_id / "map", build_raster=True) for log_id in log_ids
     )
+
     if avms is None:
         raise RuntimeError("Map and egopose loading has failed!")
     log_id_to_avm = {log_ids[i]: avm for i, avm in enumerate(avms)}
@@ -471,8 +473,8 @@ def groupby(names: List[str], values: NDArrayFloat) -> Dict[str, NDArrayFloat]:
     Returns:
         Dictionary mapping the group name to the corresponding group.
     """
-    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(names, return_index=True)  # type: ignore
+    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(names, return_index=True)
     unique_items, unique_items_indices = outputs
-    dts_groups: List[NDArrayFloat] = np.split(values, unique_items_indices[1:])  # type: ignore
+    dts_groups: List[NDArrayFloat] = np.split(values, unique_items_indices[1:])
     uuid_to_groups = {unique_items[i]: x for i, x in enumerate(dts_groups)}
     return uuid_to_groups
