@@ -41,6 +41,7 @@ def read_feather(path: PathType, columns: Optional[Tuple[str, ...]] = None) -> p
         dataframe: pd.DataFrame = feather.read_feather(file_handle, columns=columns, memory_map=True)
     return dataframe
 
+
 def read_lidar_sweep(fpath: Path, attrib_spec: str = "xyz") -> NDArrayFloat:
     """Load a point cloud file from a filepath.
 

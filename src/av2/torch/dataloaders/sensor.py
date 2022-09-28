@@ -47,6 +47,7 @@ class Av2(Dataset[Sweep]):
         max_annotation_range: Max Euclidean distance between the egovehicle origin and the annotation cuboid centers.
         min_lidar_range: Min Euclidean distance between the egovehicle origin and the lidar points.
         max_lidar_range: Max Euclidean distance between the egovehicle origin and the lidar points.
+        min_interior_pts: Min lidar points within each annotation.
         num_accumulated_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
         file_caching_mode: File caching mode.
     """
@@ -57,6 +58,7 @@ class Av2(Dataset[Sweep]):
     max_annotation_range: float = inf
     min_lidar_range: float = 0.0
     max_lidar_range: float = inf
+    min_interior_pts: int = 0
     num_accumulated_sweeps: int = 1
     file_caching_mode: Optional[FileCachingMode] = None
     file_index: List[Tuple[str, int]] = field(init=False)
@@ -186,9 +188,9 @@ class Av2(Dataset[Sweep]):
         dataframe = DataFrame.concat([dataframe, dataframe_distance], axis=1)
 
         query = (
-            (dataframe["num_interior_pts"] > 0)
+            (dataframe["num_interior_pts"] >= self.min_interior_pts)
             & (dataframe["timestamp_ns"] == timestamp_ns)
-            & (dataframe["distance"] > self.min_annotation_range)
+            & (dataframe["distance"] >= self.min_annotation_range)
             & (dataframe["distance"] <= self.max_annotation_range)
         )
 
@@ -321,7 +323,7 @@ class Av2(Dataset[Sweep]):
         dataframe_distance = DataFrame.from_numpy(distance, columns=["distance"])
         dataframe = DataFrame.concat([dataframe, dataframe_distance], axis=1)
 
-        mask = (dataframe["distance"] > self.min_lidar_range) & (dataframe["distance"] <= self.max_lidar_range)
+        mask = (dataframe["distance"] >= self.min_lidar_range) & (dataframe["distance"] <= self.max_lidar_range)
         dataframe = dataframe[mask]
         dataframe = dataframe.sort(["timedelta_ns", "distance"])
         return dataframe
