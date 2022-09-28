@@ -97,7 +97,7 @@ class DataFrame:
                 dataframe_pandas: pd.DataFrame = feather.read_feather(str(path), memory_map=True)
                 return cls(dataframe_pandas, backend=backend)
             with path.open("rb") as file_handle:
-                dataframe_pandas: pd.DataFrame = feather.read_feather(file_handle, memory_map=True)
+                dataframe_pandas: pd.DataFrame = feather.read_feather(file_handle)
             return cls(dataframe_pandas, backend=backend)
         if backend == DataFrameBackendType.POLARS:
             dataframe_polars = pl.read_ipc(file_handle, memory_map=True)
