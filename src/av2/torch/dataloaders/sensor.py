@@ -1,6 +1,7 @@
 """Pytorch dataloader for the Argoverse 2 dataset."""
 
 from __future__ import annotations
+from collections import defaultdict
 
 import itertools
 import logging
@@ -8,7 +9,8 @@ from dataclasses import dataclass, field
 from enum import Enum, unique
 from math import inf
 from pathlib import Path
-from typing import Any, Final, ItemsView, List, Optional, Tuple
+from typing import Any, Dict, Final, ItemsView, List, Optional, Tuple
+from threading import Lock
 
 import joblib
 import numpy as np
@@ -27,6 +29,8 @@ logger = logging.getLogger(__file__)
 XYZ_FIELDS: Final[Tuple[str, str, str]] = ("x", "y", "z")
 
 LIDAR_GLOB_PATTERN: Final[str] = "sensors/lidar/*.feather"
+
+GLOBAL_CACHE_LOCKS: Dict[str, Lock] = defaultdict(Lock)
 
 
 @unique
@@ -352,17 +356,20 @@ class Av2(Dataset[Sweep]):
         """
         if self.file_caching_mode == FileCachingMode.DISK:
             file_caching_path.parent.mkdir(parents=True, exist_ok=True)
-            if not file_caching_path.exists():
-                dataframe = DataFrame.read(src_path, backend=self.dataframe_backend)
-                dataframe.write(file_caching_path)
-            else:
-                try:
-                    dataframe = DataFrame.read(file_caching_path, backend=self.dataframe_backend)
-                except Exception as msg:
-                    # File is corrupted. Read from the source directory.
-                    logging.warning("%s", msg)
+
+            key = str(file_caching_path)
+            with GLOBAL_CACHE_LOCKS[key]:
+                if not file_caching_path.exists():
                     dataframe = DataFrame.read(src_path, backend=self.dataframe_backend)
                     dataframe.write(file_caching_path)
+                else:
+                    try:
+                        dataframe = DataFrame.read(file_caching_path, backend=self.dataframe_backend)
+                    except Exception as msg:
+                        # File is corrupted. Read from the source directory.
+                        logging.warning("%s", msg)
+                        dataframe = DataFrame.read(src_path, backend=self.dataframe_backend)
+                        dataframe.write(file_caching_path)
         else:
             dataframe = DataFrame.read(src_path, backend=self.dataframe_backend)
         return dataframe
