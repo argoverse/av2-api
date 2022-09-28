@@ -179,10 +179,16 @@ class DataFrame:
         arr_npy: NDArrayNumber = self.storage.to_numpy()
         return arr_npy
 
+    def __ge__(self, other: Union[float, int, DataFrame]) -> DataFrame:
+        return DataFrame(self.storage >= other, backend=self.backend)
+
     def __gt__(self, other: Union[float, int, str, DataFrame]) -> DataFrame:
         return DataFrame(self.storage > other, backend=self.backend)
 
     def __le__(self, other: Union[float, int, DataFrame]) -> DataFrame:
+        return DataFrame(self.storage <= other, backend=self.backend)
+
+    def __lt__(self, other: Union[float, int, DataFrame]) -> DataFrame:
         return DataFrame(self.storage < other, backend=self.backend)
 
     def __eq__(self, other: Union[float, int, DataFrame]) -> DataFrame:
