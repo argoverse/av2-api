@@ -145,7 +145,6 @@ class Av2(Dataset[Sweep]):
 
     def _build_file_index(self) -> None:
         """Build the file index for the dataset."""
-
         file_cache_path = self.file_caching_dir / f"file_index_{self.split_name}.feather"
         if file_cache_path.exists():
             file_index = DataFrame.read(file_cache_path, self.dataframe_backend).to_numpy().tolist()

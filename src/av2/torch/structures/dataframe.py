@@ -88,6 +88,9 @@ class DataFrame:
 
         Returns:
             The DataFrame.
+
+        Raises:
+            NotImplementedError: If the dataframe backend is not implemented.
         """
         if backend == DataFrameBackendType.PANDAS:
             if not isinstance(path, UPath):
@@ -125,6 +128,9 @@ class DataFrame:
 
         Returns:
             The DataFrame.
+
+        Raises:
+            NotImplementedError: If the dataframe backend is not implemented.
         """
         dataframe_backend_type = dataframe_list[0].backend
         if dataframe_backend_type == DataFrameBackendType.PANDAS:
@@ -156,6 +162,9 @@ class DataFrame:
 
         Returns:
             The DataFrame.
+
+        Raises:
+            NotImplementedError: If the dataframe backend is not implemented.
         """
         if backend == DataFrameBackendType.PANDAS:
             dataframe_pandas = pd.DataFrame(arr_npy, columns=columns)
@@ -190,6 +199,9 @@ class DataFrame:
 
         Returns:
             The sorted DataFrame.
+
+        Raises:
+            NotImplementedError: If the dataframe backend is not implemented.
         """
         if self.backend == DataFrameBackendType.PANDAS:
             dataframe_pandas: pd.DataFrame = self.storage.sort_values(columns)
