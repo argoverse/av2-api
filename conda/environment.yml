@@ -5,6 +5,7 @@ dependencies:
   - av
   - click
   - joblib
+  - lockfile
   - matplotlib-base
   - nox
   - numba

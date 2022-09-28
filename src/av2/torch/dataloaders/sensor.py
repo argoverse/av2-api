@@ -1,7 +1,6 @@
 """Pytorch dataloader for the Argoverse 2 dataset."""
 
 from __future__ import annotations
-from collections import defaultdict
 
 import itertools
 import logging
@@ -10,10 +9,10 @@ from enum import Enum, unique
 from math import inf
 from pathlib import Path
 from typing import Any, Dict, Final, ItemsView, List, Optional, Tuple
-from threading import Lock
 
 import joblib
 import numpy as np
+from filelock import FileLock
 from torch.utils.data import Dataset
 from upath import UPath
 
@@ -26,11 +25,8 @@ from .utils import QUAT_WXYZ_FIELDS, Annotations, Lidar, Sweep, prevent_fsspec_d
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
 
-XYZ_FIELDS: Final[Tuple[str, str, str]] = ("x", "y", "z")
-
 LIDAR_GLOB_PATTERN: Final[str] = "sensors/lidar/*.feather"
-
-GLOBAL_CACHE_LOCKS: Dict[str, Lock] = defaultdict(Lock)
+XYZ_FIELDS: Final[Tuple[str, str, str]] = ("x", "y", "z")
 
 
 @unique
@@ -356,9 +352,8 @@ class Av2(Dataset[Sweep]):
         """
         if self.file_caching_mode == FileCachingMode.DISK:
             file_caching_path.parent.mkdir(parents=True, exist_ok=True)
-
-            key = str(file_caching_path)
-            with GLOBAL_CACHE_LOCKS[key]:
+            lock_name = str(file_caching_path) + ".lock"
+            with FileLock(lock_name):
                 if not file_caching_path.exists():
                     dataframe = DataFrame.read(src_path, backend=self.dataframe_backend)
                     dataframe.write(file_caching_path)
