@@ -7,6 +7,7 @@ from enum import Enum, unique
 from typing import List, Tuple, Union, cast
 
 from pyarrow import feather
+from upath import UPath
 
 from av2.utils.typing import NDArrayBool, NDArrayNumber, PathType
 
@@ -88,14 +89,17 @@ class DataFrame:
         Returns:
             The DataFrame.
         """
-        with path.open("rb") as file_handle:
-            if backend == DataFrameBackendType.PANDAS:
-                dataframe_pandas: pd.DataFrame = feather.read_feather(file_handle, memory_map=True)
+        if backend == DataFrameBackendType.PANDAS:
+            if not isinstance(path, UPath):
+                dataframe_pandas: pd.DataFrame = feather.read_feather(str(path), memory_map=True)
                 return cls(dataframe_pandas, backend=backend)
-            if backend == DataFrameBackendType.POLARS:
-                dataframe_polars = pl.read_ipc(file_handle, memory_map=True)
-                return cls(dataframe_polars, backend=backend)
-            raise NotImplementedError("This backend is not implemented!")
+            with path.open("rb") as file_handle:
+                dataframe_pandas: pd.DataFrame = feather.read_feather(file_handle, memory_map=True)
+            return cls(dataframe_pandas, backend=backend)
+        if backend == DataFrameBackendType.POLARS:
+            dataframe_polars = pl.read_ipc(file_handle, memory_map=True)
+            return cls(dataframe_polars, backend=backend)
+        raise NotImplementedError("This backend is not implemented!")
 
     def write(self, path: PathType) -> None:
         """Write the DataFrame to a feather file.

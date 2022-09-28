@@ -85,7 +85,7 @@ class Av2(Dataset[Sweep]):
     def _log_dataloader_configuration(self) -> None:
         """Log the dataloader configuration."""
         info = "Dataloader has been configured. Here are the settings:\n"
-        for key, value in self.items():
+        for key, value in sorted(self.items()):
             if key == "file_index":
                 continue
             info += f"\t{key}: {value}\n"
@@ -359,9 +359,9 @@ class Av2(Dataset[Sweep]):
             else:
                 try:
                     dataframe = DataFrame.read(file_caching_path, backend=self.dataframe_backend)
-                except Exception as _:
+                except Exception as msg:
                     # File is corrupted. Read from the source directory.
-                    logging.warning("%s is corrupted. Reading from source: %s ...", file_caching_path, src_path)
+                    logging.warning("%s", msg)
                     dataframe = DataFrame.read(src_path, backend=self.dataframe_backend)
                     dataframe.write(file_caching_path)
         else:
