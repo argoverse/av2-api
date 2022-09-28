@@ -318,7 +318,7 @@ class CuboidList:
 
         # Sort by z-order to respect visibility in the scene.
         # i.e, closer objects cuboids should be drawn on top of farther objects.
-        z_orders: NDArrayFloat = np.argsort(-z_buffer)
+        z_orders: NDArrayInt = np.argsort(-z_buffer)
 
         cuboids_vertices_cam = cuboids_vertices_cam[z_orders]
         front_face_indices = [0, 1, 2, 3, 0]

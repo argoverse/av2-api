@@ -16,3 +16,4 @@ dependencies:
   - pyproj
   - rich
   - scipy
+  - universal_pathlib
