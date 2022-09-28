@@ -225,8 +225,8 @@ def query_pose(poses: DataFrame, timestamp_ns: int) -> SE3:
     """
     pose = poses[poses["timestamp_ns"] == timestamp_ns][["qw", "qx", "qy", "qz", "tx_m", "ty_m", "tz_m"]]
     pose_npy = pose.to_numpy().squeeze()
-    quat = pose_npy[:4]
-    translation = pose_npy[4:]
+    quat = pose_npy[:4].astype(np.float64)
+    translation = pose_npy[4:].astype(np.float64)
     return SE3(
         rotation=quat_to_mat(quat),
         translation=translation,

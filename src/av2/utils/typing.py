@@ -14,8 +14,9 @@ from upath import UPath
 
 NDArrayNumber = npt.NDArray[Union[np.uint8, np.uint16, np.int32, np.int64, np.float32, np.float64]]
 NDArrayBool = npt.NDArray[np.bool_]
-NDArrayFloat = npt.NDArray[np.float64]
+NDArrayFloat = npt.NDArray[Union[np.float16, np.float32, np.float64]]
 NDArrayFloat32 = npt.NDArray[np.float32]
+NDArrayFloat64 = npt.NDArray[np.float64]
 NDArrayByte = npt.NDArray[np.uint8]
 NDArrayInt = npt.NDArray[np.int64]
 NDArrayObject = npt.NDArray[np.object_]

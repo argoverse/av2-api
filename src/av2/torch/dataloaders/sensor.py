@@ -18,7 +18,7 @@ from upath import UPath
 
 from av2.geometry.geometry import quat_to_mat
 from av2.torch.structures.dataframe import DataFrame, DataFrameBackendType
-from av2.utils.typing import NDArrayFloat, NDArrayNumber, PathType
+from av2.utils.typing import NDArrayFloat, NDArrayFloat64, NDArrayNumber, PathType
 
 from .utils import QUAT_WXYZ_FIELDS, Annotations, Lidar, Sweep, prevent_fsspec_deadlock, query_pose
 
@@ -275,7 +275,7 @@ class Av2(Dataset[Sweep]):
                     / f"{timestamp_ns_k}.feather",
                 )
 
-                points_past: NDArrayFloat = dataframe[list(XYZ_FIELDS)].to_numpy()
+                points_past: NDArrayFloat64 = dataframe[list(XYZ_FIELDS)].to_numpy().astype(np.float64)
                 # Timestamps do not match, we're likely in a new reference frame.
                 timedelta = timestamp_ns - timestamp_ns_k
                 if timedelta > 0:
