@@ -12,8 +12,6 @@ from typing import Any, Final, ItemsView, List, Optional, Tuple
 
 import joblib
 import numpy as np
-from polars.exceptions import ArrowError
-from pyarrow import ArrowException
 from torch.utils.data import Dataset
 from upath import UPath
 
@@ -361,7 +359,7 @@ class Av2(Dataset[Sweep]):
             else:
                 try:
                     dataframe = DataFrame.read(file_caching_path, backend=self.dataframe_backend)
-                except (ArrowError, ArrowException):
+                except Exception as _:
                     # File is corrupted. Read from the source directory.
                     logging.warning("%s is corrupted. Reading from source: %s ...", file_caching_path, src_path)
                     dataframe = DataFrame.read(src_path, backend=self.dataframe_backend)
