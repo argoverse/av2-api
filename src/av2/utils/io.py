@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import cv2
 import numpy as np
 import pandas as pd
+from filelock import FileLock
 from pyarrow import feather
 from upath import UPath
 
@@ -254,3 +255,14 @@ def read_all_annotations(dataset_dir: Path, split: str) -> pd.DataFrame:
         annotations = read_feather(annotations_path)
         annotations_list.append(annotations)
     return pd.concat(annotations_list).reset_index(drop=True)
+
+
+def concurrency_safe_download(src: UPath, dst: Path) -> None:
+    """Download files in a concurrency-safe manner.
+
+    Args:
+        src: Source path.
+        dst: Destination path.
+    """
+    with FileLock(str(dst) + ".lock"):
+        dst.write_bytes(src.read_bytes())

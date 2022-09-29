@@ -56,11 +56,14 @@ import logging
 import multiprocessing as mp
 import warnings
 from math import inf
+from pathlib import Path
 from statistics import mean
 from typing import Dict, Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from joblib import Parallel, delayed
+from upath import UPath
 
 from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import (
@@ -73,7 +76,7 @@ from av2.evaluation.detection.utils import (
 from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap
 from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
-from av2.utils.io import TimestampedCitySE3EgoPoses
+from av2.utils.io import TimestampedCitySE3EgoPoses, concurrency_safe_download
 from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 warnings.filterwarnings("ignore", module="google")
@@ -144,7 +147,22 @@ def evaluate(
     if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
         logger.info("Loading maps and egoposes ...")
         log_ids: List[str] = gts.loc[:, "log_id"].unique().tolist()
-        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
+
+        src_dir = cfg.dataset_dir
+        if isinstance(cfg.dataset_dir, UPath):
+            split = cfg.dataset_dir.stem
+            src_dir = Path("/") / "cache" / "av2" / "sensor" / split
+
+            pose_paths = cfg.dataset_dir.glob("*/city_SE3_egovehicle.feather")
+            map_paths = cfg.dataset_dir.glob("*/map/*")
+            Parallel(n_jobs=-1, backend="multiprocessing")(
+                delayed(concurrency_safe_download)(path, src_dir) for path in pose_paths
+            )
+            Parallel(n_jobs=-1, backend="multiprocessing")(
+                delayed(concurrency_safe_download)(path, src_dir) for path in map_paths
+            )
+
+        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, src_dir)
 
     args_list: List[Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
     uuids = sorted(uuid_to_dts.keys() | uuid_to_gts.keys())
