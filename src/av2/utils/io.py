@@ -264,5 +264,6 @@ def concurrency_safe_download(src: UPath, dst: Path) -> None:
         src: Source path.
         dst: Destination path.
     """
+    dst.parent.mkdir(parents=True, exist_ok=True)
     with FileLock(str(dst) + ".lock"):
         dst.write_bytes(src.read_bytes())

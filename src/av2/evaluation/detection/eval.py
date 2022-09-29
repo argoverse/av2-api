@@ -151,16 +151,20 @@ def evaluate(
         src_dir = cfg.dataset_dir
         if isinstance(cfg.dataset_dir, UPath):
             split = cfg.dataset_dir.stem
-            src_dir = Path("/") / "cache" / "av2" / "sensor" / split
+            src_dir = Path("/") / "tmp" / "cache" / "av2" / "sensor" / split
 
             pose_paths = cfg.dataset_dir.glob("*/city_SE3_egovehicle.feather")
             map_paths = cfg.dataset_dir.glob("*/map/*")
-            Parallel(n_jobs=-1, backend="multiprocessing")(
-                delayed(concurrency_safe_download)(path, src_dir) for path in pose_paths
-            )
-            Parallel(n_jobs=-1, backend="multiprocessing")(
-                delayed(concurrency_safe_download)(path, src_dir) for path in map_paths
-            )
+
+            for path in pose_paths:
+                cache_path = src_dir / Path(*path.parts[-2:])
+                if not cache_path.exists():
+                    concurrency_safe_download(path, cache_path)
+
+            for path in map_paths:
+                cache_path = src_dir / Path(*path.parts[-3:])
+                if not cache_path.exists():
+                    concurrency_safe_download(path, cache_path)
 
         log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, src_dir)
 
