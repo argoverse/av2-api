@@ -51,6 +51,7 @@ class Av2(Dataset[Sweep]):
         min_interior_pts: Min lidar points within each annotation.
         num_accumulated_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
         file_caching_mode: File caching mode.
+        with_annotations: Boolean to enable annotations.
     """
 
     root_dir: PathType
@@ -65,7 +66,6 @@ class Av2(Dataset[Sweep]):
     file_caching_mode: Optional[FileCachingMode] = None
     file_index: List[Tuple[str, int]] = field(init=False)
     dataframe_backend: DataFrameBackendType = DataFrameBackendType.PANDAS
-
     with_annotations: bool = False
 
     def __post_init__(self) -> None:
