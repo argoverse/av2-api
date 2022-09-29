@@ -41,7 +41,8 @@ class Av2(Dataset[Sweep]):
     """Pytorch dataloader for the sensor dataset.
 
     Args:
-        dataset_dir: Path to the dataset directory.
+        root_dir: Path to the dataset directory.
+        dataset_name: Name of the dataset (sensor or lidar).
         split_name: Name of the dataset split.
         min_annotation_range: Min Euclidean distance between the egovehicle origin and the annotation cuboid centers.
         max_annotation_range: Max Euclidean distance between the egovehicle origin and the annotation cuboid centers.
@@ -52,7 +53,8 @@ class Av2(Dataset[Sweep]):
         file_caching_mode: File caching mode.
     """
 
-    dataset_dir: PathType
+    root_dir: PathType
+    dataset_name: str
     split_name: str
     min_annotation_range: float = 0.0
     max_annotation_range: float = inf
@@ -63,6 +65,8 @@ class Av2(Dataset[Sweep]):
     file_caching_mode: Optional[FileCachingMode] = None
     file_index: List[Tuple[str, int]] = field(init=False)
     dataframe_backend: DataFrameBackendType = DataFrameBackendType.PANDAS
+
+    with_annotations: bool = False
 
     def __post_init__(self) -> None:
         """Build the file index."""
@@ -77,12 +81,12 @@ class Av2(Dataset[Sweep]):
     @property
     def file_caching_dir(self) -> PathType:
         """File caching directory."""
-        return Path("/") / "tmp" / "cache" / "av2" / self.split_name
+        return Path("/") / "tmp" / "cache" / "av2" / self.dataset_name / self.split_name
 
     @property
     def split_dir(self) -> PathType:
         """Sensor dataset split directory."""
-        return UPath(self.dataset_dir) / self.split_name
+        return UPath(self.root_dir) / self.split_name
 
     def _log_dataloader_configuration(self) -> None:
         """Log the dataloader configuration."""
@@ -140,7 +144,9 @@ class Av2(Dataset[Sweep]):
         Returns:
             Sweep object containing annotations and lidar.
         """
-        annotations = self.read_annotations(index)
+        annotations = None
+        if self.with_annotations:
+            annotations = self.read_annotations(index)
         lidar = self.read_lidar(index)
         sweep_uuid = self.sweep_uuid(index)
         return Sweep(annotations=annotations, lidar=lidar, sweep_uuid=sweep_uuid)
