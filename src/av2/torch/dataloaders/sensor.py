@@ -86,7 +86,7 @@ class Av2(Dataset[Sweep]):
     @property
     def split_dir(self) -> PathType:
         """Sensor dataset split directory."""
-        return UPath(self.root_dir) / self.split_name
+        return UPath(self.root_dir) / self.dataset_name / self.split_name
 
     def _log_dataloader_configuration(self) -> None:
         """Log the dataloader configuration."""
