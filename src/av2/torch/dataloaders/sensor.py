@@ -72,7 +72,6 @@ class Av2(Dataset[Sweep]):
         """Build the file index."""
         prevent_fsspec_deadlock()
         self._build_file_index()
-        self._log_dataloader_configuration()
 
     def items(self) -> ItemsView[str, Any]:
         """Return the attribute_name, attribute pairs for the dataloader."""
@@ -88,14 +87,14 @@ class Av2(Dataset[Sweep]):
         """Sensor dataset split directory."""
         return UPath(self.root_dir) / self.dataset_name / self.split_name
 
-    def _log_dataloader_configuration(self) -> None:
-        """Log the dataloader configuration."""
-        info = "Dataloader has been configured. Here are the settings:\n"
+    def __repr__(self) -> str:
+        """Dataloader info."""
+        info = "Dataloader configuration settings:\n"
         for key, value in sorted(self.items()):
             if key == "file_index":
                 continue
             info += f"\t{key}: {value}\n"
-        logger.info("%s", info)
+        return info
 
     def annotations_path(self, log_id: str) -> PathType:
         """Get the annotations at the specified log id.
