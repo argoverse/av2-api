@@ -50,9 +50,9 @@ class OrientationMode(str, Enum):
 class CuboidMode(str, Enum):
     """Box mode (parameterization) of ground truth annotations."""
 
-    XYZLWH_THETA = "XYZLWH_THETA"
-    XYZLWH_QWXYZ = "XYZLWH_QWXYZ"
-    XYZ = "XYZ"
+    XYZLWH_THETA = "XYZLWH_THETA"  # (x, y, z, length, width, height, theta).
+    XYZLWH_QWXYZ = "XYZLWH_QWXYZ"  # (x, y, z, length, width, height, qw, qx, qy, qz).
+    XYZ = "XYZ"  # (x, y, z) -- 8 cuboid vertices.
 
     @staticmethod
     def convert(dataframe: DataFrame, src: CuboidMode, target: CuboidMode) -> DataFrame:
