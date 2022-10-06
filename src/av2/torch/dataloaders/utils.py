@@ -31,9 +31,9 @@ DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final[Tuple[str, ...]] = (
     "qx",
     "qy",
     "qz",
-    "vx_m",
-    "vy_m",
-    "vz_m",
+    # "vx_m",
+    # "vy_m",
+    # "vz_m",
 )
 DEFAULT_LIDAR_TENSOR_FIELDS: Final[Tuple[str, ...]] = ("x", "y", "z")
 QUAT_WXYZ_FIELDS: Final[Tuple[str, ...]] = ("qw", "qx", "qy", "qz")
@@ -56,7 +56,7 @@ class CuboidMode(str, Enum):
     XYZ = "XYZ"
 
     @staticmethod
-    def convert(dataframe: pl.DataFrame, src: CuboidMode, target: CuboidMode) -> pl.DataFrame:
+    def convert(dataframe: DataFrame, src: CuboidMode, target: CuboidMode) -> pl.DataFrame:
         """Convert an annotations dataframe from src to target cuboid parameterization.
 
         Args:
@@ -73,7 +73,7 @@ class CuboidMode(str, Enum):
         if src == target:
             return dataframe
         if src == CuboidMode.XYZLWH_QWXYZ and target == CuboidMode.XYZLWH_THETA:
-            quaternions = dataframe.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy()
+            quaternions = dataframe[list(QUAT_WXYZ_FIELDS)].to_numpy()
             rotation = quat_to_mat(quaternions)
             yaw = mat_to_xyz(rotation)[:, -1]
 
@@ -85,8 +85,8 @@ class CuboidMode(str, Enum):
                 filter(lambda field_name: field_name not in QUAT_WXYZ_FIELDS, DEFAULT_ANNOTATIONS_TENSOR_FIELDS)
             )
             field_ordering = field_ordering[:first_occurence] + ("yaw",) + field_ordering[first_occurence:]
-            dataframe = dataframe.with_columns(yaw=pl.from_numpy(yaw).to_series())
-            dataframe = dataframe.select(pl.col(list(field_ordering)))
+            dataframe = DataFrame.concat([dataframe, DataFrame.from_numpy(yaw, columns=["yaw"])], axis=1)
+            dataframe = dataframe[list(field_ordering)]
         elif src == CuboidMode.XYZLWH_QWXYZ and target == CuboidMode.XYZ:
             unit_vertices_obj_xyz_m = np.array(
                 [
