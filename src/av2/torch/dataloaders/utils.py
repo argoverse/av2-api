@@ -17,6 +17,7 @@ from torch import Tensor
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
 from av2.geometry.se3 import SE3
 from av2.torch.structures.dataframe import DataFrame
+from av2.utils.typing import NDArrayFloat
 
 MAX_STR_LEN: Final[int] = 32
 
@@ -56,7 +57,7 @@ class CuboidMode(str, Enum):
     XYZ = "XYZ"
 
     @staticmethod
-    def convert(dataframe: DataFrame, src: CuboidMode, target: CuboidMode) -> pl.DataFrame:
+    def convert(dataframe: DataFrame, src: CuboidMode, target: CuboidMode) -> DataFrame:
         """Convert an annotations dataframe from src to target cuboid parameterization.
 
         Args:
@@ -73,19 +74,20 @@ class CuboidMode(str, Enum):
         if src == target:
             return dataframe
         if src == CuboidMode.XYZLWH_QWXYZ and target == CuboidMode.XYZLWH_THETA:
-            quaternions = dataframe[list(QUAT_WXYZ_FIELDS)].to_numpy()
+            quaternions = dataframe[list(QUAT_WXYZ_FIELDS)].to_numpy().astype(np.float64)
             rotation = quat_to_mat(quaternions)
             yaw = mat_to_xyz(rotation)[:, -1]
 
-            first_occurence = min(
+            start = min(
                 i if field_name in QUAT_WXYZ_FIELDS else sys.maxsize
                 for (i, field_name) in enumerate(DEFAULT_ANNOTATIONS_TENSOR_FIELDS)
             )
             field_ordering = tuple(
                 filter(lambda field_name: field_name not in QUAT_WXYZ_FIELDS, DEFAULT_ANNOTATIONS_TENSOR_FIELDS)
             )
-            field_ordering = field_ordering[:first_occurence] + ("yaw",) + field_ordering[first_occurence:]
-            dataframe = DataFrame.concat([dataframe, DataFrame.from_numpy(yaw, columns=["yaw"])], axis=1)
+            field_ordering = field_ordering[:start] + ("yaw",) + field_ordering[start:]
+            yaw_frame = DataFrame.from_numpy(yaw, columns=["yaw"])
+            dataframe = DataFrame.concat([dataframe, yaw_frame], axis=1)
             dataframe = dataframe[list(field_ordering)]
         elif src == CuboidMode.XYZLWH_QWXYZ and target == CuboidMode.XYZ:
             unit_vertices_obj_xyz_m = np.array(
