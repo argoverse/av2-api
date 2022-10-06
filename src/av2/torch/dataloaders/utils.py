@@ -10,14 +10,12 @@ from typing import Final, Optional, Tuple
 
 import fsspec.asyn
 import numpy as np
-import polars as pl
 import torch
 from torch import Tensor
 
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
 from av2.geometry.se3 import SE3
 from av2.torch.structures.dataframe import DataFrame
-from av2.utils.typing import NDArrayFloat
 
 MAX_STR_LEN: Final[int] = 32
 
