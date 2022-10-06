@@ -103,14 +103,14 @@ class CuboidMode(str, Enum):
                 ],
             )
 
-            dims_lwh_m = dataframe.select(pl.col(["length_m", "width_m", "height_m"])).to_numpy()
+            dims_lwh_m = dataframe[["length_m", "width_m", "height_m"]].to_numpy()
 
             # Transform unit polygons.
             vertices_obj_xyz_m = (dims_lwh_m[:, None] / 2.0) * unit_vertices_obj_xyz_m[None]
 
-            quat = dataframe.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy()
+            quat = dataframe[list(QUAT_WXYZ_FIELDS)].to_numpy()
             rotation = quat_to_mat(quat)
-            translation = dataframe.select(pl.col(["tx_m", "ty_m", "tz_m"])).to_numpy()
+            translation = dataframe[["tx_m", "ty_m", "tz_m"]].to_numpy()
 
             vertices = (rotation @ vertices_obj_xyz_m.transpose(0, 2, 1)).transpose(0, 2, 1) + translation[:, None]
             columns = list(
@@ -119,12 +119,13 @@ class CuboidMode(str, Enum):
                 )
             )
             vertices = vertices.reshape(-1, len(unit_vertices_obj_xyz_m) * 3)
-            dataframe = pl.concat(
-                [
-                    dataframe.select(pl.col("*").exclude(["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"])),
-                    pl.from_numpy(vertices, columns=columns, orient="row"),
-                ],
-                how="horizontal",
+            remaining_columns = set(dataframe.columns).difference(set(["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"]))
+            updated_columns = list(filter(lambda x: x in remaining_columns, dataframe.columns))
+
+            vertices_frame = DataFrame.from_numpy(vertices, columns=columns, backend=dataframe.backend)
+            dataframe = DataFrame.concat(
+                [dataframe[updated_columns], vertices_frame],
+                axis=1,
             )
             return dataframe
         else:
@@ -171,9 +172,7 @@ class Annotations:
         points_xyz = lidar.as_tensor()
 
         columns = list(itertools.chain.from_iterable([(f"tx_{i}", f"ty_{i}", f"tz_{i}") for i in range(8)]))
-        cuboid_vertices = torch.as_tensor(dataframe.select(pl.col(columns)).to_numpy(), dtype=torch.float32).reshape(
-            -1, 8, 3
-        )
+        cuboid_vertices = torch.as_tensor(dataframe[columns].to_numpy(), dtype=torch.float32).reshape(-1, 8, 3)
         pairwise_point_masks = compute_interior_points_mask(points_xyz, cuboid_vertices)
         return pairwise_point_masks
 
