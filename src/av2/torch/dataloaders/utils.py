@@ -276,11 +276,18 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
 
 
 @nb.njit(nogil=True)
-def velocity_kernel(txyz: NDArrayFloat):
-    dt_ns, dx, dy, dz = txyz.T
+def velocity_kernel(txyz: NDArrayFloat) -> Tuple[float, float, float, float]:
+    """Estimate the velocity.
 
+    Args:
+        txyz: (N,4) Array of timestamp, x, y, z.
+
+    Returns:
+        Velocity.
+    """
+    dt_ns, dx, dy, dz = txyz.T
     dt_s = dt_ns * 1e-9
-    vx = np.nanmean(dx / dt_s)
-    vy = np.nanmean(dy / dt_s)
-    vz = np.nanmean(dz / dt_s)
+    vx = float(np.nanmean(dx / dt_s))
+    vy = float(np.nanmean(dy / dt_s))
+    vz = float(np.nanmean(dz / dt_s))
     return (0.0, vx, vy, vz)

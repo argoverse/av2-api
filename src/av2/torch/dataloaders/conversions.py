@@ -6,7 +6,6 @@ import torch
 from torch import Tensor
 
 
-@torch.jit.script
 def quat_to_xyz(quat_wxyz: Tensor, singularity_value: float = math.pi / 2) -> Tensor:
     """Convert scalar first quaternion to Tait-Bryan angles.
 

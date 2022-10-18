@@ -7,7 +7,6 @@ import polars as pl
 import torch.multiprocessing as mp
 
 from av2.torch.dataloaders.sensor import Av2
-from av2.torch.dataloaders.utils import read_feather
 from av2.utils.io import read_city_SE3_ego
 
 mp.set_start_method("fork")
@@ -18,7 +17,7 @@ TEST_DATA_DIR: Final[Path] = Path(__file__).parent.resolve() / "test_data"
 def test_av2_sensor_dataloader() -> None:
     """Test the av2 sensor dataloader."""
     dataloader = Av2(
-        dataset_dir=TEST_DATA_DIR,
+        root_dir=TEST_DATA_DIR,
         split_name="",
         num_accumulated_sweeps=5,
     )
