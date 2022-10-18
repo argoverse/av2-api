@@ -13,7 +13,7 @@ increased interpretability of the error modes in a set of detections.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -316,7 +316,7 @@ def compute_average_precision(
     # Evaluate precision at different recalls.
     precision_interpolated: NDArrayFloat = np.interp(recall_interpolated, recall, precision, right=0)
 
-    average_precision: float = float(np.mean(precision_interpolated))
+    average_precision: float = cast(float, np.mean(precision_interpolated))
     return average_precision, precision_interpolated
 
 
