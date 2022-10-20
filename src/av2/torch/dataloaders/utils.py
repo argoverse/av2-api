@@ -18,11 +18,11 @@ from torch import Tensor
 
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
 from av2.geometry.se3 import SE3
-from av2.utils.typing import NDArrayFloat, PathType
+from av2.utils.typing import NDArrayFloat
 
 MAX_STR_LEN: Final[int] = 32
 
-DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final[Tuple[str, ...]] = (
+DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
     "tx_m",
     "ty_m",
     "tz_m",
@@ -37,8 +37,8 @@ DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final[Tuple[str, ...]] = (
     "vy_m",
     "vz_m",
 )
-DEFAULT_LIDAR_TENSOR_FIELDS: Final[Tuple[str, ...]] = ("x", "y", "z")
-QUAT_WXYZ_FIELDS: Final[Tuple[str, ...]] = ("qw", "qx", "qy", "qz")
+DEFAULT_LIDAR_TENSOR_FIELDS: Final = ("x", "y", "z")
+QUAT_WXYZ_FIELDS: Final = ("qw", "qx", "qy", "qz")
 
 
 @unique
