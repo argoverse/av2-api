@@ -12,7 +12,6 @@ dependencies:
   - opencv
   - pandas
   - pip
-  - polars
   - pyarrow
   - pyproj
   - rich
