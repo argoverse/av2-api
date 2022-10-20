@@ -58,7 +58,7 @@ class CuboidMode(str, Enum):
     XYZ = "XYZ"
 
     @staticmethod
-    def convert(dataframe: pl.DataFrame, src: CuboidMode, target: CuboidMode) -> pl.DataFrame:
+    def convert(dataframe: pd.DataFrame, src: CuboidMode, target: CuboidMode) -> pd.DataFrame:
         """Convert an annotations dataframe from src to target cuboid parameterization.
 
         Args:
@@ -75,7 +75,7 @@ class CuboidMode(str, Enum):
         if src == target:
             return dataframe
         if src == CuboidMode.XYZLWH_QWXYZ and target == CuboidMode.XYZLWH_THETA:
-            quaternions = dataframe.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy()
+            quaternions = dataframe.loc[:, list(QUAT_WXYZ_FIELDS)].to_numpy().astype(np.float64)
             rotation = quat_to_mat(quaternions)
             yaw = mat_to_xyz(rotation)[:, -1]
 
@@ -103,14 +103,14 @@ class CuboidMode(str, Enum):
                 ],
             )
 
-            dims_lwh_m = dataframe.select(pl.col(["length_m", "width_m", "height_m"])).to_numpy()
+            dims_lwh_m = dataframe.loc[:, ["length_m", "width_m", "height_m"]].to_numpy().astype(np.float64)
 
             # Transform unit polygons.
             vertices_obj_xyz_m = (dims_lwh_m[:, None] / 2.0) * unit_vertices_obj_xyz_m[None]
 
-            quat = dataframe.select(pl.col(list(QUAT_WXYZ_FIELDS))).to_numpy()
+            quat = dataframe.loc[:, list(QUAT_WXYZ_FIELDS)].to_numpy().astype(np.float64)
             rotation = quat_to_mat(quat)
-            translation = dataframe.select(pl.col(["tx_m", "ty_m", "tz_m"])).to_numpy()
+            translation = dataframe.loc[:, ["tx_m", "ty_m", "tz_m"]].to_numpy().astype(np.float64)
 
             vertices = (rotation @ vertices_obj_xyz_m.transpose(0, 2, 1)).transpose(0, 2, 1) + translation[:, None]
             columns = list(
@@ -119,13 +119,8 @@ class CuboidMode(str, Enum):
                 )
             )
             vertices = vertices.reshape(-1, len(unit_vertices_obj_xyz_m) * 3)
-            dataframe = pl.concat(
-                [
-                    dataframe.select(pl.col("*").exclude(["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"])),
-                    pl.from_numpy(vertices, columns=columns, orient="row"),
-                ],
-                how="horizontal",
-            )
+            dataframe = dataframe[:, ["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"]]
+            dataframe[:, columns] = vertices
             return dataframe
         else:
             raise NotImplementedError("This conversion is not implemented!")
@@ -134,7 +129,12 @@ class CuboidMode(str, Enum):
 
 @dataclass(frozen=True)
 class Annotations:
-    """Dataclass for ground truth annotations."""
+    """Dataclass for ground truth annotations.
+
+    Args:
+        dataframe: Dataframe containing the annotations and their attributes.
+        cuboid_mode: Cuboid parameterization mode.
+    """
 
     dataframe: pd.DataFrame
     cuboid_mode: CuboidMode = CuboidMode.XYZLWH_QWXYZ
@@ -180,7 +180,11 @@ class Annotations:
 
 @dataclass(frozen=True)
 class Lidar:
-    """Dataclass for lidar sweeps."""
+    """Dataclass for lidar sweeps.
+
+    Args:
+        dataframe: Dataframe containing the lidar and its attributes.
+    """
 
     dataframe: pd.DataFrame
 
@@ -203,11 +207,24 @@ class Lidar:
 
 @dataclass(frozen=True)
 class Sweep:
-    """Stores the annotations and lidar for one sweep."""
+    """Stores the annotations and lidar for one sweep.
+
+    Args:
+        annotations: Object containing annotation parameters.
+        lidar: Object containing lidar parameters.
+        log_id: Log id for the sweep.
+        timestamp_ns: Timestamp (in nanoseconds) of when the egovehicle's pose was captured.
+    """
 
     annotations: Optional[Annotations]
     lidar: Lidar
-    sweep_uuid: Tuple[str, int]
+    log_id: str
+    timestamp_ns: int
+
+    @property
+    def sweep_uuid(self) -> Tuple[str, int]:
+        """Return a unique id for the sweep."""
+        return (self.log_id, self.timestamp_ns)
 
 
 def prevent_fsspec_deadlock() -> None:
@@ -236,7 +253,7 @@ def query_pose(poses: pd.DataFrame, timestamp_ns: int) -> SE3:
     )
 
 
-def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) -> Tensor:
+def compute_interior_points_mask(xyz_m: Tensor, cuboid_vertices: Tensor) -> Tensor:
     r"""Compute the interior points within a set of _axis-aligned_ cuboids.
 
     Reference:
@@ -254,7 +271,7 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
              h.               t.
 
     Args:
-        points_xyz: (N,3) Points in Cartesian space.
+        xyz_m: (N,3) Points in Cartesian space.
         cuboid_vertices: (K,8,3) Vertices of the cuboids.
 
     Returns:
@@ -267,7 +284,7 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
 
     dot_uvw_reference = uvw @ reference_vertex.transpose(1, 2)
     dot_uvw_vertices = torch.diagonal(uvw @ vertices.transpose(1, 2), 0, 2)[..., None]
-    dot_uvw_points = uvw @ points_xyz.T
+    dot_uvw_points = uvw @ xyz_m.T
 
     constraint_a = torch.logical_and(dot_uvw_reference <= dot_uvw_points, dot_uvw_points <= dot_uvw_vertices)
     constraint_b = torch.logical_and(dot_uvw_reference >= dot_uvw_points, dot_uvw_points >= dot_uvw_vertices)
@@ -276,18 +293,18 @@ def compute_interior_points_mask(points_xyz: Tensor, cuboid_vertices: Tensor) ->
 
 
 @nb.njit(nogil=True)
-def velocity_kernel(txyz: NDArrayFloat) -> Tuple[float, float, float, float]:
+def velocity_kernel(delta_txyz: NDArrayFloat) -> Tuple[float, float, float, float]:
     """Estimate the velocity.
 
     Args:
-        txyz: (N,4) Array of timestamp, x, y, z.
+        delta_txyz: (N,4) Array of timestamp, x, y, z.
 
     Returns:
         Velocity.
     """
-    dt_ns, dx, dy, dz = txyz.T
+    dt_ns, dx_m, dy_m, dz_m = delta_txyz.T
     dt_s = dt_ns * 1e-9
-    vx = float(np.nanmean(dx / dt_s))
-    vy = float(np.nanmean(dy / dt_s))
-    vz = float(np.nanmean(dz / dt_s))
-    return (0.0, vx, vy, vz)
+    vx_m = float(np.nanmean(dx_m / dt_s))
+    vy_m = float(np.nanmean(dy_m / dt_s))
+    vz_m = float(np.nanmean(dz_m / dt_s))
+    return (0.0, vx_m, vy_m, vz_m)

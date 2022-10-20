@@ -165,8 +165,8 @@ class Av2(Dataset[Sweep]):
             annotations = self.read_annotations(index)
 
         lidar = self.read_lidar(index)
-        sweep_uuid = self.sweep_uuid(index)
-        return Sweep(annotations=annotations, lidar=lidar, sweep_uuid=sweep_uuid)
+        log_id, timestamp_ns = self.sweep_uuid(index)
+        return Sweep(annotations=annotations, lidar=lidar, log_id=log_id, timestamp_ns=timestamp_ns)
 
     def _build_file_index(self) -> None:
         """Build the file index for the dataset."""
