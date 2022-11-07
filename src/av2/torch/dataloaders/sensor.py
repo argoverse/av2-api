@@ -312,7 +312,6 @@ class Av2(Dataset[Sweep]):
         dataframe["distance"] = distances
         mask = (distances >= self.min_lidar_range) & (distances <= self.max_lidar_range)
         dataframe = dataframe.loc[mask]
-        dataframe = dataframe.sort_values(["timedelta_ns", "distance"])
         return dataframe
 
     @staticmethod
