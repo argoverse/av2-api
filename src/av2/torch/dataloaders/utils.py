@@ -32,9 +32,6 @@ DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
     "qx",
     "qy",
     "qz",
-    "vx_m",
-    "vy_m",
-    "vz_m",
 )
 DEFAULT_LIDAR_TENSOR_FIELDS: Final = ("x", "y", "z")
 QUAT_WXYZ_FIELDS: Final = ("qw", "qx", "qy", "qz")
