@@ -8,6 +8,9 @@ build-backend = "setuptools.build_meta"
 [tool.black]
 line-length = 120
 
+[tool.ruff]
+line-length = 120
+
 [tool.isort]
 known_first_party = "av2"
 known_third_party = ""

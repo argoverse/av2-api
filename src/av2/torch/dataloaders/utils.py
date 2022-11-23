@@ -12,7 +12,6 @@ import fsspec.asyn
 import numba as nb
 import numpy as np
 import pandas as pd
-import polars as pl
 import torch
 from torch import Tensor
 
@@ -87,8 +86,8 @@ class CuboidMode(str, Enum):
                 filter(lambda field_name: field_name not in QUAT_WXYZ_FIELDS, DEFAULT_ANNOTATIONS_TENSOR_FIELDS)
             )
             field_ordering = field_ordering[:first_occurence] + ("yaw",) + field_ordering[first_occurence:]
-            dataframe = dataframe.with_columns(yaw=pl.from_numpy(yaw).to_series())
-            dataframe = dataframe.select(pl.col(list(field_ordering)))
+            dataframe["yaw"] = yaw
+            dataframe = dataframe[list(field_ordering)]
         elif src == CuboidMode.XYZLWH_QWXYZ and target == CuboidMode.XYZ:
             unit_vertices_obj_xyz_m = np.array(
                 [
@@ -171,7 +170,7 @@ class Annotations:
         points_xyz = lidar.as_tensor()
 
         columns = list(itertools.chain.from_iterable([(f"tx_{i}", f"ty_{i}", f"tz_{i}") for i in range(8)]))
-        cuboid_vertices = torch.as_tensor(dataframe.select(pl.col(columns)).to_numpy(), dtype=torch.float32).reshape(
+        cuboid_vertices = torch.as_tensor(dataframe[columns].to_numpy(), dtype=torch.float32).reshape(
             -1, 8, 3
         )
         pairwise_point_masks = compute_interior_points_mask(points_xyz, cuboid_vertices)
