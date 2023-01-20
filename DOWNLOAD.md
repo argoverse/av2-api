@@ -22,7 +22,7 @@ Note that it will install `s5cmd` in your local bin directory. You can always ch
 Once `s5cmd` is installed installed, downloading a dataset is as easy as running the following (using the sensor dataset as an example):
 
 ```bash
-s5cmd --no-sign-request cp s3://argoai-argoverse/av2/sensor/* target-directory
+s5cmd --no-sign-request cp "s3://argoai-argoverse/av2/sensor/*" target-directory
 ```
 
 The command will download all S3 objects to the target directory (for example, `target-directory` can be `/home/av2/sensors/`). Given the size of the dataset, it might take a couple of hours depending on the network connectivity.
