@@ -372,7 +372,7 @@ class ArgoverseStaticMap:
         vector_data_fnames = sorted(log_map_dirpath.glob("log_map_archive_*.json"))
         if not len(vector_data_fnames) == 1:
             raise RuntimeError(f"JSON file containing vector map data is missing (searched in {log_map_dirpath})")
-        vector_data_fname = vector_data_fnames[0]
+        vector_data_fname = vector_data_fnames[0].name
 
         vector_data_json_path = log_map_dirpath / vector_data_fname
         static_map = cls.from_json(vector_data_json_path)
