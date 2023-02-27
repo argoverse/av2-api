@@ -16,6 +16,9 @@ def _build_dummy_raster_inputs(
     Args:
         n: Number of points.
         d: Number of dimensions.
+
+    Returns:
+        (n,d) points, (3,) voxel resolution, (3,) grid size, (n,) cmap values.
     """
     xyz = np.ones((n, d))
     voxel_resolution = (0.1, 0.1, 0.1)
@@ -24,14 +27,14 @@ def _build_dummy_raster_inputs(
     return xyz, voxel_resolution, grid_size_m, cmap
 
 
-def test_rasterize_Nx3():
+def test_rasterize_Nx3() -> None:
     """Test the rasterize function with (N,3) input."""
     n, d = 1000, 3
     xyz, voxel_resolution, grid_size_m, cmap = _build_dummy_raster_inputs(n, d)
     xyz_to_bev(xyz, voxel_resolution, grid_size_m, cmap)
 
 
-def test_rasterize_Nx4():
+def test_rasterize_Nx4() -> None:
     """Test the rasterize function with (N,4) input."""
     n, d = 1000, 4
     xyz, voxel_resolution, grid_size_m, cmap = _build_dummy_raster_inputs(n, d)
