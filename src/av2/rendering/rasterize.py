@@ -56,12 +56,11 @@ def xyz_to_bev(
     # Otherwise, use the provided intensity.
     intensity: NDArrayByte
     if xyz.shape[-1] == 3:
-        intensity = np.ones_like(xyz.shape[0], np.uint8)
+        cart = xyz.copy()
+        intensity = np.ones_like(xyz[:, 0:1], np.uint8)
     else:
+        cart = xyz[..., :-1].copy()
         intensity = xyz[..., -1].copy().astype(np.uint8)
-
-    # Grab the Cartesian coordinates (xyz).
-    cart = xyz[..., :-1].copy()
 
     # Move the origin to the center of the image.
     cart += np.divide(grid_size_m, 2)
