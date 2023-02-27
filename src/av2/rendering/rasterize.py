@@ -57,7 +57,7 @@ def xyz_to_bev(
     intensity: NDArrayByte
     if xyz.shape[-1] == 3:
         cart = xyz.copy()
-        intensity = np.ones_like(xyz.shape[0], np.uint8)
+        intensity = np.ones_like(xyz[:, 0:1], np.uint8)
     else:
         cart = xyz[..., :-1].copy()
         intensity = xyz[..., -1].copy().astype(np.uint8)
