@@ -186,7 +186,7 @@ def verify_log_map(data_root: Path, log_id: str) -> None:
     avm.get_scenario_vector_drivable_areas()
 
 
-def verify_logs_using_dataloader(data_root: Path, log_ids: List[str]) -> None:
+def verify_logs_using_dataloader(data_root: Path, log_ids: Tuple[str, ...]) -> None:
     """Use a dataloader object to query each log's data, and verify it.
 
     Args:
