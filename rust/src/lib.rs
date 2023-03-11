@@ -1,10 +1,13 @@
 pub mod io;
+pub mod ops;
 pub mod path;
 pub mod se3;
 pub mod so3;
 
 use io::{read_annotations, read_lidar};
 use itertools::{multiunzip, Itertools};
+use ndarray::Dim;
+use numpy::{IntoPyArray, PyArray};
 use path::{file_stem, walk_dir};
 use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
@@ -15,8 +18,11 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use bincode::{deserialize, serialize};
 use glob::glob;
+use numpy::PyReadonlyArray2;
 use polars::prelude::*;
 use pyo3::types::PyBytes;
+
+use crate::ops::voxelize;
 
 pub const ANNOTATION_COLUMNS: [&str; 12] = [
     "tx_m",
@@ -265,10 +271,39 @@ pub fn build_file_index(
     .unwrap()
 }
 
+#[pyfunction]
+#[pyo3(name = "voxelize")]
+fn py_voxelize<'py>(
+    py: Python<'py>,
+    indices: PyReadonlyArray2<usize>,
+    features: PyReadonlyArray2<f32>,
+    length: usize,
+    width: usize,
+    height: usize,
+) -> (
+    &'py PyArray<usize, Dim<[usize; 2]>>,
+    &'py PyArray<f32, Dim<[usize; 2]>>,
+    &'py PyArray<f32, Dim<[usize; 2]>>,
+) {
+    let (indices, values, counts) = voxelize(
+        &indices.as_array(),
+        &features.as_array(),
+        length,
+        width,
+        height,
+    );
+    (
+        indices.into_pyarray(py),
+        values.into_pyarray(py),
+        counts.into_pyarray(py),
+    )
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _r(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Dataloader>()?;
     m.add_class::<Sweep>()?;
+    m.add_function(wrap_pyfunction!(py_voxelize, m)?)?;
     Ok(())
 }
