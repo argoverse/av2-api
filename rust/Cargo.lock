@@ -94,16 +94,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "argminmax"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f3fa5b375099be3bd519f13f1faf0190ebab46f55d37003a620bf7570ba51ab"
-dependencies = [
- "ndarray",
- "num-traits",
-]
-
-[[package]]
 name = "array-init-cursor"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -211,7 +201,6 @@ name = "av2"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "argminmax",
  "bincode",
  "blas-src",
  "criterion",

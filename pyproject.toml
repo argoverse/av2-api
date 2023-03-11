@@ -22,6 +22,7 @@ dependencies = [
     "numpy",
     "opencv-python",
     "pandas",
+    "polars",
     "pyarrow",
     "pyproj",
     "rich",

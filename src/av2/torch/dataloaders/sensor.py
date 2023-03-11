@@ -5,23 +5,17 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from math import inf
-from typing import Final
 
-import torch
-from torch import Tensor
 from torch.utils.data import Dataset
 
 import av2._r as r
-from av2.utils.typing import PathType
 from av2.torch.dataloaders.utils import Annotations, Lidar
+from av2.utils.typing import PathType
 
 from .utils import Sweep
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-XYZ_FIELDS: Final = ("x", "y", "z")
-LIDAR_GLOB_PATTERN: Final = "sensors/lidar/*.feather"
 
 
 @dataclass
@@ -55,7 +49,7 @@ class Dataloader(Dataset[Sweep]):
     return_annotations: bool = False
     return_velocity_estimates: bool = False
 
-    _backend: r.SensorDataset = field(init=False)
+    _backend: r.Dataloader = field(init=False)
 
     def __post_init__(self) -> None:
         """Build the file index."""
@@ -68,18 +62,9 @@ class Dataloader(Dataset[Sweep]):
             str(self.root_dir), "sensor", self.split_name, self.dataset_name, self.num_accum_sweeps
         )
 
-    def __repr__(self) -> str:
-        """Dataloader info."""
-        info = "Dataloader configuration settings:\n"
-        for key, value in sorted(self.items()):
-            if key == "file_index":
-                continue
-            info += f"\t{key}: {value}\n"
-        return info
-
-    def __getitem__(self, index) -> Sweep:
-        datum = self._backend.get(index)
-        annotations = Annotations(dataframe=datum.annotations.to_pandas())
-        lidar = Lidar(dataframe=datum.lidar.to_pandas())
-        sweep = Sweep(annotations=annotations, lidar=lidar, sweep_uuid=datum.sweep_uuid)
+    def __getitem__(self, index: int) -> Sweep:
+        sweep = self._backend.get(index)
+        annotations = Annotations(dataframe=sweep.annotations.to_pandas())
+        lidar = Lidar(dataframe=sweep.lidar.to_pandas())
+        sweep = Sweep(annotations=annotations, lidar=lidar, sweep_uuid=sweep.sweep_uuid)
         return sweep
