@@ -15,28 +15,23 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use bincode::{deserialize, serialize};
 use glob::glob;
-use once_cell::sync::Lazy;
 use polars::prelude::*;
 use pyo3::types::PyBytes;
 
-pub static ANNOTATION_COLUMNS: Lazy<Vec<String>> = Lazy::new(|| {
-    [
-        "tx_m",
-        "ty_m",
-        "tz_m",
-        "length_m",
-        "width_m",
-        "height_m",
-        "qw",
-        "qx",
-        "qy",
-        "qz",
-        "num_interior_pts",
-        "category",
-    ]
-    .map(String::from)
-    .to_vec()
-});
+pub const ANNOTATION_COLUMNS: [&str; 12] = [
+    "tx_m",
+    "ty_m",
+    "tz_m",
+    "length_m",
+    "width_m",
+    "height_m",
+    "qw",
+    "qx",
+    "qy",
+    "qz",
+    "num_interior_pts",
+    "category",
+];
 
 #[pyclass]
 pub struct Sweep {
@@ -159,7 +154,7 @@ impl Dataloader {
 
         let annotations_path = self.annotations_path(log_id);
 
-        let columns = ANNOTATION_COLUMNS.clone();
+        let columns = ANNOTATION_COLUMNS[..].iter().cloned().collect_vec();
         let annotations = read_annotations(&annotations_path, &columns, &timestamp_ns, true)
             .filter(col("num_interior_pts").gt_eq(1.))
             .collect()

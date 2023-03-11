@@ -131,7 +131,7 @@ pub fn read_lidar(
 
 pub fn read_annotations(
     path: &PathBuf,
-    columns: &Vec<String>,
+    columns: &Vec<&str>,
     timestamp_ns: &u64,
     memory_map: bool,
 ) -> LazyFrame {
