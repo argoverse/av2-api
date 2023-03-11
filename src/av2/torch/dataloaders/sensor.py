@@ -13,6 +13,7 @@ from torch.utils.data import Dataset
 
 import av2._r as r
 from av2.utils.typing import PathType
+from av2.torch.dataloaders.utils import Annotations, Lidar
 
 from .utils import Sweep
 
@@ -76,8 +77,9 @@ class Dataloader(Dataset[Sweep]):
             info += f"\t{key}: {value}\n"
         return info
 
-    def __getitem__(self, index) -> Tensor:
+    def __getitem__(self, index) -> Sweep:
         datum = self._backend.get(index)
-        return torch.as_tensor(datum.lidar.to_numpy(), dtype=torch.float32)
-        # annotations = torch.as_tensor(datum.annotations.to_numpy())
-        # return Sweep(annotations=datum.annotations.to_numpy(), lidar=datum.lidar, sweep_uuid=datum.sweep_uuid)
+        annotations = Annotations(dataframe=datum.annotations.to_pandas())
+        lidar = Lidar(dataframe=datum.lidar.to_pandas())
+        sweep = Sweep(annotations=annotations, lidar=lidar, sweep_uuid=datum.sweep_uuid)
+        return sweep

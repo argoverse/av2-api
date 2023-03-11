@@ -66,11 +66,11 @@ pub struct Dataloader {
     #[pyo3(get, set)]
     pub root_dir: PathBuf,
     #[pyo3(get, set)]
+    pub dataset_name: String,
+    #[pyo3(get, set)]
     pub dataset_type: String,
     #[pyo3(get, set)]
     pub split_name: String,
-    #[pyo3(get, set)]
-    pub dataset_name: String,
     #[pyo3(get, set)]
     pub num_accum_sweeps: usize,
     #[pyo3(get, set)]
@@ -94,9 +94,9 @@ impl Dataloader {
         let current_idx = 0;
         Dataloader {
             root_dir: root_dir.to_path_buf(),
+            dataset_name: dataset_name.to_string(),
             dataset_type: dataset_type.to_string(),
             split_name: split_name.to_string(),
-            dataset_name: dataset_name.to_string(),
             num_accum_sweeps,
             file_index: PyDataFrame(file_index),
             current_idx,

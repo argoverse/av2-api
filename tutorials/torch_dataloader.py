@@ -10,12 +10,14 @@ def main():
 
     # Dataset should live at ~/data/datasets/{dataset_name}/{split_name}
     root_dir = Path.home() / "data" / "datasets"
-    split_name = "val"
     dataset_name = "av2"
+    split_name = "val"
+    num_accum_sweeps = 5
 
-    dataloader = Dataloader(root_dir, dataset_name, split_name)
-    for lidar in dataloader:
-        print(lidar)
+    dataloader = Dataloader(root_dir, dataset_name, split_name, num_accum_sweeps=num_accum_sweeps)
+    for sweep in dataloader:
+        lidar = sweep.lidar.as_tensor()
+        print(lidar.shape)
 
 
 if __name__ == "__main__":
