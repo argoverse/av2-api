@@ -167,9 +167,7 @@ class Annotations:
         points_xyz = lidar.as_tensor()
 
         columns = list(itertools.chain.from_iterable([(f"tx_{i}", f"ty_{i}", f"tz_{i}") for i in range(8)]))
-        cuboid_vertices = torch.as_tensor(dataframe[columns].to_numpy(), dtype=torch.float32).reshape(
-            -1, 8, 3
-        )
+        cuboid_vertices = torch.as_tensor(dataframe[columns].to_numpy(), dtype=torch.float32).reshape(-1, 8, 3)
         pairwise_point_masks = compute_interior_points_mask(points_xyz, cuboid_vertices)
         return pairwise_point_masks
 
@@ -208,19 +206,12 @@ class Sweep:
     Args:
         annotations: Object containing annotation parameters.
         lidar: Object containing lidar parameters.
-        log_id: Log id for the sweep.
-        timestamp_ns: Timestamp (in nanoseconds) of when the egovehicle's pose was captured.
+        sweep_uuid:
     """
 
     annotations: Optional[Annotations]
     lidar: Lidar
-    log_id: str
-    timestamp_ns: int
-
-    @property
-    def sweep_uuid(self) -> Tuple[str, int]:
-        """Return a unique id for the sweep."""
-        return (self.log_id, self.timestamp_ns)
+    sweep_uuid: Tuple[str, int]
 
 
 def prevent_fsspec_deadlock() -> None:

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [package.metadata.maturin]
-name = "av2._R"
+name = "av2._r"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
@@ -12,4 +12,39 @@ name = "av2"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = "0.18.1"
+anyhow = "1.0.66"
+argminmax = "0.3.1"
+blas-src = { version = "0.8", features = ["openblas"] }
+bincode = "1.3.3"
+criterion = "0.4.0"
+dirs = "4.0.0"
+glob = "0.3.1"
+indicatif = { version = "0.17.3", features = ["rayon"] }
+itertools = "*"
+ndarray = { version = "0.15.6", features = ["blas", "rayon"] }
+ndarray_einsum_beta = "0.7.0"
+nshare = "0.9.0"
+numpy = { version = "0.18.0" }
+once_cell = "1.17.0"
+openblas-src = { version = "*", features = ["cblas", "system"] }
+phf = { version = "*", features = ["macros"] }
+polars = { version = "0.27.2", features = [
+    "dtype-u8",
+    "dtype-u16",
+    "is_in",
+    "lazy",
+    "ndarray",
+    "parquet",
+    "partition_by",
+    "ipc",
+    "rows",
+    "serde",
+] }
+pprof = { version = "0.11.0", features = ["criterion", "flamegraph"] }
+pyo3 = { version = "0.18.1", features = ["extension-module"] }
+pyo3-polars = { git = "https://github.com/benjaminrwilson/pyo3-polars" }
+rayon = "1.6.1"
+serde = "1.0.155"
+strum = "0.24.1"
+strum_macros = "0.24.3"
+walkdir = "2.3.2"
