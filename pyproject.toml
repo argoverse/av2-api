@@ -1,9 +1,37 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
+requires = ["maturin>=0.14,<0.15"]
+build-backend = "maturin"
+
+[project]
+author = "Argoverse"
+license = {file = "LICENSE"}
+name = "av2"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
 ]
-build-backend = "setuptools.build_meta"
+
+dependencies = [
+    "av",
+    "click",
+    "joblib",
+    "matplotlib",
+    "nox",
+    "numba",
+    "numpy",
+    "opencv-python",
+    "pandas",
+    "pyarrow",
+    "pyproj",
+    "rich",
+    "scipy",
+    "torch",
+    "universal_pathlib",
+]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
 
 [tool.black]
 line-length = 120
@@ -39,6 +67,4 @@ reportUntypedFunctionDecorator = false
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "--cov-report term-missing:skip-covered --cov av2"
-testpaths = [
-    "tests",
-]
+testpaths = ["tests"]

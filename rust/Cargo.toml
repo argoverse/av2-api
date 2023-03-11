@@ -1,0 +1,15 @@
+[package]
+name = "av2"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.maturin]
+name = "av2._R"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "av2"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = "0.18.1"
