@@ -50,6 +50,7 @@ class Dataloader(Dataset[Sweep]):
     return_velocity_estimates: bool = False
 
     _backend: r.Dataloader = field(init=False)
+    _current_idx: int = 0
 
     def __post_init__(self) -> None:
         """Build the file index."""
@@ -67,4 +68,17 @@ class Dataloader(Dataset[Sweep]):
         annotations = Annotations(dataframe=sweep.annotations.to_pandas())
         lidar = Lidar(dataframe=sweep.lidar.to_pandas())
         sweep = Sweep(annotations=annotations, lidar=lidar, sweep_uuid=sweep.sweep_uuid)
+
+        self._current_idx += 1
         return sweep
+
+    def __len__(self) -> int:
+        return self._backend.__len__()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self._current_idx >= self.__len__():
+            raise StopIteration
+        return self.__getitem__(self._current_idx)

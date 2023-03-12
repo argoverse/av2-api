@@ -14,6 +14,7 @@ class Dataloader:
     num_accum_sweeps: int
 
     def get(self, index: int) -> Sweep: ...
+    def __len__(self) -> int: ...
 
 @dataclass
 class Sweep:
