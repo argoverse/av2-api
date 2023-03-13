@@ -56,8 +56,6 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
         """Build the file index."""
         if self.return_annotations and self.dataset_name == "lidar":
             raise RuntimeError("The lidar dataset does not have annotations!")
-        if not self.return_annotations and self.return_velocity_estimates:
-            raise RuntimeError("with_annotations must be enabled to return annotations' velocities.")
 
         self._backend = r.Dataloader(
             str(self.root_dir),
