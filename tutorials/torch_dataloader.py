@@ -5,10 +5,9 @@ from pathlib import Path
 from tqdm import tqdm
 
 from av2.torch.dataloaders.scene_flow import SceneFlowDataloader
-from av2.torch.dataloaders.sensor import Dataloader
 
 
-def main():
+def main() -> None:
     """Iterate over the dataloader."""
 
     # Dataset should live at ~/data/datasets/{dataset_name}/{split_name}

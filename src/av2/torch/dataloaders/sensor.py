@@ -75,7 +75,7 @@ class Dataloader(Dataset[Sweep]):
     def __len__(self) -> int:
         return self._backend.__len__()
 
-    def __iter__(self):
+    def __iter__(self) -> Dataloader:
         return self
 
     def __next__(self):

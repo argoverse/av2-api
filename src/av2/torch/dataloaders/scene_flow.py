@@ -80,7 +80,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
     def __len__(self) -> int:
         return self._backend.__len__()
 
-    def __iter__(self):
+    def __iter__(self) -> SceneFlowDataloader:
         return self
 
     def __next__(self):
