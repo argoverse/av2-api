@@ -90,7 +90,7 @@ pub struct Dataloader {
     #[pyo3(get, set)]
     pub current_idx: usize,
     #[pyo3(get, set)]
-    pub memory_map: bool,
+    pub memory_mapped: bool,
 }
 
 #[pymethods]
@@ -102,7 +102,7 @@ impl Dataloader {
         split_name: &str,
         dataset_name: &str,
         num_accum_sweeps: usize,
-        memory_map: bool,
+        memory_mapped: bool,
     ) -> Dataloader {
         let root_dir = Path::new(root_dir);
         let file_index = build_file_index(root_dir, dataset_name, dataset_type, split_name);
@@ -115,7 +115,7 @@ impl Dataloader {
             num_accum_sweeps,
             file_index: PyDataFrame(file_index),
             current_idx,
-            memory_map,
+            memory_mapped,
         }
     }
 
@@ -173,6 +173,7 @@ impl Dataloader {
             timestamp_ns,
             idx,
             self.num_accum_sweeps,
+            self.memory_mapped,
         )
         .collect()
         .unwrap();
@@ -182,7 +183,7 @@ impl Dataloader {
             &annotations_path,
             &ANNOTATION_COLUMNS.to_vec(),
             &timestamp_ns,
-            self.memory_map,
+            self.memory_mapped,
         )
         .filter(col("num_interior_pts").gt_eq(1.))
         .collect()
@@ -193,7 +194,7 @@ impl Dataloader {
             &city_pose_path,
             &POSE_COLUMNS.to_vec(),
             &timestamp_ns,
-            self.memory_map,
+            self.memory_mapped,
         )
         .collect()
         .unwrap();

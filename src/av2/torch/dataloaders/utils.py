@@ -7,7 +7,7 @@ import sys
 from dataclasses import dataclass
 from enum import Enum, unique
 from functools import cached_property
-from typing import Final, Optional, Tuple
+from typing import Final, List, Optional, Tuple
 
 import fsspec.asyn
 import numpy as np
@@ -19,8 +19,6 @@ import av2._r as r
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
 from av2.geometry.se3 import SE3
 from av2.utils.typing import NDArrayFloat
-
-MAX_STR_LEN: Final[int] = 32
 
 DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
     "tx_m",
@@ -137,20 +135,32 @@ class Annotations:
     dataframe: pd.DataFrame
     cuboid_mode: CuboidMode = CuboidMode.XYZLWH_QWXYZ
 
+    @property
+    def category_names(self) -> List[str]:
+        """Return the category names."""
+        category_names: List[str] = self.dataframe["category"].to_list()
+        return category_names
+
+    @property
+    def track_uuids(self) -> List[str]:
+        """Return the unique track identifiers."""
+        category_names: List[str] = self.dataframe["track_uuid"].to_list()
+        return category_names
+
     def as_tensor(
         self,
         cuboid_mode: CuboidMode = CuboidMode.XYZLWH_THETA,
         dtype: torch.dtype = torch.float32,
     ) -> Tensor:
-        """Return the lidar sweep as a dense tensor.
+        """Return the annotations as a tensor.
 
         Args:
             cuboid_mode: Target parameterization for the cuboids.
             dtype: Target datatype for casting.
 
         Returns:
-            (N,K) tensor where N is the number of lidar points and K
-                is the number of features.
+            (N,K) tensor where N is the number of annotations and K
+                is the number of annotation fields.
         """
         dataframe = CuboidMode.convert(self.dataframe, self.cuboid_mode, cuboid_mode)
         return torch.as_tensor(dataframe.to_numpy(), dtype=dtype)

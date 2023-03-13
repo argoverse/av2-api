@@ -41,6 +41,7 @@ pub fn read_lidar(
     timestamp_ns: u64,
     idx: usize,
     num_accum_sweeps: usize,
+    memory_mapped: bool,
 ) -> LazyFrame {
     let start_idx = i64::max(idx as i64 - num_accum_sweeps as i64 + 1, 0) as usize;
     let log_ids = file_index["log_id"].utf8().unwrap();
@@ -75,7 +76,7 @@ pub fn read_lidar(
         .map(|i| {
             let timestamp_ns_i = timestamps.get(i).unwrap();
             let lidar_path = get_lidar_path(log_dir.clone(), timestamp_ns_i);
-            let mut lidar = read_frame(&lidar_path, true).lazy();
+            let mut lidar = read_frame(&lidar_path, memory_mapped).lazy();
 
             let xyz = frame_to_ndarray(&lidar.clone().collect().unwrap(), cols(["x", "y", "z"]));
             let timedeltas = Series::new(
@@ -138,9 +139,9 @@ pub fn read_filter_timestamp(
     path: &PathBuf,
     columns: &Vec<&str>,
     timestamp_ns: &u64,
-    memory_map: bool,
+    memory_mapped: bool,
 ) -> LazyFrame {
-    read_frame(path, memory_map)
+    read_frame(path, memory_mapped)
         .lazy()
         .filter(col("timestamp_ns").eq(*timestamp_ns))
         .select(&[cols(columns)])
