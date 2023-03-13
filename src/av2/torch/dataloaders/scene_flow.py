@@ -1,4 +1,4 @@
-"""Pytorch dataloader for the Argoverse 2 Scene Flow task."""
+"""Pytorch dataloader for the scene flow task."""
 
 from __future__ import annotations
 

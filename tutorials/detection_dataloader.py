@@ -4,7 +4,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from av2.torch.dataloaders.sensor import Dataloader
+from av2.torch.dataloaders.detection import DetectionDataloader
 
 
 def main() -> None:
@@ -15,7 +15,7 @@ def main() -> None:
     split_name = "val"
     num_accum_sweeps = 1
 
-    dataloader = Dataloader(root_dir, dataset_name, split_name, num_accum_sweeps=num_accum_sweeps)
+    dataloader = DetectionDataloader(root_dir, dataset_name, split_name, num_accum_sweeps=num_accum_sweeps)
     for sweep in tqdm(dataloader):
         print(sweep.lidar.as_tensor())
 

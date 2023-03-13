@@ -1,4 +1,4 @@
-"""Pytorch dataloader for the Argoverse 2 dataset."""
+"""Pytorch dataloader for 3D object detection task."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class Dataloader(Dataset[Sweep]):
+class DetectionDataloader(Dataset[Sweep]):
     """Pytorch dataloader for the sensor dataset.
 
     Args:
@@ -57,7 +57,7 @@ class Dataloader(Dataset[Sweep]):
         """Length of the sensor dataset (number of sweeps)."""
         return self._backend.__len__()
 
-    def __iter__(self) -> Dataloader:
+    def __iter__(self) -> DetectionDataloader:
         """Iterate method for the dataloader."""
         return self
 
