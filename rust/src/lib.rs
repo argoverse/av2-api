@@ -24,7 +24,7 @@ use pyo3::types::PyBytes;
 
 use crate::ops::voxelize;
 
-pub const ANNOTATION_COLUMNS: [&str; 12] = [
+pub const ANNOTATION_COLUMNS: [&str; 13] = [
     "tx_m",
     "ty_m",
     "tz_m",
@@ -37,6 +37,7 @@ pub const ANNOTATION_COLUMNS: [&str; 12] = [
     "qz",
     "num_interior_pts",
     "category",
+    "track_uuid",
 ];
 
 #[pyclass]
