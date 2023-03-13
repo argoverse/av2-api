@@ -25,40 +25,21 @@ class Dataloader(Dataset[Sweep]):
         root_dir: Path to the dataset directory.
         dataset_name: Dataset name.
         split_name: Name of the dataset split.
-        min_annotation_range: Min Euclidean distance between the egovehicle origin and the annotation cuboid centers.
-        max_annotation_range: Max Euclidean distance between the egovehicle origin and the annotation cuboid centers.
-        min_lidar_range: Min Euclidean distance between the egovehicle origin and the lidar points.
-        max_lidar_range: Max Euclidean distance between the egovehicle origin and the lidar points.
-        min_interior_pts: Min number of points inside each annotation.
         num_accum_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
-        file_caching_mode: File caching mode.
-        return_annotations: Boolean flag indicating whether to return annotations.
-        return_velocity_estimates: Boolean flag indicating whether to return annotations' velocity estimates.
+        memory_mapped: Boolean flag indicating whether to memory map the dataframes.
     """
 
     root_dir: PathType
     dataset_name: str
     split_name: str
-    min_annotation_range: float = 0.0
-    max_annotation_range: float = inf
-    min_lidar_range: float = 0.0
-    max_lidar_range: float = inf
-    min_interior_pts: int = 0
     num_accum_sweeps: int = 1
-    return_annotations: bool = False
-    return_velocity_estimates: bool = False
     memory_map: bool = False
 
     _backend: r.Dataloader = field(init=False)
     _current_idx: int = 0
 
     def __post_init__(self) -> None:
-        """Build the file index."""
-        if self.return_annotations and self.dataset_name == "lidar":
-            raise RuntimeError("The lidar dataset does not have annotations!")
-        if not self.return_annotations and self.return_velocity_estimates:
-            raise RuntimeError("with_annotations must be enabled to return annotations' velocities.")
-
+        """Initialize Rust backend."""
         self._backend = r.Dataloader(
             str(self.root_dir),
             "sensor",
@@ -69,16 +50,20 @@ class Dataloader(Dataset[Sweep]):
         )
 
     def __getitem__(self, index: int) -> Sweep:
+        """Get a sweep from the sensor dataset."""
         sweep = self._backend.get(index)
         return Sweep.from_rust(sweep)
 
     def __len__(self) -> int:
+        """Length of the sensor dataset (number of sweeps)."""
         return self._backend.__len__()
 
     def __iter__(self) -> Dataloader:
+        """Iterate method for the dataloader."""
         return self
 
     def __next__(self):
+        """Return the next sweep."""
         if self._current_idx >= self.__len__():
             raise StopIteration
         datum = self.__getitem__(self._current_idx)

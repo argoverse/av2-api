@@ -1,11 +1,10 @@
-"""Pytorch dataloader for the Argoverse 2 dataset."""
+"""Pytorch dataloader for the Argoverse 2 Scene Flow task."""
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
 from functools import cached_property
-from math import inf
 from typing import Optional, Tuple
 
 import pandas as pd
@@ -28,24 +27,15 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
         root_dir: Path to the dataset directory.
         dataset_name: Dataset name.
         split_name: Name of the dataset split.
-        min_annotation_range: Min Euclidean distance between the egovehicle origin and the annotation cuboid centers.
-        max_annotation_range: Max Euclidean distance between the egovehicle origin and the annotation cuboid centers.
-        min_lidar_range: Min Euclidean distance between the egovehicle origin and the lidar points.
-        max_lidar_range: Max Euclidean distance between the egovehicle origin and the lidar points.
-        min_interior_pts: Min number of points inside each annotation.
         num_accum_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
+        memory_mapped: Boolean flag indicating whether to memory map the dataframes.
     """
 
     root_dir: PathType
     dataset_name: str
     split_name: str
-    min_annotation_range: float = 0.0
-    max_annotation_range: float = inf
-    min_lidar_range: float = 0.0
-    max_lidar_range: float = inf
-    min_interior_pts: int = 0
     num_accum_sweeps: int = 1
-    memory_map: bool = False
+    memory_mapped: bool = False
 
     _backend: r.Dataloader = field(init=False)
     _current_idx: int = 0
@@ -58,14 +48,16 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
             self.split_name,
             self.dataset_name,
             self.num_accum_sweeps,
-            self.memory_map,
+            self.memory_mapped,
         )
 
     @cached_property
     def file_index(self) -> pd.DataFrame:
+        """File index dataframe composed of (log_id, timestamp_ns)."""
         return self._backend.file_index.to_pandas()
 
     def __getitem__(self, index: int) -> Tuple[Sweep, Optional[Sweep]]:
+        """Get a tuple of sweeps for scene flow."""
         sweep = self._backend.get(index)
         next_sweep = None
 
@@ -78,12 +70,15 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
         return Sweep.from_rust(sweep), next_sweep
 
     def __len__(self) -> int:
+        """Length of the dataloader."""
         return self._backend.__len__()
 
     def __iter__(self) -> SceneFlowDataloader:
+        """Iterate method for the dataloader."""
         return self
 
-    def __next__(self):
+    def __next__(self) -> Tuple[Sweep, Optional[Sweep]]:
+        """Return a tuple of sweeps for scene flow."""
         if self._current_idx >= self.__len__():
             raise StopIteration
         datum = self.__getitem__(self._current_idx)
