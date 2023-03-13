@@ -12,10 +12,9 @@ import pandas as pd
 from torch.utils.data import Dataset
 
 import av2._r as r
-from av2.torch.dataloaders.utils import Annotations, Lidar
 from av2.utils.typing import PathType
 
-from .utils import Pose, Sweep
+from .utils import Sweep
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,9 +34,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
         max_lidar_range: Max Euclidean distance between the egovehicle origin and the lidar points.
         min_interior_pts: Min number of points inside each annotation.
         num_accum_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
-        file_caching_mode: File caching mode.
         return_annotations: Boolean flag indicating whether to return annotations.
-        return_velocity_estimates: Boolean flag indicating whether to return annotations' velocity estimates.
     """
 
     root_dir: PathType
@@ -50,7 +47,6 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
     min_interior_pts: int = 0
     num_accum_sweeps: int = 1
     return_annotations: bool = False
-    return_velocity_estimates: bool = False
     memory_map: bool = False
 
     _backend: r.Dataloader = field(init=False)
