@@ -9,10 +9,9 @@ from math import inf
 from torch.utils.data import Dataset
 
 import av2._r as r
-from av2.torch.dataloaders.utils import Annotations, Lidar
 from av2.utils.typing import PathType
 
-from .utils import Pose, Sweep
+from .utils import Sweep
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -71,11 +70,7 @@ class Dataloader(Dataset[Sweep]):
 
     def __getitem__(self, index: int) -> Sweep:
         sweep = self._backend.get(index)
-        annotations = Annotations(dataframe=sweep.annotations.to_pandas())
-        city_pose = Pose(dataframe=sweep.city_pose.to_pandas())
-        lidar = Lidar(dataframe=sweep.lidar.to_pandas())
-        sweep = Sweep(annotations=annotations, city_pose=city_pose, lidar=lidar, sweep_uuid=sweep.sweep_uuid)
-        return sweep
+        return Sweep.from_rust(sweep)
 
     def __len__(self) -> int:
         return self._backend.__len__()
