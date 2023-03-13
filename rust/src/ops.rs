@@ -1,3 +1,7 @@
+//! # ops
+//!
+//! Optimized operations for data processing.
+
 use itertools::Itertools;
 use ndarray::{azip, par_azip, s, Array1, Array2, ArrayView2, Axis};
 use std::{

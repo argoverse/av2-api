@@ -1,3 +1,10 @@
+//! # av2
+//!
+//! Argoverse rust library.
+
+#![warn(missing_docs)]
+#![warn(missing_doc_code_examples)]
+
 pub mod io;
 pub mod ops;
 pub mod path;
@@ -24,6 +31,7 @@ use pyo3::types::PyBytes;
 
 use crate::ops::voxelize;
 
+/// Annotation dataframe columns.
 pub const ANNOTATION_COLUMNS: [&str; 13] = [
     "tx_m",
     "ty_m",
@@ -40,16 +48,22 @@ pub const ANNOTATION_COLUMNS: [&str; 13] = [
     "track_uuid",
 ];
 
+/// Pose dataframe columns.
 pub const POSE_COLUMNS: [&str; 7] = ["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"];
 
+/// Data associated with a single lidar sweep.
 #[pyclass]
 pub struct Sweep {
+    /// Ground truth annotations.
     #[pyo3(get, set)]
     pub annotations: PyDataFrame,
+    /// Ego-vehicle city pose.
     #[pyo3(get, set)]
     pub city_pose: PyDataFrame,
+    /// Point cloud associated with the sweep.
     #[pyo3(get, set)]
     pub lidar: PyDataFrame,
+    /// Log id and nanosecond timestamp (unique identifier).
     #[pyo3(get, set)]
     pub sweep_uuid: (String, u64),
 }

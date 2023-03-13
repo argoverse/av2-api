@@ -1,3 +1,7 @@
+//! # SE3
+//!
+//! Special Euclidean Group in 3 Dimensions.
+
 use ndarray::{s, Array1, Array2, ArrayView2};
 
 pub struct SE3 {

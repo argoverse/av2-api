@@ -1,3 +1,7 @@
+//! # path
+//!
+//! File path traversal utilities.
+
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::PathBuf;

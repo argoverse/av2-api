@@ -1,3 +1,7 @@
+//! # io
+//!
+//! Reading and writing operations.
+
 use ndarray::s;
 use ndarray::Array2;
 
@@ -27,11 +31,10 @@ use crate::so3::quat_to_mat;
 
 pub fn read_frame(path: &PathBuf, memory_mapped: bool) -> DataFrame {
     let file = File::open(path).expect("File not found");
-    let frame = polars::io::ipc::IpcReader::new(file)
+    polars::io::ipc::IpcReader::new(file)
         .memory_mapped(memory_mapped)
         .finish()
-        .expect(format!("This IPC file is malformed: {:?}.", path).as_str());
-    frame
+        .unwrap_or_else(|_| panic!("This IPC file is malformed: {:?}.", path))
 }
 
 pub fn read_lidar(

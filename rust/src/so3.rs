@@ -1,3 +1,7 @@
+//! # SO3
+//!
+//! Special Orthogonal Group in 3 Dimensions.
+
 use ndarray::{Array2, ArrayView1};
 
 pub fn quat_to_mat(quat_wxyz: &ArrayView1<f32>) -> Array2<f32> {
