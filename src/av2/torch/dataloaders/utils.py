@@ -1,4 +1,4 @@
-"""Pytorch sensor dataloader utilities."""
+"""Pytorch detection dataloader utilities."""
 
 from __future__ import annotations
 
@@ -115,7 +115,7 @@ class CuboidMode(str, Enum):
                 )
             )
             vertices = vertices.reshape(-1, len(unit_vertices_obj_xyz_m) * 3)
-            dataframe = dataframe[:, ["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"]]
+            dataframe = dataframe.loc[:, ["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"]]
             dataframe[:, columns] = vertices
             return dataframe
         else:
