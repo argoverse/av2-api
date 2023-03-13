@@ -14,7 +14,7 @@ def main() -> None:
     root_dir = Path.home() / "data" / "datasets"
     dataset_name = "av2"
     split_name = "val"
-    num_accum_sweeps = 5
+    num_accum_sweeps = 1
 
     dataloader = SceneFlowDataloader(root_dir, dataset_name, split_name, num_accum_sweeps=num_accum_sweeps)
     for sweep, next_sweep in tqdm(dataloader):
