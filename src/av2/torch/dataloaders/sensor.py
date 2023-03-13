@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from math import inf
 
 from torch.utils.data import Dataset
 
