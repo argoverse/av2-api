@@ -8,7 +8,7 @@ use polars::prelude::NamedFrom;
 
 use polars::prelude::concat;
 use polars::prelude::LazyFrame;
-use polars::prelude::ScanArgsIpc;
+use polars::prelude::SerReader;
 
 use polars::prelude::TakeRandom;
 use polars::series::Series;
@@ -19,14 +19,19 @@ use polars::{
 };
 use rayon::prelude::IntoParallelIterator;
 use rayon::prelude::ParallelIterator;
+use std::fs::File;
 use std::path::PathBuf;
 
 use crate::se3::SE3;
 use crate::so3::quat_to_mat;
 
-pub fn read_frame(path: &PathBuf, _memmap: bool) -> LazyFrame {
-    let args = ScanArgsIpc::default();
-    LazyFrame::scan_ipc(path, args).unwrap()
+pub fn read_frame(path: &PathBuf, memory_mapped: bool) -> DataFrame {
+    let file = File::open(path).expect("File not found");
+    let frame = polars::io::ipc::IpcReader::new(file)
+        .memory_mapped(memory_mapped)
+        .finish()
+        .expect(format!("This IPC file is malformed: {:?}.", path).as_str());
+    frame
 }
 
 pub fn read_lidar(
@@ -41,7 +46,7 @@ pub fn read_lidar(
     let log_ids = file_index["log_id"].utf8().unwrap();
     let timestamps = file_index["timestamp_ns"].u64().unwrap();
     let poses_path = log_dir.join("city_SE3_egovehicle.feather");
-    let poses = read_frame(&poses_path, true).collect().unwrap();
+    let poses = read_frame(&poses_path, true);
 
     let pose_ref = frame_to_ndarray_with_filter(
         &poses,
@@ -70,7 +75,7 @@ pub fn read_lidar(
         .map(|i| {
             let timestamp_ns_i = timestamps.get(i).unwrap();
             let lidar_path = get_lidar_path(log_dir.clone(), timestamp_ns_i);
-            let mut lidar = read_frame(&lidar_path, true);
+            let mut lidar = read_frame(&lidar_path, true).lazy();
 
             let xyz = frame_to_ndarray(&lidar.clone().collect().unwrap(), cols(["x", "y", "z"]));
             let timedeltas = Series::new(
@@ -136,6 +141,7 @@ pub fn read_filter_timestamp(
     memory_map: bool,
 ) -> LazyFrame {
     read_frame(path, memory_map)
+        .lazy()
         .filter(col("timestamp_ns").eq(*timestamp_ns))
         .select(&[cols(columns)])
 }
