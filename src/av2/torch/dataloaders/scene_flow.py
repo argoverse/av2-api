@@ -78,7 +78,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
 
         next_index = index + 1
         if next_index < len(self):
-            candidate_log_id: str = self.file_index.loc[index + 1, ["log_id"]].item()
+            candidate_log_id: str = self.file_index.loc[next_index, ["log_id"]].item()
             current_log_id = sweep.sweep_uuid[0]
             if candidate_log_id == current_log_id:
                 next_sweep = Sweep.from_rust(self._backend.get(next_index))
