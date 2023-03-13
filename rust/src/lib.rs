@@ -4,7 +4,7 @@ pub mod path;
 pub mod se3;
 pub mod so3;
 
-use io::{read_annotations, read_lidar};
+use io::{read_filter_timestamp, read_lidar};
 use itertools::{multiunzip, Itertools};
 use ndarray::Dim;
 use numpy::{IntoPyArray, PyArray};
@@ -40,12 +40,16 @@ pub const ANNOTATION_COLUMNS: [&str; 13] = [
     "track_uuid",
 ];
 
+pub const POSE_COLUMNS: [&str; 7] = ["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"];
+
 #[pyclass]
 pub struct Sweep {
     #[pyo3(get, set)]
-    pub lidar: PyDataFrame,
-    #[pyo3(get, set)]
     pub annotations: PyDataFrame,
+    #[pyo3(get, set)]
+    pub city_pose: PyDataFrame,
+    #[pyo3(get, set)]
+    pub lidar: PyDataFrame,
     #[pyo3(get, set)]
     pub sweep_uuid: (String, u64),
 }
@@ -53,10 +57,16 @@ pub struct Sweep {
 #[pymethods]
 impl Sweep {
     #[new]
-    pub fn new(lidar: PyDataFrame, annotations: PyDataFrame, sweep_uuid: (String, u64)) -> Sweep {
+    pub fn new(
+        annotations: PyDataFrame,
+        city_pose: PyDataFrame,
+        lidar: PyDataFrame,
+        sweep_uuid: (String, u64),
+    ) -> Sweep {
         Sweep {
-            lidar,
             annotations,
+            city_pose,
+            lidar,
             sweep_uuid,
         }
     }
@@ -79,6 +89,8 @@ pub struct Dataloader {
     pub file_index: PyDataFrame,
     #[pyo3(get, set)]
     pub current_idx: usize,
+    #[pyo3(get, set)]
+    pub memory_map: bool,
 }
 
 #[pymethods]
@@ -90,6 +102,7 @@ impl Dataloader {
         split_name: &str,
         dataset_name: &str,
         num_accum_sweeps: usize,
+        memory_map: bool,
     ) -> Dataloader {
         let root_dir = Path::new(root_dir);
         let file_index = build_file_index(root_dir, dataset_name, dataset_type, split_name);
@@ -102,6 +115,7 @@ impl Dataloader {
             num_accum_sweeps,
             file_index: PyDataFrame(file_index),
             current_idx,
+            memory_map,
         }
     }
 
@@ -133,6 +147,10 @@ impl Dataloader {
         self.log_dir(log_id).join("annotations.feather")
     }
 
+    pub fn city_pose_path(&self, log_id: &str) -> PathBuf {
+        self.log_dir(log_id).join("city_SE3_egovehicle.feather")
+    }
+
     pub fn map_dir(&self, log_id: &str) -> PathBuf {
         self.log_dir(log_id).join("map")
     }
@@ -160,18 +178,32 @@ impl Dataloader {
         .unwrap();
 
         let annotations_path = self.annotations_path(log_id);
+        let annotations = read_filter_timestamp(
+            &annotations_path,
+            &ANNOTATION_COLUMNS.to_vec(),
+            &timestamp_ns,
+            self.memory_map,
+        )
+        .filter(col("num_interior_pts").gt_eq(1.))
+        .collect()
+        .unwrap();
 
-        let columns = ANNOTATION_COLUMNS[..].iter().cloned().collect_vec();
-        let annotations = read_annotations(&annotations_path, &columns, &timestamp_ns, true)
-            .filter(col("num_interior_pts").gt_eq(1.))
-            .collect()
-            .unwrap();
+        let city_pose_path = self.city_pose_path(log_id);
+        let city_pose = read_filter_timestamp(
+            &city_pose_path,
+            &POSE_COLUMNS.to_vec(),
+            &timestamp_ns,
+            self.memory_map,
+        )
+        .collect()
+        .unwrap();
 
         let sweep_uuid = (log_id.to_string(), timestamp_ns);
 
         Sweep {
-            lidar: PyDataFrame(lidar),
             annotations: PyDataFrame(annotations),
+            city_pose: PyDataFrame(city_pose),
+            lidar: PyDataFrame(lidar),
             sweep_uuid,
         }
     }

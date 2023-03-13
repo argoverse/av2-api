@@ -6,10 +6,10 @@ import itertools
 import sys
 from dataclasses import dataclass
 from enum import Enum, unique
+from functools import cached_property
 from typing import Final, Optional, Tuple
 
 import fsspec.asyn
-import numba as nb
 import numpy as np
 import pandas as pd
 import torch
@@ -35,6 +35,7 @@ DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
 )
 DEFAULT_LIDAR_TENSOR_FIELDS: Final = ("x", "y", "z")
 QUAT_WXYZ_FIELDS: Final = ("qw", "qx", "qy", "qz")
+TRANSLATION_FIELDS: Final = ("tx_m", "ty_m", "tz_m")
 
 
 @unique
@@ -210,8 +211,24 @@ class Sweep:
     """
 
     annotations: Optional[Annotations]
+    city_pose: Pose
     lidar: Lidar
     sweep_uuid: Tuple[str, int]
+
+
+@dataclass(frozen=True)
+class Pose:
+    """Stores the annotations and lidar for one sweep."""
+
+    dataframe: pd.DataFrame
+
+    @cached_property
+    def Rt(self) -> Tuple[Tensor, Tensor]:
+        quat_wxyz: NDArrayFloat = self.dataframe[QUAT_WXYZ_FIELDS].to_numpy()
+        translation: NDArrayFloat = self.dataframe[TRANSLATION_FIELDS].to_numpy()
+
+        rotation = quat_to_mat(quat_wxyz)
+        return torch.as_tensor(rotation, dtype=torch.float32), torch.as_tensor(translation, dtype=torch.float32)
 
 
 def prevent_fsspec_deadlock() -> None:
@@ -277,21 +294,3 @@ def compute_interior_points_mask(xyz_m: Tensor, cuboid_vertices: Tensor) -> Tens
     constraint_b = torch.logical_and(dot_uvw_reference >= dot_uvw_points, dot_uvw_points >= dot_uvw_vertices)
     is_interior: Tensor = torch.logical_or(constraint_a, constraint_b).all(dim=1)
     return is_interior
-
-
-@nb.njit(nogil=True)
-def velocity_kernel(delta_txyz: NDArrayFloat) -> Tuple[float, float, float, float]:
-    """Estimate the velocity.
-
-    Args:
-        delta_txyz: (N,4) Array of timestamp, x, y, z.
-
-    Returns:
-        Velocity.
-    """
-    dt_ns, dx_m, dy_m, dz_m = delta_txyz.T
-    dt_s = dt_ns * 1e-9
-    vx_m = float(np.nanmean(dx_m / dt_s))
-    vy_m = float(np.nanmean(dy_m / dt_s))
-    vz_m = float(np.nanmean(dz_m / dt_s))
-    return (0.0, vx_m, vy_m, vz_m)

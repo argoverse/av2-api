@@ -129,7 +129,7 @@ pub fn read_lidar(
     concat(lidar_list, true, true).unwrap()
 }
 
-pub fn read_annotations(
+pub fn read_filter_timestamp(
     path: &PathBuf,
     columns: &Vec<&str>,
     timestamp_ns: &u64,

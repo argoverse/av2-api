@@ -12,7 +12,7 @@ import av2._r as r
 from av2.torch.dataloaders.utils import Annotations, Lidar
 from av2.utils.typing import PathType
 
-from .utils import Sweep
+from .utils import Pose, Sweep
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -48,6 +48,7 @@ class Dataloader(Dataset[Sweep]):
     num_accum_sweeps: int = 1
     return_annotations: bool = False
     return_velocity_estimates: bool = False
+    memory_map: bool = False
 
     _backend: r.Dataloader = field(init=False)
     _current_idx: int = 0
@@ -60,14 +61,20 @@ class Dataloader(Dataset[Sweep]):
             raise RuntimeError("with_annotations must be enabled to return annotations' velocities.")
 
         self._backend = r.Dataloader(
-            str(self.root_dir), "sensor", self.split_name, self.dataset_name, self.num_accum_sweeps
+            str(self.root_dir),
+            "sensor",
+            self.split_name,
+            self.dataset_name,
+            self.num_accum_sweeps,
+            self.memory_map,
         )
 
     def __getitem__(self, index: int) -> Sweep:
         sweep = self._backend.get(index)
         annotations = Annotations(dataframe=sweep.annotations.to_pandas())
+        city_pose = Pose(dataframe=sweep.city_pose)
         lidar = Lidar(dataframe=sweep.lidar.to_pandas())
-        sweep = Sweep(annotations=annotations, lidar=lidar, sweep_uuid=sweep.sweep_uuid)
+        sweep = Sweep(annotations=annotations, city_pose=city_pose, lidar=lidar, sweep_uuid=sweep.sweep_uuid)
 
         self._current_idx += 1
         return sweep

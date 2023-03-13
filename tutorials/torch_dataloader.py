@@ -20,6 +20,5 @@ def main():
     for sweep in tqdm(dataloader):
         lidar = sweep.lidar.as_tensor(field_ordering=("x", "y", "z", "intensity"))
 
-
 if __name__ == "__main__":
     main()
