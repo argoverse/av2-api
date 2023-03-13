@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from functools import cached_property
 from math import inf
+from typing import Optional, Tuple
 
+import pandas as pd
 from torch.utils.data import Dataset
 
 import av2._r as r
@@ -19,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class Dataloader(Dataset[Sweep]):
+class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
     """Pytorch dataloader for the sensor dataset.
 
     Args:
@@ -69,13 +72,21 @@ class Dataloader(Dataset[Sweep]):
             self.memory_map,
         )
 
-    def __getitem__(self, index: int) -> Sweep:
+    @cached_property
+    def file_index(self) -> pd.DataFrame:
+        return self._backend.file_index.to_pandas()
+
+    def __getitem__(self, index: int) -> Tuple[Sweep, Optional[Sweep]]:
         sweep = self._backend.get(index)
-        annotations = Annotations(dataframe=sweep.annotations.to_pandas())
-        city_pose = Pose(dataframe=sweep.city_pose.to_pandas())
-        lidar = Lidar(dataframe=sweep.lidar.to_pandas())
-        sweep = Sweep(annotations=annotations, city_pose=city_pose, lidar=lidar, sweep_uuid=sweep.sweep_uuid)
-        return sweep
+        next_sweep = None
+
+        next_index = index + 1
+        if next_index < len(self):
+            candidate_log_id: str = self.file_index.loc[index + 1, ["log_id"]].item()
+            current_log_id = sweep.sweep_uuid[0]
+            if candidate_log_id == current_log_id:
+                next_sweep = Sweep.from_rust(self._backend.get(next_index))
+        return Sweep.from_rust(sweep), next_sweep
 
     def __len__(self) -> int:
         return self._backend.__len__()

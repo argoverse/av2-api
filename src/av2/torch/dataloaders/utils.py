@@ -15,6 +15,7 @@ import pandas as pd
 import torch
 from torch import Tensor
 
+import av2._r as r
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
 from av2.geometry.se3 import SE3
 from av2.utils.typing import NDArrayFloat
@@ -214,6 +215,13 @@ class Sweep:
     city_pose: Pose
     lidar: Lidar
     sweep_uuid: Tuple[str, int]
+
+    @classmethod
+    def from_rust(cls, sweep: r.Sweep) -> Sweep:
+        annotations = Annotations(dataframe=sweep.annotations.to_pandas())
+        city_pose = Pose(dataframe=sweep.city_pose.to_pandas())
+        lidar = Lidar(dataframe=sweep.lidar.to_pandas())
+        return cls(annotations=annotations, city_pose=city_pose, lidar=lidar, sweep_uuid=sweep.sweep_uuid)
 
 
 @dataclass(frozen=True)

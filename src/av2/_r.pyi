@@ -1,6 +1,6 @@
 """Rust backend typing stubs."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Tuple
 
 import polars as pl
@@ -13,6 +13,8 @@ class Dataloader:
     split_name: str
     num_accum_sweeps: int
     memory_map: bool
+
+    file_index: pl.DataFrame = field(init=False)
 
     def get(self, index: int) -> Sweep: ...
     def __len__(self) -> int: ...
