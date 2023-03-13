@@ -62,7 +62,7 @@ class Dataloader(Dataset[Sweep]):
         """Iterate method for the dataloader."""
         return self
 
-    def __next__(self):
+    def __next__(self) -> Sweep:
         """Return the next sweep."""
         if self._current_idx >= self.__len__():
             raise StopIteration
