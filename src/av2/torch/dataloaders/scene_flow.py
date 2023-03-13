@@ -34,7 +34,6 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
         max_lidar_range: Max Euclidean distance between the egovehicle origin and the lidar points.
         min_interior_pts: Min number of points inside each annotation.
         num_accum_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
-        return_annotations: Boolean flag indicating whether to return annotations.
     """
 
     root_dir: PathType
@@ -46,17 +45,13 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
     max_lidar_range: float = inf
     min_interior_pts: int = 0
     num_accum_sweeps: int = 1
-    return_annotations: bool = False
     memory_map: bool = False
 
     _backend: r.Dataloader = field(init=False)
     _current_idx: int = 0
 
     def __post_init__(self) -> None:
-        """Build the file index."""
-        if self.return_annotations and self.dataset_name == "lidar":
-            raise RuntimeError("The lidar dataset does not have annotations!")
-
+        """Initialize Rust backend."""
         self._backend = r.Dataloader(
             str(self.root_dir),
             "sensor",
