@@ -216,9 +216,10 @@ class Sweep:
     """Stores the annotations and lidar for one sweep.
 
     Args:
-        annotations: Object containing annotation parameters.
-        lidar: Object containing lidar parameters.
-        sweep_uuid:
+        annotations: Annotations parameterization.
+        city_pose: Rigid transformation describing the city pose of the ego-vehicle.
+        lidar: Lidar parameters.
+        sweep_uuid: Log id and nanosecond timestamp (unique identifier).
     """
 
     annotations: Optional[Annotations]
@@ -228,6 +229,7 @@ class Sweep:
 
     @classmethod
     def from_rust(cls, sweep: rust.Sweep) -> Sweep:
+        """Build a sweep from the Rust backend."""
         annotations = Annotations(dataframe=sweep.annotations.to_pandas())
         city_pose = Pose(dataframe=sweep.city_pose.to_pandas())
         lidar = Lidar(dataframe=sweep.lidar.to_pandas())
@@ -236,12 +238,13 @@ class Sweep:
 
 @dataclass(frozen=True)
 class Pose:
-    """Stores the annotations and lidar for one sweep."""
+    """Pose class for rigid transformations."""
 
     dataframe: pd.DataFrame
 
     @cached_property
     def Rt(self) -> Tuple[Tensor, Tensor]:
+        """Return a (3,3) rotation matrix and a (3,) translation vector."""
         quat_wxyz: NDArrayFloat = self.dataframe[QUAT_WXYZ_FIELDS].to_numpy()
         translation: NDArrayFloat = self.dataframe[TRANSLATION_FIELDS].to_numpy()
 
@@ -252,27 +255,6 @@ class Pose:
 def prevent_fsspec_deadlock() -> None:
     """Reset the fsspec global lock to prevent deadlocking in forked processes."""
     fsspec.asyn.reset_lock()
-
-
-def query_pose(poses: pd.DataFrame, timestamp_ns: int) -> SE3:
-    """Query the SE(3) transformation as the provided timestamp in nanoseconds.
-
-    Args:
-        poses: DataFrame of quaternion and translation components.
-        timestamp_ns: Timestamp of interest in nanoseconds.
-
-    Returns:
-        SE(3) at timestamp_ns.
-    """
-    mask = poses.loc[:, "timestamp_ns"] == timestamp_ns
-    pose = poses.loc[mask, ["qw", "qx", "qy", "qz", "tx_m", "ty_m", "tz_m"]]
-    pose_npy: NDArrayFloat = pose.to_numpy().squeeze()
-    quat = pose_npy[:4]
-    translation = pose_npy[4:]
-    return SE3(
-        rotation=quat_to_mat(quat),
-        translation=translation,
-    )
 
 
 def compute_interior_points_mask(xyz_m: Tensor, cuboid_vertices: Tensor) -> Tensor:
