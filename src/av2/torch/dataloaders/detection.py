@@ -20,6 +20,14 @@ logger = logging.getLogger(__name__)
 class DetectionDataloader(Dataset[Sweep]):
     """Pytorch dataloader for the sensor dataset.
 
+    The sensor dataset should exist somewhere such as `~/data/datasets/{dataset_name}/{dataset_type}/{split_name}`,
+    where
+        dataset_name = "av2",
+        dataset_type = "sensor,
+        split_name = "train".
+
+    This dataloader backend is implemented in Rust for speed. Each iteration will yield a new sweep.
+
     Args:
         root_dir: Path to the dataset directory.
         dataset_name: Dataset name (e.g., "av2").
