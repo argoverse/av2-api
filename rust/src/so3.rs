@@ -1,6 +1,6 @@
 //! # SO3
 //!
-//! Special Orthogonal Group in 3 Dimensions.
+//! Special Orthogonal Group 3 (SO(3)).
 
 use ndarray::{Array2, ArrayView1};
 
