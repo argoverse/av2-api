@@ -13,9 +13,9 @@ def main() -> None:
     root_dir = Path.home() / "data" / "datasets"
     dataset_name = "av2"
     split_name = "val"
-    num_accum_sweeps = 1
+    num_accumulated_sweeps = 1
 
-    dataloader = DetectionDataloader(root_dir, dataset_name, split_name, num_accum_sweeps=num_accum_sweeps)
+    dataloader = DetectionDataloader(root_dir, dataset_name, split_name, num_accumulated_sweeps=num_accumulated_sweeps)
     for sweep in tqdm(dataloader):
         print(sweep.lidar.as_tensor())
 
