@@ -32,6 +32,7 @@ use pyo3::types::PyBytes;
 use crate::ops::voxelize;
 
 /// Annotation dataframe columns.
+/// Found in `annotations.feather`.
 pub const ANNOTATION_COLUMNS: [&str; 13] = [
     "tx_m",
     "ty_m",
@@ -49,6 +50,7 @@ pub const ANNOTATION_COLUMNS: [&str; 13] = [
 ];
 
 /// Pose dataframe columns.
+/// Found in `city_SE3_egovehicle`.
 pub const POSE_COLUMNS: [&str; 7] = ["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"];
 
 /// Data associated with a single lidar sweep.
@@ -68,8 +70,10 @@ pub struct Sweep {
     pub sweep_uuid: (String, u64),
 }
 
+/// Encapsulates sensor data associated with a single sweep.
 #[pymethods]
 impl Sweep {
+    /// Initialize a sweep object.
     #[new]
     pub fn new(
         annotations: PyDataFrame,
@@ -86,29 +90,39 @@ impl Sweep {
     }
 }
 
+/// Sensor dataloader for `av2`.
 #[derive(Serialize, Deserialize)]
 #[pyclass(module = "av2._r")]
 pub struct Dataloader {
+    /// Root dataset directory.
     #[pyo3(get, set)]
     pub root_dir: PathBuf,
+    /// Dataset name (e.g., `av2`).
     #[pyo3(get, set)]
     pub dataset_name: String,
+    /// Root dataset type (e.g., `sensor`).
     #[pyo3(get, set)]
     pub dataset_type: String,
+    /// Root dataset split name (e.g., `train`).
     #[pyo3(get, set)]
     pub split_name: String,
+    /// Number of accumulated lidar sweeps.
     #[pyo3(get, set)]
-    pub num_accum_sweeps: usize,
+    pub num_accumulated_sweeps: usize,
+    /// Dataframe consisting of `log_id`, `timestamp_ns`, and `city_name`.
     #[pyo3(get, set)]
     pub file_index: PyDataFrame,
+    /// Current index of the dataloader.
     #[pyo3(get, set)]
-    pub current_idx: usize,
+    pub current_index: usize,
+    /// Boolean flag to enable memory-mapped dataframe loading.
     #[pyo3(get, set)]
     pub memory_mapped: bool,
 }
 
 #[pymethods]
 impl Dataloader {
+    /// Initialize the dataloader and build the file index.
     #[new]
     pub fn new(
         root_dir: &str,
@@ -126,13 +140,14 @@ impl Dataloader {
             dataset_name: dataset_name.to_string(),
             dataset_type: dataset_type.to_string(),
             split_name: split_name.to_string(),
-            num_accum_sweeps,
+            num_accumulated_sweeps: num_accum_sweeps,
             file_index: PyDataFrame(file_index),
-            current_idx,
+            current_index: current_idx,
             memory_mapped,
         }
     }
 
+    /// Get the dataset split directory.
     pub fn split_dir(&self) -> PathBuf {
         self.root_dir
             .join(&self.dataset_name)
@@ -140,10 +155,12 @@ impl Dataloader {
             .join(&self.split_name)
     }
 
+    /// Get the log directory corresponding to `log_id`.
     pub fn log_dir(&self, log_id: &str) -> PathBuf {
         self.split_dir().join(log_id)
     }
 
+    /// Get the lidar path corresponding to the `log_id` and `timestamp_ns`.
     pub fn lidar_path(&self, log_id: &str, timestamp_ns: u64) -> PathBuf {
         let file_name = format!("{timestamp_ns}.feather");
         let lidar_path = [
@@ -157,36 +174,40 @@ impl Dataloader {
         lidar_path
     }
 
+    /// Get the annotations path correcponding to the `log_id`.
     pub fn annotations_path(&self, log_id: &str) -> PathBuf {
         self.log_dir(log_id).join("annotations.feather")
     }
 
+    /// Get the city pose path correcponding to the `log_id`.
     pub fn city_pose_path(&self, log_id: &str) -> PathBuf {
         self.log_dir(log_id).join("city_SE3_egovehicle.feather")
     }
 
+    /// Get the map directory correcponding to the `log_id`.
     pub fn map_dir(&self, log_id: &str) -> PathBuf {
         self.log_dir(log_id).join("map")
     }
 
-    pub fn get(&self, idx: usize) -> Sweep {
+    /// Get the sweep at `index`.
+    pub fn get(&self, index: usize) -> Sweep {
         let log_id = self.file_index.0["log_id"]
             .utf8()
             .unwrap()
-            .get(idx)
+            .get(index)
             .unwrap();
         let timestamp_ns = self.file_index.0["timestamp_ns"]
             .u64()
             .unwrap()
-            .get(idx)
+            .get(index)
             .unwrap();
         let lidar = read_lidar(
             self.log_dir(log_id),
             &self.file_index.0,
             log_id,
             timestamp_ns,
-            idx,
-            self.num_accum_sweeps,
+            index,
+            self.num_accumulated_sweeps,
             self.memory_mapped,
         )
         .collect()
@@ -235,20 +256,25 @@ impl Dataloader {
         slf.file_index.0.shape().0
     }
 
+    /// Used for python pickling.
     pub fn __setstate__(&mut self, state: &PyBytes) -> PyResult<()> {
         *self = deserialize(state.as_bytes()).unwrap();
         Ok(())
     }
+
+    /// Used for python pickling.
     pub fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<&'py PyBytes> {
         Ok(PyBytes::new(py, &serialize(&self).unwrap()))
     }
+
+    /// Used for python pickling.
     pub fn __getnewargs__(&self) -> PyResult<(PathBuf, String, String, String, usize)> {
         Ok((
             self.root_dir.clone(),
             self.dataset_type.clone(),
             self.split_name.clone(),
             self.dataset_name.clone(),
-            self.num_accum_sweeps,
+            self.num_accumulated_sweeps,
         ))
     }
 }
@@ -257,14 +283,15 @@ impl Iterator for Dataloader {
     type Item = Sweep;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let idx = self.current_idx;
+        let idx = self.current_index;
         let sweep_data = self.get(idx);
-        self.current_idx += 1;
+        self.current_index += 1;
 
         Some(sweep_data)
     }
 }
 
+/// Build the dataset file index.
 pub fn build_file_index(
     root_dir: &Path,
     dataset_name: &str,
@@ -319,6 +346,7 @@ pub fn build_file_index(
     .unwrap()
 }
 
+/// Python bindings for `voxelize`.
 #[pyfunction]
 #[pyo3(name = "voxelize")]
 fn py_voxelize<'py>(
