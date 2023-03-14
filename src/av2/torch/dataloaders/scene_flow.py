@@ -57,7 +57,14 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
         return self._backend.file_index.to_pandas()
 
     def __getitem__(self, index: int) -> Tuple[Sweep, Optional[Sweep]]:
-        """Get a tuple of sweeps for scene flow."""
+        """Get a pair of sweeps for scene flow computation.
+        
+        Args:
+            index: Index in [0, num_sweeps - 1].
+
+        Returns:
+            Current sweep and the next sweep (if it exists).
+        """
         sweep = self._backend.get(index)
         next_sweep = None
 

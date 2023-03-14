@@ -22,7 +22,6 @@ use numpy::PyReadonlyArray2;
 
 use crate::ops::voxelize;
 
-/// Python bindings for `voxelize`.
 #[pyfunction]
 #[pyo3(name = "voxelize")]
 #[allow(clippy::type_complexity)]
