@@ -58,7 +58,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
 
     def __getitem__(self, index: int) -> Tuple[Sweep, Optional[Sweep]]:
         """Get a pair of sweeps for scene flow computation.
-        
+
         Args:
             index: Index in [0, num_sweeps - 1].
 
