@@ -81,15 +81,15 @@ pub struct Dataloader {
     /// Number of accumulated lidar sweeps.
     #[pyo3(get, set)]
     pub num_accumulated_sweeps: usize,
+    /// Boolean flag to enable memory-mapped dataframe loading.
+    #[pyo3(get, set)]
+    pub memory_mapped: bool,
     /// Dataframe consisting of `log_id`, `timestamp_ns`, and `city_name`.
     #[pyo3(get, set)]
     pub file_index: PyDataFrame,
     /// Current index of the dataloader.
     #[pyo3(get, set)]
     pub current_index: usize,
-    /// Boolean flag to enable memory-mapped dataframe loading.
-    #[pyo3(get, set)]
-    pub memory_mapped: bool,
 }
 
 #[pymethods]
@@ -98,10 +98,10 @@ impl Dataloader {
     #[new]
     pub fn new(
         root_dir: &str,
+        dataset_name: &str,
         dataset_type: &str,
         split_name: &str,
-        dataset_name: &str,
-        num_accum_sweeps: usize,
+        num_accumulated_sweeps: usize,
         memory_mapped: bool,
     ) -> Dataloader {
         let root_dir = Path::new(root_dir);
@@ -112,10 +112,10 @@ impl Dataloader {
             dataset_name: dataset_name.to_string(),
             dataset_type: dataset_type.to_string(),
             split_name: split_name.to_string(),
-            num_accumulated_sweeps: num_accum_sweeps,
+            num_accumulated_sweeps,
+            memory_mapped,
             file_index: PyDataFrame(file_index),
             current_index: current_idx,
-            memory_mapped,
         }
     }
 

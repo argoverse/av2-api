@@ -22,17 +22,17 @@ class DetectionDataloader(Dataset[Sweep]):
 
     Args:
         root_dir: Path to the dataset directory.
-        dataset_name: Dataset name.
-        split_name: Name of the dataset split.
-        num_accum_sweeps: Number of temporally accumulated sweeps (accounting for egovehicle motion).
+        dataset_name: Dataset name (e.g., "av2").
+        split_name: Name of the dataset split (e.g., "train").
+        num_accum_sweeps: Number of temporally accumulated sweeps (accounting for ego-vehicle motion).
         memory_mapped: Boolean flag indicating whether to memory map the dataframes.
     """
 
     root_dir: PathType
     dataset_name: str
     split_name: str
-    num_accum_sweeps: int = 1
-    memory_map: bool = False
+    num_accumulated_sweeps: int = 1
+    memory_mapped: bool = False
 
     _backend: rust.Dataloader = field(init=False)
     _current_idx: int = 0
@@ -41,11 +41,11 @@ class DetectionDataloader(Dataset[Sweep]):
         """Initialize Rust backend."""
         self._backend = rust.Dataloader(
             str(self.root_dir),
+            self.dataset_name,
             "sensor",
             self.split_name,
-            self.dataset_name,
-            self.num_accum_sweeps,
-            self.memory_map,
+            self.num_accumulated_sweeps,
+            self.memory_mapped,
         )
 
     def __getitem__(self, index: int) -> Sweep:
