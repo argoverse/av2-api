@@ -29,7 +29,8 @@ use std::path::PathBuf;
 use crate::se3::SE3;
 use crate::so3::quat_to_mat;
 
-pub fn read_frame(path: &PathBuf, memory_mapped: bool) -> DataFrame {
+/// Read a feather file and load into a `polars` dataframe.
+pub fn read_feather(path: &PathBuf, memory_mapped: bool) -> DataFrame {
     let file = File::open(path).expect("File not found");
     polars::io::ipc::IpcReader::new(file)
         .memory_mapped(memory_mapped)
@@ -37,22 +38,25 @@ pub fn read_frame(path: &PathBuf, memory_mapped: bool) -> DataFrame {
         .unwrap_or_else(|_| panic!("This IPC file is malformed: {:?}.", path))
 }
 
-pub fn read_lidar(
+/// Read and accumulate lidar sweeps.
+/// Accumulation will only occur if `num_accumulated_sweeps` > 1.
+/// Sweeps are motion-compensated to the most recent sweep (i.e., at `timestamp_ns`).
+pub fn read_accumulate_lidar(
     log_dir: PathBuf,
     file_index: &DataFrame,
     log_id: &str,
     timestamp_ns: u64,
     idx: usize,
-    num_accum_sweeps: usize,
+    num_accumulated_sweeps: usize,
     memory_mapped: bool,
 ) -> LazyFrame {
-    let start_idx = i64::max(idx as i64 - num_accum_sweeps as i64 + 1, 0) as usize;
+    let start_idx = i64::max(idx as i64 - num_accumulated_sweeps as i64 + 1, 0) as usize;
     let log_ids = file_index["log_id"].utf8().unwrap();
     let timestamps = file_index["timestamp_ns"].u64().unwrap();
     let poses_path = log_dir.join("city_SE3_egovehicle.feather");
-    let poses = read_frame(&poses_path, true);
+    let poses = read_feather(&poses_path, true);
 
-    let pose_ref = frame_to_ndarray_with_filter(
+    let pose_ref = dataframe_to_nd_and_filter(
         &poses,
         cols(["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"]),
         col("timestamp_ns").eq(timestamp_ns),
@@ -78,16 +82,17 @@ pub fn read_lidar(
         })
         .map(|i| {
             let timestamp_ns_i = timestamps.get(i).unwrap();
-            let lidar_path = get_lidar_path(log_dir.clone(), timestamp_ns_i);
-            let mut lidar = read_frame(&lidar_path, memory_mapped).lazy();
+            let lidar_path = build_lidar_file_path(log_dir.clone(), timestamp_ns_i);
+            let mut lidar = read_feather(&lidar_path, memory_mapped).lazy();
 
-            let xyz = frame_to_ndarray(&lidar.clone().collect().unwrap(), cols(["x", "y", "z"]));
+            let xyz =
+                convert_dataframe_to_nd(&lidar.clone().collect().unwrap(), cols(["x", "y", "z"]));
             let timedeltas = Series::new(
                 "timedelta_ns",
                 vec![(timestamp_ns - timestamp_ns_i) as f32 * 1e-9; xyz.shape()[0]],
             );
             if timestamp_ns_i != timestamp_ns {
-                let pose_i = frame_to_ndarray_with_filter(
+                let pose_i = dataframe_to_nd_and_filter(
                     &poses,
                     cols(["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"]),
                     col("timestamp_ns").eq(timestamp_ns_i),
@@ -138,19 +143,21 @@ pub fn read_lidar(
     concat(lidar_list, true, true).unwrap()
 }
 
-pub fn read_filter_timestamp(
+/// Read a dataframe, but filter for the specified timestamp.
+pub fn read_timestamped_feather(
     path: &PathBuf,
     columns: &Vec<&str>,
     timestamp_ns: &u64,
     memory_mapped: bool,
 ) -> LazyFrame {
-    read_frame(path, memory_mapped)
+    read_feather(path, memory_mapped)
         .lazy()
         .filter(col("timestamp_ns").eq(*timestamp_ns))
         .select(&[cols(columns)])
 }
 
-pub fn get_lidar_path(log_dir: PathBuf, timestamp_ns: u64) -> PathBuf {
+/// Build the lidar file path.
+pub fn build_lidar_file_path(log_dir: PathBuf, timestamp_ns: u64) -> PathBuf {
     let file_name = format!("{timestamp_ns}.feather");
     let lidar_path = [
         log_dir,
@@ -163,15 +170,8 @@ pub fn get_lidar_path(log_dir: PathBuf, timestamp_ns: u64) -> PathBuf {
     lidar_path
 }
 
-pub fn get_split_dir(root_dir: PathBuf, dataset_type: &str, split_name: &str) -> PathBuf {
-    root_dir.join(dataset_type).join(split_name)
-}
-
-pub fn get_log_dir(split_dir: PathBuf, log_id: &str) -> PathBuf {
-    split_dir.join(log_id)
-}
-
-pub fn frame_to_ndarray(frame: &DataFrame, exprs: Expr) -> Array2<f32> {
+/// Convert a dataframe to `ndarray`.
+pub fn convert_dataframe_to_nd(frame: &DataFrame, exprs: Expr) -> Array2<f32> {
     frame
         .clone()
         .lazy()
@@ -184,7 +184,8 @@ pub fn frame_to_ndarray(frame: &DataFrame, exprs: Expr) -> Array2<f32> {
         .to_owned()
 }
 
-pub fn frame_to_ndarray_with_filter(
+/// Convert a dataframe to `ndarray` and filter.
+pub fn dataframe_to_nd_and_filter(
     frame: &DataFrame,
     select_exprs: Expr,
     filter_exprs: Expr,

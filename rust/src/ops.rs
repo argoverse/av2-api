@@ -9,6 +9,7 @@ use std::{
     ops::{AddAssign, DivAssign},
 };
 
+/// Convert unraveled coordinates (i.e., multi-dimensional indices) to a linear index.
 pub fn ravel_multi_index(unraveled_coords: &ArrayView2<usize>, size: Vec<usize>) -> Array2<usize> {
     let shape_arr = Array1::<usize>::from_vec(
         size.into_iter()
@@ -30,6 +31,7 @@ pub fn ravel_multi_index(unraveled_coords: &ArrayView2<usize>, size: Vec<usize>)
         .insert_axis(Axis(1))
 }
 
+/// Cluster a group of features into a set of voxels based on their indices.
 pub fn voxelize(
     indices: &ArrayView2<usize>,
     features: &ArrayView2<f32>,

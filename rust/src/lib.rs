@@ -11,11 +11,11 @@ pub mod path;
 pub mod se3;
 pub mod so3;
 
-use io::{read_filter_timestamp, read_lidar};
+use io::{read_accumulate_lidar, read_timestamped_feather};
 use itertools::{multiunzip, Itertools};
 use ndarray::Dim;
 use numpy::{IntoPyArray, PyArray};
-use path::{file_stem, walk_dir};
+use path::{extract_file_stem, walk_dir};
 use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
 use rayon::slice::ParallelSliceMut;
@@ -201,7 +201,7 @@ impl Dataloader {
             .unwrap()
             .get(index)
             .unwrap();
-        let lidar = read_lidar(
+        let lidar = read_accumulate_lidar(
             self.log_dir(log_id),
             &self.file_index.0,
             log_id,
@@ -214,7 +214,7 @@ impl Dataloader {
         .unwrap();
 
         let annotations_path = self.annotations_path(log_id);
-        let annotations = read_filter_timestamp(
+        let annotations = read_timestamped_feather(
             &annotations_path,
             &ANNOTATION_COLUMNS.to_vec(),
             &timestamp_ns,
@@ -225,7 +225,7 @@ impl Dataloader {
         .unwrap();
 
         let city_pose_path = self.city_pose_path(log_id);
-        let city_pose = read_filter_timestamp(
+        let city_pose = read_timestamped_feather(
             &city_pose_path,
             &POSE_COLUMNS.to_vec(),
             &timestamp_ns,
@@ -305,7 +305,7 @@ pub fn build_file_index(
 
     let (log_ids, timestamp_nss, city_names): (Vec<_>, Vec<_>, Vec<_>) =
         multiunzip(entry_set.into_iter().map(|log_path| {
-            let log_id = file_stem(&log_path).unwrap();
+            let log_id = extract_file_stem(&log_path).unwrap();
             let lidar_dir = log_path.join("sensors/lidar");
             let x = log_path.join("map/log_map_archive_*.json");
             let city_name = glob(x.to_str().unwrap())
@@ -349,6 +349,7 @@ pub fn build_file_index(
 /// Python bindings for `voxelize`.
 #[pyfunction]
 #[pyo3(name = "voxelize")]
+#[allow(clippy::type_complexity)]
 fn py_voxelize<'py>(
     py: Python<'py>,
     indices: PyReadonlyArray2<usize>,
