@@ -494,7 +494,6 @@ def test_xyz_to_mat_vs_gtsam() -> None:
     """Compare our implementation (using Scipy) vs. the GTSAM derivation."""
     num_iters = 10000
     for _ in range(num_iters):
-
         # in [-pi, pi]
         x = 2 * np.pi * (np.random.rand() - 0.5)
         z = 2 * np.pi * (np.random.rand() - 0.5)

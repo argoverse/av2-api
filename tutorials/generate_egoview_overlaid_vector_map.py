@@ -204,7 +204,6 @@ def render_egoview_with_occlusion_checks(
         img_canvas = egoview_renderer.render_lane_boundary_egoview(img_canvas, ls, "left", line_width_px)
 
     for pc in egoview_renderer.avm.get_scenario_ped_crossings():
-
         EPS = 1e-5
         crosswalk_color = BLUE_BGR
         # render ped crossings (pc's)

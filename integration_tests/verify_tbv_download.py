@@ -195,7 +195,6 @@ def verify_logs_using_dataloader(data_root: Path, log_ids: Tuple[str, ...]) -> N
     """
     loader = AV2SensorDataLoader(data_dir=data_root, labels_dir=data_root)
     for log_id in track(log_ids, description="Verify logs using an AV2 dataloader object"):
-
         logger.info("Verifying log %s", log_id)
         # city abbreviation should be parsable from every vector map file name, and should fall into 1 of 6 cities
         city_name = loader.get_city_name(log_id=log_id)
