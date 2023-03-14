@@ -12,7 +12,6 @@ dependencies:
   - numpy
   - opencv
   - pandas
-  - pandas-stubs
   - pip
   - polars
   - pyarrow

@@ -22,7 +22,6 @@ dependencies = [
     "numpy",
     "opencv-python",
     "pandas",
-    "pandas-stubs",
     "polars",
     "pyarrow",
     "pyproj",

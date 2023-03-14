@@ -1,4 +1,4 @@
-"""Pytorch detection dataloader utilities."""
+"""Pytorch dataloader utilities."""
 
 from __future__ import annotations
 
