@@ -54,7 +54,7 @@ pub fn read_accumulate_lidar(
     let log_ids = file_index["log_id"].utf8().unwrap();
     let timestamps = file_index["timestamp_ns"].u64().unwrap();
     let poses_path = log_dir.join("city_SE3_egovehicle.feather");
-    let poses = read_feather(&poses_path, true);
+    let poses = read_feather(&poses_path, memory_mapped);
 
     let pose_ref = dataframe_to_nd_and_filter(
         &poses,
