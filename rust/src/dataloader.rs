@@ -30,7 +30,7 @@ const MIN_NUM_LIDAR_PTS: u64 = 1;
 pub struct Sweep {
     /// Ground truth annotations.
     #[pyo3(get, set)]
-    pub annotations: PyDataFrame,
+    pub annotations: Option<PyDataFrame>,
     /// Ego-vehicle city pose.
     #[pyo3(get, set)]
     pub city_pose: PyDataFrame,
@@ -54,7 +54,7 @@ impl Sweep {
         sweep_uuid: (String, u64),
     ) -> Sweep {
         Sweep {
-            annotations,
+            annotations: Some(annotations),
             city_pose,
             lidar,
             sweep_uuid,
@@ -208,7 +208,12 @@ impl Dataloader {
             )
         };
 
-        let annotations = self.read_annotations(log_id, timestamp_ns);
+        // Annotations aren't available for the test set.
+        let annotations = match self.split_name.as_str() {
+            "test" => None,
+            _ => Some(self.read_annotations(log_id, timestamp_ns)),
+        };
+
         let city_pose = self.read_city_pose(log_id, timestamp_ns);
         let lidar = self.read_lidar(log_id, timestamp_ns, index);
         let sweep_uuid = (log_id.to_string(), timestamp_ns);
