@@ -18,7 +18,12 @@ use glob::glob;
 use polars::prelude::*;
 use pyo3::types::PyBytes;
 
-use crate::{constants, io, path};
+use crate::{
+    constants::{self, DEFAULT_MAP_FILE_NAME},
+    io, path,
+};
+
+const MIN_NUM_LIDAR_PTS: u64 = 1;
 
 /// Data associated with a single lidar sweep.
 #[pyclass]
@@ -114,21 +119,18 @@ impl Dataloader {
         }
     }
 
-    /// Get the dataset split directory.
-    pub fn split_dir(&self) -> PathBuf {
+    fn split_dir(&self) -> PathBuf {
         self.root_dir
             .join(&self.dataset_name)
             .join(&self.dataset_type)
             .join(&self.split_name)
     }
 
-    /// Get the log directory corresponding to `log_id`.
-    pub fn log_dir(&self, log_id: &str) -> PathBuf {
+    fn log_dir(&self, log_id: &str) -> PathBuf {
         self.split_dir().join(log_id)
     }
 
-    /// Get the lidar path corresponding to the `log_id` and `timestamp_ns`.
-    pub fn lidar_path(&self, log_id: &str, timestamp_ns: u64) -> PathBuf {
+    fn lidar_path(&self, log_id: &str, timestamp_ns: u64) -> PathBuf {
         let file_name = format!("{timestamp_ns}.feather");
         let lidar_path = [
             self.log_dir(log_id),
@@ -141,72 +143,80 @@ impl Dataloader {
         lidar_path
     }
 
-    /// Get the annotations path correcponding to the `log_id`.
-    pub fn annotations_path(&self, log_id: &str) -> PathBuf {
+    fn annotations_path(&self, log_id: &str) -> PathBuf {
         self.log_dir(log_id).join("annotations.feather")
     }
 
-    /// Get the city pose path correcponding to the `log_id`.
-    pub fn city_pose_path(&self, log_id: &str) -> PathBuf {
+    fn city_pose_path(&self, log_id: &str) -> PathBuf {
         self.log_dir(log_id).join("city_SE3_egovehicle.feather")
     }
 
-    /// Get the map directory correcponding to the `log_id`.
-    pub fn map_dir(&self, log_id: &str) -> PathBuf {
+    fn map_dir(&self, log_id: &str) -> PathBuf {
         self.log_dir(log_id).join("map")
+    }
+
+    fn read_city_pose(&self, log_id: &str, timestamp_ns: u64) -> PyDataFrame {
+        PyDataFrame(
+            read_timestamped_feather(
+                &self.city_pose_path(log_id),
+                &POSE_COLUMNS.to_vec(),
+                &timestamp_ns,
+                self.memory_mapped,
+            )
+            .collect()
+            .unwrap(),
+        )
+    }
+
+    fn read_lidar(&self, log_id: &str, timestamp_ns: u64, index: usize) -> PyDataFrame {
+        PyDataFrame(
+            read_accumulate_lidar(
+                self.log_dir(log_id),
+                &self.file_index.0,
+                log_id,
+                timestamp_ns,
+                index,
+                self.num_accumulated_sweeps,
+                self.memory_mapped,
+            )
+            .collect()
+            .unwrap(),
+        )
+    }
+
+    fn read_annotations(&self, log_id: &str, timestamp_ns: u64) -> PyDataFrame {
+        PyDataFrame(
+            read_timestamped_feather(
+                &self.annotations_path(log_id),
+                &ANNOTATION_COLUMNS.to_vec(),
+                &timestamp_ns,
+                self.memory_mapped,
+            )
+            .filter(col("num_interior_pts").gt_eq(MIN_NUM_LIDAR_PTS))
+            .collect()
+            .unwrap(),
+        )
     }
 
     /// Get the sweep at `index`.
     pub fn get(&self, index: usize) -> Sweep {
-        let log_id = self.file_index.0["log_id"]
-            .utf8()
-            .unwrap()
-            .get(index)
-            .unwrap();
-        let timestamp_ns = self.file_index.0["timestamp_ns"]
-            .u64()
-            .unwrap()
-            .get(index)
-            .unwrap();
-        let lidar = read_accumulate_lidar(
-            self.log_dir(log_id),
-            &self.file_index.0,
-            log_id,
-            timestamp_ns,
-            index,
-            self.num_accumulated_sweeps,
-            self.memory_mapped,
-        )
-        .collect()
-        .unwrap();
+        let row = self.file_index.0.get_row(index).unwrap().0;
+        let (log_id, timestamp_ns) = unsafe {
+            (
+                row.get_unchecked(0).get_str().unwrap(),
+                row.get_unchecked(1).try_extract::<u64>().unwrap(),
+            )
+        };
 
-        let annotations_path = self.annotations_path(log_id);
-        let annotations = read_timestamped_feather(
-            &annotations_path,
-            &ANNOTATION_COLUMNS.to_vec(),
-            &timestamp_ns,
-            self.memory_mapped,
-        )
-        .filter(col("num_interior_pts").gt_eq(1.))
-        .collect()
-        .unwrap();
-
-        let city_pose_path = self.city_pose_path(log_id);
-        let city_pose = read_timestamped_feather(
-            &city_pose_path,
-            &POSE_COLUMNS.to_vec(),
-            &timestamp_ns,
-            self.memory_mapped,
-        )
-        .collect()
-        .unwrap();
-
+        let annotations = self.read_annotations(log_id, timestamp_ns);
+        let city_pose = self.read_city_pose(log_id, timestamp_ns);
+        let lidar = self.read_lidar(log_id, timestamp_ns, index);
         let sweep_uuid = (log_id.to_string(), timestamp_ns);
 
         Sweep {
-            annotations: PyDataFrame(annotations),
-            city_pose: PyDataFrame(city_pose),
-            lidar: PyDataFrame(lidar),
+            annotations,
+            city_pose,
+            lidar,
             sweep_uuid,
         }
     }
@@ -258,8 +268,7 @@ impl Iterator for Dataloader {
     }
 }
 
-/// Build the dataset file index.
-pub fn build_file_index(
+fn build_file_index(
     root_dir: &Path,
     dataset_name: &str,
     dataset_type: &str,
@@ -270,6 +279,7 @@ pub fn build_file_index(
         .unwrap_or_else(|_| panic!("Cannot walk the following directory: {split_dir:?}"));
     entry_set.par_sort();
 
+    let city_name_index = 7;
     let (log_ids, timestamp_nss, city_names): (Vec<_>, Vec<_>, Vec<_>) =
         multiunzip(entry_set.into_iter().map(|log_path| {
             let log_id = extract_file_stem(&log_path).unwrap();
@@ -278,11 +288,11 @@ pub fn build_file_index(
             let city_name = glob(x.to_str().unwrap())
                 .unwrap()
                 .find_map(Result::ok)
-                .unwrap_or("log_map_archive___DEFAULT_city_00000.json".into())
+                .unwrap_or(DEFAULT_MAP_FILE_NAME.into())
                 .to_str()
                 .unwrap()
                 .split('_')
-                .collect::<Vec<_>>()[7]
+                .collect_vec()[city_name_index]
                 .to_string();
 
             let mut lidar_entry_set: Vec<_> = glob(lidar_dir.join("*.feather").to_str().unwrap())
@@ -301,7 +311,7 @@ pub fn build_file_index(
                         let lidar_path = lidar_path.file_stem().unwrap().to_str();
                         lidar_path.unwrap().parse::<u64>().unwrap()
                     })
-                    .collect::<Vec<_>>(),
+                    .collect_vec(),
                 vec![city_name; num_entries],
             )
         }));
