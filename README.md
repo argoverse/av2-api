@@ -39,7 +39,7 @@ If you have any questions or run into any problems with either the data or API, 
 
 ### Setup
 
-The easiest way to install the API is via [conda](https://conda-forge.org/) by running the following command:
+The easiest way to install the API is via [conda](https://docs.conda.io/en/latest/) by running the following command:
 
 ```bash
 bash conda/install.sh
