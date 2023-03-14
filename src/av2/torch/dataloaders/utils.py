@@ -9,7 +9,6 @@ from enum import Enum, unique
 from functools import cached_property
 from typing import Final, List, Optional, Tuple
 
-import fsspec.asyn
 import numpy as np
 import pandas as pd
 import torch
@@ -17,7 +16,6 @@ from torch import Tensor
 
 import av2._r as rust
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
-from av2.geometry.se3 import SE3
 from av2.utils.typing import NDArrayFloat
 
 DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
@@ -250,11 +248,6 @@ class Pose:
 
         rotation = quat_to_mat(quat_wxyz)
         return torch.as_tensor(rotation, dtype=torch.float32), torch.as_tensor(translation, dtype=torch.float32)
-
-
-def prevent_fsspec_deadlock() -> None:
-    """Reset the fsspec global lock to prevent deadlocking in forked processes."""
-    fsspec.asyn.reset_lock()
 
 
 def compute_interior_points_mask(xyz_m: Tensor, cuboid_vertices: Tensor) -> Tensor:
