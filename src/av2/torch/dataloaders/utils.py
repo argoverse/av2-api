@@ -14,7 +14,6 @@ from torch import Tensor
 
 import av2._r as rust
 from av2.geometry.geometry import quat_to_mat
-from av2.utils.typing import NDArrayFloat, NDArrayFloat32
 
 DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
     "tx_m",
@@ -76,7 +75,7 @@ class Annotations:
             (N,K) tensor where N is the number of annotations and K
                 is the number of annotation fields.
         """
-        dataframe_npy: NDArrayFloat32 = self.dataframe.loc[:, list(field_ordering)].to_numpy(np.float32)
+        dataframe_npy = self.dataframe.loc[:, list(field_ordering)].to_numpy().astype(np.float32)
         return torch.as_tensor(dataframe_npy)
 
 
@@ -103,7 +102,7 @@ class Lidar:
             (N,K) tensor where N is the number of lidar points and K
                 is the number of features.
         """
-        dataframe_npy: NDArrayFloat32 = self.dataframe.loc[:, list(field_ordering)].to_numpy(np.float32)
+        dataframe_npy = self.dataframe.loc[:, list(field_ordering)].to_numpy().astype(np.float32)
         return torch.as_tensor(dataframe_npy)
 
 
@@ -141,8 +140,8 @@ class Pose:
     @cached_property
     def Rt(self) -> Tuple[Tensor, Tensor]:
         """Return a (3,3) rotation matrix and a (3,) translation vector."""
-        quat_wxyz: NDArrayFloat = self.dataframe.loc[0, list(QUAT_WXYZ_FIELDS)].to_numpy(np.float32)
-        translation: NDArrayFloat = self.dataframe.loc[0, list(TRANSLATION_FIELDS)].to_numpy(np.float32)
+        quat_wxyz = self.dataframe.loc[0, list(QUAT_WXYZ_FIELDS)].to_numpy().astype(np.float32)
+        translation = self.dataframe.loc[0, list(TRANSLATION_FIELDS)].to_numpy().astype(np.float32)
 
         rotation = quat_to_mat(quat_wxyz)
         return torch.as_tensor(rotation), torch.as_tensor(translation)
