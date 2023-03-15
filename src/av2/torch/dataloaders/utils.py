@@ -34,7 +34,7 @@ TRANSLATION_FIELDS: Final = ("tx_m", "ty_m", "tz_m")
 
 @unique
 class OrientationMode(str, Enum):
-    """Orientation (pose) modes for the ground truth annotations."""
+    """Orientation modes for the ground truth annotations."""
 
     QUATERNION_WXYZ = "QUATERNION_WXYZ"
     YAW = "YAW"
