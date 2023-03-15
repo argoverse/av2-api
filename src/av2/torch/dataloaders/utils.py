@@ -7,13 +7,14 @@ from enum import Enum, unique
 from functools import cached_property
 from typing import Final, List, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 import torch
 from torch import Tensor
 
 import av2._r as rust
 from av2.geometry.geometry import quat_to_mat
-from av2.utils.typing import NDArrayFloat
+from av2.utils.typing import NDArrayFloat, NDArrayFloat32
 
 DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
     "tx_m",
@@ -65,20 +66,18 @@ class Annotations:
     def as_tensor(
         self,
         field_ordering: Tuple[str, ...] = DEFAULT_ANNOTATIONS_TENSOR_FIELDS,
-        dtype: torch.dtype = torch.float32,
     ) -> Tensor:
         """Return the annotations as a tensor.
 
         Args:
             field_ordering: Feature ordering for the tensor.
-            dtype: Target datatype for casting.
 
         Returns:
             (N,K) tensor where N is the number of annotations and K
                 is the number of annotation fields.
         """
-        dataframe_npy = self.dataframe.loc[:, list(field_ordering)].to_numpy()
-        return torch.as_tensor(dataframe_npy, dtype=dtype)
+        dataframe_npy: NDArrayFloat32 = self.dataframe.loc[:, list(field_ordering)].to_numpy(np.float32)
+        return torch.as_tensor(dataframe_npy)
 
 
 @dataclass(frozen=True)
@@ -92,20 +91,20 @@ class Lidar:
     dataframe: pd.DataFrame
 
     def as_tensor(
-        self, field_ordering: Tuple[str, ...] = DEFAULT_LIDAR_TENSOR_FIELDS, dtype: torch.dtype = torch.float32
+        self,
+        field_ordering: Tuple[str, ...] = DEFAULT_LIDAR_TENSOR_FIELDS,
     ) -> Tensor:
         """Return the lidar sweep as a tensor.
 
         Args:
             field_ordering: Feature ordering for the tensor.
-            dtype: Target datatype for casting.
 
         Returns:
             (N,K) tensor where N is the number of lidar points and K
                 is the number of features.
         """
-        dataframe_npy = self.dataframe.loc[:, list(field_ordering)].to_numpy()
-        return torch.as_tensor(dataframe_npy, dtype=dtype)
+        dataframe_npy: NDArrayFloat32 = self.dataframe.loc[:, list(field_ordering)].to_numpy(np.float32)
+        return torch.as_tensor(dataframe_npy)
 
 
 @dataclass(frozen=True)
@@ -142,8 +141,8 @@ class Pose:
     @cached_property
     def Rt(self) -> Tuple[Tensor, Tensor]:
         """Return a (3,3) rotation matrix and a (3,) translation vector."""
-        quat_wxyz: NDArrayFloat = self.dataframe[QUAT_WXYZ_FIELDS].to_numpy()
-        translation: NDArrayFloat = self.dataframe[TRANSLATION_FIELDS].to_numpy()
+        quat_wxyz: NDArrayFloat = self.dataframe.loc[0, list(QUAT_WXYZ_FIELDS)].to_numpy(np.float32)
+        translation: NDArrayFloat = self.dataframe.loc[0, list(TRANSLATION_FIELDS)].to_numpy(np.float32)
 
         rotation = quat_to_mat(quat_wxyz)
-        return torch.as_tensor(rotation, dtype=torch.float32), torch.as_tensor(translation, dtype=torch.float32)
+        return torch.as_tensor(rotation), torch.as_tensor(translation)
