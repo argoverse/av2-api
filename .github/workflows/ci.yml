@@ -25,6 +25,13 @@ jobs:
           miniforge-version: latest
           python-version: ${{ matrix.python_version }}
 
+      - name: Reclaim space.
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
       - name: Install prerequisites.
         run: |
           mamba install -y nox pip pyyaml

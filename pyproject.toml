@@ -28,7 +28,7 @@ dependencies = [
     "pyproj",
     "rich",
     "scipy",
-    # "torch",
+    "torch",
     "universal_pathlib",
 ]
 
