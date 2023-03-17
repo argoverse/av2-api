@@ -8,8 +8,9 @@ from typing import Dict
 import numpy as np
 import av2.evaluation.scene_flow.utils
 
-def validate(submission_root: Path, fmt: Dict[str, int]):
-    for filename in track(fmt.keys(), description = 'Validating...'):
+
+def validate(submission_root: Path, fmt: Dict[str, int]) -> None:
+    for filename in track(fmt.keys(), description='Validating...'):
         input_file = submission_root / filename
         if not input_file.exists():
             raise FileNotFoundError(f'{str(input_file)} not found in submission directory')
@@ -32,11 +33,13 @@ def validate(submission_root: Path, fmt: Dict[str, int]):
         if len(pred) != fmt[filename]:
             raise ValueError(f'{str(input_file)} has {len(pred)} rows but it should have {fmt[filename]}')
 
-def zip(submission_root: Path, fmt: Dict[str, int], output_file: Path):
+
+def zip(submission_root: Path, fmt: Dict[str, int], output_file: Path) -> None:
     with ZipFile(output_file, 'w') as myzip:
-        for filename in track(fmt.keys(), description = 'Zipping...'):
+        for filename in track(fmt.keys(), description='Zipping...'):
             input_file = submission_root / filename
             myzip.write(input_file, arcname=filename)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('make_submission_archive',

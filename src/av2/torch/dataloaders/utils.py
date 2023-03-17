@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, unique
 from functools import cached_property
-from typing import Final, Optional, Tuple, List
+from typing import Final, Optional, Tuple, List, Dict
 from av2.map.map_api import ArgoverseStaticMap
 from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayBool
 
@@ -19,23 +19,22 @@ import av2._r as rust
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
 from av2.geometry.se3 import SE3
 from av2.utils.typing import NDArrayFloat
-from av2.structures.cuboid import CuboidList
+from av2.structures.cuboid import CuboidList, Cuboid
 
 
-
-CATEGORY_MAP = {"ANIMAL":0, "ARTICULATED_BUS":1, "BICYCLE":2, "BICYCLIST":3, "BOLLARD":4,
-                "BOX_TRUCK":5, "BUS":6, "CONSTRUCTION_BARREL":7, "CONSTRUCTION_CONE":8, "DOG":9,
-                "LARGE_VEHICLE":10, "MESSAGE_BOARD_TRAILER":11, "MOBILE_PEDESTRIAN_CROSSING_SIGN":12,
-                "MOTORCYCLE":13, "MOTORCYCLIST":14, "OFFICIAL_SIGNALER":15, "PEDESTRIAN":16,
-                "RAILED_VEHICLE":17, "REGULAR_VEHICLE":18, "SCHOOL_BUS":19, "SIGN":20,
-                "STOP_SIGN":21, "STROLLER":22, "TRAFFIC_LIGHT_TRAILER":23, "TRUCK":24,
-                "TRUCK_CAB":25, "VEHICULAR_TRAILER":26, "WHEELCHAIR":27, "WHEELED_DEVICE":28,
-                "WHEELED_RIDER":29}
+CATEGORY_MAP = {"ANIMAL": 0, "ARTICULATED_BUS": 1, "BICYCLE": 2, "BICYCLIST": 3, "BOLLARD": 4,
+                "BOX_TRUCK": 5, "BUS": 6, "CONSTRUCTION_BARREL": 7, "CONSTRUCTION_CONE": 8, "DOG": 9,
+                "LARGE_VEHICLE": 10, "MESSAGE_BOARD_TRAILER": 11, "MOBILE_PEDESTRIAN_CROSSING_SIGN": 12,
+                "MOTORCYCLE": 13, "MOTORCYCLIST": 14, "OFFICIAL_SIGNALER": 15, "PEDESTRIAN": 16,
+                "RAILED_VEHICLE": 17, "REGULAR_VEHICLE": 18, "SCHOOL_BUS": 19, "SIGN": 20,
+                "STOP_SIGN": 21, "STROLLER": 22, "TRAFFIC_LIGHT_TRAILER": 23, "TRUCK": 24,
+                "TRUCK_CAB": 25, "VEHICULAR_TRAILER": 26, "WHEELCHAIR": 27, "WHEELED_DEVICE": 28,
+                "WHEELED_RIDER": 29}
 
 
 MAX_STR_LEN: Final[int] = 32
 
-DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = [
+DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
     "tx_m",
     "ty_m",
     "tz_m",
@@ -46,10 +45,10 @@ DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = [
     "qx",
     "qy",
     "qz",
-]
-DEFAULT_LIDAR_TENSOR_FIELDS: Final = ["x", "y", "z"]
-QUAT_WXYZ_FIELDS: Final = ["qw", "qx", "qy", "qz"]
-TRANSLATION_FIELDS: Final = ["tx_m", "ty_m", "tz_m"]
+)
+DEFAULT_LIDAR_TENSOR_FIELDS: Final = ("x", "y", "z")
+QUAT_WXYZ_FIELDS: Final = ("qw", "qx", "qy", "qz")
+TRANSLATION_FIELDS: Final = ("tx_m", "ty_m", "tz_m")
 
 
 @unique
@@ -158,7 +157,6 @@ class Sweep:
             is_ground = avm.get_ground_points_boolean(pcl_city_1).astype(bool)
         else:
             is_ground = None
-            
 
         lidar = Lidar(dataframe=sweep.lidar.to_pandas())
         return cls(annotations=annotations, city_pose=city_pose, lidar=lidar, sweep_uuid=sweep.sweep_uuid,
@@ -173,8 +171,8 @@ class Pose:
 
     @cached_property
     def Rt(self) -> Tuple[Tensor, Tensor]:
-        quat_wxyz: NDArrayFloat = self.dataframe[QUAT_WXYZ_FIELDS].to_numpy()
-        translation: NDArrayFloat = self.dataframe[TRANSLATION_FIELDS].to_numpy()
+        quat_wxyz: NDArrayFloat = self.dataframe[list(QUAT_WXYZ_FIELDS)].to_numpy()
+        translation: NDArrayFloat = self.dataframe[list(TRANSLATION_FIELDS)].to_numpy()
 
         rotation = quat_to_mat(quat_wxyz)
         return torch.as_tensor(rotation, dtype=torch.float32), torch.as_tensor(translation, dtype=torch.float32)
@@ -210,7 +208,7 @@ class Flow:
         return int(self.flow.shape[0]) if self.flow is not None else 0
 
     @classmethod
-    def from_sweep_pair(cls, sweeps: Tuple[Sweep, Sweep]):
+    def from_sweep_pair(cls, sweeps: Tuple[Sweep, Sweep]) -> Flow:
         poses = [sweep.city_pose.SE3() for sweep in sweeps]
         ego1_SE3_ego0 = poses[1].inverse().compose(poses[0])
         if sweeps[0].annotations is None or sweeps[1].annotations is None:
@@ -221,24 +219,22 @@ class Flow:
         cuboids = [annotations_to_id_cudboid_map(anno) for anno in annotations]
         pcs = [sweep.lidar.dataframe[['x', 'y', 'z']].to_numpy() for sweep in sweeps]
         
-        
         # Convert to float32s
         ego1_SE3_ego0.rotation = ego1_SE3_ego0.rotation.astype(np.float32)
         ego1_SE3_ego0.translation = ego1_SE3_ego0.translation.astype(np.float32)
         
-        rigid_flow = (ego1_SE3_ego0.transform_point_cloud(pcs[0]) -  pcs[0]).astype(np.float32)
+        rigid_flow = (ego1_SE3_ego0.transform_point_cloud(pcs[0]) - pcs[0]).astype(np.float32)
         flow = rigid_flow.copy()
         
         valid = np.ones(len(pcs[0]), dtype=bool)
         classes = np.zeros(len(pcs[0]), dtype=np.uint8)
         
-        
         for id in cuboids[0]:
             c0 = cuboids[0][id]
-            c0.length_m += 0.2 # the bounding boxes are a little too tight and some points are missed
+            c0.length_m += 0.2  # the bounding boxes are a little too tight and some points are missed
             c0.width_m += 0.2
             obj_pts, obj_mask = c0.compute_interior_points(pcs[0])
-            classes[obj_mask] = CATEGORY_MAP[c0.category] + 1
+            classes[obj_mask] = CATEGORY_MAP[str(c0.category)] + 1
         
             if id in cuboids[1]:
                 c1 = cuboids[1][id]
@@ -252,7 +248,6 @@ class Flow:
         
         return cls(flow=flow, valid=valid, classes=classes, dynamic=dynamic, ego_motion=ego1_SE3_ego0)
     
-
     
 def prevent_fsspec_deadlock() -> None:
     """Reset the fsspec global lock to prevent deadlocking in forked processes."""
@@ -319,9 +314,9 @@ def compute_interior_points_mask(xyz_m: Tensor, cuboid_vertices: Tensor) -> Tens
     return is_interior
 
 
-def annotations_to_id_cudboid_map(annotations: Annotations):
+def annotations_to_id_cudboid_map(annotations: Annotations) -> Dict[str, Cuboid]:
     ids = annotations.dataframe.track_uuid.to_numpy()
-    annotations_df_with_ts = annotations.dataframe.assign(timestamp_ns = None)
+    annotations_df_with_ts = annotations.dataframe.assign(timestamp_ns=None)
     cuboid_list = CuboidList.from_dataframe(annotations_df_with_ts)
 
     cuboids_and_ids = dict(zip(ids, cuboid_list.cuboids))
