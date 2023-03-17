@@ -315,6 +315,13 @@ def compute_interior_points_mask(xyz_m: Tensor, cuboid_vertices: Tensor) -> Tens
 
 
 def annotations_to_id_cudboid_map(annotations: Annotations) -> Dict[str, Cuboid]:
+    """Creates a mapping between track UUIDs and cuboids
+
+    Args:
+        annotations: the annotations to transform into cuboids
+    Returns:
+        A dict with the UUIDs as keys and the coresponding cuboids as values.
+    """
     ids = annotations.dataframe.track_uuid.to_numpy()
     annotations_df_with_ts = annotations.dataframe.assign(timestamp_ns=None)
     cuboid_list = CuboidList.from_dataframe(annotations_df_with_ts)
