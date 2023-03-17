@@ -6,10 +6,10 @@ import logging
 from dataclasses import dataclass, field
 from functools import cached_property
 from math import inf
-from typing import Optional, Tuple, List
 from pathlib import Path
-import numpy as np
+from typing import List, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
 
@@ -17,7 +17,7 @@ import av2._r as rust
 from av2.map.map_api import ArgoverseStaticMap
 from av2.utils.typing import PathType
 
-from .utils import Sweep, Flow
+from .utils import Flow, Sweep
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Flow]]):
             self.num_accumulated_sweeps,
             self.memory_mapped,
         )
-        self.data_dir = Path(self.root_dir) / self.dataset_name / 'sensor' / self.split_name
+        self.data_dir = Path(self.root_dir) / self.dataset_name / "sensor" / self.split_name
 
     @cached_property
     def file_index(self) -> pd.DataFrame:
@@ -67,12 +67,12 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Flow]]):
         N = self._backend.__len__()
         for i in range(N):
             if i + 1 < N:
-                next_log_id = self.file_index.loc[i + 1, ['log_id']].item()
+                next_log_id = self.file_index.loc[i + 1, ["log_id"]].item()
                 current_log_id = self.file_index.loc[i, ["log_id"]].item()
                 if current_log_id == next_log_id:
                     inds.append(i)
         return inds
-    
+
     def get_log_id(self, index: int) -> str:
         return str(self.file_index.loc[index, ["log_id"]].item())
 
@@ -88,7 +88,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Flow]]):
 
         flow = Flow.from_sweep_pair((sweep, next_sweep))
         return sweep, next_sweep, flow
-    
+
     def __len__(self) -> int:
         return len(self.index_map)
 
