@@ -16,6 +16,7 @@ dependencies = [
     "av",
     "click",
     "joblib",
+    "kornia",
     "matplotlib",
     "nox",
     "numba",

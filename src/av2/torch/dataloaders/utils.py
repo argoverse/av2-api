@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, unique
-from functools import cached_property
 from typing import Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 import torch
+from kornia.geometry.liegroup import Se3, So3
+from kornia.geometry.quaternion import Quaternion
 from torch import Tensor
 
 import av2._r as rust
-from av2.geometry.geometry import quat_to_mat
 
 DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
     "tx_m",
@@ -27,7 +27,7 @@ DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
     "qy",
     "qz",
 )
-DEFAULT_LIDAR_TENSOR_FIELDS: Final = ("x", "y", "z")
+DEFAULT_LIDAR_TENSOR_FIELDS: Final = ("x", "y", "z", "intensity")
 QUAT_WXYZ_FIELDS: Final = ("qw", "qx", "qy", "qz")
 TRANSLATION_FIELDS: Final = ("tx_m", "ty_m", "tz_m")
 
@@ -80,68 +80,70 @@ class Annotations:
 
 
 @dataclass(frozen=True)
-class Lidar:
-    """Dataclass for lidar sweeps.
-
-    Args:
-        dataframe: Dataframe containing the lidar and its attributes.
-    """
-
-    dataframe: pd.DataFrame
-
-    def as_tensor(
-        self,
-        field_ordering: Tuple[str, ...] = DEFAULT_LIDAR_TENSOR_FIELDS,
-    ) -> Tensor:
-        """Return the lidar sweep as a tensor.
-
-        Args:
-            field_ordering: Feature ordering for the tensor.
-
-        Returns:
-            (N,K) tensor where N is the number of lidar points and K
-                is the number of features.
-        """
-        dataframe_npy = self.dataframe.loc[:, list(field_ordering)].to_numpy().astype(np.float32)
-        return torch.as_tensor(dataframe_npy)
-
-
-@dataclass(frozen=True)
 class Sweep:
     """Stores the annotations and lidar for one sweep.
 
+    Notation:
+        N: Number of lidar points.
+
     Args:
         annotations: Annotations parameterization.
-        city_pose: Rigid transformation describing the city pose of the ego-vehicle.
-        lidar: Lidar parameters.
+        city_SE3_ego: Rigid transformation describing the city pose of the ego-vehicle.
+        lidar_xyzi: (N,4) Tensor of lidar points containing (x,y,z) in meters and intensity (i).
         sweep_uuid: Log id and nanosecond timestamp (unique identifier).
     """
 
     annotations: Optional[Annotations]
-    city_pose: Pose
-    lidar: Lidar
+    city_SE3_ego: Se3
+    lidar_xyzi: Tensor
     sweep_uuid: Tuple[str, int]
 
     @classmethod
     def from_rust(cls, sweep: rust.Sweep) -> Sweep:
         """Build a sweep from the Rust backend."""
         annotations = Annotations(dataframe=sweep.annotations.to_pandas())
-        city_pose = Pose(dataframe=sweep.city_pose.to_pandas())
-        lidar = Lidar(dataframe=sweep.lidar.to_pandas())
-        return cls(annotations=annotations, city_pose=city_pose, lidar=lidar, sweep_uuid=sweep.sweep_uuid)
+        city_SE3_ego = frame_to_SE3(frame=sweep.city_pose.to_pandas())
+        lidar_xyzi = frame_to_tensor(sweep.lidar.to_pandas())
+
+        return cls(
+            annotations=annotations, city_SE3_ego=city_SE3_ego, lidar_xyzi=lidar_xyzi, sweep_uuid=sweep.sweep_uuid
+        )
 
 
-@dataclass(frozen=True)
-class Pose:
-    """Pose class for rigid transformations."""
+def frame_to_tensor(frame: pd.DataFrame) -> Tensor:
+    """Build lidar `torch` tensor from `pandas` dataframe.
 
-    dataframe: pd.DataFrame
+    Notation:
+        N: Number of lidar points.
+        K: Number of lidar attributes.
 
-    @cached_property
-    def Rt(self) -> Tuple[Tensor, Tensor]:
-        """Return a (3,3) rotation matrix and a (3,) translation vector."""
-        quat_wxyz = self.dataframe.loc[0, list(QUAT_WXYZ_FIELDS)].to_numpy().astype(np.float32)
-        translation = self.dataframe.loc[0, list(TRANSLATION_FIELDS)].to_numpy().astype(np.float32)
+    Args:
+        frame: (N,K) Pandas DataFrame containing lidar fields.
 
-        rotation = quat_to_mat(quat_wxyz)
-        return torch.as_tensor(rotation), torch.as_tensor(translation)
+    Returns:
+        (N,4) Tensor of (x,y,z) in meters and intensity (i).
+    """
+    lidar_npy = frame.loc[:, list(DEFAULT_LIDAR_TENSOR_FIELDS)].to_numpy().astype(np.float32)
+    return torch.as_tensor(lidar_npy)
+
+
+def frame_to_SE3(frame: pd.DataFrame) -> Se3:
+    """Build SE(3) object from `pandas` DataFrame.
+
+    Notation:
+        N: Number of rigid transformations.
+
+    Args:
+        frame: (N,4) Pandas DataFrame containing quaternion coefficients.
+
+    Returns:
+        Kornia Se3 object representing a (N,4,4) tensor of homogeneous transformations.
+    """
+    quaternion_npy = frame.loc[0, list(QUAT_WXYZ_FIELDS)].to_numpy().astype(float)
+    quat_wxyz = Quaternion(torch.as_tensor(quaternion_npy, dtype=torch.float32))
+    rotation = So3(quat_wxyz)
+
+    translation_npy = frame.loc[0, list(TRANSLATION_FIELDS)].to_numpy().astype(np.float32)
+    translation = torch.as_tensor(translation_npy, dtype=torch.float32)
+    dst_SE3_src = Se3(rotation[None], translation[None])
+    return dst_SE3_src
