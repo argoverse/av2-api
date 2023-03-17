@@ -1,3 +1,5 @@
+"""Utility program for producing minimnal annotation files used for evaluation on the val and test splits."""
+
 import argparse
 from pathlib import Path
 

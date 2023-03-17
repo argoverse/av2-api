@@ -1,5 +1,4 @@
-"""Argoverse 2.0 Scene Flow Evaluation
-"""
+"""Argoverse 2.0 Scene Flow Evaluation."""
 
 import argparse
 from pathlib import Path
@@ -100,10 +99,12 @@ FLOW_COLS = ["flow_tx_m", "flow_ty_m", "flow_ty_m"]
 
 
 def epe(pred: NDArrayFloat, gt: NDArrayFloat) -> NDArrayFloat:
+    """Compute the end-point-error between predictions and ground truth."""
     return np.array(np.sqrt(np.sum((pred - gt) ** 2, axis=-1)), dtype=np.float64)
 
 
 def accuracy(pred: NDArrayFloat, gt: NDArrayFloat, threshold: float) -> NDArrayFloat:
+    """Compute the percent of inliers for a given threshold for a set of predictions and ground truth vectors."""
     l2_norm = np.sqrt(np.sum((pred - gt) ** 2, axis=-1))
     gt_norm = np.sqrt(np.sum(gt * gt, axis=-1))
     relative_err = l2_norm / (gt_norm + 1e-7)
@@ -113,14 +114,17 @@ def accuracy(pred: NDArrayFloat, gt: NDArrayFloat, threshold: float) -> NDArrayF
 
 
 def accuracy_strict(pred: NDArrayFloat, gt: NDArrayFloat) -> NDArrayFloat:
+    """Compute the acccuracy with a 0.05 threshold."""
     return accuracy(pred, gt, 0.05)
 
 
 def accuracy_relax(pred: NDArrayFloat, gt: NDArrayFloat) -> NDArrayFloat:
+    """Compute the acccuracy with a 0.1 threshold."""
     return accuracy(pred, gt, 0.10)
 
 
 def angle_error(pred: NDArrayFloat, gt: NDArrayFloat) -> NDArrayFloat:
+    """Compute the angle error between predicted and ground truth flow vectors."""
     unit_label = gt / (np.linalg.norm(gt, axis=-1, keepdims=True) + 1e-7)
     unit_pred = pred / (np.linalg.norm(pred, axis=-1, keepdims=True) + 1e-7)
     eps = 1e-7
@@ -130,18 +134,22 @@ def angle_error(pred: NDArrayFloat, gt: NDArrayFloat) -> NDArrayFloat:
 
 
 def tp(pred: NDArrayBool, gt: NDArrayBool) -> int:
+    """Compute true positive count."""
     return int((pred & gt).astype(int).sum())
 
 
 def tn(pred: NDArrayBool, gt: NDArrayBool) -> int:
+    """Compute true negative count."""
     return int((~pred & ~gt).astype(int).sum())
 
 
 def fp(pred: NDArrayBool, gt: NDArrayBool) -> int:
+    """Compute false positive count."""
     return int((pred & ~gt).astype(int).sum())
 
 
 def fn(pred: NDArrayBool, gt: NDArrayBool) -> int:
+    """Compute false negative count."""
     return int((~pred & gt).astype(int).sum())
 
 
@@ -164,6 +172,23 @@ def metrics(
     valid: NDArrayBool,
     object_classes: Dict[str, List[int]],
 ) -> List[List[Union[str, float, int]]]:
+    """Compute all the metrics for a given example and package them into a list to be put into a DataFrame.
+
+    Args:
+        pred_flow: (N,3) predicted flow vectors
+        pred_dynamic: (N,) predicted dynamic labels
+        gt: (N, 3) ground truth flow vectors
+        classes: (N,) the integer class labels for each point
+        dynamic: (N,) the ground truth dynamic labels
+        close: (N,) true for a point if it is within a 70m x 70m box around the AV
+        valid: (N,) true for a point if its flow vector was succesfully computed.
+        object_classes: A dictionary mapping class integers to segmentation labels (eg. FOREGROUND_BACKGROUND)
+
+    Returns:
+        A list of lists where each sublist corresponds to some subset of the point cloud
+        (eg. Dynamic/Foreground/Close). Each sublist contains the average of each metrics on that subset
+        and the size of the subset.
+    """
     results = []
     pred_flow = pred_flow[valid].astype(np.float64)
     pred_dynamic = pred_dynamic[valid].astype(bool)
@@ -195,6 +220,15 @@ def metrics(
 
 
 def evaluate_directories(annotations_root: Path, predictions_root: Path) -> pd.DataFrame:
+    """Run the evaluation on predictions and labels saved to disk.
+
+    Args:
+        annotations_root: path to the directory containing the annotation files produced by make_annotation_files.py
+        predictions_root: path to the prediction files in submission format
+
+    Returns:
+        A DataFrame containing the average metrics on each subset of each example.
+    """
     results: List[List[Union[str, float, int]]] = []
     annotation_files = list(annotations_root.rglob("*.feather"))
     for anno_file in track(annotation_files, description="Evaluating..."):
@@ -225,10 +259,23 @@ def evaluate_directories(annotations_root: Path, predictions_root: Path) -> pd.D
 
 
 def results_to_dict(results_dataframe: pd.DataFrame) -> Dict[str, float]:
+    """Convert a results DataFrame to a dictionary of whole dataset metrics.
+
+    Args:
+        results_dataframe: DataFrame returned by evaluate_directories
+
+    Returns:
+        A dictionary string keys "<Motion/Class/Distance/Metric>" mapped to average metrics on that subset.
+    """
     output = {}
     grouped = results_dataframe.groupby(["Class", "Motion", "Distance"])
     for m in FLOW_METRICS.keys():
-        avg = grouped.apply(lambda x: (x[m] * x.Count).sum() / x.Count.sum())
+
+        def weighted_average(x: pd.DataFrame, metric: str = m) -> pd.Series:
+            """Weighted average of metric m using the Count column."""
+            return (x[metric] * x.Count).sum() / x.Count.sum()
+
+        avg = grouped.apply(weighted_average)
         for segment in avg.index:
             if segment[0] == "Background" and segment[1] == "Dynamic":
                 continue
@@ -236,7 +283,7 @@ def results_to_dict(results_dataframe: pd.DataFrame) -> Dict[str, float]:
             output[name] = avg[segment]
     grouped = results_dataframe.groupby(["Class", "Motion"])
     for m in FLOW_METRICS.keys():
-        avg = grouped.apply(lambda x: (x[m] * x.Count).sum() / x.Count.sum())
+        avg = grouped.apply(lambda x, m=m: (x[m] * x.Count).sum() / x.Count.sum())
         for segment in avg.index:
             if segment[0] == "Background" and segment[1] == "Dynamic":
                 continue

@@ -63,6 +63,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Flow]]):
 
     @cached_property
     def index_map(self) -> List[int]:
+        """Create a mapping between indicies in this dataloader and the underlying one."""
         inds = []
         N = self._backend.__len__()
         for i in range(N):
@@ -74,9 +75,11 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Flow]]):
         return inds
 
     def get_log_id(self, index: int) -> str:
+        """Return the log name for a given sweep index."""
         return str(self.file_index.loc[index, ["log_id"]].item())
 
     def __getitem__(self, index: int) -> Tuple[Sweep, Sweep, Flow]:
+        """Get a pair of sweeps and flow annotations if available."""
         backend_index = self.index_map[index]
         log = self.file_index.loc[index, ["log_id"]].item()
         log_dir_path = log_map_dirpath = self.data_dir / log
@@ -90,6 +93,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Flow]]):
         return sweep, next_sweep, flow
 
     def __len__(self) -> int:
+        """Length of the scene flow dataset (number of pairs of sweeps)."""
         return len(self.index_map)
 
     def __iter__(self) -> SceneFlowDataloader:

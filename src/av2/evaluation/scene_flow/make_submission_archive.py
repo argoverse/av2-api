@@ -1,3 +1,4 @@
+"""Validate and package a set of prediction files for submission to the leaderboard."""
 import argparse
 import json
 from pathlib import Path
@@ -12,6 +13,16 @@ import av2.evaluation.scene_flow.utils
 
 
 def validate(submission_root: Path, fmt: Dict[str, int]) -> None:
+    """Validate the filenames and shapes of all predictions required for submission.
+
+    Args:
+        submission_root: Path to the top level submission file directory
+        fmt: Dictionary containing all the files needed for submission and the number of points in that file
+
+    Raises:
+        FileNotFoundError: If any of the required files are missing
+        ValueError: If any supplied file is malformed
+    """
     for filename in track(fmt.keys(), description="Validating..."):
         input_file = submission_root / filename
         if not input_file.exists():
@@ -37,6 +48,7 @@ def validate(submission_root: Path, fmt: Dict[str, int]) -> None:
 
 
 def zip(submission_root: Path, fmt: Dict[str, int], output_file: Path) -> None:
+    """Package all validated submission files into a zip archive."""
     with ZipFile(output_file, "w") as myzip:
         for filename in track(fmt.keys(), description="Zipping..."):
             input_file = submission_root / filename

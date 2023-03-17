@@ -22,14 +22,38 @@ from av2.utils.typing import NDArrayFloat
 from av2.structures.cuboid import CuboidList, Cuboid
 
 
-CATEGORY_MAP = {"ANIMAL": 0, "ARTICULATED_BUS": 1, "BICYCLE": 2, "BICYCLIST": 3, "BOLLARD": 4,
-                "BOX_TRUCK": 5, "BUS": 6, "CONSTRUCTION_BARREL": 7, "CONSTRUCTION_CONE": 8, "DOG": 9,
-                "LARGE_VEHICLE": 10, "MESSAGE_BOARD_TRAILER": 11, "MOBILE_PEDESTRIAN_CROSSING_SIGN": 12,
-                "MOTORCYCLE": 13, "MOTORCYCLIST": 14, "OFFICIAL_SIGNALER": 15, "PEDESTRIAN": 16,
-                "RAILED_VEHICLE": 17, "REGULAR_VEHICLE": 18, "SCHOOL_BUS": 19, "SIGN": 20,
-                "STOP_SIGN": 21, "STROLLER": 22, "TRAFFIC_LIGHT_TRAILER": 23, "TRUCK": 24,
-                "TRUCK_CAB": 25, "VEHICULAR_TRAILER": 26, "WHEELCHAIR": 27, "WHEELED_DEVICE": 28,
-                "WHEELED_RIDER": 29}
+CATEGORY_MAP = {
+    "ANIMAL": 0,
+    "ARTICULATED_BUS": 1,
+    "BICYCLE": 2,
+    "BICYCLIST": 3,
+    "BOLLARD": 4,
+    "BOX_TRUCK": 5,
+    "BUS": 6,
+    "CONSTRUCTION_BARREL": 7,
+    "CONSTRUCTION_CONE": 8,
+    "DOG": 9,
+    "LARGE_VEHICLE": 10,
+    "MESSAGE_BOARD_TRAILER": 11,
+    "MOBILE_PEDESTRIAN_CROSSING_SIGN": 12,
+    "MOTORCYCLE": 13,
+    "MOTORCYCLIST": 14,
+    "OFFICIAL_SIGNALER": 15,
+    "PEDESTRIAN": 16,
+    "RAILED_VEHICLE": 17,
+    "REGULAR_VEHICLE": 18,
+    "SCHOOL_BUS": 19,
+    "SIGN": 20,
+    "STOP_SIGN": 21,
+    "STROLLER": 22,
+    "TRAFFIC_LIGHT_TRAILER": 23,
+    "TRUCK": 24,
+    "TRUCK_CAB": 25,
+    "VEHICULAR_TRAILER": 26,
+    "WHEELCHAIR": 27,
+    "WHEELED_DEVICE": 28,
+    "WHEELED_RIDER": 29,
+}
 
 
 MAX_STR_LEN: Final[int] = 32
@@ -145,22 +169,24 @@ class Sweep:
 
     @classmethod
     def from_rust(cls, sweep: rust.Sweep, avm: Optional[ArgoverseStaticMap]) -> Sweep:
+        """Create a Sweep object from its rust counterpart, also loads ground annotations if the map is provided."""
         if sweep.annotations is not None:
             annotations = Annotations(dataframe=sweep.annotations.to_pandas())
         else:
             annotations = None
 
-        city_pose = Pose(dataframe=sweep.city_pose.to_pandas())            
+        city_pose = Pose(dataframe=sweep.city_pose.to_pandas())
         if avm is not None:
-            pcl_ego = sweep.lidar[['x', 'y', 'z']].to_numpy()
+            pcl_ego = sweep.lidar[["x", "y", "z"]].to_numpy()
             pcl_city_1 = city_pose.SE3().transform_point_cloud(pcl_ego)
             is_ground = avm.get_ground_points_boolean(pcl_city_1).astype(bool)
         else:
             is_ground = None
 
         lidar = Lidar(dataframe=sweep.lidar.to_pandas())
-        return cls(annotations=annotations, city_pose=city_pose, lidar=lidar, sweep_uuid=sweep.sweep_uuid,
-                   is_ground=is_ground)
+        return cls(
+            annotations=annotations, city_pose=city_pose, lidar=lidar, sweep_uuid=sweep.sweep_uuid, is_ground=is_ground
+        )
 
 
 @dataclass(frozen=True)
@@ -171,6 +197,7 @@ class Pose:
 
     @cached_property
     def Rt(self) -> Tuple[Tensor, Tensor]:
+        """Convert pose to a rotation matrix and translation."""
         quat_wxyz: NDArrayFloat = self.dataframe[list(QUAT_WXYZ_FIELDS)].to_numpy()
         translation: NDArrayFloat = self.dataframe[list(TRANSLATION_FIELDS)].to_numpy()
 
@@ -178,6 +205,7 @@ class Pose:
         return torch.as_tensor(rotation, dtype=torch.float32), torch.as_tensor(translation, dtype=torch.float32)
 
     def SE3(self) -> SE3:
+        """Convert pose to SE3."""
         R, t = self.Rt
         return SE3(rotation=R[0].numpy(), translation=t[0].numpy())
 
@@ -209,33 +237,34 @@ class Flow:
 
     @classmethod
     def from_sweep_pair(cls, sweeps: Tuple[Sweep, Sweep]) -> Flow:
+        """Create flow object from a pair of Sweeps."""
         poses = [sweep.city_pose.SE3() for sweep in sweeps]
         ego1_SE3_ego0 = poses[1].inverse().compose(poses[0])
         if sweeps[0].annotations is None or sweeps[1].annotations is None:
             return cls(flow=None, valid=None, classes=None, dynamic=None, ego_motion=ego1_SE3_ego0)
         else:
             annotations: List[Annotations] = [sweeps[0].annotations, sweeps[1].annotations]
-        
+
         cuboids = [annotations_to_id_cudboid_map(anno) for anno in annotations]
-        pcs = [sweep.lidar.dataframe[['x', 'y', 'z']].to_numpy() for sweep in sweeps]
-        
+        pcs = [sweep.lidar.dataframe[["x", "y", "z"]].to_numpy() for sweep in sweeps]
+
         # Convert to float32s
         ego1_SE3_ego0.rotation = ego1_SE3_ego0.rotation.astype(np.float32)
         ego1_SE3_ego0.translation = ego1_SE3_ego0.translation.astype(np.float32)
-        
+
         rigid_flow = (ego1_SE3_ego0.transform_point_cloud(pcs[0]) - pcs[0]).astype(np.float32)
         flow = rigid_flow.copy()
-        
+
         valid = np.ones(len(pcs[0]), dtype=bool)
         classes = np.zeros(len(pcs[0]), dtype=np.uint8)
-        
+
         for id in cuboids[0]:
             c0 = cuboids[0][id]
             c0.length_m += 0.2  # the bounding boxes are a little too tight and some points are missed
             c0.width_m += 0.2
             obj_pts, obj_mask = c0.compute_interior_points(pcs[0])
             classes[obj_mask] = CATEGORY_MAP[str(c0.category)] + 1
-        
+
             if id in cuboids[1]:
                 c1 = cuboids[1][id]
                 c1_SE3_c0 = c1.dst_SE3_object.compose(c0.dst_SE3_object.inverse())
@@ -245,10 +274,10 @@ class Flow:
                 valid[obj_mask] = 0
 
         dynamic = np.linalg.norm((flow - rigid_flow), axis=-1) >= 0.05
-        
+
         return cls(flow=flow, valid=valid, classes=classes, dynamic=dynamic, ego_motion=ego1_SE3_ego0)
-    
-    
+
+
 def prevent_fsspec_deadlock() -> None:
     """Reset the fsspec global lock to prevent deadlocking in forked processes."""
     fsspec.asyn.reset_lock()
@@ -315,10 +344,11 @@ def compute_interior_points_mask(xyz_m: Tensor, cuboid_vertices: Tensor) -> Tens
 
 
 def annotations_to_id_cudboid_map(annotations: Annotations) -> Dict[str, Cuboid]:
-    """Creates a mapping between track UUIDs and cuboids
+    """Create a mapping between track UUIDs and cuboids.
 
     Args:
         annotations: the annotations to transform into cuboids
+
     Returns:
         A dict with the UUIDs as keys and the coresponding cuboids as values.
     """

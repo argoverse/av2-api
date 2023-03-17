@@ -1,3 +1,5 @@
+"""An example showing how to output flow predictions in the format required for submission."""
+
 import argparse
 from pathlib import Path
 
