@@ -5,22 +5,26 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Optional, Tuple
+from math import inf
+from typing import Optional, Tuple, List
+from pathlib import Path
+import numpy as np
 
 import pandas as pd
 from torch.utils.data import Dataset
 
 import av2._r as rust
+from av2.map.map_api import ArgoverseStaticMap
 from av2.utils.typing import PathType
 
-from .utils import Sweep
+from .utils import Sweep, Flow
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
+class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Flow]]):
     """Pytorch dataloader for the sensor dataset.
 
     Args:
@@ -50,41 +54,49 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
             self.num_accumulated_sweeps,
             self.memory_mapped,
         )
+        self.data_dir = Path(self.root_dir) / self.dataset_name / 'sensor' / self.split_name
 
     @cached_property
     def file_index(self) -> pd.DataFrame:
         """File index dataframe composed of (log_id, timestamp_ns)."""
         return self._backend.file_index.to_pandas()
 
-    def __getitem__(self, index: int) -> Tuple[Sweep, Optional[Sweep]]:
-        """Get a pair of sweeps for scene flow computation.
+    @cached_property
+    def index_map(self) -> List[int]:
+        inds = []
+        N = self._backend.__len__()
+        for i in range(N):
+            if i + 1 < N:
+                next_log_id = self.file_index.loc[i + 1, ['log_id']].item()
+                current_log_id = self.file_index.loc[i, ["log_id"]].item()
+                if current_log_id == next_log_id:
+                    inds.append(i)
+        return inds
+    
+    def get_log_id(self, index: int) -> str:
+        return self.file_index.loc[index, ["log_id"]].item()
 
-        Args:
-            index: Index in [0, num_sweeps - 1].
+    def __getitem__(self, index: int) -> Tuple[Sweep, Sweep, Flow]:
+        backend_index = self.index_map[index]
+        log = self.file_index.loc[index, ["log_id"]].item()
+        log_dir_path = log_map_dirpath = self.data_dir / log
+        log_map_dirpath = self.data_dir / log / "map"
+        avm = ArgoverseStaticMap.from_map_dir(log_map_dirpath, build_raster=True)
 
-        Returns:
-            Current sweep and the next sweep (if it exists).
-        """
-        sweep = self._backend.get(index)
-        next_sweep = None
+        sweep = Sweep.from_rust(self._backend.get(backend_index), avm=avm)
+        next_sweep = Sweep.from_rust(self._backend.get(backend_index+1), avm=avm)
 
-        next_index = index + 1
-        if next_index < len(self):
-            candidate_log_id: str = self.file_index["log_id"][next_index]
-            current_log_id = sweep.sweep_uuid[0]
-            if candidate_log_id == current_log_id:
-                next_sweep = Sweep.from_rust(self._backend.get(next_index))
-        return Sweep.from_rust(sweep), next_sweep
-
+        flow = Flow.from_sweep_pair((sweep, next_sweep))
+        return sweep, next_sweep, flow
+    
     def __len__(self) -> int:
-        """Length of the dataloader."""
-        return self._backend.__len__()
+        return len(self.index_map)
 
     def __iter__(self) -> SceneFlowDataloader:
         """Iterate method for the dataloader."""
         return self
 
-    def __next__(self) -> Tuple[Sweep, Optional[Sweep]]:
+    def __next__(self) -> Tuple[Sweep, Sweep, Flow]:
         """Return a tuple of sweeps for scene flow."""
         if self._current_idx >= self.__len__():
             raise StopIteration
