@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
         pc1 = sweep_0.lidar_xyzi[mask, :3]
         pc1_rigid = apply_se3(ego_motion, pc1)
-        rigid_flow = pc1_rigid - pc1
+        rigid_flow = (pc1_rigid - pc1).detach().numpy()
         dynamic = np.zeros(len(rigid_flow), dtype=bool)
 
-        write_output_file(rigid_flow.numpy(), dynamic, sweep_0.sweep_uuid, output_root)
+        write_output_file(rigid_flow, dynamic, sweep_0.sweep_uuid, output_root)
