@@ -1,10 +1,12 @@
 """Utilities for generating output for the scene flow challenge."""
 
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import numpy as np
 import pandas as pd
+from kornia.geometry.liegroup import Se3
+from torch import BoolTensor
 
 from av2.torch.dataloaders.scene_flow import SceneFlowDataloader
 from av2.torch.dataloaders.utils import Flow, Sweep
@@ -16,15 +18,15 @@ def get_eval_subset(dataloader: SceneFlowDataloader) -> List[int]:
     return list(range(len(dataloader)))[::5]
 
 
-def get_eval_point_mask(datum: Tuple[Sweep, Sweep, Flow]) -> NDArrayBool:
+def get_eval_point_mask(datum: Tuple[Sweep, Sweep, Se3, Optional[Flow]]) -> BoolTensor:
     """Return for a given sweep, a boolean mask indicating which points are evaluated on."""
-    pcl = datum[0].lidar.as_tensor()
-    is_close: NDArrayBool = ((pcl[:, 0].abs() <= 50) & (pcl[:, 1].abs() <= 50)).numpy().astype(bool)
+    pcl = datum[0].lidar_xyzi[:, :3]
+    is_close = ((pcl[:, 0].abs() <= 50) & (pcl[:, 1].abs() <= 50)).bool()
 
     if datum[0].is_ground is None:
         raise ValueError("Must have ground annotations loaded to determine eval mask")
-
-    return is_close & ~datum[0].is_ground.astype(bool)
+    not_ground = ~(datum[0].is_ground)
+    return BoolTensor(is_close & not_ground)
 
 
 def write_output_file(flow: NDArrayFloat, dynamic: NDArrayBool, sweep_uuid: Tuple[str, int], output_dir: Path) -> None:

@@ -38,27 +38,17 @@ if __name__ == "__main__":
     eval_inds = get_eval_subset(dl)
     for i in track(eval_inds):
         datum = dl[i]
-        missing_annotations = (
-            (datum[2].flow is None)
-            or (datum[2].valid is None)
-            or (datum[2].classes is None)
-            or (datum[2].dynamic is None)
-        )
-        if datum[2].flow is None or datum[2].valid is None:
+        if datum[3] is None:
             raise ValueError("Missing flow annotations")
-        if datum[2].classes is None:
-            raise ValueError("Missing class annotations")
-        if datum[2].dynamic is None:
-            raise ValueError("Missing dynamic annotations")
 
         mask = get_eval_point_mask(datum)
 
-        flow = datum[2].flow[mask].astype(np.float16)
-        valid = datum[2].valid[mask].astype(bool)
-        classes = datum[2].classes[mask].astype(np.uint8)
-        dynamic = datum[2].dynamic[mask].astype(bool)
+        flow = datum[3].flow[mask].numpy().astype(np.float16)
+        valid = datum[3].valid[mask].numpy().astype(bool)
+        classes = datum[3].classes[mask].numpy().astype(np.uint8)
+        dynamic = datum[3].dynamic[mask].numpy().astype(bool)
 
-        pc = datum[0].lidar.dataframe[["x", "y", "z"]].to_numpy()[mask]
+        pc = datum[0].lidar_xyzi[mask, :3].numpy()
         close = ((np.abs(pc[:, 0]) <= 35) & (np.abs(pc[:, 1]) <= 35)).astype(bool)
 
         output = pd.DataFrame(

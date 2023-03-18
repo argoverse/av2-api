@@ -11,6 +11,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from kornia.geometry.liegroup import Se3
 from torch.utils.data import Dataset
 
 import av2._r as rust
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Flow]]):
+class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
     """Pytorch dataloader for the sensor dataset.
 
     Args:
@@ -78,8 +79,8 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Flow]]):
         """Return the log name for a given sweep index."""
         return str(self.file_index.loc[index, ["log_id"]].item())
 
-    def __getitem__(self, index: int) -> Tuple[Sweep, Sweep, Flow]:
-        """Get a pair of sweeps and flow annotations if available."""
+    def __getitem__(self, index: int) -> Tuple[Sweep, Sweep, Se3, Optional[Flow]]:
+        """Get a pair of sweeps, ego motion, and flow if annotations are available."""
         backend_index = self.index_map[index]
         log = self.file_index.loc[index, ["log_id"]].item()
         log_dir_path = log_map_dirpath = self.data_dir / log
@@ -89,8 +90,13 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Flow]]):
         sweep = Sweep.from_rust(self._backend.get(backend_index), avm=avm)
         next_sweep = Sweep.from_rust(self._backend.get(backend_index + 1), avm=avm)
 
-        flow = Flow.from_sweep_pair((sweep, next_sweep))
-        return sweep, next_sweep, flow
+        if sweep.annotations is not None:
+            flow = Flow.from_sweep_pair((sweep, next_sweep))
+        else:
+            flow = None
+
+        ego_motion = next_sweep.city_SE3_ego.inverse() * sweep.city_SE3_ego
+        return sweep, next_sweep, ego_motion, flow
 
     def __len__(self) -> int:
         """Length of the scene flow dataset (number of pairs of sweeps)."""
@@ -100,7 +106,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Flow]]):
         """Iterate method for the dataloader."""
         return self
 
-    def __next__(self) -> Tuple[Sweep, Sweep, Flow]:
+    def __next__(self) -> Tuple[Sweep, Sweep, Se3, Optional[Flow]]:
         """Return a tuple of sweeps for scene flow."""
         if self._current_idx >= self.__len__():
             raise StopIteration

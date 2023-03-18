@@ -5,6 +5,7 @@ dependencies:
   - av
   - click
   - joblib
+  - kornia
   - matplotlib-base
   - maturin
   - nox

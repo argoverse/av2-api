@@ -8,6 +8,8 @@ from rich.progress import track
 
 from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset, write_output_file
 from av2.torch.dataloaders.scene_flow import SceneFlowDataloader
+from av2.torch.dataloaders.utils import apply_se3
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -33,12 +35,12 @@ if __name__ == "__main__":
 
     eval_inds = get_eval_subset(dl)
     for i in track(eval_inds, description="Generating outputs..."):
-        sweep_0, sweep_1, flow = dl[i]
-        mask = get_eval_point_mask((sweep_0, sweep_1, flow))
+        sweep_0, sweep_1, ego_motion, flow = dl[i]
+        mask = get_eval_point_mask((sweep_0, sweep_1, ego_motion, flow))
 
-        pc1 = sweep_0.lidar.dataframe[["x", "y", "z"]].to_numpy()[mask]
-        pc1_rigid = flow.ego_motion.transform_point_cloud(pc1)
+        pc1 = sweep_0.lidar_xyzi[mask, :3]
+        pc1_rigid = apply_se3(ego_motion, pc1)
         rigid_flow = pc1_rigid - pc1
         dynamic = np.zeros(len(rigid_flow), dtype=bool)
 
-        write_output_file(rigid_flow, dynamic, sweep_0.sweep_uuid, output_root)
+        write_output_file(rigid_flow.numpy(), dynamic, sweep_0.sweep_uuid, output_root)

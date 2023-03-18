@@ -13,7 +13,10 @@ import fsspec.asyn
 import numpy as np
 import pandas as pd
 import torch
-from torch import Tensor
+from kornia.geometry.liegroup import Se3, So3
+from kornia.geometry.quaternion import Quaternion
+from kornia.geometry.conversions import convert_points_to_homogeneous, convert_points_from_homogeneous
+from torch import Tensor, FloatTensor, ByteTensor, BoolTensor
 
 import av2._r as rust
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
@@ -70,7 +73,7 @@ DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
     "qy",
     "qz",
 )
-DEFAULT_LIDAR_TENSOR_FIELDS: Final = ("x", "y", "z")
+DEFAULT_LIDAR_TENSOR_FIELDS: Final = ("x", "y", "z", "intensity")
 QUAT_WXYZ_FIELDS: Final = ("qw", "qx", "qy", "qz")
 TRANSLATION_FIELDS: Final = ("tx_m", "ty_m", "tz_m")
 
@@ -125,89 +128,67 @@ class Annotations:
 
 
 @dataclass(frozen=True)
-class Lidar:
-    """Dataclass for lidar sweeps.
-
-    Args:
-        dataframe: Dataframe containing the lidar and its attributes.
-    """
-
-    dataframe: pd.DataFrame
-
-    def as_tensor(
-        self, field_ordering: Tuple[str, ...] = DEFAULT_LIDAR_TENSOR_FIELDS, dtype: torch.dtype = torch.float32
-    ) -> Tensor:
-        """Return the lidar sweep as a tensor.
-
-        Args:
-            field_ordering: Feature ordering for the tensor.
-            dtype: Target datatype for casting.
-
-        Returns:
-            (N,K) tensor where N is the number of lidar points and K
-                is the number of features.
-        """
-        dataframe_npy = self.dataframe.loc[:, list(field_ordering)].to_numpy()
-        return torch.as_tensor(dataframe_npy, dtype=dtype)
-
-
-@dataclass(frozen=True)
 class Sweep:
     """Stores the annotations and lidar for one sweep.
 
+    Notation:
+        N: Number of lidar points.
+
     Args:
-        annotations: Object containing annotation parameters.
-        lidar: Object containing lidar parameters.
-        sweep_uuid:
+        annotations: Annotations parameterization.
+        city_SE3_ego: Rigid transformation describing the city pose of the ego-vehicle.
+        lidar_xyzi: (N,4) Tensor of lidar points containing (x,y,z) in meters and intensity (i).
+        sweep_uuid: Log id and nanosecond timestamp (unique identifier).
+        is_ground: Tensor of boolean values indicatind which points belong to the ground
     """
 
     annotations: Optional[Annotations]
-    city_pose: Pose
-    lidar: Lidar
+    city_SE3_ego: Se3
+    lidar_xyzi: Tensor
     sweep_uuid: Tuple[str, int]
-    is_ground: Optional[NDArrayBool] = None
+    is_ground: Optional[Tensor] = None
 
     @classmethod
-    def from_rust(cls, sweep: rust.Sweep, avm: Optional[ArgoverseStaticMap]) -> Sweep:
-        """Create a Sweep object from its rust counterpart, also loads ground annotations if the map is provided."""
+    def from_rust(cls, sweep: rust.Sweep, avm: Optional[ArgoverseStaticMap] = None) -> Sweep:
+        """Build a sweep from the Rust backend."""
         if sweep.annotations is not None:
             annotations = Annotations(dataframe=sweep.annotations.to_pandas())
         else:
             annotations = None
+        city_SE3_ego = frame_to_SE3(frame=sweep.city_pose.to_pandas())
+        lidar_xyzi = frame_to_tensor(sweep.lidar.to_pandas())
 
-        city_pose = Pose(dataframe=sweep.city_pose.to_pandas())
         if avm is not None:
-            pcl_ego = sweep.lidar[["x", "y", "z"]].to_numpy()
-            pcl_city_1 = city_pose.SE3().transform_point_cloud(pcl_ego)
-            is_ground = avm.get_ground_points_boolean(pcl_city_1).astype(bool)
+            pcl_ego = lidar_xyzi[:, :3]
+            pcl_city_1 = apply_se3(city_SE3_ego, pcl_ego)
+            is_ground = torch.from_numpy(avm.get_ground_points_boolean(pcl_city_1.numpy()).astype(bool))
         else:
             is_ground = None
 
-        lidar = Lidar(dataframe=sweep.lidar.to_pandas())
         return cls(
-            annotations=annotations, city_pose=city_pose, lidar=lidar, sweep_uuid=sweep.sweep_uuid, is_ground=is_ground
+            annotations=annotations,
+            city_SE3_ego=city_SE3_ego,
+            lidar_xyzi=lidar_xyzi,
+            sweep_uuid=sweep.sweep_uuid,
+            is_ground=is_ground,
         )
 
 
-@dataclass(frozen=True)
-class Pose:
-    """Stores the annotations and lidar for one sweep."""
+def frame_to_tensor(frame: pd.DataFrame) -> Tensor:
+    """Build lidar `torch` tensor from `pandas` dataframe.
 
-    dataframe: pd.DataFrame
+    Notation:
+        N: Number of lidar points.
+        K: Number of lidar attributes.
 
-    @cached_property
-    def Rt(self) -> Tuple[Tensor, Tensor]:
-        """Convert pose to a rotation matrix and translation."""
-        quat_wxyz: NDArrayFloat = self.dataframe[list(QUAT_WXYZ_FIELDS)].to_numpy()
-        translation: NDArrayFloat = self.dataframe[list(TRANSLATION_FIELDS)].to_numpy()
+    Args:
+        frame: (N,K) Pandas DataFrame containing lidar fields.
 
-        rotation = quat_to_mat(quat_wxyz)
-        return torch.as_tensor(rotation, dtype=torch.float32), torch.as_tensor(translation, dtype=torch.float32)
-
-    def SE3(self) -> SE3:
-        """Convert pose to SE3."""
-        R, t = self.Rt
-        return SE3(rotation=R[0].numpy(), translation=t[0].numpy())
+    Returns:
+        (N,4) Tensor of (x,y,z) in meters and intensity (i).
+    """
+    lidar_npy = frame.loc[:, list(DEFAULT_LIDAR_TENSOR_FIELDS)].to_numpy().astype(np.float32)
+    return torch.as_tensor(lidar_npy)
 
 
 @dataclass(frozen=True)
@@ -225,11 +206,10 @@ class Flow:
         ego_motion: SE3 the motion of the vehicle between the two sweeps
     """
 
-    flow: Optional[NDArrayFloat]
-    valid: Optional[NDArrayBool]
-    classes: Optional[NDArrayByte]
-    dynamic: Optional[NDArrayBool]
-    ego_motion: SE3
+    flow: FloatTensor
+    valid: BoolTensor
+    classes: ByteTensor
+    dynamic: BoolTensor
 
     def __len__(self) -> int:
         """Return the number of LiDAR returns in the aggregated sweep."""
@@ -238,109 +218,67 @@ class Flow:
     @classmethod
     def from_sweep_pair(cls, sweeps: Tuple[Sweep, Sweep]) -> Flow:
         """Create flow object from a pair of Sweeps."""
-        poses = [sweep.city_pose.SE3() for sweep in sweeps]
-        ego1_SE3_ego0 = poses[1].inverse().compose(poses[0])
+        poses = [sweep.city_SE3_ego for sweep in sweeps]
+        ego1_SE3_ego0 = poses[1].inverse() * poses[0]
         if sweeps[0].annotations is None or sweeps[1].annotations is None:
-            return cls(flow=None, valid=None, classes=None, dynamic=None, ego_motion=ego1_SE3_ego0)
+            raise ValueError("Can only create flow from sweeps with annotations")
         else:
             annotations: List[Annotations] = [sweeps[0].annotations, sweeps[1].annotations]
 
         cuboids = [annotations_to_id_cudboid_map(anno) for anno in annotations]
-        pcs = [sweep.lidar.dataframe[["x", "y", "z"]].to_numpy() for sweep in sweeps]
+        pcs = [sweep.lidar_xyzi[:, :3] for sweep in sweeps]
 
-        # Convert to float32s
-        ego1_SE3_ego0.rotation = ego1_SE3_ego0.rotation.astype(np.float32)
-        ego1_SE3_ego0.translation = ego1_SE3_ego0.translation.astype(np.float32)
+        rigid_flow = (apply_se3(ego1_SE3_ego0, pcs[0]) - pcs[0]).float()
+        flow = rigid_flow.clone()
 
-        rigid_flow = (ego1_SE3_ego0.transform_point_cloud(pcs[0]) - pcs[0]).astype(np.float32)
-        flow = rigid_flow.copy()
-
-        valid = np.ones(len(pcs[0]), dtype=bool)
-        classes = np.zeros(len(pcs[0]), dtype=np.uint8)
+        valid = torch.ones(len(pcs[0]), dtype=torch.bool)
+        classes = torch.zeros(len(pcs[0]), dtype=torch.uint8)
 
         for id in cuboids[0]:
             c0 = cuboids[0][id]
             c0.length_m += 0.2  # the bounding boxes are a little too tight and some points are missed
             c0.width_m += 0.2
-            obj_pts, obj_mask = c0.compute_interior_points(pcs[0])
+            obj_pts, obj_mask = [torch.from_numpy(arr) for arr in c0.compute_interior_points(pcs[0].numpy())]
             classes[obj_mask] = CATEGORY_MAP[str(c0.category)] + 1
 
             if id in cuboids[1]:
                 c1 = cuboids[1][id]
                 c1_SE3_c0 = c1.dst_SE3_object.compose(c0.dst_SE3_object.inverse())
-                obj_flow = c1_SE3_c0.transform_point_cloud(obj_pts) - obj_pts
-                flow[obj_mask] = obj_flow.astype(np.float32)
+                obj_flow = torch.from_numpy(c1_SE3_c0.transform_point_cloud(obj_pts.numpy())) - obj_pts
+                flow[obj_mask] = obj_flow.float()
             else:
                 valid[obj_mask] = 0
 
-        dynamic = np.linalg.norm((flow - rigid_flow), axis=-1) >= 0.05
+        dynamic = ((flow - rigid_flow) ** 2).sum(-1).sqrt() >= 0.05
 
-        return cls(flow=flow, valid=valid, classes=classes, dynamic=dynamic, ego_motion=ego1_SE3_ego0)
-
-
-def prevent_fsspec_deadlock() -> None:
-    """Reset the fsspec global lock to prevent deadlocking in forked processes."""
-    fsspec.asyn.reset_lock()
-
-
-def query_pose(poses: pd.DataFrame, timestamp_ns: int) -> SE3:
-    """Query the SE(3) transformation as the provided timestamp in nanoseconds.
-
-    Args:
-        poses: DataFrame of quaternion and translation components.
-        timestamp_ns: Timestamp of interest in nanoseconds.
-
-    Returns:
-        SE(3) at timestamp_ns.
-    """
-    mask = poses.loc[:, "timestamp_ns"] == timestamp_ns
-    pose = poses.loc[mask, ["qw", "qx", "qy", "qz", "tx_m", "ty_m", "tz_m"]]
-    pose_npy: NDArrayFloat = pose.to_numpy().squeeze()
-    quat = pose_npy[:4]
-    translation = pose_npy[4:]
-    return SE3(
-        rotation=quat_to_mat(quat),
-        translation=translation,
-    )
+        return cls(
+            flow=torch.FloatTensor(flow),
+            valid=torch.BoolTensor(valid),
+            classes=torch.ByteTensor(classes),
+            dynamic=torch.BoolTensor(dynamic),
+        )
 
 
-def compute_interior_points_mask(xyz_m: Tensor, cuboid_vertices: Tensor) -> Tensor:
-    r"""Compute the interior points within a set of _axis-aligned_ cuboids.
+def frame_to_SE3(frame: pd.DataFrame) -> Se3:
+    """Build SE(3) object from `pandas` DataFrame.
 
-    Reference:
-        https://math.stackexchange.com/questions/1472049/check-if-a-point-is-inside-a-rectangular-shaped-area-3d
-            5------4
-            |\\    |\\
-            | \\   | \\
-            6--\\--7  \\
-            \\  \\  \\ \\
-        l    \\  1-------0    h
-         e    \\ ||   \\ ||   e
-          n    \\||    \\||   i
-           g    \\2------3    g
-            t      width.     h
-             h.               t.
+    Notation:
+        N: Number of rigid transformations.
 
     Args:
-        xyz_m: (N,3) Points in Cartesian space.
-        cuboid_vertices: (K,8,3) Vertices of the cuboids.
+        frame: (N,4) Pandas DataFrame containing quaternion coefficients.
 
     Returns:
-        (N,) A tensor of boolean flags indicating whether the points
-            are interior to the cuboid.
+        Kornia Se3 object representing a (N,4,4) tensor of homogeneous transformations.
     """
-    vertices = cuboid_vertices[:, [6, 3, 1]]
-    uvw = cuboid_vertices[:, 2:3] - vertices
-    reference_vertex = cuboid_vertices[:, 2:3]
+    quaternion_npy = frame.loc[0, list(QUAT_WXYZ_FIELDS)].to_numpy().astype(float)
+    quat_wxyz = Quaternion(torch.as_tensor(quaternion_npy, dtype=torch.float32))
+    rotation = So3(quat_wxyz)
 
-    dot_uvw_reference = uvw @ reference_vertex.transpose(1, 2)
-    dot_uvw_vertices = torch.diagonal(uvw @ vertices.transpose(1, 2), 0, 2)[..., None]
-    dot_uvw_points = uvw @ xyz_m.T
-
-    constraint_a = torch.logical_and(dot_uvw_reference <= dot_uvw_points, dot_uvw_points <= dot_uvw_vertices)
-    constraint_b = torch.logical_and(dot_uvw_reference >= dot_uvw_points, dot_uvw_points >= dot_uvw_vertices)
-    is_interior: Tensor = torch.logical_or(constraint_a, constraint_b).all(dim=1)
-    return is_interior
+    translation_npy = frame.loc[0, list(TRANSLATION_FIELDS)].to_numpy().astype(np.float32)
+    translation = torch.as_tensor(translation_npy, dtype=torch.float32)
+    dst_SE3_src = Se3(rotation[None], translation[None])
+    return dst_SE3_src
 
 
 def annotations_to_id_cudboid_map(annotations: Annotations) -> Dict[str, Cuboid]:
@@ -358,3 +296,8 @@ def annotations_to_id_cudboid_map(annotations: Annotations) -> Dict[str, Cuboid]
 
     cuboids_and_ids = dict(zip(ids, cuboid_list.cuboids))
     return cuboids_and_ids
+
+
+def apply_se3(se3: Se3, pts: Tensor) -> Tensor:
+    """Apply an Se3 transformation to a tensor of points (N x 3)."""
+    return convert_points_from_homogeneous(convert_points_to_homogeneous(pts) @ se3.matrix().T)
