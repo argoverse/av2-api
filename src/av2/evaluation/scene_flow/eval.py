@@ -2,7 +2,7 @@
 
 import argparse
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Tuple, Union
+from typing import Dict, Final, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -12,145 +12,99 @@ from rich.progress import track
 
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
-CATEGORY_MAP = {
-    "ANIMAL": 0,
-    "ARTICULATED_BUS": 1,
-    "BICYCLE": 2,
-    "BICYCLIST": 3,
-    "BOLLARD": 4,
-    "BOX_TRUCK": 5,
-    "BUS": 6,
-    "CONSTRUCTION_BARREL": 7,
-    "CONSTRUCTION_CONE": 8,
-    "DOG": 9,
-    "LARGE_VEHICLE": 10,
-    "MESSAGE_BOARD_TRAILER": 11,
-    "MOBILE_PEDESTRIAN_CROSSING_SIGN": 12,
-    "MOTORCYCLE": 13,
-    "MOTORCYCLIST": 14,
-    "OFFICIAL_SIGNALER": 15,
-    "PEDESTRIAN": 16,
-    "RAILED_VEHICLE": 17,
-    "REGULAR_VEHICLE": 18,
-    "SCHOOL_BUS": 19,
-    "SIGN": 20,
-    "STOP_SIGN": 21,
-    "STROLLER": 22,
-    "TRAFFIC_LIGHT_TRAILER": 23,
-    "TRUCK": 24,
-    "TRUCK_CAB": 25,
-    "VEHICULAR_TRAILER": 26,
-    "WHEELCHAIR": 27,
-    "WHEELED_DEVICE": 28,
-    "WHEELED_RIDER": 29,
-    "NONE": -1,
-}
-
-BACKGROUND_CATEGORIES = [
-    "BOLLARD",
-    "CONSTRUCTION_BARREL",
-    "CONSTRUCTION_CONE",
-    "MOBILE_PEDESTRIAN_CROSSING_SIGN",
-    "SIGN",
-    "STOP_SIGN",
-]
-PEDESTRIAN_CATEGORIES = ["PEDESTRIAN", "STROLLER", "WHEELCHAIR", "OFFICIAL_SIGNALER"]
-SMALL_VEHICLE_CATEGORIES = ["BICYCLE", "BICYCLIST", "MOTORCYCLE", "MOTORCYCLIST", "WHEELED_DEVICE", "WHEELED_RIDER"]
-VEHICLE_CATEGORIES = [
-    "ARTICULATED_BUS",
-    "BOX_TRUCK",
-    "BUS",
-    "LARGE_VEHICLE",
-    "RAILED_VEHICLE",
-    "REGULAR_VEHICLE",
-    "SCHOOL_BUS",
-    "TRUCK",
-    "TRUCK_CAB",
-    "VEHICULAR_TRAILER",
-    "TRAFFIC_LIGHT_TRAILER",
-    "MESSAGE_BOARD_TRAILER",
-]
-ANIMAL_CATEGORIES = ["ANIMAL", "DOG"]
-
-NO_CLASSES = {"All": [k for k in range(-1, 30)]}
-FOREGROUND_BACKGROUND = {
-    "Background": [-1],
-    "Foreground": [
-        CATEGORY_MAP[k]
-        for k in (
-            BACKGROUND_CATEGORIES
-            + PEDESTRIAN_CATEGORIES
-            + SMALL_VEHICLE_CATEGORIES
-            + VEHICLE_CATEGORIES
-            + ANIMAL_CATEGORIES
-        )
-    ],
-}
-PED_CYC_VEH_ANI = {
-    "Background": [-1],
-    "Object": [CATEGORY_MAP[k] for k in BACKGROUND_CATEGORIES],
-    "Pedestrian": [CATEGORY_MAP[k] for k in PEDESTRIAN_CATEGORIES],
-    "Small Vehicle": [CATEGORY_MAP[k] for k in SMALL_VEHICLE_CATEGORIES],
-    "Vehicle": [CATEGORY_MAP[k] for k in VEHICLE_CATEGORIES],
-    "Animal": [CATEGORY_MAP[k] for k in ANIMAL_CATEGORIES],
-}
-
-FLOW_COLS = ["flow_tx_m", "flow_ty_m", "flow_ty_m"]
+from .constants import *
 
 
-def epe(pred: NDArrayFloat, gt: NDArrayFloat) -> NDArrayFloat:
-    """Compute the end-point-error between predictions and ground truth."""
-    return np.array(np.sqrt(np.sum((pred - gt) ** 2, axis=-1)), dtype=np.float64)
+def epe(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
+    """Compute the end-point-error between predictions and ground truth.
+
+    Args:
+        dts: (N, 3) array containig predicted flows
+        gts: (N, 3) array containig ground truth flows"""
+    return np.array(np.sqrt(np.sum((dts - gts) ** 2, axis=-1)), dtype=np.float64)
 
 
-def accuracy(pred: NDArrayFloat, gt: NDArrayFloat, threshold: float) -> NDArrayFloat:
-    """Compute the percent of inliers for a given threshold for a set of predictions and ground truth vectors."""
-    l2_norm = np.sqrt(np.sum((pred - gt) ** 2, axis=-1))
-    gt_norm = np.sqrt(np.sum(gt * gt, axis=-1))
-    relative_err = l2_norm / (gt_norm + 1e-7)
+def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayFloat:
+    """Compute the percent of inliers for a given threshold for a set of dtsictions and ground truth vectors.
+
+    Args:
+        dts: (N, 3) array containig dtsicted flows
+        gtss: (N, 3) array containig ground truth flows"""
+    l2_norm = np.linalg.norm(dts - gts, axis=-1)
+    gts_norm = np.linalg.norm(gts, axis=-1)
+    EPS: Final = 1e-10
+    relative_err = l2_norm / (gts_norm + EPS)
     error_lt_5 = (l2_norm < threshold).astype(bool)
     relative_err_lt_5 = (relative_err < threshold).astype(bool)
     return np.array((error_lt_5 | relative_err_lt_5), dtype=np.float64)
 
 
-def accuracy_strict(pred: NDArrayFloat, gt: NDArrayFloat) -> NDArrayFloat:
-    """Compute the acccuracy with a 0.05 threshold."""
-    return accuracy(pred, gt, 0.05)
+def accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
+    """Compute the acccuracy with a 0.05 threshold.
+
+    Args:
+        dts: (N, 3) array containig predicted flows
+        gts: (N, 3) array containig ground truth flows"""
+    return accuracy(dts, gts, 0.05)
 
 
-def accuracy_relax(pred: NDArrayFloat, gt: NDArrayFloat) -> NDArrayFloat:
-    """Compute the acccuracy with a 0.1 threshold."""
-    return accuracy(pred, gt, 0.10)
+def accuracy_relax(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
+    """Compute the acccuracy with a 0.1 threshold.
+
+    Args:
+        dts: (N, 3) array containig predicted flows
+        gts: (N, 3) array containig ground truth flows"""
+    return accuracy(dts, gts, 0.10)
 
 
-def angle_error(pred: NDArrayFloat, gt: NDArrayFloat) -> NDArrayFloat:
-    """Compute the angle error between predicted and ground truth flow vectors."""
-    unit_label = gt / (np.linalg.norm(gt, axis=-1, keepdims=True) + 1e-7)
-    unit_pred = pred / (np.linalg.norm(pred, axis=-1, keepdims=True) + 1e-7)
-    eps = 1e-7
-    dot_product = np.clip(np.sum(unit_label * unit_pred, axis=-1), a_min=-1 + eps, a_max=1 - eps)
+def angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
+    """Compute the angle error between dtsicted and ground truth flow vectors.
+
+    Args:
+        dts: (N, 3) array containig predicted flows
+        gts: (N, 3) array containig ground truth flows"""
+    EPS: Final = 1e-10
+    unit_label = gts / (np.linalg.norm(gts, axis=-1, keepdims=True) + EPS)
+    unit_dts = dts / (np.linalg.norm(dts, axis=-1, keepdims=True) + EPS)
+    dot_product = np.clip(np.sum(unit_label * unit_dts, axis=-1), a_min=-1 + EPSp, a_max=1 - EPS)
     dot_product[dot_product != dot_product] = 0  # Remove NaNs
     return np.array(np.arccos(dot_product), dtype=np.float64)
 
 
-def tp(pred: NDArrayBool, gt: NDArrayBool) -> int:
-    """Compute true positive count."""
-    return int((pred & gt).astype(int).sum())
+def tp(dts: NDArrayBool, gts: NDArrayBool) -> int:
+    """Compute true positive count.
+
+    Args:
+        dts: (N,) array containig predicted dynamic segmentation
+        gts: (N,) array containig ground truth dynamic segmentation"""
+    return int(np.logical_and(dts, gts).astype(int).sum())
 
 
-def tn(pred: NDArrayBool, gt: NDArrayBool) -> int:
-    """Compute true negative count."""
-    return int((~pred & ~gt).astype(int).sum())
+def tn(dts: NDArrayBool, gts: NDArrayBool) -> int:
+    """Compute true negative count.
+
+    Args:
+        dts: (N,) array containig predicted dynamic segmentation
+        gts: (N,) array containig ground truth dynamic segmentation"""
+    return int(np.logical_and(~dts, ~gts).astype(int).sum())
 
 
-def fp(pred: NDArrayBool, gt: NDArrayBool) -> int:
-    """Compute false positive count."""
-    return int((pred & ~gt).astype(int).sum())
+def fp(dts: NDArrayBool, gts: NDArrayBool) -> int:
+    """Compute false positive count.
+
+    Args:
+        dts: (N,) array containig predicted dynamic segmentation
+        gts: (N,) array containig ground truth dynamic segmentation"""
+    return int(np.logical_and(dts, ~gts).astype(int).sum())
 
 
-def fn(pred: NDArrayBool, gt: NDArrayBool) -> int:
-    """Compute false negative count."""
-    return int((~pred & gt).astype(int).sum())
+def fn(dts: NDArrayBool, gts: NDArrayBool) -> int:
+    """Compute false negative count.
+
+    Args:
+        dts: (N,) array containig predicted dynamic segmentation
+        gts: (N,) array containig ground truth dynamic segmentation"""
+    return int(np.logical_and(~dts, gts).astype(int).sum())
 
 
 FLOW_METRICS = {
