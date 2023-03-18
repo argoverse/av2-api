@@ -298,4 +298,7 @@ def annotations_to_id_cudboid_map(annotations: Annotations) -> Dict[str, Cuboid]
 
 def apply_se3(se3: Se3, pts: Tensor) -> Tensor:
     """Apply an Se3 transformation to a tensor of points (N x 3)."""
-    return convert_points_from_homogeneous(convert_points_to_homogeneous(pts) @ se3.matrix().T)
+    mat = se3.matrix()
+    if len(mat.shape) > len(pts.shape):
+        mat = mat.squeeze()
+    return convert_points_from_homogeneous(convert_points_to_homogeneous(pts) @ mat.T)
