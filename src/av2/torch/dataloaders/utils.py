@@ -5,25 +5,23 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, unique
 from functools import cached_property
-from typing import Final, Optional, Tuple, List, Dict
-from av2.map.map_api import ArgoverseStaticMap
-from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayBool
+from typing import Dict, Final, List, Optional, Tuple
 
 import fsspec.asyn
 import numpy as np
 import pandas as pd
 import torch
+from kornia.geometry.conversions import convert_points_from_homogeneous, convert_points_to_homogeneous
 from kornia.geometry.liegroup import Se3, So3
 from kornia.geometry.quaternion import Quaternion
-from kornia.geometry.conversions import convert_points_to_homogeneous, convert_points_from_homogeneous
-from torch import Tensor, FloatTensor, ByteTensor, BoolTensor
+from torch import BoolTensor, ByteTensor, FloatTensor, Tensor
 
 import av2._r as rust
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat
 from av2.geometry.se3 import SE3
-from av2.utils.typing import NDArrayFloat
-from av2.structures.cuboid import CuboidList, Cuboid
-
+from av2.map.map_api import ArgoverseStaticMap
+from av2.structures.cuboid import Cuboid, CuboidList
+from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat
 
 CATEGORY_MAP = {
     "ANIMAL": 0,

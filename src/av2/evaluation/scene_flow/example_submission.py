@@ -10,7 +10,6 @@ from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
 from av2.torch.dataloaders.scene_flow import SceneFlowDataloader
 from av2.torch.dataloaders.utils import apply_se3
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="example_submission",
