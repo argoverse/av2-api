@@ -1,4 +1,5 @@
 """Validate and package a set of prediction files for submission to the leaderboard."""
+
 import argparse
 import json
 from pathlib import Path
