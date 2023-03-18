@@ -96,6 +96,9 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
             flow = None
 
         ego_motion = next_sweep.city_SE3_ego.inverse() * sweep.city_SE3_ego
+        ego_motion.rotation._q.requires_grad_(False)
+        ego_motion.translation.requires_grad_(False)
+
         return sweep, next_sweep, ego_motion, flow
 
     def __len__(self) -> int:

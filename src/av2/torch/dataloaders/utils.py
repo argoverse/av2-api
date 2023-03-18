@@ -226,7 +226,7 @@ class Flow:
         cuboids = [annotations_to_id_cudboid_map(anno) for anno in annotations]
         pcs = [sweep.lidar_xyzi[:, :3] for sweep in sweeps]
 
-        rigid_flow = (apply_se3(ego1_SE3_ego0, pcs[0]) - pcs[0]).float()
+        rigid_flow = (apply_se3(ego1_SE3_ego0, pcs[0]) - pcs[0]).float().detach()
         flow = rigid_flow.clone()
 
         valid = torch.ones(len(pcs[0]), dtype=torch.bool)
@@ -243,7 +243,7 @@ class Flow:
                 c1 = cuboids[1][id]
                 c1_SE3_c0 = c1.dst_SE3_object.compose(c0.dst_SE3_object.inverse())
                 obj_flow = torch.from_numpy(c1_SE3_c0.transform_point_cloud(obj_pts.numpy())) - obj_pts
-                flow[obj_mask] = obj_flow.float()
+                flow[obj_mask] = (obj_flow.float()).detach()
             else:
                 valid[obj_mask] = 0
 
@@ -276,6 +276,8 @@ def frame_to_SE3(frame: pd.DataFrame) -> Se3:
     translation_npy = frame.loc[0, list(TRANSLATION_FIELDS)].to_numpy().astype(np.float32)
     translation = torch.as_tensor(translation_npy, dtype=torch.float32)
     dst_SE3_src = Se3(rotation[None], translation[None])
+    dst_SE3_src.rotation._q.requires_grad_(False)
+    dst_SE3_src.translation.requires_grad_(False)
     return dst_SE3_src
 
 
