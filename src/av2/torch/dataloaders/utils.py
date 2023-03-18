@@ -158,7 +158,7 @@ class Sweep:
 
         if avm is not None:
             pcl_ego = lidar_xyzi[:, :3]
-            pcl_city_1 = apply_se3(city_SE3_ego, pcl_ego)
+            pcl_city_1 = apply_se3(city_SE3_ego, pcl_ego).detach()
             is_ground = torch.from_numpy(avm.get_ground_points_boolean(pcl_city_1.numpy()).astype(bool))
         else:
             is_ground = None
