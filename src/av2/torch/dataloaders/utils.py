@@ -11,50 +11,18 @@ import fsspec.asyn
 import numpy as np
 import pandas as pd
 import torch
+from ab2.evaluation.scene_flow.constants import CATEGORY_MAP
 from kornia.geometry.conversions import convert_points_from_homogeneous, convert_points_to_homogeneous
 from kornia.geometry.liegroup import Se3, So3
 from kornia.geometry.quaternion import Quaternion
 from torch import BoolTensor, ByteTensor, FloatTensor, Tensor
 
 import av2._r as rust
+from av2.datasets.sensor.constants import AnnotationCategories
 from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap
 from av2.structures.cuboid import Cuboid, CuboidList
 from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat
-
-CATEGORY_MAP = {
-    "ANIMAL": 0,
-    "ARTICULATED_BUS": 1,
-    "BICYCLE": 2,
-    "BICYCLIST": 3,
-    "BOLLARD": 4,
-    "BOX_TRUCK": 5,
-    "BUS": 6,
-    "CONSTRUCTION_BARREL": 7,
-    "CONSTRUCTION_CONE": 8,
-    "DOG": 9,
-    "LARGE_VEHICLE": 10,
-    "MESSAGE_BOARD_TRAILER": 11,
-    "MOBILE_PEDESTRIAN_CROSSING_SIGN": 12,
-    "MOTORCYCLE": 13,
-    "MOTORCYCLIST": 14,
-    "OFFICIAL_SIGNALER": 15,
-    "PEDESTRIAN": 16,
-    "RAILED_VEHICLE": 17,
-    "REGULAR_VEHICLE": 18,
-    "SCHOOL_BUS": 19,
-    "SIGN": 20,
-    "STOP_SIGN": 21,
-    "STROLLER": 22,
-    "TRAFFIC_LIGHT_TRAILER": 23,
-    "TRUCK": 24,
-    "TRUCK_CAB": 25,
-    "VEHICULAR_TRAILER": 26,
-    "WHEELCHAIR": 27,
-    "WHEELED_DEVICE": 28,
-    "WHEELED_RIDER": 29,
-}
-
 
 MAX_STR_LEN: Final[int] = 32
 
@@ -222,7 +190,7 @@ class Flow:
         else:
             annotations: List[Annotations] = [sweeps[0].annotations, sweeps[1].annotations]
 
-        cuboids = [annotations_to_id_cudboid_map(anno) for anno in annotations]
+        cuboids = [annotations_to_id_cuboid_map(anno) for anno in annotations]
         pcs = [sweep.lidar_xyzi[:, :3] for sweep in sweeps]
 
         rigid_flow = (apply_se3(ego1_SE3_ego0, pcs[0]) - pcs[0]).float().detach()
@@ -236,7 +204,7 @@ class Flow:
             c0.length_m += 0.2  # the bounding boxes are a little too tight and some points are missed
             c0.width_m += 0.2
             obj_pts, obj_mask = [torch.from_numpy(arr) for arr in c0.compute_interior_points(pcs[0].numpy())]
-            classes[obj_mask] = CATEGORY_MAP[str(c0.category)] + 1
+            classes[obj_mask] = CATEGORY_MAP[str(c0.category)]
 
             if id in cuboids[1]:
                 c1 = cuboids[1][id]

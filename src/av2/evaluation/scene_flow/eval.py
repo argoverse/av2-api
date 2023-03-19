@@ -183,7 +183,7 @@ def metrics(
     pred_flow = pred_flow[valid].astype(np.float64)
     pred_dynamic = pred_dynamic[valid].astype(bool)
     gt = gt[valid].astype(np.float64)
-    classes = classes[valid].astype(int) - 1
+    classes = classes[valid].astype(int)
     dynamic = dynamic[valid].astype(bool)
     close = close[valid].astype(bool)
 
