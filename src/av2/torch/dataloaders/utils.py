@@ -15,7 +15,7 @@ from kornia.geometry.liegroup import Se3, So3
 from kornia.geometry.quaternion import Quaternion
 from torch import Tensor
 
-import av2._r as rust
+import av2._r as rust  # Rust extension.
 
 # Cuboids represented as (x,y,z) in meters, (l,w,h) in meters, and theta (in radians).
 XYZLWH_QWXYZ_COLUMN_NAMES: Final = (
@@ -52,6 +52,18 @@ class Cuboids:
 
     _frame: pd.DataFrame
 
+    @cached_property
+    def category(self) -> List[str]:
+        """Return the object category names."""
+        category_names: List[str] = self._frame["category"].to_list()
+        return category_names
+
+    @cached_property
+    def track_uuid(self) -> List[str]:
+        """Return the unique track identifiers."""
+        category_names: List[str] = self._frame["track_uuid"].to_list()
+        return category_names
+
     def as_tensor(self, cuboid_mode: CuboidMode = CuboidMode.XYZLWH_YAW) -> Tensor:
         """Return object cuboids as an (N,K) tensor.
 
@@ -75,18 +87,6 @@ class Cuboids:
             return xyzlwh_qwxyz
         else:
             raise NotImplementedError("{orientation_mode} orientation mode is not implemented.")
-
-    @cached_property
-    def category_names(self) -> List[str]:
-        """Return the object category names."""
-        category_names: List[str] = self._frame["category"].to_list()
-        return category_names
-
-    @cached_property
-    def track_uuids(self) -> List[str]:
-        """Return the unique track identifiers."""
-        category_names: List[str] = self._frame["track_uuid"].to_list()
-        return category_names
 
 
 @dataclass(frozen=True)
