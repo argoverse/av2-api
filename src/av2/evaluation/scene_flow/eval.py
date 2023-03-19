@@ -27,7 +27,8 @@ def epe(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     Returns:
         The point-wise end-point-error
     """
-    return np.linalg.norm(dts - gts, axis=-1).astype(np.float32)
+    epe: NDArrayFloat = np.linalg.norm(dts - gts, axis=-1).astype(np.float64)
+    return epe
 
 
 def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayFloat:
@@ -46,7 +47,8 @@ def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayF
     relative_err = l2_norm / (gts_norm + EPS)
     error_lt_5 = (l2_norm < threshold).astype(bool)
     relative_err_lt_5 = (relative_err < threshold).astype(bool)
-    return np.array(np.logical_or(error_lt_5, relative_err_lt_5), dtype=np.float64)
+    acc: NDArrayFloat = np.logical_or(error_lt_5, relative_err_lt_5).astype(np.float64)
+    return acc
 
 
 def accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
@@ -88,7 +90,8 @@ def angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     unit_label = gts / (np.linalg.norm(gts, axis=-1, keepdims=True) + EPS)
     unit_dts = dts / (np.linalg.norm(dts, axis=-1, keepdims=True) + EPS)
     dot_product = np.clip(np.sum(unit_label * unit_dts, axis=-1), a_min=-1 + EPS, a_max=1 - EPS)
-    return np.arccos(dot_product, dtype=np.float64)
+    err: NDArrayFloat = np.arccos(dot_product).astype(np.float64)
+    return err
 
 
 def compute_true_positives(dts: NDArrayBool, gts: NDArrayBool) -> int:
