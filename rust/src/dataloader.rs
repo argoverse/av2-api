@@ -201,12 +201,10 @@ impl Dataloader {
     /// Get the sweep at `index`.
     pub fn get(&self, index: usize) -> Sweep {
         let row = self.file_index.0.get_row(index).unwrap().0;
-        let (log_id, timestamp_ns) = unsafe {
-            (
-                row.get_unchecked(0).get_str().unwrap(),
-                row.get_unchecked(1).try_extract::<u64>().unwrap(),
-            )
-        };
+        let (log_id, timestamp_ns) = (
+            row.get(0).unwrap().get_str().unwrap(),
+            row.get(1).unwrap().try_extract::<u64>().unwrap(),
+        );
 
         // Annotations aren't available for the test set.
         let annotations = match self.split_name.as_str() {

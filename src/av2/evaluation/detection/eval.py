@@ -170,8 +170,6 @@ def evaluate(
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
         outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate, args_list)
 
-    if outputs is None:
-        raise RuntimeError("Accumulation has failed! Please check the integrity of your detections and annotations.")
     dts_list, gts_list = zip(*outputs)
 
     METRIC_COLUMN_NAMES = cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
