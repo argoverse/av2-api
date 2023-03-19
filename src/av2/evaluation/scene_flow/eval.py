@@ -39,7 +39,7 @@ def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayF
         threshold: Threshold to use for classifying inliers.
 
     Returns:
-        The pointwise inlier assignments
+        The pointwise inlier assignments.
     """
     l2_norm = np.linalg.norm(dts - gts, axis=-1)
     gts_norm = np.linalg.norm(gts, axis=-1)
