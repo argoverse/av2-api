@@ -150,7 +150,7 @@ FLOW_METRICS = {
     "Accuracy Relax": accuracy_relax,
     "Angle Error": angle_error,
 }
-SEG_METRICS = {"TP": tp, "TN": tn, "FP": fp, "FN": fn}
+SEG_METRICS: Final = {"TP": tp, "TN": tn, "FP": fp, "FN": fn}
 
 
 def metrics(
