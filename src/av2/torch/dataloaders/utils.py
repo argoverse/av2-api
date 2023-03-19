@@ -31,7 +31,7 @@ from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat
 MAX_STR_LEN: Final[int] = 32
 
 # Cuboids represented as (x,y,z) in meters, (l,w,h) in meters, and theta (in radians).
-CUBOID_XYZLWHT_COLUMN_NAMES: Final = (
+XYZLWH_QWXYZ_COLUMN_NAMES: Final = (
     "tx_m",
     "ty_m",
     "tz_m",
@@ -51,10 +51,8 @@ TRANSLATION_FIELDS: Final = ("tx_m", "ty_m", "tz_m")
 class CuboidMode(str, Enum):
     """Cuboid parameterization modes."""
 
-    # (x,y,z) translation (meters),
-    # (l,w,h) extents (meters),
-    # (t,) theta counter-clockwise rotation from the x-axis (in radians).
-    XYZLWHT = "XYZLWHT"
+    XYZLWH_YAW = "XYZLWH_YAW"  # 1-DOF orientation.
+    XYZLWH_QWXYZ = "XYZLWH_QWXYZ"  # 3-DOF orientation.
 
 
 @dataclass(frozen=True)
@@ -68,7 +66,18 @@ class Cuboids:
     _frame: pd.DataFrame
 
     @cached_property
-    def as_tensor(self, cuboid_mode: CuboidMode = CuboidMode.XYZLWHT) -> Tensor:
+    def category(self) -> List[str]:
+        """Return the object category names."""
+        category_names: List[str] = self._frame["category"].to_list()
+        return category_names
+
+    @cached_property
+    def track_uuid(self) -> List[str]:
+        """Return the unique track identifiers."""
+        category_names: List[str] = self._frame["track_uuid"].to_list()
+        return category_names
+
+    def as_tensor(self, cuboid_mode: CuboidMode = CuboidMode.XYZLWH_YAW) -> Tensor:
         """Return object cuboids as an (N,K) tensor.
 
         Notation:
@@ -84,26 +93,16 @@ class Cuboids:
         Raises:
             NotImplementedError: if cuboid mode isnt XYZLWHT
         """
-        if cuboid_mode == CuboidMode.XYZLWHT:
-            cuboids_qwxyz = tensor_from_frame(self._frame, list(CUBOID_XYZLWHT_COLUMN_NAMES))
-            quat_wxyz = cuboids_qwxyz[:, 6:10]
+        xyzlwh_qwxyz = tensor_from_frame(self._frame, list(XYZLWH_QWXYZ_COLUMN_NAMES))
+        if cuboid_mode == CuboidMode.XYZLWH_YAW:
+            quat_wxyz = xyzlwh_qwxyz[:, 6:10]
             w, x, y, z = quat_wxyz[:, 0], quat_wxyz[:, 1], quat_wxyz[:, 2], quat_wxyz[:, 3]
             _, _, yaw = euler_from_quaternion(w, x, y, z)
-            return torch.concat([cuboids_qwxyz[:, :6], yaw[:, None]], dim=-1)
+            return torch.concat([xyzlwh_qwxyz[:, :6], yaw[:, None]], dim=-1)
+        elif cuboid_mode == CuboidMode.XYZLWH_QWXYZ:
+            return xyzlwh_qwxyz
         else:
             raise NotImplementedError("{orientation_mode} orientation mode is not implemented.")
-
-    @cached_property
-    def category_names(self) -> List[str]:
-        """Return the object category names."""
-        category_names: List[str] = self._frame["category"].to_list()
-        return category_names
-
-    @cached_property
-    def track_uuids(self) -> List[str]:
-        """Return the unique track identifiers."""
-        category_names: List[str] = self._frame["track_uuid"].to_list()
-        return category_names
 
 
 @dataclass(frozen=True)
