@@ -40,10 +40,10 @@ def main(
         city_SE3_ego_4x4 = sweep.city_SE3_ego.matrix()
 
         # Lidar (x,y,z) in meters and intensity (i).
-        lidar_xyzi_ego = sweep.lidar.as_tensor()
+        lidar_tensor = sweep.lidar.as_tensor()
 
         # Transform the points to city coordinates.
-        lidar_xyz_city = transform_points(city_SE3_ego_4x4, lidar_xyzi_ego[:, :3])
+        lidar_xyz_city = transform_points(city_SE3_ego_4x4, lidar_tensor[:, :3])
 
         # Cuboids might not be available (e.g., using the "test" split).
         if sweep.cuboids is not None:
