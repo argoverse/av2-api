@@ -7,29 +7,29 @@ from av2.datasets.sensor.constants import AnnotationCategories
 
 CATEGORY_MAP: Final = {**{k.value: i + 1 for i, k in list(enumerate(AnnotationCategories))}, **{"None": 0}}
 
-BACKGROUND_CATEGORIES: Final = [
+BACKGROUND_CATEGORIES: Final = (
     "BOLLARD",
     "CONSTRUCTION_BARREL",
     "CONSTRUCTION_CONE",
     "MOBILE_PEDESTRIAN_CROSSING_SIGN",
     "SIGN",
     "STOP_SIGN",
-]
-PEDESTRIAN_CATEGORIES: Final = [
+)
+PEDESTRIAN_CATEGORIES: Final = (
     "ANIMAL",
     "STROLLER",
     "WHEELCHAIR",
     "OFFICIAL_SIGNALER",
-]
-SMALL_VEHICLE_CATEGORIES: Final = [
+)
+SMALL_VEHICLE_CATEGORIES: Final = (
     "BICYCLE",
     "BICYCLIST",
     "MOTORCYCLE",
     "MOTORCYCLIST",
     "WHEELED_DEVICE",
     "WHEELED_RIDER",
-]
-VEHICLE_CATEGORIES: Final = [
+)
+VEHICLE_CATEGORIES: Final = (
     "ARTICULATED_BUS",
     "BOX_TRUCK",
     "BUS",
@@ -42,8 +42,8 @@ VEHICLE_CATEGORIES: Final = [
     "VEHICULAR_TRAILER",
     "TRAFFIC_LIGHT_TRAILER",
     "MESSAGE_BOARD_TRAILER",
-]
-ANIMAL_CATEGORIES: Final = ["ANIMAL", "DOG"]
+)
+ANIMAL_CATEGORIES: Final = ("ANIMAL", "DOG")
 
 
 NO_CLASSES: Final = {"All": [k for k in range(0, 31)]}

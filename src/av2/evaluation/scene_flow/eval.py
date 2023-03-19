@@ -21,21 +21,21 @@ def epe(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the end-point-error between predictions and ground truth.
 
     Args:
-        dts: (N,3) array containig predicted flows
-        gts: (N,3) array containig ground truth flows
+        dts: (N,3) array containing predicted flows
+        gts: (N,3) array containing ground truth flows
 
     Returns:
         The point-wise end-point-error
     """
-    return np.array(np.sqrt(np.sum((dts - gts) ** 2, axis=-1)), dtype=np.float64)
+    return np.array(np.linalg.norm(dts - gts, axis=-1), dtype=np.float64)
 
 
 def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayFloat:
     """Compute the percent of inliers for a given threshold for a set of dtsictions and ground truth vectors.
 
     Args:
-        dts: (N,3) array containig dtsicted flows
-        gts: (N,3) array containig ground truth flows
+        dts: (N,3) array containing dtsicted flows
+        gts: (N,3) array containing ground truth flows
         threshold: the threshold to use for classifying inliers
 
     Returns:
@@ -53,8 +53,8 @@ def accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the acccuracy with a 0.05 threshold.
 
     Args:
-        dts: (N,3) array containig predicted flows
-        gts: (N,3) array containig ground truth flows
+        dts: (N,3) array containing predicted flows
+        gts: (N,3) array containing ground truth flows
 
     Returns:
         The pointwise inlier assignments at a 0.05 threshold
@@ -66,8 +66,8 @@ def accuracy_relax(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the acccuracy with a 0.1 threshold.
 
     Args:
-        dts: (N,3) array containig predicted flows
-        gts: (N,3) array containig ground truth flows
+        dts: (N,3) array containing predicted flows
+        gts: (N,3) array containing ground truth flows
 
     Returns:
         The pointwise inlier assignments at a 0.1 threshold
@@ -79,8 +79,8 @@ def angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the angle error between dtsicted and ground truth flow vectors.
 
     Args:
-        dts: (N,3) array containig predicted flows
-        gts: (N,3) array containig ground truth flows
+        dts: (N,3) array containing predicted flows
+        gts: (N,3) array containing ground truth flows
 
     Returns:
         The pointwise angle errors
@@ -91,7 +91,7 @@ def angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     return np.array(np.arccos(dot_product), dtype=np.float64)
 
 
-def tp(dts: NDArrayBool, gts: NDArrayBool) -> int:
+def compute_true_positives(dts: NDArrayBool, gts: NDArrayBool) -> int:
     """Compute true positive count.
 
     Args:
@@ -104,7 +104,7 @@ def tp(dts: NDArrayBool, gts: NDArrayBool) -> int:
     return int(np.logical_and(dts, gts).sum())
 
 
-def tn(dts: NDArrayBool, gts: NDArrayBool) -> int:
+def compute_true_negatives(dts: NDArrayBool, gts: NDArrayBool) -> int:
     """Compute true negative count.
 
     Args:
@@ -117,7 +117,7 @@ def tn(dts: NDArrayBool, gts: NDArrayBool) -> int:
     return int(np.logical_and(~dts, ~gts).sum())
 
 
-def fp(dts: NDArrayBool, gts: NDArrayBool) -> int:
+def compute_false_positives(dts: NDArrayBool, gts: NDArrayBool) -> int:
     """Compute false positive count.
 
     Args:
@@ -130,7 +130,7 @@ def fp(dts: NDArrayBool, gts: NDArrayBool) -> int:
     return int(np.logical_and(dts, ~gts).sum())
 
 
-def fn(dts: NDArrayBool, gts: NDArrayBool) -> int:
+def compute_false_negatives(dts: NDArrayBool, gts: NDArrayBool) -> int:
     """Compute false negative count.
 
     Args:
@@ -149,10 +149,15 @@ FLOW_METRICS: Final = {
     "Accuracy Relax": accuracy_relax,
     "Angle Error": angle_error,
 }
-SEG_METRICS: Final = {"TP": tp, "TN": tn, "FP": fp, "FN": fn}
+SEG_METRICS: Final = {
+    "TP": compute_false_positives,
+    "TN": compute_false_negatives,
+    "FP": compute_false_positives,
+    "FN": compute_false_negatives,
+}
 
 
-def metrics(
+def compute_metrics(
     pred_flow: NDArrayFloat,
     pred_dynamic: NDArrayBool,
     gt: NDArrayFloat,
@@ -229,7 +234,7 @@ def evaluate_directories(annotations_root: Path, predictions_root: Path) -> pd.D
             print(f"Warning: {name} missing")
             continue
         pred = pd.read_feather(pred_file)
-        loss_breakdown = metrics(
+        loss_breakdown = compute_metrics(
             pred[constants.FLOW_COLS].to_numpy(),
             pred["dynamic"].to_numpy(),
             gt[constants.FLOW_COLS].to_numpy(),
