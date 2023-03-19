@@ -1,4 +1,4 @@
-"""Pytorch dataloader utilities."""
+"""Pytorch Cuboids module."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ import pandas as pd
 import torch
 from kornia.geometry.conversions import euler_from_quaternion
 
+from .. import XYZLWH_QWXYZ_COLUMNS
 from .utils import tensor_from_frame
 
 
