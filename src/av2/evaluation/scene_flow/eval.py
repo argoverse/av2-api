@@ -27,7 +27,7 @@ def epe(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     Returns:
         The point-wise end-point-error
     """
-    return np.linalg.norm(dts - gts, axis=-1, dtype=np.float64)
+    return np.linalg.norm(dts - gts, axis=-1).astype(np.float32)
 
 
 def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayFloat:
