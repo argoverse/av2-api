@@ -170,18 +170,18 @@ def compute_metrics(
     """Compute all the metrics for a given example and package them into a list to be put into a DataFrame.
 
     Args:
-        pred_flow: (N,3) predicted flow vectors
-        pred_dynamic: (N,) predicted dynamic labels
-        gt: (N, 3) ground truth flow vectors
-        classes: (N,) the integer class labels for each point
-        dynamic: (N,) the ground truth dynamic labels
+        pred_flow: (N,3) Predicted flow vectors.
+        pred_dynamic: (N,) Predicted dynamic labels.
+        gt: (N, 3) Ground truth flow vectors.
+        classes: (N,) Integer class labels for each point.
+        dynamic: (N,) Ground truth dynamic labels.
         close: (N,) true for a point if it is within a 70m x 70m box around the AV
         valid: (N,) true for a point if its flow vector was succesfully computed.
-        object_classes: A dictionary mapping class integers to segmentation labels (eg. FOREGROUND_BACKGROUND)
+        object_classes: A dictionary mapping class integers to segmentation labels (e.g., FOREGROUND_BACKGROUND).
 
     Returns:
-        A list of lists where each sublist corresponds to some subset of the point cloud
-        (eg. Dynamic/Foreground/Close). Each sublist contains the average of each metrics on that subset
+        A list of lists where each sublist corresponds to some subset of the point cloud.
+        (e.g., Dynamic/Foreground/Close). Each sublist contains the average of each metrics on that subset
         and the size of the subset.
     """
     results = []
