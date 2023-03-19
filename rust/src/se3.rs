@@ -1,4 +1,4 @@
-//! # SE3
+//! # SE(3)
 //!
 //! Special Euclidean Group 3.
 
