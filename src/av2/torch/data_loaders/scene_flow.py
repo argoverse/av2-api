@@ -27,7 +27,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
         root_dir: Path to the dataset directory.
         dataset_name: Dataset name (e.g., "av2").
         split_name: Name of the dataset split (e.g., "train").
-        num_accum_sweeps: Number of temporally accumulated sweeps (accounting for ego-vehicle motion).
+        num_accumulated_sweeps: Number of temporally accumulated sweeps (accounting for ego-vehicle motion).
         memory_mapped: Boolean flag indicating whether to memory map the dataframes.
     """
 
