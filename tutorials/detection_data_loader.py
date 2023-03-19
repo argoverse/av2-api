@@ -1,4 +1,4 @@
-"""Example of rust-backed, torch dataloader."""
+"""Example of Rust-backed, PyTorch data-loader."""
 
 import logging
 from pathlib import Path
@@ -10,6 +10,7 @@ from tqdm import tqdm
 from av2.torch.data_loaders.detection import DetectionDataLoader
 from av2.torch.structures.cuboids import CuboidMode
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 HOME_DIR: Final = Path.home()
@@ -37,13 +38,13 @@ def main(
     data_loader = DetectionDataLoader(root_dir, dataset_name, split_name, num_accumulated_sweeps=num_accumulated_sweeps)
     for i, sweep in enumerate(tqdm(data_loader)):
         # 4x4 matrix representing the SE(3) transformation to city from ego-vehicle coordinates.
-        city_SE3_ego_4x4 = sweep.city_SE3_ego.matrix()
+        city_SE3_ego_mat4 = sweep.city_SE3_ego.matrix()
 
         # Lidar (x,y,z) in meters and intensity (i).
         lidar_tensor = sweep.lidar.as_tensor()
 
         # Transform the points to city coordinates.
-        lidar_xyz_city = transform_points(city_SE3_ego_4x4, lidar_tensor[:, :3])
+        lidar_xyz_city = transform_points(city_SE3_ego_mat4, lidar_tensor[:, :3])
 
         # Cuboids might not be available (e.g., using the "test" split).
         if sweep.cuboids is not None:
