@@ -17,7 +17,6 @@ from kornia.geometry.quaternion import Quaternion
 from torch import BoolTensor, ByteTensor, FloatTensor, Tensor
 
 import av2._r as rust
-from av2.geometry.geometry import mat_to_xyz, quat_to_mat
 from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap
 from av2.structures.cuboid import Cuboid, CuboidList
@@ -158,7 +157,7 @@ class Sweep:
 
         if avm is not None:
             pcl_ego = lidar_xyzi[:, :3]
-            pcl_city_1 = apply_se3(city_SE3_ego, pcl_ego).detach()
+            pcl_city_1 = apply_se3(city_SE3_ego, pcl_ego)
             is_ground = torch.from_numpy(avm.get_ground_points_boolean(pcl_city_1.numpy()).astype(bool))
         else:
             is_ground = None
@@ -257,6 +256,7 @@ class Flow:
         )
 
 
+@torch.no_grad()
 def frame_to_SE3(frame: pd.DataFrame) -> Se3:
     """Build SE(3) object from `pandas` DataFrame.
 

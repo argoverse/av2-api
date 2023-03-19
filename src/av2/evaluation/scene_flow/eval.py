@@ -1,9 +1,11 @@
 """Argoverse 2.0 Scene Flow Evaluation."""
 
 import argparse
+from functools import partial
 from pathlib import Path
 from typing import Dict, Final, Iterator, List, Optional, Tuple, Union
 
+import constants
 import numpy as np
 import pandas as pd
 import torch
@@ -12,7 +14,7 @@ from rich.progress import track
 
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
-from .constants import *
+EPS: Final = 1e-10
 
 
 def epe(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
@@ -20,7 +22,11 @@ def epe(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
 
     Args:
         dts: (N, 3) array containig predicted flows
-        gts: (N, 3) array containig ground truth flows"""
+        gts: (N, 3) array containig ground truth flows
+
+    Returns:
+        The point-wise end-point-error
+    """
     return np.array(np.sqrt(np.sum((dts - gts) ** 2, axis=-1)), dtype=np.float64)
 
 
@@ -29,10 +35,14 @@ def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayF
 
     Args:
         dts: (N, 3) array containig dtsicted flows
-        gtss: (N, 3) array containig ground truth flows"""
+        gts: (N, 3) array containig ground truth flows
+        threshold: the threshold to use for classifying inliers
+
+    Returns:
+        The pointwise inlier assignments
+    """
     l2_norm = np.linalg.norm(dts - gts, axis=-1)
     gts_norm = np.linalg.norm(gts, axis=-1)
-    EPS: Final = 1e-10
     relative_err = l2_norm / (gts_norm + EPS)
     error_lt_5 = (l2_norm < threshold).astype(bool)
     relative_err_lt_5 = (relative_err < threshold).astype(bool)
@@ -44,7 +54,11 @@ def accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
 
     Args:
         dts: (N, 3) array containig predicted flows
-        gts: (N, 3) array containig ground truth flows"""
+        gts: (N, 3) array containig ground truth flows
+
+    Returns:
+        The pointwise inlier assignments at a 0.05 threshold
+    """
     return accuracy(dts, gts, 0.05)
 
 
@@ -53,7 +67,11 @@ def accuracy_relax(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
 
     Args:
         dts: (N, 3) array containig predicted flows
-        gts: (N, 3) array containig ground truth flows"""
+        gts: (N, 3) array containig ground truth flows
+
+    Returns:
+        The pointwise inlier assignments at a 0.1 threshold
+    """
     return accuracy(dts, gts, 0.10)
 
 
@@ -62,11 +80,14 @@ def angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
 
     Args:
         dts: (N, 3) array containig predicted flows
-        gts: (N, 3) array containig ground truth flows"""
-    EPS: Final = 1e-10
+        gts: (N, 3) array containig ground truth flows
+
+    Returns:
+        The pointwise angle errors
+    """
     unit_label = gts / (np.linalg.norm(gts, axis=-1, keepdims=True) + EPS)
     unit_dts = dts / (np.linalg.norm(dts, axis=-1, keepdims=True) + EPS)
-    dot_product = np.clip(np.sum(unit_label * unit_dts, axis=-1), a_min=-1 + EPSp, a_max=1 - EPS)
+    dot_product = np.clip(np.sum(unit_label * unit_dts, axis=-1), a_min=-1 + EPS, a_max=1 - EPS)
     dot_product[dot_product != dot_product] = 0  # Remove NaNs
     return np.array(np.arccos(dot_product), dtype=np.float64)
 
@@ -76,8 +97,12 @@ def tp(dts: NDArrayBool, gts: NDArrayBool) -> int:
 
     Args:
         dts: (N,) array containig predicted dynamic segmentation
-        gts: (N,) array containig ground truth dynamic segmentation"""
-    return int(np.logical_and(dts, gts).astype(int).sum())
+        gts: (N,) array containig ground truth dynamic segmentation
+
+    Returns:
+        The number of true positive classifications
+    """
+    return int(np.logical_and(dts, gts).sum())
 
 
 def tn(dts: NDArrayBool, gts: NDArrayBool) -> int:
@@ -85,8 +110,12 @@ def tn(dts: NDArrayBool, gts: NDArrayBool) -> int:
 
     Args:
         dts: (N,) array containig predicted dynamic segmentation
-        gts: (N,) array containig ground truth dynamic segmentation"""
-    return int(np.logical_and(~dts, ~gts).astype(int).sum())
+        gts: (N,) array containig ground truth dynamic segmentation
+
+    Returns:
+        The number of true negative classifications
+    """
+    return int(np.logical_and(~dts, ~gts).sum())
 
 
 def fp(dts: NDArrayBool, gts: NDArrayBool) -> int:
@@ -94,8 +123,12 @@ def fp(dts: NDArrayBool, gts: NDArrayBool) -> int:
 
     Args:
         dts: (N,) array containig predicted dynamic segmentation
-        gts: (N,) array containig ground truth dynamic segmentation"""
-    return int(np.logical_and(dts, ~gts).astype(int).sum())
+        gts: (N,) array containig ground truth dynamic segmentation
+
+    Returns:
+        The number of false positive classifications
+    """
+    return int(np.logical_and(dts, ~gts).sum())
 
 
 def fn(dts: NDArrayBool, gts: NDArrayBool) -> int:
@@ -103,8 +136,12 @@ def fn(dts: NDArrayBool, gts: NDArrayBool) -> int:
 
     Args:
         dts: (N,) array containig predicted dynamic segmentation
-        gts: (N,) array containig ground truth dynamic segmentation"""
-    return int(np.logical_and(~dts, gts).astype(int).sum())
+        gts: (N,) array containig ground truth dynamic segmentation
+
+    Returns:
+        The number of false negative classifications
+    """
+    return int(np.logical_and(~dts, gts).sum())
 
 
 FLOW_METRICS = {
@@ -194,14 +231,14 @@ def evaluate_directories(annotations_root: Path, predictions_root: Path) -> pd.D
             continue
         pred = pd.read_feather(pred_file)
         loss_breakdown = metrics(
-            pred[FLOW_COLS].to_numpy(),
+            pred[constants.FLOW_COLS].to_numpy(),
             pred["dynamic"].to_numpy(),
-            gt[FLOW_COLS].to_numpy(),
+            gt[constants.FLOW_COLS].to_numpy(),
             gt["classes"].to_numpy(),
             gt["dynamic"].to_numpy(),
             gt["close"].to_numpy(),
             gt["valid"].to_numpy(),
-            FOREGROUND_BACKGROUND,
+            constants.FOREGROUND_BACKGROUND,
         )
 
         n: Union[str, float, int] = name  # make the type checker happy
@@ -223,13 +260,14 @@ def results_to_dict(results_dataframe: pd.DataFrame) -> Dict[str, float]:
     """
     output = {}
     grouped = results_dataframe.groupby(["Class", "Motion", "Distance"])
+
+    def weighted_average(x: pd.DataFrame, metric: str) -> pd.Series[float]:
+        """Weighted average of metric m using the Count column."""
+        averages: pd.Series[float] = (x[metric] * x.Count).sum() / x.Count.sum()
+        return averages
+
     for m in FLOW_METRICS.keys():
-
-        def weighted_average(x: pd.DataFrame, metric: str = m) -> pd.Series:
-            """Weighted average of metric m using the Count column."""
-            return (x[metric] * x.Count).sum() / x.Count.sum()
-
-        avg = grouped.apply(weighted_average)
+        avg = grouped.apply(partial(weighted_average, metric=m))
         for segment in avg.index:
             if segment[0] == "Background" and segment[1] == "Dynamic":
                 continue
@@ -237,7 +275,7 @@ def results_to_dict(results_dataframe: pd.DataFrame) -> Dict[str, float]:
             output[name] = avg[segment]
     grouped = results_dataframe.groupby(["Class", "Motion"])
     for m in FLOW_METRICS.keys():
-        avg = grouped.apply(lambda x, m=m: (x[m] * x.Count).sum() / x.Count.sum())
+        avg = grouped.apply(partial(weighted_average, metric=m))
         for segment in avg.index:
             if segment[0] == "Background" and segment[1] == "Dynamic":
                 continue
