@@ -1,4 +1,4 @@
-"""Unit tests for Pytorch Cuboids module."""
+"""Unit tests for PyTorch Cuboids module."""
 
 from pathlib import Path
 from typing import Final

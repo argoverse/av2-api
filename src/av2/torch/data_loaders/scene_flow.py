@@ -1,4 +1,4 @@
-"""Pytorch data-loader for the scene flow task."""
+"""PyTorch data-loader for the scene flow task."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
-    """Pytorch data-loader for the sensor dataset.
+    """PyTorch data-loader for the sensor dataset.
 
     Args:
         root_dir: Path to the dataset directory.

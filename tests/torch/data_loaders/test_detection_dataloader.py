@@ -1,4 +1,4 @@
-"""Unit tests for Pytorch Detection Dataset module."""
+"""Unit tests for PyTorch Detection Dataset module."""
 
 from pathlib import Path
 from typing import Final
@@ -9,7 +9,7 @@ TEST_DATA_DIR: Final = Path(__file__).parent.parent.parent.resolve() / "test_dat
 
 
 def test_build_data_loader() -> None:
-    """Test building the Pytorch Detection DataLoader."""
+    """Test building the PyTorch Detection DataLoader."""
     root_dir = TEST_DATA_DIR
     dataset_name = "av2"
     split_name = "val"

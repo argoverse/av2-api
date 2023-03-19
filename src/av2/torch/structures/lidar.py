@@ -1,4 +1,4 @@
-"""Pytorch Lidar Module."""
+"""PyTorch Lidar Module."""
 
 from __future__ import annotations
 

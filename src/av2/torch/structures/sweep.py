@@ -1,4 +1,4 @@
-"""Pytorch sweep module."""
+"""PyTorch sweep module."""
 
 from __future__ import annotations
 

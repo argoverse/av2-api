@@ -1,4 +1,4 @@
-"""Pytorch data-loader for 3D object detection task."""
+"""PyTorch data-loader for 3D object detection task."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DetectionDataLoader(Dataset[Sweep]):
-    """Pytorch data-loader for the sensor dataset.
+    """PyTorch data-loader for the sensor dataset.
 
     The sensor dataset should exist somewhere such as `~/data/datasets/{dataset_name}/{dataset_type}/{split_name}`,
     where

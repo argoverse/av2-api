@@ -1,4 +1,4 @@
-"""Unit test for Pytorch structure utilities."""
+"""Unit test for PyTorch structure utilities."""
 
 import numpy as np
 import pandas as pd

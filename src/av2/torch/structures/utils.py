@@ -1,4 +1,4 @@
-"""Pytorch structure utilities."""
+"""PyTorch structure utilities."""
 
 from __future__ import annotations
 

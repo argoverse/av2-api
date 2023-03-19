@@ -1,4 +1,4 @@
-"""Unit tests for Pytorch Lidar module."""
+"""Unit tests for PyTorch Lidar module."""
 
 from pathlib import Path
 from typing import Final

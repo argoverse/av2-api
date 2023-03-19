@@ -1,1 +1,1 @@
-"""Argoverse 2 Pytorch structures."""
+"""Argoverse 2 PyTorch structures."""

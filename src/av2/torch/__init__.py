@@ -1,4 +1,4 @@
-"""Argoverse 2 Pytorch API."""
+"""Argoverse 2 PyTorch API."""
 
 from typing import Final
 
