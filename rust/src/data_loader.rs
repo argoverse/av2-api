@@ -10,7 +10,10 @@ use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
 use rayon::slice::ParallelSliceMut;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use anyhow::Result;
 use bincode::{deserialize, serialize};
@@ -28,9 +31,6 @@ const MIN_NUM_LIDAR_PTS: u64 = 1;
 /// Data associated with a single lidar sweep.
 #[pyclass]
 pub struct Sweep {
-    /// Ground truth annotations.
-    #[pyo3(get, set)]
-    pub annotations: Option<PyDataFrame>,
     /// Ego-vehicle city pose.
     #[pyo3(get, set)]
     pub city_pose: PyDataFrame,
@@ -40,6 +40,9 @@ pub struct Sweep {
     /// Log id and nanosecond timestamp (unique identifier).
     #[pyo3(get, set)]
     pub sweep_uuid: (String, u64),
+    /// Ground truth annotations.
+    #[pyo3(get, set)]
+    pub cuboids: Option<PyDataFrame>,
 }
 
 /// Encapsulates sensor data associated with a single sweep.
@@ -54,10 +57,10 @@ impl Sweep {
         sweep_uuid: (String, u64),
     ) -> Sweep {
         Sweep {
-            annotations: Some(annotations),
             city_pose,
             lidar,
             sweep_uuid,
+            cuboids: Some(annotations),
         }
     }
 }
@@ -104,18 +107,27 @@ impl DataLoader {
         num_accumulated_sweeps: usize,
         memory_mapped: bool,
     ) -> DataLoader {
-        let root_dir = Path::new(root_dir);
-        let file_index = build_file_index(root_dir, dataset_name, dataset_type, split_name);
-        let current_idx = 0;
+        let root_dir = PathBuf::from_str(root_dir).unwrap();
+        let file_index = PyDataFrame(build_file_index(
+            root_dir.as_path(),
+            dataset_name,
+            dataset_type,
+            split_name,
+        ));
+
+        let dataset_name = dataset_name.to_string();
+        let dataset_type = dataset_type.to_string();
+        let split_name = split_name.to_string();
+        let current_index = 0;
         DataLoader {
-            root_dir: root_dir.to_path_buf(),
-            dataset_name: dataset_name.to_string(),
-            dataset_type: dataset_type.to_string(),
-            split_name: split_name.to_string(),
+            root_dir,
+            dataset_name,
+            dataset_type,
+            split_name,
             num_accumulated_sweeps,
             memory_mapped,
-            file_index: PyDataFrame(file_index),
-            current_index: current_idx,
+            file_index,
+            current_index,
         }
     }
 
@@ -207,7 +219,7 @@ impl DataLoader {
         );
 
         // Annotations aren't available for the test set.
-        let annotations = match self.split_name.as_str() {
+        let cuboids = match self.split_name.as_str() {
             "test" => None,
             _ => Some(self.read_annotations(log_id, timestamp_ns)),
         };
@@ -217,10 +229,10 @@ impl DataLoader {
         let sweep_uuid = (log_id.to_string(), timestamp_ns);
 
         Sweep {
-            annotations,
             city_pose,
             lidar,
             sweep_uuid,
+            cuboids,
         }
     }
 

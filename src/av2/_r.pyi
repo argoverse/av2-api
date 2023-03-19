@@ -1,7 +1,7 @@
 """Rust backend typing stubs."""
 
 from dataclasses import dataclass, field
-from typing import Tuple
+from typing import Optional, Tuple
 
 import polars as pl
 
@@ -11,7 +11,7 @@ class DataLoader:
     dataset_name: str
     dataset_type: str
     split_name: str
-    num_accum_sweeps: int
+    num_accumulated_sweeps: int
     memory_map: bool
 
     file_index: pl.DataFrame = field(init=False)
@@ -21,7 +21,7 @@ class DataLoader:
 
 @dataclass
 class Sweep:
-    annotations: pl.DataFrame
     city_pose: pl.DataFrame
     lidar: pl.DataFrame
     sweep_uuid: Tuple[str, int]
+    cuboids: Optional[pl.DataFrame]
