@@ -18,7 +18,7 @@ EPS: Final = 1e-10
 
 
 def compute_end_point_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
-    """Compute the end-point-error between predictions and ground truth.
+    """Compute the end-point error between predictions and ground truth.
 
     Args:
         dts: (N,3) Array containing predicted flows.
