@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Final
 
-from av2.torch.dataloaders.detection import DetectionDataloader
+from av2.torch.data_loaders.detection import DetectionDataLoader
 
 TEST_DATA_DIR: Final = Path(__file__).parent.parent.parent.resolve() / "test_data" / "sensor_dataset_logs"
 
@@ -13,6 +13,6 @@ def test_build_data_loader() -> None:
     root_dir = TEST_DATA_DIR
     dataset_name = "av2"
     split_name = "val"
-    data_loader = DetectionDataloader(root_dir=root_dir, dataset_name=dataset_name, split_name=split_name)
+    data_loader = DetectionDataLoader(root_dir=root_dir, dataset_name=dataset_name, split_name=split_name)
     for datum in data_loader:
         assert datum is not None

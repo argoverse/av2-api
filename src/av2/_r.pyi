@@ -6,7 +6,7 @@ from typing import Tuple
 import polars as pl
 
 @dataclass
-class Dataloader:
+class DataLoader:
     root_dir: str
     dataset_name: str
     dataset_type: str

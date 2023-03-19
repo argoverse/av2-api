@@ -7,8 +7,8 @@ from typing import Final
 from kornia.geometry.linalg import transform_points
 from tqdm import tqdm
 
-from av2.torch.dataloaders.detection import DetectionDataloader
-from av2.torch.dataloaders.utils import CuboidMode
+from av2.torch.data_loaders.detection import DetectionDataLoader
+from av2.torch.structures.cuboids import CuboidMode
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +34,13 @@ def main(
         max_iterations: Maximum number of iterations for the dataloader example.
     """
     logger.info("Starting detection dataloader example ...")
-    dataloader = DetectionDataloader(root_dir, dataset_name, split_name, num_accumulated_sweeps=num_accumulated_sweeps)
+    dataloader = DetectionDataLoader(root_dir, dataset_name, split_name, num_accumulated_sweeps=num_accumulated_sweeps)
     for i, sweep in enumerate(tqdm(dataloader)):
         # 4x4 matrix representing the SE(3) transformation to city from ego-vehicle coordinates.
         city_SE3_ego_4x4 = sweep.city_SE3_ego.matrix()
 
         # Lidar (x,y,z) in meters and intensity (i).
-        lidar_xyzi_ego = sweep.lidar_xyzi[:, :3]
+        lidar_xyzi_ego = sweep.lidar.as_tensor()
 
         # Transform the points to city coordinates.
         lidar_xyz_city = transform_points(city_SE3_ego_4x4, lidar_xyzi_ego[:, :3])
