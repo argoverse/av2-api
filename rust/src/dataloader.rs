@@ -2,7 +2,7 @@
 //!
 //! Data-loader for loading the sensor dataset.
 
-use constants::{ANNOTATION_COLUMN_NAMES, POSE_COLUMN_NAMES};
+use constants::{ANNOTATION_COLUMNS, POSE_COLUMNS};
 use io::{read_accumulate_lidar, read_timestamped_feather};
 use itertools::{multiunzip, Itertools};
 use path::{extract_file_stem, walk_dir};
@@ -159,7 +159,7 @@ impl DataLoader {
         PyDataFrame(
             read_timestamped_feather(
                 &self.city_pose_path(log_id),
-                &POSE_COLUMN_NAMES.to_vec(),
+                &POSE_COLUMNS.to_vec(),
                 &timestamp_ns,
                 self.memory_mapped,
             )
@@ -188,7 +188,7 @@ impl DataLoader {
         PyDataFrame(
             read_timestamped_feather(
                 &self.annotations_path(log_id),
-                &ANNOTATION_COLUMN_NAMES.to_vec(),
+                &ANNOTATION_COLUMNS.to_vec(),
                 &timestamp_ns,
                 self.memory_mapped,
             )
