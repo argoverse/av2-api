@@ -1,6 +1,6 @@
-//! # dataloaders
+//! # data_loaders
 //!
-//! Dataloader for loading the sensor dataset.
+//! Data-loader for loading the sensor dataset.
 
 use constants::{ANNOTATION_COLUMN_NAMES, POSE_COLUMN_NAMES};
 use io::{read_accumulate_lidar, read_timestamped_feather};
@@ -65,7 +65,7 @@ impl Sweep {
 /// Sensor dataloader for `av2`.
 #[derive(Serialize, Deserialize)]
 #[pyclass(module = "av2._r")]
-pub struct Dataloader {
+pub struct DataLoader {
     /// Root dataset directory.
     #[pyo3(get, set)]
     pub root_dir: PathBuf,
@@ -93,7 +93,7 @@ pub struct Dataloader {
 }
 
 #[pymethods]
-impl Dataloader {
+impl DataLoader {
     /// Initialize the dataloader and build the file index.
     #[new]
     pub fn new(
@@ -103,11 +103,11 @@ impl Dataloader {
         split_name: &str,
         num_accumulated_sweeps: usize,
         memory_mapped: bool,
-    ) -> Dataloader {
+    ) -> DataLoader {
         let root_dir = Path::new(root_dir);
         let file_index = build_file_index(root_dir, dataset_name, dataset_type, split_name);
         let current_idx = 0;
-        Dataloader {
+        DataLoader {
             root_dir: root_dir.to_path_buf(),
             dataset_name: dataset_name.to_string(),
             dataset_type: dataset_type.to_string(),
@@ -259,7 +259,7 @@ impl Dataloader {
     }
 }
 
-impl Iterator for Dataloader {
+impl Iterator for DataLoader {
     type Item = Sweep;
 
     fn next(&mut self) -> Option<Self::Item> {

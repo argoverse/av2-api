@@ -23,4 +23,12 @@ def test_build_lidar() -> None:
 
     lidar = Lidar(frame)
     torch.testing.assert_close(lidar.as_tensor(), lidar_tensor)
-    torch.testing.assert_close(lidar.as_tensor(columns=("y", "z",)), lidar_tensor[:, 1:3])
+    torch.testing.assert_close(
+        lidar.as_tensor(
+            columns=(
+                "y",
+                "z",
+            )
+        ),
+        lidar_tensor[:, 1:3],
+    )

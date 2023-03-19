@@ -1,4 +1,4 @@
-"""Pytorch dataloader for 3D object detection task."""
+"""Pytorch data-loader for 3D object detection task."""
 
 from __future__ import annotations
 
@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class DetectionDataloader(Dataset[Sweep]):
-    """Pytorch dataloader for the sensor dataset.
+class DetectionDataLoader(Dataset[Sweep]):
+    """Pytorch data-loader for the sensor dataset.
 
     The sensor dataset should exist somewhere such as `~/data/datasets/{dataset_name}/{dataset_type}/{split_name}`,
     where
@@ -26,7 +26,7 @@ class DetectionDataloader(Dataset[Sweep]):
         dataset_type = "sensor,
         split_name = "train".
 
-    This dataloader backend is implemented in Rust for speed. Each iteration will yield a new sweep.
+    This data-loader backend is implemented in Rust for speed. Each iteration will yield a new sweep.
 
     Args:
         root_dir: Path to the dataset directory.
@@ -65,8 +65,8 @@ class DetectionDataloader(Dataset[Sweep]):
         """Length of the sensor dataset (number of sweeps)."""
         return self._backend.__len__()
 
-    def __iter__(self) -> DetectionDataloader:
-        """Iterate method for the dataloader."""
+    def __iter__(self) -> DetectionDataLoader:
+        """Iterate method for the data-loader."""
         return self
 
     def __next__(self) -> Sweep:
