@@ -17,7 +17,7 @@ from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 EPS: Final = 1e-10
 
 
-def epe(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
+def compute_end_point_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the end-point-error between predictions and ground truth.
 
     Args:
