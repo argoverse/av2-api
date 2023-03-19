@@ -1,4 +1,4 @@
-"""Argoverse 2.0 Scene Flow Evaluation."""
+"""Argoverse 2 Scene Flow Evaluation."""
 
 import argparse
 from functools import partial
