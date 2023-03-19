@@ -33,10 +33,10 @@ def write_output_file(flow: NDArrayFloat, dynamic: NDArrayBool, sweep_uuid: Tupl
     """Write an output predictions file in the correct format for submission.
 
     Args:
-        flow: (N, 3) Flow predictions
-        dynamic: (N,) Dynamic segmentation prediction
-        sweep_uuid: The indentifier of the sweep being predicted (log_id, timestamp)
-        output_dir: top level directory containing all predictions
+        flow: (N,3) Flow predictions.
+        dynamic: (N,) Dynamic segmentation prediction.
+        sweep_uuid: Identifier of the sweep being predicted (log_id, timestamp).
+        output_dir: Top level directory containing all predictions.
     """
     output_log_dir = output_dir / sweep_uuid[0]
     output_log_dir.mkdir(exist_ok=True, parents=True)
