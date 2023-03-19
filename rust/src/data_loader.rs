@@ -40,7 +40,7 @@ pub struct Sweep {
     /// Log id and nanosecond timestamp (unique identifier).
     #[pyo3(get, set)]
     pub sweep_uuid: (String, u64),
-    /// Ground truth annotations.
+    /// Cuboids associated with the sweep.
     #[pyo3(get, set)]
     pub cuboids: Option<PyDataFrame>,
 }
@@ -84,10 +84,10 @@ pub struct DataLoader {
     /// Number of accumulated lidar sweeps.
     #[pyo3(get, set)]
     pub num_accumulated_sweeps: usize,
-    /// Boolean flag to enable memory-mapped dataframe loading.
+    /// Boolean flag to enable memory-mapped data-frame loading.
     #[pyo3(get, set)]
     pub memory_mapped: bool,
-    /// Dataframe consisting of `log_id`, `timestamp_ns`, and `city_name`.
+    /// Data-frame consisting of `log_id`, `timestamp_ns`, and `city_name`.
     #[pyo3(get, set)]
     pub file_index: PyDataFrame,
     /// Current index of the data-loader.
