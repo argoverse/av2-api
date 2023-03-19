@@ -37,7 +37,7 @@ def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayF
     Args:
         dts: (N,3) Array containing predicted flows.
         gts: (N,3) Array containing ground truth flows.
-        threshold: Threshold to use for classifying inliers.
+        threshold: Distance threshold for classifying inliers.
 
     Returns:
         The pointwise inlier assignments.
