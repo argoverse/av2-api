@@ -96,11 +96,11 @@ def tp(dts: NDArrayBool, gts: NDArrayBool) -> int:
     """Compute true positive count.
 
     Args:
-        dts: (N,) array containig predicted dynamic segmentation
-        gts: (N,) array containig ground truth dynamic segmentation
+        dts: (N,) array containing predicted dynamic segmentation.
+        gts: (N,) array containing ground truth dynamic segmentation.
 
     Returns:
-        The number of true positive classifications
+        The number of true positive classifications.
     """
     return int(np.logical_and(dts, gts).sum())
 
