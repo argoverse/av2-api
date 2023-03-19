@@ -37,10 +37,3 @@ def test_build_cuboids() -> None:
 
     category_expected: List[str] = annotations_frame["category"].to_list()
     assert cuboids.category == category_expected
-
-
-def test_build_lidar() -> None:
-    """Test building a lidar tensor."""
-    lidar_paths = sorted((SAMPLE_LOG_DIR / "sensors" / "lidar").glob("*.feather"))
-    lidar_path = lidar_paths[0]
-    lidar_frame = pd.read_feather(lidar_path)
