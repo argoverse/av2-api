@@ -53,8 +53,8 @@ def accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the acccuracy with a 0.05 threshold.
 
     Args:
-        dts: (N,3) array containing predicted flows
-        gts: (N,3) array containing ground truth flows
+        dts: (N,3) Array containing predicted flows.
+        gts: (N,3) Array containing ground truth flows.
 
     Returns:
         The pointwise inlier assignments at a 0.05 threshold
