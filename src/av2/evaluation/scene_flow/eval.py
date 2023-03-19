@@ -32,7 +32,7 @@ def compute_end_point_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloa
 
 
 def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayFloat:
-    """Compute the percent of inliers for a given threshold for a set of dtsictions and ground truth vectors.
+    """Compute the percent of inliers for a given threshold for a set of prediction and ground truth vectors.
 
     Args:
         dts: (N,3) Array containing predicted flows.
