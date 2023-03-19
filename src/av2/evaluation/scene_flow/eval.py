@@ -31,7 +31,7 @@ def compute_end_point_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloa
     return epe
 
 
-def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayFloat:
+def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayFloat:
     """Compute the percent of inliers for a given threshold for a set of prediction and ground truth vectors.
 
     Args:
