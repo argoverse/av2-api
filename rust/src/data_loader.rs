@@ -62,7 +62,7 @@ impl Sweep {
     }
 }
 
-/// Sensor dataloader for `av2`.
+/// Sensor data-loader for `av2`.
 #[derive(Serialize, Deserialize)]
 #[pyclass(module = "av2._r")]
 pub struct DataLoader {
@@ -87,14 +87,14 @@ pub struct DataLoader {
     /// Dataframe consisting of `log_id`, `timestamp_ns`, and `city_name`.
     #[pyo3(get, set)]
     pub file_index: PyDataFrame,
-    /// Current index of the dataloader.
+    /// Current index of the data-loader.
     #[pyo3(get, set)]
     pub current_index: usize,
 }
 
 #[pymethods]
 impl DataLoader {
-    /// Initialize the dataloader and build the file index.
+    /// Initialize the data-loader and build the file index.
     #[new]
     pub fn new(
         root_dir: &str,

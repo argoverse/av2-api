@@ -22,7 +22,7 @@ def main(
     num_accumulated_sweeps: int = 1,
     max_iterations: int = 1000,
 ) -> None:
-    """Iterate over the detection dataloader.
+    """Iterate over the detection data-loader.
 
     Dataset should live at ~/data/datasets/{dataset_name}/{split_name}.
 
@@ -31,11 +31,11 @@ def main(
         dataset_name: Name of the dataset (e.g., "av2").
         split_name: Name of the split (e.g., "val").
         num_accumulated_sweeps: Number of sweeps to accumulate.
-        max_iterations: Maximum number of iterations for the dataloader example.
+        max_iterations: Maximum number of iterations for the data-loader example.
     """
-    logger.info("Starting detection dataloader example ...")
-    dataloader = DetectionDataLoader(root_dir, dataset_name, split_name, num_accumulated_sweeps=num_accumulated_sweeps)
-    for i, sweep in enumerate(tqdm(dataloader)):
+    logger.info("Starting detection data-loader example ...")
+    data_loader = DetectionDataLoader(root_dir, dataset_name, split_name, num_accumulated_sweeps=num_accumulated_sweeps)
+    for i, sweep in enumerate(tqdm(data_loader)):
         # 4x4 matrix representing the SE(3) transformation to city from ego-vehicle coordinates.
         city_SE3_ego_4x4 = sweep.city_SE3_ego.matrix()
 

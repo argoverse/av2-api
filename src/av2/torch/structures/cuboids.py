@@ -18,7 +18,7 @@ from .utils import tensor_from_frame
 class CuboidMode(str, Enum):
     """Cuboid parameterization modes."""
 
-    XYZLWH_YAW = "XYZLWH_YAW"  # 1-DOF orientation.
+    XYZLWH_T = "XYZLWHT"  # 1-DOF orientation.
     XYZLWH_QWXYZ = "XYZLWH_QWXYZ"  # 3-DOF orientation.
 
 
@@ -44,7 +44,7 @@ class Cuboids:
         category_names: List[str] = self._frame["track_uuid"].to_list()
         return category_names
 
-    def as_tensor(self, cuboid_mode: CuboidMode = CuboidMode.XYZLWH_YAW) -> torch.Tensor:
+    def as_tensor(self, cuboid_mode: CuboidMode = CuboidMode.XYZLWH_T) -> torch.Tensor:
         """Return object cuboids as an (N,K) tensor.
 
         Notation:
@@ -61,7 +61,7 @@ class Cuboids:
             NotImplementedError: Raised if the cuboid mode is not supported.
         """
         xyzlwh_qwxyz = tensor_from_frame(self._frame, list(XYZLWH_QWXYZ_COLUMNS))
-        if cuboid_mode == CuboidMode.XYZLWH_YAW:
+        if cuboid_mode == CuboidMode.XYZLWH_T:
             quat_wxyz = xyzlwh_qwxyz[:, 6:10]
             w, x, y, z = quat_wxyz[:, 0], quat_wxyz[:, 1], quat_wxyz[:, 2], quat_wxyz[:, 3]
             _, _, yaw = euler_from_quaternion(w, x, y, z)

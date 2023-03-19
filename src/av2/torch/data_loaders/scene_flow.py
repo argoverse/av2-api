@@ -1,4 +1,4 @@
-"""Pytorch dataloader for the scene flow task."""
+"""Pytorch data-loader for the scene flow task."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
-    """Pytorch dataloader for the sensor dataset.
+    """Pytorch data-loader for the sensor dataset.
 
     Args:
         root_dir: Path to the dataset directory.
@@ -77,11 +77,11 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
         return Sweep.from_rust(sweep), next_sweep
 
     def __len__(self) -> int:
-        """Length of the dataloader."""
+        """Length of the data-loader."""
         return self._backend.__len__()
 
     def __iter__(self) -> SceneFlowDataloader:
-        """Iterate method for the dataloader."""
+        """Iterate method for the data-loader."""
         return self
 
     def __next__(self) -> Tuple[Sweep, Optional[Sweep]]:

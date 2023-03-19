@@ -39,7 +39,7 @@ class Sweep:
         """Build a sweep from the Rust backend.
 
         Args:
-            sweep: Sweep object from the Rust backend dataloader.
+            sweep: Sweep object from the Rust backend data-loader.
 
         Returns:
             Sweep object.

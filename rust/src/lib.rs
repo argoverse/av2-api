@@ -6,14 +6,14 @@
 #![warn(missing_doc_code_examples)]
 
 pub mod constants;
-pub mod dataloader;
+pub mod data_loader;
 pub mod io;
 pub mod ops;
 pub mod path;
 pub mod se3;
 pub mod so3;
 
-use dataloader::{DataLoader, Sweep};
+use data_loader::{DataLoader, Sweep};
 use ndarray::Dim;
 use numpy::{IntoPyArray, PyArray};
 use pyo3::prelude::*;
