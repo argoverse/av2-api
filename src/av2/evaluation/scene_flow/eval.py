@@ -70,7 +70,7 @@ def accuracy_relax(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
         gts: (N,3) array containing ground truth flows
 
     Returns:
-        The pointwise inlier assignments at a 0.1 threshold
+        The pointwise inlier assignments at a 0.1 threshold.
     """
     return accuracy(dts, gts, 0.10)
 
