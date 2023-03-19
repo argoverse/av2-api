@@ -25,7 +25,7 @@ def compute_end_point_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloa
         gts: (N,3) Array containing ground truth flows.
 
     Returns:
-        The point-wise end-point-error
+        The point-wise end-point error.
     """
     epe: NDArrayFloat = np.linalg.norm(dts - gts, axis=-1).astype(np.float64)
     return epe
