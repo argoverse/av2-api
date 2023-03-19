@@ -21,8 +21,8 @@ def epe(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the end-point-error between predictions and ground truth.
 
     Args:
-        dts: (N, 3) array containig predicted flows
-        gts: (N, 3) array containig ground truth flows
+        dts: (N,3) array containig predicted flows
+        gts: (N,3) array containig ground truth flows
 
     Returns:
         The point-wise end-point-error
@@ -34,8 +34,8 @@ def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayF
     """Compute the percent of inliers for a given threshold for a set of dtsictions and ground truth vectors.
 
     Args:
-        dts: (N, 3) array containig dtsicted flows
-        gts: (N, 3) array containig ground truth flows
+        dts: (N,3) array containig dtsicted flows
+        gts: (N,3) array containig ground truth flows
         threshold: the threshold to use for classifying inliers
 
     Returns:
@@ -53,8 +53,8 @@ def accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the acccuracy with a 0.05 threshold.
 
     Args:
-        dts: (N, 3) array containig predicted flows
-        gts: (N, 3) array containig ground truth flows
+        dts: (N,3) array containig predicted flows
+        gts: (N,3) array containig ground truth flows
 
     Returns:
         The pointwise inlier assignments at a 0.05 threshold
@@ -66,8 +66,8 @@ def accuracy_relax(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the acccuracy with a 0.1 threshold.
 
     Args:
-        dts: (N, 3) array containig predicted flows
-        gts: (N, 3) array containig ground truth flows
+        dts: (N,3) array containig predicted flows
+        gts: (N,3) array containig ground truth flows
 
     Returns:
         The pointwise inlier assignments at a 0.1 threshold
@@ -79,8 +79,8 @@ def angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the angle error between dtsicted and ground truth flow vectors.
 
     Args:
-        dts: (N, 3) array containig predicted flows
-        gts: (N, 3) array containig ground truth flows
+        dts: (N,3) array containig predicted flows
+        gts: (N,3) array containig ground truth flows
 
     Returns:
         The pointwise angle errors
@@ -88,7 +88,6 @@ def angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     unit_label = gts / (np.linalg.norm(gts, axis=-1, keepdims=True) + EPS)
     unit_dts = dts / (np.linalg.norm(dts, axis=-1, keepdims=True) + EPS)
     dot_product = np.clip(np.sum(unit_label * unit_dts, axis=-1), a_min=-1 + EPS, a_max=1 - EPS)
-    dot_product[dot_product != dot_product] = 0  # Remove NaNs
     return np.array(np.arccos(dot_product), dtype=np.float64)
 
 
