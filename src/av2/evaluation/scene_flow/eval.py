@@ -21,8 +21,8 @@ def compute_end_point_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloa
     """Compute the end-point-error between predictions and ground truth.
 
     Args:
-        dts: (N,3) array containing predicted flows
-        gts: (N,3) array containing ground truth flows
+        dts: (N,3) Array containing predicted flows.
+        gts: (N,3) Array containing ground truth flows.
 
     Returns:
         The point-wise end-point-error
