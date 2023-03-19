@@ -13,11 +13,10 @@ import torch
 from kornia.geometry.conversions import euler_from_quaternion
 from kornia.geometry.liegroup import Se3, So3
 from kornia.geometry.quaternion import Quaternion
-from torch import Tensor
 
 import av2._r as rust  # Rust extension.
 
-XYZLWH_QWXYZ_COLUMN_NAMES: Final = (
+XYZLWH_QWXYZ_COLUMNS: Final = (
     "tx_m",
     "ty_m",
     "tz_m",
@@ -29,9 +28,9 @@ XYZLWH_QWXYZ_COLUMN_NAMES: Final = (
     "qy",
     "qz",
 )
-LIDAR_COLUMN_NAMES: Final = ("x", "y", "z", "intensity")
-QWXYZ_COLUMN_NAMES: Final = ("qw", "qx", "qy", "qz")
-TRANSLATION_COLUMN_NAMES: Final = ("tx_m", "ty_m", "tz_m")
+LIDAR_COLUMNS: Final = ("x", "y", "z", "intensity")
+QWXYZ_COLUMNS: Final = ("qw", "qx", "qy", "qz")
+TRANSLATION_COLUMNS: Final = ("tx_m", "ty_m", "tz_m")
 
 
 class CuboidMode(str, Enum):
@@ -63,7 +62,7 @@ class Cuboids:
         category_names: List[str] = self._frame["track_uuid"].to_list()
         return category_names
 
-    def as_tensor(self, cuboid_mode: CuboidMode = CuboidMode.XYZLWH_YAW) -> Tensor:
+    def as_tensor(self, cuboid_mode: CuboidMode = CuboidMode.XYZLWH_YAW) -> torch.Tensor:
         """Return object cuboids as an (N,K) tensor.
 
         Notation:
@@ -74,12 +73,12 @@ class Cuboids:
             cuboid_mode: Cuboid parameterization mode. Defaults to (N,7) tensor.
 
         Returns:
-            (N,K) Tensor of cuboids with the specified cuboid_mode parameterization.
+            (N,K) torch.Tensor of cuboids with the specified cuboid_mode parameterization.
 
         Raises:
             NotImplementedError: Raised if the cuboid mode is not supported.
         """
-        xyzlwh_qwxyz = tensor_from_frame(self._frame, list(XYZLWH_QWXYZ_COLUMN_NAMES))
+        xyzlwh_qwxyz = tensor_from_frame(self._frame, list(XYZLWH_QWXYZ_COLUMNS))
         if cuboid_mode == CuboidMode.XYZLWH_YAW:
             quat_wxyz = xyzlwh_qwxyz[:, 6:10]
             w, x, y, z = quat_wxyz[:, 0], quat_wxyz[:, 1], quat_wxyz[:, 2], quat_wxyz[:, 3]
@@ -100,13 +99,13 @@ class Sweep:
 
     Args:
         city_SE3_ego: Rigid transformation describing the city pose of the ego-vehicle.
-        lidar_xyzi: (N,4) Tensor of lidar points containing (x,y,z) in meters and intensity (i).
+        lidar_xyzi: (N,4) torch.Tensor of lidar points containing (x,y,z) in meters and intensity (i).
         sweep_uuid: Log id and nanosecond timestamp (unique identifier).
         cuboids: Cuboids representing objects in the scene.
     """
 
     city_SE3_ego: Se3
-    lidar_xyzi: Tensor
+    lidar_xyzi: torch.Tensor
     sweep_uuid: Tuple[str, int]
     cuboids: Optional[Cuboids]
 
@@ -122,11 +121,11 @@ class Sweep:
         """
         cuboids = Cuboids(_frame=sweep.annotations.to_pandas())
         city_SE3_ego = SE3_from_frame(frame=sweep.city_pose.to_pandas())
-        lidar_xyzi = tensor_from_frame(sweep.lidar.to_pandas(), list(LIDAR_COLUMN_NAMES))
+        lidar_xyzi = tensor_from_frame(sweep.lidar.to_pandas(), list(LIDAR_COLUMNS))
         return cls(city_SE3_ego=city_SE3_ego, lidar_xyzi=lidar_xyzi, sweep_uuid=sweep.sweep_uuid, cuboids=cuboids)
 
 
-def tensor_from_frame(frame: pd.DataFrame, columns: List[str]) -> Tensor:
+def tensor_from_frame(frame: pd.DataFrame, columns: List[str]) -> torch.Tensor:
     """Build lidar `torch` tensor from `pandas` dataframe.
 
     Notation:
@@ -156,11 +155,11 @@ def SE3_from_frame(frame: pd.DataFrame) -> Se3:
     Returns:
         SE(3) object representing a (N,4,4) tensor of homogeneous transformations.
     """
-    quaternion_npy = frame.loc[0, list(QWXYZ_COLUMN_NAMES)].to_numpy().astype(float)
+    quaternion_npy = frame.loc[0, list(QWXYZ_COLUMNS)].to_numpy().astype(float)
     quat_wxyz = Quaternion(torch.as_tensor(quaternion_npy, dtype=torch.float32))
     rotation = So3(quat_wxyz)
 
-    translation_npy = frame.loc[0, list(TRANSLATION_COLUMN_NAMES)].to_numpy().astype(np.float32)
+    translation_npy = frame.loc[0, list(TRANSLATION_COLUMNS)].to_numpy().astype(np.float32)
     translation = torch.as_tensor(translation_npy, dtype=torch.float32)
     dst_SE3_src = Se3(rotation[None], translation[None])
     return dst_SE3_src
