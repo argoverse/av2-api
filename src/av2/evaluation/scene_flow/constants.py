@@ -80,7 +80,7 @@ VEHICLE_CATEGORIES: Final[List[ObjectCategory]] = [
 ANIMAL_CATEGORIES: Final[List[ObjectCategory]] = [ObjectCategory.ANIMAL, ObjectCategory.DOG]
 
 
-NO_CLASSES: Final[Dict[str, List[int]]] = {"All": [k for k in range(-1, 30)]}
+NO_CLASSES: Final = {"All": [k for k in range(-1, 30)]}
 FOREGROUND_BACKGROUND: Final[Dict[str, List[int]]] = {
     "Background": [-1],
     "Foreground": [
