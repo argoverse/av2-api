@@ -44,16 +44,10 @@ class Cuboids:
     _frame: pd.DataFrame
 
     @cached_property
-    def categories(self) -> List[str]:
-        """Return the category names."""
-        category_names: List[str] = self._frame["category"].to_list()
-        return category_names
-
-    @cached_property
     def as_tensor(self) -> Tensor:
         """Return cuboids as a (N,7) tensor.
 
-        Parameterization (7,):
+        Cuboid parameterization:
             tx_m: Translation in the x-axis in meters.
             ty_m: Translation in the y-axis in meters.
             tz_m: Translation in the z-axis in meters.
@@ -63,13 +57,19 @@ class Cuboids:
             yaw_radians: Counter-clock rotation measured from the x-axis.
 
         Returns:
-            (N,7) Cuboids parameterized as (tx_m,ty_m,tz_m,length_m,width_m,height_m,yaw_radians).
+            (N,7) Center-based (in meters) cuboid parameterization with extents + yaw (in radians).
         """
         cuboids_qwxyz = frame_to_tensor(self._frame, list(DEFAULT_ANNOTATIONS_TENSOR_FIELDS))
         quat_wxyz = cuboids_qwxyz[:, 6:10]
         w, x, y, z = quat_wxyz[:, 0], quat_wxyz[:, 1], quat_wxyz[:, 2], quat_wxyz[:, 3]
         _, _, yaw = euler_from_quaternion(w, x, y, z)
         return torch.concat([cuboids_qwxyz[:, :6], yaw[:, None]], dim=-1)
+
+    @cached_property
+    def categories(self) -> List[str]:
+        """Return the category names."""
+        category_names: List[str] = self._frame["category"].to_list()
+        return category_names
 
     @cached_property
     def track_uuids(self) -> List[str]:
