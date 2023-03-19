@@ -27,19 +27,19 @@ def epe(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     Returns:
         The point-wise end-point-error
     """
-    return np.array(np.linalg.norm(dts - gts, axis=-1), dtype=np.float64)
+    return np.linalg.norm(dts - gts, axis=-1, dtype=np.float64)
 
 
 def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayFloat:
     """Compute the percent of inliers for a given threshold for a set of dtsictions and ground truth vectors.
 
     Args:
-        dts: (N,3) array containing dtsicted flows
-        gts: (N,3) array containing ground truth flows
-        threshold: the threshold to use for classifying inliers
+        dts: (N,3) Array containing predicted flows.
+        gts: (N,3) Array containing ground truth flows.
+        threshold: Threshold to use for classifying inliers.
 
     Returns:
-        The pointwise inlier assignments
+        The pointwise inlier assignments.
     """
     l2_norm = np.linalg.norm(dts - gts, axis=-1)
     gts_norm = np.linalg.norm(gts, axis=-1)
@@ -53,8 +53,8 @@ def accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the acccuracy with a 0.05 threshold.
 
     Args:
-        dts: (N,3) array containing predicted flows
-        gts: (N,3) array containing ground truth flows
+        dts: (N,3) Array containing predicted flows.
+        gts: (N,3) Array containing ground truth flows.
 
     Returns:
         The pointwise inlier assignments at a 0.05 threshold
@@ -66,11 +66,11 @@ def accuracy_relax(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the acccuracy with a 0.1 threshold.
 
     Args:
-        dts: (N,3) array containing predicted flows
-        gts: (N,3) array containing ground truth flows
+        dts: (N,3) Array containing predicted flows.
+        gts: (N,3) Array containing ground truth flows.
 
     Returns:
-        The pointwise inlier assignments at a 0.1 threshold
+        The pointwise inlier assignments at a 0.1 threshold.
     """
     return accuracy(dts, gts, 0.10)
 
@@ -79,8 +79,8 @@ def angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the angle error between dtsicted and ground truth flow vectors.
 
     Args:
-        dts: (N,3) array containing predicted flows
-        gts: (N,3) array containing ground truth flows
+        dts: (N,3) Array containing predicted flows.
+        gts: (N,3) Array containing ground truth flows.
 
     Returns:
         The pointwise angle errors
@@ -88,7 +88,7 @@ def angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     unit_label = gts / (np.linalg.norm(gts, axis=-1, keepdims=True) + EPS)
     unit_dts = dts / (np.linalg.norm(dts, axis=-1, keepdims=True) + EPS)
     dot_product = np.clip(np.sum(unit_label * unit_dts, axis=-1), a_min=-1 + EPS, a_max=1 - EPS)
-    return np.array(np.arccos(dot_product), dtype=np.float64)
+    return np.arccos(dot_product, dtype=np.float64)
 
 
 def compute_true_positives(dts: NDArrayBool, gts: NDArrayBool) -> int:
@@ -134,8 +134,8 @@ def compute_false_negatives(dts: NDArrayBool, gts: NDArrayBool) -> int:
     """Compute false negative count.
 
     Args:
-        dts: (N,) array containig predicted dynamic segmentation
-        gts: (N,) array containig ground truth dynamic segmentation
+        dts: (N,) Array containing predicted dynamic segmentation.
+        gts: (N,) Array containing ground truth dynamic segmentation.
 
     Returns:
         The number of false negative classifications
