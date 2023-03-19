@@ -1,4 +1,4 @@
-"""Useful constants for scene flow evaluation."""
+"""Constants for scene flow evaluation."""
 
 from enum import Enum, unique
 from typing import Dict, Final, List
