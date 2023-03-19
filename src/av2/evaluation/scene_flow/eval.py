@@ -85,7 +85,7 @@ def angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
         gts: (N,3) Array containing ground truth flows.
 
     Returns:
-        The pointwise angle errors
+        The pointwise angle errors.
     """
     unit_label = gts / (np.linalg.norm(gts, axis=-1, keepdims=True) + EPS)
     unit_dts = dts / (np.linalg.norm(dts, axis=-1, keepdims=True) + EPS)
