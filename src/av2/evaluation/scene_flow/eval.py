@@ -51,7 +51,7 @@ def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> 
     return acc
 
 
-def accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
+def compute_accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the acccuracy with a 0.05 threshold.
 
     Args:
