@@ -57,7 +57,7 @@ pub fn read_accumulate_lidar(
     let poses_path = log_dir.join("city_SE3_egovehicle.feather");
     let poses = read_feather(&poses_path, memory_mapped);
 
-    let pose_ref = dataframe_to_nd_and_filter(
+    let pose_ref = ndarray_filtered_from_frame(
         &poses,
         cols(POSE_COLUMNS),
         col("timestamp_ns").eq(timestamp_ns),
@@ -87,13 +87,13 @@ pub fn read_accumulate_lidar(
             let mut lidar = read_feather(&lidar_path, memory_mapped).lazy();
 
             let xyz =
-                convert_dataframe_to_nd(&lidar.clone().collect().unwrap(), cols(["x", "y", "z"]));
+                ndarray_from_frame(&lidar.clone().collect().unwrap(), cols(["x", "y", "z"]));
             let timedeltas = Series::new(
                 "timedelta_ns",
                 vec![(timestamp_ns - timestamp_ns_i) as f32 * 1e-9; xyz.shape()[0]],
             );
             if timestamp_ns_i != timestamp_ns {
-                let pose_i = dataframe_to_nd_and_filter(
+                let pose_i = ndarray_filtered_from_frame(
                     &poses,
                     cols(POSE_COLUMNS),
                     col("timestamp_ns").eq(timestamp_ns_i),
@@ -172,7 +172,7 @@ pub fn build_lidar_file_path(log_dir: PathBuf, timestamp_ns: u64) -> PathBuf {
 }
 
 /// Convert a dataframe to `ndarray`.
-pub fn convert_dataframe_to_nd(frame: &DataFrame, exprs: Expr) -> Array2<f32> {
+pub fn ndarray_from_frame(frame: &DataFrame, exprs: Expr) -> Array2<f32> {
     frame
         .clone()
         .lazy()
@@ -186,7 +186,7 @@ pub fn convert_dataframe_to_nd(frame: &DataFrame, exprs: Expr) -> Array2<f32> {
 }
 
 /// Convert a dataframe to `ndarray` and filter.
-pub fn dataframe_to_nd_and_filter(
+pub fn ndarray_filtered_from_frame(
     frame: &DataFrame,
     select_exprs: Expr,
     filter_exprs: Expr,
