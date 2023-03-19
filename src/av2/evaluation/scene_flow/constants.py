@@ -46,7 +46,7 @@ VEHICLE_CATEGORIES: Final = (
 ANIMAL_CATEGORIES: Final = ("ANIMAL", "DOG")
 
 
-NO_CLASSES: Final = {"All": [k for k in range(0, 31)]}
+NO_CLASSES: Final = {"All": list(range(31))}
 FOREGROUND_BACKGROUND: Final = {
     "Background": [-1],
     "Foreground": [
