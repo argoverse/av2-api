@@ -144,7 +144,7 @@ def fn(dts: NDArrayBool, gts: NDArrayBool) -> int:
     return int(np.logical_and(~dts, gts).sum())
 
 
-FLOW_METRICS = {
+FLOW_METRICS: Final = {
     "EPE": epe,
     "Accuracy Strict": accuracy_strict,
     "Accuracy Relax": accuracy_relax,
