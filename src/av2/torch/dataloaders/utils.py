@@ -18,6 +18,7 @@ from kornia.geometry.conversions import (
     euler_from_quaternion,
 )
 from kornia.geometry.liegroup import Se3, So3
+from kornia.geometry.linalg import transform_points
 from kornia.geometry.quaternion import Quaternion
 from torch import BoolTensor, ByteTensor, FloatTensor, Tensor
 
@@ -139,7 +140,7 @@ class Sweep:
 
         if avm is not None:
             pcl_ego = lidar_xyzi[:, :3]
-            pcl_city_1 = apply_se3(city_SE3_ego, pcl_ego)
+            pcl_city_1 = transform_points(city_SE3_ego.matrix().squeeze(), pcl_ego)
             is_ground = torch.from_numpy(avm.get_ground_points_boolean(pcl_city_1.numpy()).astype(bool))
         else:
             is_ground = None
@@ -208,7 +209,7 @@ class Flow:
         cuboid_maps = [cuboids_to_id_cuboid_map(cubs) for cubs in cuboids]
         pcs = [sweep.lidar_xyzi[:, :3] for sweep in sweeps]
 
-        rigid_flow = (apply_se3(ego1_SE3_ego0, pcs[0]) - pcs[0]).float().detach()
+        rigid_flow = (transform_points(ego1_SE3_ego0.matrix().squeeze(), pcs[0]) - pcs[0]).float().detach()
         flow = rigid_flow.clone()
 
         valid = torch.ones(len(pcs[0]), dtype=torch.bool)
@@ -278,11 +279,3 @@ def cuboids_to_id_cuboid_map(cuboids: Cuboids) -> Dict[str, Cuboid]:
 
     cuboids_and_ids = dict(zip(ids, cuboid_list.cuboids))
     return cuboids_and_ids
-
-
-def apply_se3(se3: Se3, pts: Tensor) -> Tensor:
-    """Apply an Se3 transformation to a tensor of points (N x 3)."""
-    mat = se3.matrix()
-    if len(mat.shape) > len(pts.shape):
-        mat = mat.squeeze()
-    return convert_points_from_homogeneous(convert_points_to_homogeneous(pts) @ mat.T)
