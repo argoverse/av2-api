@@ -34,9 +34,9 @@ def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayF
     """Compute the percent of inliers for a given threshold for a set of dtsictions and ground truth vectors.
 
     Args:
-        dts: (N,3) array containing dtsicted flows
-        gts: (N,3) array containing ground truth flows
-        threshold: the threshold to use for classifying inliers
+        dts: (N,3) Array containing predicted flows.
+        gts: (N,3) Array containing ground truth flows.
+        threshold: Threshold to use for classifying inliers.
 
     Returns:
         The pointwise inlier assignments
