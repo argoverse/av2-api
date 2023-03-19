@@ -122,11 +122,11 @@ def fp(dts: NDArrayBool, gts: NDArrayBool) -> int:
     """Compute false positive count.
 
     Args:
-        dts: (N,) array containig predicted dynamic segmentation
-        gts: (N,) array containig ground truth dynamic segmentation
+        dts: (N,) array containing predicted dynamic segmentation.
+        gts: (N,) array containing ground truth dynamic segmentation.
 
     Returns:
-        The number of false positive classifications
+        The number of false positive classifications.
     """
     return int(np.logical_and(dts, ~gts).sum())
 
