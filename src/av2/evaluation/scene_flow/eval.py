@@ -77,7 +77,7 @@ def compute_accuracy_relax(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat
     return accuracy(dts, gts, 0.10)
 
 
-def angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
+def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     """Compute the angle error between the prediction and ground truth flow vectors.
 
     Args:
