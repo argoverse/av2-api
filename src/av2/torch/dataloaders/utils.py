@@ -268,7 +268,7 @@ def cuboids_to_id_cuboid_map(cuboids: Cuboids) -> Dict[str, Cuboid]:
     """Create a mapping between track UUIDs and cuboids.
 
     Args:
-        cuboids: the cuboids to transform into a mapping
+        cuboids: Cuboids to transform into a mapping.
 
     Returns:
         A dict with the UUIDs as keys and the coresponding cuboids as values.
