@@ -1,7 +1,7 @@
 """Unit tests for Pytorch Cuboids module."""
 
 from pathlib import Path
-from typing import Final
+from typing import Final, List
 
 import numpy as np
 import pandas as pd
@@ -31,6 +31,12 @@ def test_build_cuboids() -> None:
     _, _, yaw = euler_from_quaternion(w, x, y, z)
     torch.testing.assert_close(cuboids_xyzlwht[:, 6], yaw)
     torch.testing.assert_close(cuboids.as_tensor(cuboid_mode=CuboidMode.XYZLWH_QWXYZ), cuboids_xyzlwh_qwxyz)
+
+    track_uuid_expected: List[str] = annotations_frame["track_uuid"].to_list()
+    assert cuboids.track_uuid == track_uuid_expected
+
+    category_expected: List[str] = annotations_frame["category"].to_list()
+    assert cuboids.category == category_expected
 
 
 def test_build_lidar() -> None:
