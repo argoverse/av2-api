@@ -94,7 +94,7 @@ FOREGROUND_BACKGROUND: Final[Dict[str, List[int]]] = {
         )
     ],
 }
-PED_CYC_VEH_ANI: Final[Dict[str, List[int]]] = {
+PED_CYC_VEH_ANI: Final = {
     "Background": [-1],
     "Object": [k.value for k in BACKGROUND_CATEGORIES],
     "Pedestrian": [k.value for k in PEDESTRIAN_CATEGORIES],
