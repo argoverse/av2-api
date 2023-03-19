@@ -77,7 +77,7 @@ VEHICLE_CATEGORIES: Final[List[ObjectCategory]] = [
     ObjectCategory.TRAFFIC_LIGHT_TRAILER,
     ObjectCategory.MESSAGE_BOARD_TRAILER,
 ]
-ANIMAL_CATEGORIES: Final[List[ObjectCategory]] = [ObjectCategory.ANIMAL, ObjectCategory.DOG]
+ANIMAL_CATEGORIES: Final = [ObjectCategory.ANIMAL, ObjectCategory.DOG]
 
 
 NO_CLASSES: Final = {"All": [k for k in range(-1, 30)]}
