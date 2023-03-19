@@ -45,7 +45,7 @@ The easiest way to install the API is via [conda](https://docs.conda.io/en/lates
 bash conda/install.sh
 ```
 
-Additional information can be found in: [INSTALL](conda/INSTALL.md).
+Additional information can be found in the: [INSTALL README](conda/INSTALL.md).
 
 ### Datasets
 
