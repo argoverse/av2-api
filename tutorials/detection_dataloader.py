@@ -1,15 +1,18 @@
 """Example of rust-backed, torch dataloader."""
 
 from pathlib import Path
+from typing import Final
 
 from kornia.geometry.linalg import transform_points
 from tqdm import tqdm
 
 from av2.torch.dataloaders.detection import DetectionDataloader
 
+HOME_DIR: Final = Path.home()
+
 
 def main(
-    root_dir: Path = Path.home() / "data" / "datasets",
+    root_dir: Path = HOME_DIR / "data" / "datasets",
     dataset_name: str = "av2",
     split_name: str = "val",
     num_accumulated_sweeps: int = 1,
@@ -24,7 +27,6 @@ def main(
         split_name: Name of the split (e.g., "val").
         num_accumulated_sweeps: Number of sweeps to accumulate.
     """
-
     dataloader = DetectionDataloader(root_dir, dataset_name, split_name, num_accumulated_sweeps=num_accumulated_sweeps)
     for sweep in tqdm(dataloader):
         # 4x4 matrix representing the SE(3) transformation to city from ego-vehicle coordinates.

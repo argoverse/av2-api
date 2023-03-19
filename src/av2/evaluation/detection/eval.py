@@ -111,7 +111,6 @@ def evaluate(
         K refers to the number of evaluation metrics.
 
     Raises:
-        RuntimeError: If accumulation fails.
         ValueError: If ROI pruning is enabled but a dataset directory is not specified.
     """
     if cfg.eval_only_roi_instances and cfg.dataset_dir is None:

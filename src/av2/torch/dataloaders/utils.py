@@ -75,7 +75,9 @@ class Cuboids:
             cuboid_mode: Cuboid parameterization mode. Defaults to (N,7) tensor.
 
         Returns:
-            (N,K) tensor of cuboids with the specified cuboid_mode parameterization.
+            (N,K) Tensor of cuboids with the specified cuboid_mode parameterization.
+        Raises:
+            NotImplementedError: Raised if the cuboid mode is not supported.
         """
         xyzlwh_qwxyz = tensor_from_frame(self._frame, list(XYZLWH_QWXYZ_COLUMN_NAMES))
         if cuboid_mode == CuboidMode.XYZLWH_YAW:
@@ -86,7 +88,7 @@ class Cuboids:
         elif cuboid_mode == CuboidMode.XYZLWH_QWXYZ:
             return xyzlwh_qwxyz
         else:
-            raise NotImplementedError("{orientation_mode} orientation mode is not implemented.")
+            raise NotImplementedError(f"{cuboid_mode} orientation mode is not implemented.")
 
 
 @dataclass(frozen=True)
