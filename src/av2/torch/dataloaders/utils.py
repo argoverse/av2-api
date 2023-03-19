@@ -17,7 +17,6 @@ from torch import Tensor
 
 import av2._r as rust  # Rust extension.
 
-# Cuboids represented as (x,y,z) in meters, (l,w,h) in meters, and theta (in radians).
 XYZLWH_QWXYZ_COLUMN_NAMES: Final = (
     "tx_m",
     "ty_m",
@@ -30,9 +29,9 @@ XYZLWH_QWXYZ_COLUMN_NAMES: Final = (
     "qy",
     "qz",
 )
-DEFAULT_LIDAR_TENSOR_FIELDS: Final = ("x", "y", "z", "intensity")
-QUAT_WXYZ_FIELDS: Final = ("qw", "qx", "qy", "qz")
-TRANSLATION_FIELDS: Final = ("tx_m", "ty_m", "tz_m")
+LIDAR_COLUMN_NAMES: Final = ("x", "y", "z", "intensity")
+QWXYZ_COLUMN_NAMES: Final = ("qw", "qx", "qy", "qz")
+TRANSLATION_COLUMN_NAMES: Final = ("tx_m", "ty_m", "tz_m")
 
 
 class CuboidMode(str, Enum):
@@ -76,6 +75,7 @@ class Cuboids:
 
         Returns:
             (N,K) Tensor of cuboids with the specified cuboid_mode parameterization.
+
         Raises:
             NotImplementedError: Raised if the cuboid mode is not supported.
         """
@@ -122,7 +122,7 @@ class Sweep:
         """
         cuboids = Cuboids(_frame=sweep.annotations.to_pandas())
         city_SE3_ego = SE3_from_frame(frame=sweep.city_pose.to_pandas())
-        lidar_xyzi = tensor_from_frame(sweep.lidar.to_pandas(), list(DEFAULT_LIDAR_TENSOR_FIELDS))
+        lidar_xyzi = tensor_from_frame(sweep.lidar.to_pandas(), list(LIDAR_COLUMN_NAMES))
         return cls(city_SE3_ego=city_SE3_ego, lidar_xyzi=lidar_xyzi, sweep_uuid=sweep.sweep_uuid, cuboids=cuboids)
 
 
@@ -154,13 +154,13 @@ def SE3_from_frame(frame: pd.DataFrame) -> Se3:
         frame: (N,4) Pandas DataFrame containing quaternion coefficients.
 
     Returns:
-        Kornia Se3 object representing a (N,4,4) tensor of homogeneous transformations.
+        SE(3) object representing a (N,4,4) tensor of homogeneous transformations.
     """
-    quaternion_npy = frame.loc[0, list(QUAT_WXYZ_FIELDS)].to_numpy().astype(float)
+    quaternion_npy = frame.loc[0, list(QWXYZ_COLUMN_NAMES)].to_numpy().astype(float)
     quat_wxyz = Quaternion(torch.as_tensor(quaternion_npy, dtype=torch.float32))
     rotation = So3(quat_wxyz)
 
-    translation_npy = frame.loc[0, list(TRANSLATION_FIELDS)].to_numpy().astype(np.float32)
+    translation_npy = frame.loc[0, list(TRANSLATION_COLUMN_NAMES)].to_numpy().astype(np.float32)
     translation = torch.as_tensor(translation_npy, dtype=torch.float32)
     dst_SE3_src = Se3(rotation[None], translation[None])
     return dst_SE3_src
