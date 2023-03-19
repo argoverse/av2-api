@@ -90,7 +90,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
         sweep = Sweep.from_rust(self._backend.get(backend_index), avm=avm)
         next_sweep = Sweep.from_rust(self._backend.get(backend_index + 1), avm=avm)
 
-        if sweep.annotations is not None:
+        if sweep.cuboids is not None:
             flow = Flow.from_sweep_pair((sweep, next_sweep))
         else:
             flow = None

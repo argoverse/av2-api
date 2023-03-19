@@ -272,7 +272,7 @@ def cuboids_to_id_cuboid_map(cuboids: Cuboids) -> Dict[str, Cuboid]:
     Returns:
         A dict with the UUIDs as keys and the coresponding cuboids as values.
     """
-    ids = cuboids.track_uuids
+    ids = cuboids.track_uuid
     annotations_df_with_ts = cuboids._frame.assign(timestamp_ns=None)
     cuboid_list = CuboidList.from_dataframe(annotations_df_with_ts)
 
