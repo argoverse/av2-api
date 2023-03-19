@@ -41,7 +41,7 @@ class ObjectCategory(str, Enum):
     NONE = -1
 
 
-BACKGROUND_CATEGORIES: Final[List[ObjectCategory]] = [
+BACKGROUND_CATEGORIES: Final = [
     ObjectCategory.BOLLARD,
     ObjectCategory.CONSTRUCTION_BARREL,
     ObjectCategory.CONSTRUCTION_CONE,
