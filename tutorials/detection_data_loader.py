@@ -8,7 +8,6 @@ from kornia.geometry.linalg import transform_points
 from tqdm import tqdm
 
 from av2.torch.data_loaders.detection import DetectionDataLoader
-from av2.torch.structures.cuboids import CuboidMode
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
