@@ -1,1 +1,1 @@
-"""PyTorch sensor data-loader module."""
+"""PyTorch sensor data-loader sub-package."""

@@ -1,4 +1,4 @@
-"""Unit tests for PyTorch Detection Dataset module."""
+"""Unit tests for PyTorch Detection Dataset sub-module."""
 
 from pathlib import Path
 from typing import Final

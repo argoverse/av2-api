@@ -1,4 +1,4 @@
-"""PyTorch Cuboids module."""
+"""PyTorch Cuboids sub-module."""
 
 from __future__ import annotations
 
