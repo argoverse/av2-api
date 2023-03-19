@@ -167,7 +167,7 @@ def evaluate(
 
     logger.info("Starting evaluation ...")
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate, args_list)
+        outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = p.starmap(accumulate, args_list)
 
     dts_list, gts_list = zip(*outputs)
 
