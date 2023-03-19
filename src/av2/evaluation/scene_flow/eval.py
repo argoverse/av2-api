@@ -46,7 +46,7 @@ def accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayF
     relative_err = l2_norm / (gts_norm + EPS)
     error_lt_5 = (l2_norm < threshold).astype(bool)
     relative_err_lt_5 = (relative_err < threshold).astype(bool)
-    return np.array((error_lt_5 | relative_err_lt_5), dtype=np.float64)
+    return np.array(np.logical_or(error_lt_5, relative_err_lt_5), dtype=np.float64)
 
 
 def accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
@@ -190,7 +190,7 @@ def metrics(
     for cls, class_idxs in object_classes.items():
         class_mask = classes == class_idxs[0]
         for i in class_idxs[1:]:
-            class_mask = class_mask | (classes == i)
+            class_mask = np.logical_or(class_mask, (classes == i))
 
         for motion, m_mask in [("Dynamic", dynamic), ("Static", ~dynamic)]:
             for distance, d_mask in [("Close", close), ("Far", ~close)]:
