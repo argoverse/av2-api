@@ -26,6 +26,7 @@ use rayon::prelude::ParallelIterator;
 use std::fs::File;
 use std::path::PathBuf;
 
+use crate::constants::POSE_COLUMN_NAMES;
 use crate::se3::SE3;
 use crate::so3::quat_to_mat3;
 
@@ -58,7 +59,7 @@ pub fn read_accumulate_lidar(
 
     let pose_ref = dataframe_to_nd_and_filter(
         &poses,
-        cols(["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"]),
+        cols(POSE_COLUMN_NAMES),
         col("timestamp_ns").eq(timestamp_ns),
     );
 
@@ -94,7 +95,7 @@ pub fn read_accumulate_lidar(
             if timestamp_ns_i != timestamp_ns {
                 let pose_i = dataframe_to_nd_and_filter(
                     &poses,
-                    cols(["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"]),
+                    cols(POSE_COLUMN_NAMES),
                     col("timestamp_ns").eq(timestamp_ns_i),
                 );
 
