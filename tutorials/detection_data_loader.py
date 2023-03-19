@@ -51,9 +51,15 @@ def main(
             # Annotations in (x,y,z,l,w,h,yaw) format.
             cuboids = sweep.cuboids.as_tensor()
 
-            # Annotations in (x,y,z,l,w,h,qw,qx,qy,qz) format.
-            # Full 3-DOF rotation.
-            cuboids_qwxyz = sweep.cuboids.as_tensor(cuboid_mode=CuboidMode.XYZLWH_QWXYZ)
+            # Annotations in (x,y,z,l,theta) format.
+            # 1-DOF rotation.
+            xyzlwh_t = sweep.cuboids.as_tensor()
+
+            # Access cuboid category.
+            category = sweep.cuboids.category
+
+            # Access track uuid.
+            track_uuid = sweep.cuboids.track_uuid
 
         if i >= max_iterations:
             logger.info(f"Reached max iterations of {max_iterations}!")
