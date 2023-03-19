@@ -4,7 +4,7 @@ from typing import Dict, Final, List
 
 
 @unique
-class ObjectCategory(Enum):
+class ObjectCategory(str, Enum):
     """Names of all objects in the detection taxonomy."""
 
     ANIMAL = 0
