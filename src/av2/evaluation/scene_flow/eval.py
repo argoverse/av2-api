@@ -47,7 +47,7 @@ def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> 
     relative_err = l2_norm / (gts_norm + EPS)
     error_lt_5 = (l2_norm < threshold).astype(bool)
     relative_err_lt_5 = (relative_err < threshold).astype(bool)
-    acc: NDArrayFloat = np.logical_or(error_lt_5, relative_err_lt_5).astype(np.float64)
+    acc: NDArrayFloat = np.nan_to_num(np.logical_or(error_lt_5, relative_err_lt_5).astype(np.float64))
     return acc
 
 
@@ -61,7 +61,7 @@ def compute_accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloa
     Returns:
         The pointwise inlier assignments at a 0.05 threshold
     """
-    return accuracy(dts, gts, 0.05)
+    return compute_accuracy(dts, gts, 0.05)
 
 
 def compute_accuracy_relax(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
@@ -74,22 +74,26 @@ def compute_accuracy_relax(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat
     Returns:
         The pointwise inlier assignments at a 0.1 threshold.
     """
-    return accuracy(dts, gts, 0.10)
+    return compute_accuracy(dts, gts, 0.10)
 
 
 def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
-    """Compute the angle error between the prediction and ground truth flow vectors.
+    """Compute the angle error in space-time between the prediced and ground truth flow vectors.
 
     Args:
         dts: (N,3) Array containing predicted flows.
         gts: (N,3) Array containing ground truth flows.
 
     Returns:
-        The pointwise angle errors.
+        The pointwise angle errors in space-time.
     """
-    unit_label = gts / (np.linalg.norm(gts, axis=-1, keepdims=True) + EPS)
-    unit_dts = dts / (np.linalg.norm(dts, axis=-1, keepdims=True) + EPS)
-    dot_product = np.clip(np.sum(unit_label * unit_dts, axis=-1), a_min=-1 + EPS, a_max=1 - EPS)
+    gts_pad = np.pad(gts, ((0, 0), (0, 1)), constant_values=0.1)  # frames are 0.1s apart
+    dts_pad = np.pad(dts, ((0, 0), (0, 1)), constant_values=0.1)
+
+    unit_gts = gts_pad / (np.linalg.norm(gts_pad, axis=-1, keepdims=True))
+    unit_dts = dts_pad / (np.linalg.norm(dts_pad, axis=-1, keepdims=True))
+    # floating point errors can cause the dp to be slightly greater than 1 or less than -1
+    dot_product = np.clip(np.sum(unit_gts * unit_dts, axis=-1), -1.0, 1.0)
     err: NDArrayFloat = np.arccos(dot_product).astype(np.float64)
     return err
 
@@ -147,10 +151,10 @@ def compute_false_negatives(dts: NDArrayBool, gts: NDArrayBool) -> int:
 
 
 FLOW_METRICS: Final = {
-    "EPE": epe,
-    "Accuracy Strict": accuracy_strict,
-    "Accuracy Relax": accuracy_relax,
-    "Angle Error": angle_error,
+    "EPE": compute_end_point_error,
+    "Accuracy Strict": compute_accuracy_strict,
+    "Accuracy Relax": compute_accuracy_relax,
+    "Angle Error": compute_angle_error,
 }
 SEG_METRICS: Final = {
     "TP": compute_false_positives,
