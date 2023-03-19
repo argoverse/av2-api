@@ -88,7 +88,7 @@ def angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     unit_label = gts / (np.linalg.norm(gts, axis=-1, keepdims=True) + EPS)
     unit_dts = dts / (np.linalg.norm(dts, axis=-1, keepdims=True) + EPS)
     dot_product = np.clip(np.sum(unit_label * unit_dts, axis=-1), a_min=-1 + EPS, a_max=1 - EPS)
-    return np.array(np.arccos(dot_product), dtype=np.float64)
+    return np.arccos(dot_product, dtype=np.float64)
 
 
 def compute_true_positives(dts: NDArrayBool, gts: NDArrayBool) -> int:
