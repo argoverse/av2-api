@@ -18,7 +18,7 @@ from .utils import tensor_from_frame
 class CuboidMode(str, Enum):
     """Cuboid parameterization modes."""
 
-    XYZLWH_T = "XYZLWHT"  # 1-DOF orientation.
+    XYZLWH_T = "XYZLWH_T"  # 1-DOF orientation.
     XYZLWH_QWXYZ = "XYZLWH_QWXYZ"  # 3-DOF orientation.
 
 
