@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from functools import cached_property
 from typing import Final, List, Optional, Tuple
 
@@ -16,7 +17,8 @@ from torch import Tensor
 
 import av2._r as rust
 
-DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
+# Cuboids represented as (x,y,z) in meters, (l,w,h) in meters, and theta (in radians).
+CUBOID_XYZLWHT_COLUMN_NAMES: Final = (
     "tx_m",
     "ty_m",
     "tz_m",
@@ -33,9 +35,18 @@ QUAT_WXYZ_FIELDS: Final = ("qw", "qx", "qy", "qz")
 TRANSLATION_FIELDS: Final = ("tx_m", "ty_m", "tz_m")
 
 
+class CuboidMode(str, Enum):
+    """Cuboid parameterization modes."""
+
+    # (x,y,z) translation (meters),
+    # (l,w,h) extents (meters),
+    # (t,) theta counter-clockwise rotation from the x-axis (in radians).
+    XYZLWHT = "XYZLWHT"
+
+
 @dataclass(frozen=True)
 class Cuboids:
-    """Object containing metadata for cuboids.
+    """Cuboid representation for objects in the scene.
 
     Args:
         _frame: Dataframe containing the annotations and their attributes.
@@ -44,30 +55,31 @@ class Cuboids:
     _frame: pd.DataFrame
 
     @cached_property
-    def as_tensor(self) -> Tensor:
-        """Return cuboids as a (N,7) tensor.
+    def as_tensor(self, cuboid_mode: CuboidMode = CuboidMode.XYZLWHT) -> Tensor:
+        """Return object cuboids as an (N,K) tensor.
 
-        Cuboid parameterization:
-            tx_m: Translation in the x-axis in meters.
-            ty_m: Translation in the y-axis in meters.
-            tz_m: Translation in the z-axis in meters.
-            length_m: Length in meters.
-            width_m: Width in meters.
-            height_m: Height in meters.
-            yaw_radians: Counter-clock rotation measured from the x-axis.
+        Notation:
+            N: Number of objects.
+            K: Length of the cuboid mode parameterization.
+
+        Args:
+            cuboid_mode: Cuboid parameterization mode. Defaults to (N,7) tensor.
 
         Returns:
-            (N,7) Center-based (in meters) cuboid parameterization with extents + yaw (in radians).
+            (N,K) tensor of cuboids with the specified cuboid_mode parameterization.
         """
-        cuboids_qwxyz = frame_to_tensor(self._frame, list(DEFAULT_ANNOTATIONS_TENSOR_FIELDS))
-        quat_wxyz = cuboids_qwxyz[:, 6:10]
-        w, x, y, z = quat_wxyz[:, 0], quat_wxyz[:, 1], quat_wxyz[:, 2], quat_wxyz[:, 3]
-        _, _, yaw = euler_from_quaternion(w, x, y, z)
-        return torch.concat([cuboids_qwxyz[:, :6], yaw[:, None]], dim=-1)
+        if cuboid_mode == CuboidMode.XYZLWHT:
+            cuboids_qwxyz = tensor_from_frame(self._frame, list(CUBOID_XYZLWHT_COLUMN_NAMES))
+            quat_wxyz = cuboids_qwxyz[:, 6:10]
+            w, x, y, z = quat_wxyz[:, 0], quat_wxyz[:, 1], quat_wxyz[:, 2], quat_wxyz[:, 3]
+            _, _, yaw = euler_from_quaternion(w, x, y, z)
+            return torch.concat([cuboids_qwxyz[:, :6], yaw[:, None]], dim=-1)
+        else:
+            raise NotImplementedError("{orientation_mode} orientation mode is not implemented.")
 
     @cached_property
-    def categories(self) -> List[str]:
-        """Return the category names."""
+    def category_names(self) -> List[str]:
+        """Return the object category names."""
         category_names: List[str] = self._frame["category"].to_list()
         return category_names
 
@@ -108,12 +120,12 @@ class Sweep:
             Sweep object.
         """
         cuboids = Cuboids(_frame=sweep.annotations.to_pandas())
-        city_SE3_ego = frame_to_SE3(frame=sweep.city_pose.to_pandas())
-        lidar_xyzi = frame_to_tensor(sweep.lidar.to_pandas(), list(DEFAULT_LIDAR_TENSOR_FIELDS))
+        city_SE3_ego = SE3_from_frame(frame=sweep.city_pose.to_pandas())
+        lidar_xyzi = tensor_from_frame(sweep.lidar.to_pandas(), list(DEFAULT_LIDAR_TENSOR_FIELDS))
         return cls(city_SE3_ego=city_SE3_ego, lidar_xyzi=lidar_xyzi, sweep_uuid=sweep.sweep_uuid, cuboids=cuboids)
 
 
-def frame_to_tensor(frame: pd.DataFrame, columns: List[str]) -> Tensor:
+def tensor_from_frame(frame: pd.DataFrame, columns: List[str]) -> Tensor:
     """Build lidar `torch` tensor from `pandas` dataframe.
 
     Notation:
@@ -122,7 +134,7 @@ def frame_to_tensor(frame: pd.DataFrame, columns: List[str]) -> Tensor:
 
     Args:
         frame: (N,K) Pandas DataFrame containing N rows with K columns.
-        fields: List of DataFrame columns.
+        columns: List of DataFrame columns.
 
     Returns:
         (N,K) tensor containing the frame data.
@@ -131,7 +143,7 @@ def frame_to_tensor(frame: pd.DataFrame, columns: List[str]) -> Tensor:
     return torch.as_tensor(frame_npy)
 
 
-def frame_to_SE3(frame: pd.DataFrame) -> Se3:
+def SE3_from_frame(frame: pd.DataFrame) -> Se3:
     """Build SE(3) object from `pandas` DataFrame.
 
     Notation:

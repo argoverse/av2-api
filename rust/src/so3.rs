@@ -1,11 +1,11 @@
-//! # SO3
+//! # SO(3)
 //!
 //! Special Orthogonal Group 3 (SO(3)).
 
 use ndarray::{Array2, ArrayView1};
 
-/// Convert a quaternion in scalar-first format to a rotation matrix.
-pub fn quat_to_mat(quat_wxyz: &ArrayView1<f32>) -> Array2<f32> {
+/// Convert a quaternion in scalar-first format to a 3x3 rotation matrix.
+pub fn quat_to_mat3(quat_wxyz: &ArrayView1<f32>) -> Array2<f32> {
     let w = quat_wxyz[0];
     let x = quat_wxyz[1];
     let y = quat_wxyz[2];
