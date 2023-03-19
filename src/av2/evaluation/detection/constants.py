@@ -3,30 +3,30 @@
 """3D object detection evaluation constants."""
 
 from enum import Enum, unique
-from typing import Final, List
+from typing import Final
 
 from av2.utils.constants import PI
 
-MAX_SCALE_ERROR: Final[float] = 1.0
-MAX_YAW_RAD_ERROR: Final[float] = PI
+MAX_SCALE_ERROR: Final = 1.0
+MAX_YAW_RAD_ERROR: Final = PI
 
 # Higher is better.
-MIN_AP: Final[float] = 0.0
-MIN_CDS: Final[float] = 0.0
+MIN_AP: Final = 0.0
+MIN_CDS: Final = 0.0
 
 # Lower is better.
-MAX_NORMALIZED_ATE: Final[float] = 1.0
-MAX_NORMALIZED_ASE: Final[float] = 1.0
-MAX_NORMALIZED_AOE: Final[float] = 1.0
+MAX_NORMALIZED_ATE: Final = 1.0
+MAX_NORMALIZED_ASE: Final = 1.0
+MAX_NORMALIZED_AOE: Final = 1.0
 
 # Max number of boxes considered per class per scene.
-MAX_NUM_BOXES: Final[int] = 500
+MAX_NUM_BOXES: Final = 500
 
-NUM_DECIMALS: Final[int] = 3
+NUM_DECIMALS: Final = 3
 
-TRANSLATION_COLS: Final[List[str]] = ["tx_m", "ty_m", "tz_m"]
-DIMENSION_COLS: Final[List[str]] = ["length_m", "width_m", "height_m"]
-QUAT_WXYZ_COLS: Final[List[str]] = ["qw", "qx", "qy", "qz"]
+TRANSLATION_COLS: Final = ["tx_m", "ty_m", "tz_m"]
+DIMENSION_COLS: Final = ["length_m", "width_m", "height_m"]
+QUAT_WXYZ_COLS: Final = ["qw", "qx", "qy", "qz"]
 
 
 @unique

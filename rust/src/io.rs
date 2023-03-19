@@ -27,7 +27,7 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use crate::se3::SE3;
-use crate::so3::quat_to_mat;
+use crate::so3::quat_to_mat3;
 
 /// Read a feather file and load into a `polars` dataframe.
 pub fn read_feather(path: &PathBuf, memory_mapped: bool) -> DataFrame {
@@ -64,7 +64,7 @@ pub fn read_accumulate_lidar(
 
     let translation = pose_ref.slice(s![0, ..3]).as_standard_layout().to_owned();
     let quat_wxyz = pose_ref.slice(s![0, 3..]).as_standard_layout().to_owned();
-    let rotation = quat_to_mat(&quat_wxyz.view());
+    let rotation = quat_to_mat3(&quat_wxyz.view());
     let city_se3_ego = SE3 {
         rotation,
         translation,
@@ -100,7 +100,7 @@ pub fn read_accumulate_lidar(
 
                 let translation_i = pose_i.slice(s![0, ..3]).as_standard_layout().to_owned();
                 let quat_wxyz = pose_i.slice(s![0, 3..]).as_standard_layout().to_owned();
-                let rotation_i = quat_to_mat(&quat_wxyz.view());
+                let rotation_i = quat_to_mat3(&quat_wxyz.view());
                 let city_se3_ego_i = SE3 {
                     rotation: rotation_i,
                     translation: translation_i,

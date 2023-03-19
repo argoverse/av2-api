@@ -12,7 +12,11 @@ import numpy as np
 import pandas as pd
 import torch
 from ab2.evaluation.scene_flow.constants import CATEGORY_MAP
-from kornia.geometry.conversions import convert_points_from_homogeneous, convert_points_to_homogeneous
+from kornia.geometry.conversions import (
+    convert_points_from_homogeneous,
+    convert_points_to_homogeneous,
+    euler_from_quaternion,
+)
 from kornia.geometry.liegroup import Se3, So3
 from kornia.geometry.quaternion import Quaternion
 from torch import BoolTensor, ByteTensor, FloatTensor, Tensor
@@ -26,7 +30,8 @@ from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat
 
 MAX_STR_LEN: Final[int] = 32
 
-DEFAULT_ANNOTATIONS_TENSOR_FIELDS: Final = (
+# Cuboids represented as (x,y,z) in meters, (l,w,h) in meters, and theta (in radians).
+CUBOID_XYZLWHT_COLUMN_NAMES: Final = (
     "tx_m",
     "ty_m",
     "tz_m",
@@ -43,53 +48,62 @@ QUAT_WXYZ_FIELDS: Final = ("qw", "qx", "qy", "qz")
 TRANSLATION_FIELDS: Final = ("tx_m", "ty_m", "tz_m")
 
 
-@unique
-class OrientationMode(str, Enum):
-    """Orientation (pose) modes for the ground truth annotations."""
+class CuboidMode(str, Enum):
+    """Cuboid parameterization modes."""
 
-    QUATERNION_WXYZ = "QUATERNION_WXYZ"
-    YAW = "YAW"
+    # (x,y,z) translation (meters),
+    # (l,w,h) extents (meters),
+    # (t,) theta counter-clockwise rotation from the x-axis (in radians).
+    XYZLWHT = "XYZLWHT"
 
 
 @dataclass(frozen=True)
-class Annotations:
-    """Dataclass for ground truth annotations.
+class Cuboids:
+    """Cuboid representation for objects in the scene.
 
     Args:
-        dataframe: Dataframe containing the annotations and their attributes.
+        _frame: Dataframe containing the annotations and their attributes.
     """
 
-    dataframe: pd.DataFrame
+    _frame: pd.DataFrame
 
-    @property
-    def category_names(self) -> List[str]:
-        """Return the category names."""
-        category_names: List[str] = self.dataframe["category"].to_list()
-        return category_names
+    @cached_property
+    def as_tensor(self, cuboid_mode: CuboidMode = CuboidMode.XYZLWHT) -> Tensor:
+        """Return object cuboids as an (N,K) tensor.
 
-    @property
-    def track_uuids(self) -> List[str]:
-        """Return the unique track identifiers."""
-        category_names: List[str] = self.dataframe["track_uuid"].to_list()
-        return category_names
-
-    def as_tensor(
-        self,
-        field_ordering: Tuple[str, ...] = DEFAULT_ANNOTATIONS_TENSOR_FIELDS,
-        dtype: torch.dtype = torch.float32,
-    ) -> Tensor:
-        """Return the annotations as a tensor.
+        Notation:
+            N: Number of objects.
+            K: Length of the cuboid mode parameterization.
 
         Args:
-            field_ordering: Feature ordering for the tensor.
-            dtype: Target datatype for casting.
+            cuboid_mode: Cuboid parameterization mode. Defaults to (N,7) tensor.
 
         Returns:
-            (N,K) tensor where N is the number of annotations and K
-                is the number of annotation fields.
+            (N,K) tensor of cuboids with the specified cuboid_mode parameterization.
+
+        Raises:
+            NotImplementedError: if cuboid mode isnt XYZLWHT
         """
-        dataframe_npy = self.dataframe.loc[:, list(field_ordering)].to_numpy()
-        return torch.as_tensor(dataframe_npy, dtype=dtype)
+        if cuboid_mode == CuboidMode.XYZLWHT:
+            cuboids_qwxyz = tensor_from_frame(self._frame, list(CUBOID_XYZLWHT_COLUMN_NAMES))
+            quat_wxyz = cuboids_qwxyz[:, 6:10]
+            w, x, y, z = quat_wxyz[:, 0], quat_wxyz[:, 1], quat_wxyz[:, 2], quat_wxyz[:, 3]
+            _, _, yaw = euler_from_quaternion(w, x, y, z)
+            return torch.concat([cuboids_qwxyz[:, :6], yaw[:, None]], dim=-1)
+        else:
+            raise NotImplementedError("{orientation_mode} orientation mode is not implemented.")
+
+    @cached_property
+    def category_names(self) -> List[str]:
+        """Return the object category names."""
+        category_names: List[str] = self._frame["category"].to_list()
+        return category_names
+
+    @cached_property
+    def track_uuids(self) -> List[str]:
+        """Return the unique track identifiers."""
+        category_names: List[str] = self._frame["track_uuid"].to_list()
+        return category_names
 
 
 @dataclass(frozen=True)
@@ -100,28 +114,29 @@ class Sweep:
         N: Number of lidar points.
 
     Args:
-        annotations: Annotations parameterization.
         city_SE3_ego: Rigid transformation describing the city pose of the ego-vehicle.
         lidar_xyzi: (N,4) Tensor of lidar points containing (x,y,z) in meters and intensity (i).
         sweep_uuid: Log id and nanosecond timestamp (unique identifier).
         is_ground: Tensor of boolean values indicatind which points belong to the ground
+        cuboids: Cuboids representing objects in the scene.
     """
 
-    annotations: Optional[Annotations]
     city_SE3_ego: Se3
     lidar_xyzi: Tensor
     sweep_uuid: Tuple[str, int]
+    cuboids: Optional[Cuboids]
     is_ground: Optional[Tensor] = None
 
     @classmethod
     def from_rust(cls, sweep: rust.Sweep, avm: Optional[ArgoverseStaticMap] = None) -> Sweep:
         """Build a sweep from the Rust backend."""
         if sweep.annotations is not None:
-            annotations = Annotations(dataframe=sweep.annotations.to_pandas())
+            cuboids = Cuboids(_frame=sweep.annotations.to_pandas())
         else:
-            annotations = None
-        city_SE3_ego = frame_to_SE3(frame=sweep.city_pose.to_pandas())
-        lidar_xyzi = frame_to_tensor(sweep.lidar.to_pandas())
+            cuboids = None
+
+        city_SE3_ego = SE3_from_frame(frame=sweep.city_pose.to_pandas())
+        lidar_xyzi = tensor_from_frame(sweep.lidar.to_pandas(), list(DEFAULT_LIDAR_TENSOR_FIELDS))
 
         if avm is not None:
             pcl_ego = lidar_xyzi[:, :3]
@@ -131,29 +146,30 @@ class Sweep:
             is_ground = None
 
         return cls(
-            annotations=annotations,
             city_SE3_ego=city_SE3_ego,
             lidar_xyzi=lidar_xyzi,
             sweep_uuid=sweep.sweep_uuid,
             is_ground=is_ground,
+            cuboids=cuboids,
         )
 
 
-def frame_to_tensor(frame: pd.DataFrame) -> Tensor:
+def tensor_from_frame(frame: pd.DataFrame, columns: List[str]) -> Tensor:
     """Build lidar `torch` tensor from `pandas` dataframe.
 
     Notation:
-        N: Number of lidar points.
-        K: Number of lidar attributes.
+        N: Number of rows.
+        K: Number of columns.
 
     Args:
-        frame: (N,K) Pandas DataFrame containing lidar fields.
+        frame: (N,K) Pandas DataFrame containing N rows with K columns.
+        columns: List of DataFrame columns.
 
     Returns:
-        (N,4) Tensor of (x,y,z) in meters and intensity (i).
+        (N,K) tensor containing the frame data.
     """
-    lidar_npy = frame.loc[:, list(DEFAULT_LIDAR_TENSOR_FIELDS)].to_numpy().astype(np.float32)
-    return torch.as_tensor(lidar_npy)
+    frame_npy = frame.loc[:, columns].to_numpy().astype(np.float32)
+    return torch.as_tensor(frame_npy)
 
 
 @dataclass(frozen=True)
@@ -185,12 +201,12 @@ class Flow:
         """Create flow object from a pair of Sweeps."""
         poses = [sweep.city_SE3_ego for sweep in sweeps]
         ego1_SE3_ego0 = poses[1].inverse() * poses[0]
-        if sweeps[0].annotations is None or sweeps[1].annotations is None:
+        if sweeps[0].cuboids is None or sweeps[1].cuboids is None:
             raise ValueError("Can only create flow from sweeps with annotations")
         else:
-            annotations: List[Annotations] = [sweeps[0].annotations, sweeps[1].annotations]
+            cuboids: List[Cuboids] = [sweeps[0].cuboids, sweeps[1].cuboids]
 
-        cuboids = [annotations_to_id_cuboid_map(anno) for anno in annotations]
+        cuboid_maps = [cuboids_to_id_cuboid_map(cubs) for cubs in cuboids]
         pcs = [sweep.lidar_xyzi[:, :3] for sweep in sweeps]
 
         rigid_flow = (apply_se3(ego1_SE3_ego0, pcs[0]) - pcs[0]).float().detach()
@@ -199,15 +215,15 @@ class Flow:
         valid = torch.ones(len(pcs[0]), dtype=torch.bool)
         classes = torch.zeros(len(pcs[0]), dtype=torch.uint8)
 
-        for id in cuboids[0]:
-            c0 = cuboids[0][id]
+        for id in cuboid_maps[0]:
+            c0 = cuboid_maps[0][id]
             c0.length_m += 0.2  # the bounding boxes are a little too tight and some points are missed
             c0.width_m += 0.2
             obj_pts, obj_mask = [torch.from_numpy(arr) for arr in c0.compute_interior_points(pcs[0].numpy())]
             classes[obj_mask] = CATEGORY_MAP[str(c0.category)]
 
-            if id in cuboids[1]:
-                c1 = cuboids[1][id]
+            if id in cuboid_maps[1]:
+                c1 = cuboid_maps[1][id]
                 c1_SE3_c0 = c1.dst_SE3_object.compose(c0.dst_SE3_object.inverse())
                 obj_flow = torch.from_numpy(c1_SE3_c0.transform_point_cloud(obj_pts.numpy())) - obj_pts
                 flow[obj_mask] = (obj_flow.float()).detach()
@@ -224,8 +240,7 @@ class Flow:
         )
 
 
-@torch.no_grad()
-def frame_to_SE3(frame: pd.DataFrame) -> Se3:
+def SE3_from_frame(frame: pd.DataFrame) -> Se3:
     """Build SE(3) object from `pandas` DataFrame.
 
     Notation:
@@ -249,17 +264,17 @@ def frame_to_SE3(frame: pd.DataFrame) -> Se3:
     return dst_SE3_src
 
 
-def annotations_to_id_cuboid_map(annotations: Annotations) -> Dict[str, Cuboid]:
+def cuboids_to_id_cuboid_map(cuboids: Cuboids) -> Dict[str, Cuboid]:
     """Create a mapping between track UUIDs and cuboids.
 
     Args:
-        annotations: the annotations to transform into cuboids
+        cuboids: the cuboids to transform into a mapping
 
     Returns:
         A dict with the UUIDs as keys and the coresponding cuboids as values.
     """
-    ids = annotations.dataframe.track_uuid.to_numpy()
-    annotations_df_with_ts = annotations.dataframe.assign(timestamp_ns=None)
+    ids = cuboids.track_uuids
+    annotations_df_with_ts = cuboids._frame.assign(timestamp_ns=None)
     cuboid_list = CuboidList.from_dataframe(annotations_df_with_ts)
 
     cuboids_and_ids = dict(zip(ids, cuboid_list.cuboids))
