@@ -89,6 +89,7 @@ class Cuboids:
 
         Returns:
             (N,K) Tensor of cuboids with the specified cuboid_mode parameterization.
+
         Raises:
             NotImplementedError: Raised if the cuboid mode is not supported.
         """
