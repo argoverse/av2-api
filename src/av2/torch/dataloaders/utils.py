@@ -281,7 +281,7 @@ def frame_to_SE3(frame: pd.DataFrame) -> Se3:
     return dst_SE3_src
 
 
-def annotations_to_id_cudboid_map(annotations: Annotations) -> Dict[str, Cuboid]:
+def annotations_to_id_cuboid_map(annotations: Annotations) -> Dict[str, Cuboid]:
     """Create a mapping between track UUIDs and cuboids.
 
     Args:
