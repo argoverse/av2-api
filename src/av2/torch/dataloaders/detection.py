@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 import av2._r as rust
 from av2.utils.typing import PathType
 
-from .utils import Sweep
+from ..structures.sweep import Sweep
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -20,9 +20,6 @@ def validate(submission_root: Path, fmt: Dict[str, int]) -> None:
         submission_root: Path to the top level submission file directory.
         fmt: Dictionary containing all the files needed for submission and the number of points in that file.
 
-    Returns:
-        None
-
     Raises:
         FileNotFoundError: If any of the required files are missing
         ValueError: If any supplied file is malformed
@@ -57,9 +54,7 @@ def zip(submission_root: Path, fmt: Dict[str, int], output_file: Path) -> None:
     Args:
         submission_root: Path to the top level submission file directory.
         fmt: Dictionary containing all the files needed for submission and the number of points in that file.
-
-    Returns:
-        None
+        output_file: File to store the zip archive in.
     """
     with ZipFile(output_file, "w") as myzip:
         for filename in track(fmt.keys(), description="Zipping..."):

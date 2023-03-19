@@ -16,9 +16,9 @@ from torch.utils.data import Dataset
 
 import av2._r as rust
 from av2.map.map_api import ArgoverseStaticMap
+from av2.torch.structures.flow import Flow
+from av2.torch.structures.sweep import Sweep
 from av2.utils.typing import PathType
-
-from .utils import Flow, Sweep
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
