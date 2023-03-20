@@ -15,13 +15,10 @@ BACKGROUND_CATEGORIES: Final = (
     "SIGN",
     "STOP_SIGN",
 )
-PEDESTRIAN_CATEGORIES: Final = (
-    "ANIMAL",
+LEGGED_CATEGORIES: Final = ("ANIMAL", "DOG", "OFFICIAL_SIGNALER", "PEDESTRIAN")
+SMALL_VEHICLE_CATEGORIES: Final = (
     "STROLLER",
     "WHEELCHAIR",
-    "OFFICIAL_SIGNALER",
-)
-SMALL_VEHICLE_CATEGORIES: Final = (
     "BICYCLE",
     "BICYCLIST",
     "MOTORCYCLE",
@@ -43,30 +40,22 @@ VEHICLE_CATEGORIES: Final = (
     "TRAFFIC_LIGHT_TRAILER",
     "MESSAGE_BOARD_TRAILER",
 )
-ANIMAL_CATEGORIES: Final = ("ANIMAL", "DOG")
 
 
 NO_CLASSES: Final = {"All": list(range(31))}
 FOREGROUND_BACKGROUND: Final = {
-    "Background": [-1],
+    "Background": [0],
     "Foreground": [
         CATEGORY_MAP[k]
-        for k in (
-            BACKGROUND_CATEGORIES
-            + PEDESTRIAN_CATEGORIES
-            + SMALL_VEHICLE_CATEGORIES
-            + VEHICLE_CATEGORIES
-            + ANIMAL_CATEGORIES
-        )
+        for k in (BACKGROUND_CATEGORIES + LEGGED_CATEGORIES + SMALL_VEHICLE_CATEGORIES + VEHICLE_CATEGORIES)
     ],
 }
 PED_CYC_VEH_ANI: Final = {
-    "Background": [-1],
+    "Background": [0],
     "Object": [CATEGORY_MAP[k] for k in BACKGROUND_CATEGORIES],
-    "Pedestrian": [CATEGORY_MAP[k] for k in PEDESTRIAN_CATEGORIES],
+    "Legged": [CATEGORY_MAP[k] for k in LEGGED_CATEGORIES],
     "Small Vehicle": [CATEGORY_MAP[k] for k in SMALL_VEHICLE_CATEGORIES],
     "Vehicle": [CATEGORY_MAP[k] for k in VEHICLE_CATEGORIES],
-    "Animal": [CATEGORY_MAP[k] for k in ANIMAL_CATEGORIES],
 }
 
-FLOW_COLS: Final = ["flow_tx_m", "flow_ty_m", "flow_ty_m"]
+FLOW_COLS: Final = ["flow_tx_m", "flow_ty_m", "flow_tz_m"]

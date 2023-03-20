@@ -5,13 +5,13 @@ from functools import partial
 from pathlib import Path
 from typing import Dict, Final, Iterator, List, Optional, Tuple, Union
 
-import constants
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
 from rich.progress import track
 
+import av2.evaluation.scene_flow.constants as constants
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 EPS: Final = 1e-10
@@ -157,8 +157,8 @@ FLOW_METRICS: Final = {
     "Angle Error": compute_angle_error,
 }
 SEG_METRICS: Final = {
-    "TP": compute_false_positives,
-    "TN": compute_false_negatives,
+    "TP": compute_true_positives,
+    "TN": compute_true_negatives,
     "FP": compute_false_positives,
     "FN": compute_false_negatives,
 }
@@ -272,9 +272,12 @@ def results_to_dict(results_dataframe: pd.DataFrame) -> Dict[str, float]:
     output = {}
     grouped = results_dataframe.groupby(["Class", "Motion", "Distance"])
 
-    def weighted_average(x: pd.DataFrame, metric: str) -> pd.Series[float]:
+    def weighted_average(x: pd.DataFrame, metric: str) -> pd.Series:
         """Weighted average of metric m using the Count column."""
-        averages: pd.Series[float] = (x[metric] * x.Count).sum() / x.Count.sum()
+        total = x.Count.sum()
+        if total == 0:
+            return np.nan
+        averages: pd.Series[float] = (x[metric] * x.Count).sum() / total
         return averages
 
     for m in FLOW_METRICS.keys():
@@ -312,4 +315,3 @@ if __name__ == "__main__":
 
     for metric in sorted(results_dict):
         print(f"{metric}: {results_dict[metric]:.3f}")
-    breakpoint()

@@ -1,4 +1,5 @@
 """Pytorch flow module."""
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Dict, Final, List, Optional, Tuple
@@ -50,7 +51,7 @@ class Flow:
         cuboid_maps = [cuboids_to_id_cuboid_map(cubs) for cubs in cuboids]
         pcs = [sweep.lidar_xyzi[:, :3] for sweep in sweeps]
 
-        rigid_flow = (transform_points(ego1_SE3_ego0.matrix().squeeze(), pcs[0]) - pcs[0]).float().detach()
+        rigid_flow = (transform_points(ego1_SE3_ego0.matrix(), pcs[0][None])[0] - pcs[0]).float().detach()
         flow = rigid_flow.clone()
 
         valid = torch.ones(len(pcs[0]), dtype=torch.bool)

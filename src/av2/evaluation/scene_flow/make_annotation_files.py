@@ -2,6 +2,7 @@
 
 import argparse
 from pathlib import Path
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -9,6 +10,48 @@ from rich.progress import track
 
 from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
 from av2.torch.dataloaders.scene_flow import SceneFlowDataloader
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
+
+
+def write_annotation(
+    classes: NDArrayInt,
+    close: NDArrayBool,
+    dynamic: NDArrayBool,
+    valid: NDArrayBool,
+    flow: NDArrayFloat,
+    sweep_uuid: Tuple[str, int],
+    output_root: Path,
+) -> None:
+    """Write an annotation file.
+
+    Args:
+        classes: The class labels.
+        close: The close (inside 70m box) labels.
+        dynamic: The dynamic labels.
+        valid: The valid flow labels.
+        flow: The flow labels.
+        sweep_uuid: The log and timestamp of the sweep.
+        output_root: The top levevel directory to store the output in.
+    """
+    output = pd.DataFrame(
+        {
+            "classes": classes.astype(np.uint8),
+            "close": close.astype(bool),
+            "dynamic": dynamic.astype(bool),
+            "valid": valid.astype(bool),
+            "flow_tx_m": flow[:, 0].astype(np.float16),
+            "flow_ty_m": flow[:, 1].astype(np.float16),
+            "flow_tz_m": flow[:, 2].astype(np.float16),
+        }
+    )
+
+    log, ts = sweep_uuid
+
+    output_dir = output_root / log
+    output_dir.mkdir(exist_ok=True)
+    output_file = (output_dir / str(ts)).with_suffix(".feather")
+    output.to_feather(output_file)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -51,21 +94,4 @@ if __name__ == "__main__":
         pc = datum[0].lidar_xyzi[mask, :3].numpy()
         close = ((np.abs(pc[:, 0]) <= 35) & (np.abs(pc[:, 1]) <= 35)).astype(bool)
 
-        output = pd.DataFrame(
-            {
-                "classes": classes,
-                "close": close,
-                "dynamic": dynamic,
-                "valid": valid,
-                "flow_tx_m": flow[:, 0],
-                "flow_ty_m": flow[:, 1],
-                "flow_tz_m": flow[:, 2],
-            }
-        )
-
-        log, ts = datum[0].sweep_uuid
-
-        output_dir = output_root / log
-        output_dir.mkdir(exist_ok=True)
-        output_file = (output_dir / str(ts)).with_suffix(".feather")
-        output.to_feather(output_file)
+        write_annotation(classes, close, dynamic, valid, flow, datum[0].sweep_uuid, output_root)
