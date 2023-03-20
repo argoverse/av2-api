@@ -22,7 +22,7 @@ from av2.rendering.vector import draw_line_frustum
 from av2.utils.io import read_feather
 from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt, NDArrayObject
 
-ORDERED_CUBOID_COL_NAMES: Final[List[str]] = [
+ORDERED_CUBOID_COLUMNS: Final[List[str]] = [
     "tx_m",
     "ty_m",
     "tz_m",
@@ -406,7 +406,7 @@ class CuboidList:
         Returns:
             Constructed cuboids.
         """
-        cuboids_parameters: NDArrayFloat = data.loc[:, ORDERED_CUBOID_COL_NAMES].to_numpy()
+        cuboids_parameters: NDArrayFloat = data.loc[:, ORDERED_CUBOID_COLUMNS].to_numpy()
         categories: NDArrayObject = data.loc[:, "category"].to_numpy()
         timestamps_ns: NDArrayInt = data.loc[:, "timestamp_ns"].to_numpy()
 

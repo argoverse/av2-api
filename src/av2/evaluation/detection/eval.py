@@ -51,12 +51,9 @@ Results:
     in addition to the mean statistics average across all classes, and P refers to the number of included statistics,
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
-import itertools
 import logging
 import multiprocessing as mp
 import warnings
-from math import inf
-from statistics import mean
 from typing import Dict, Final, List, Optional, Tuple
 
 import numpy as np
@@ -72,16 +69,16 @@ from av2.evaluation.detection.utils import (
 )
 from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap
-from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
+from av2.structures.cuboid import ORDERED_CUBOID_COLUMNS
 from av2.utils.io import TimestampedCitySE3EgoPoses
 from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 warnings.filterwarnings("ignore", module="google")
 
-TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveErrorNames)
-DTS_COLUMN_NAMES: Final[Tuple[str, ...]] = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)
-GTS_COLUMN_NAMES: Final[Tuple[str, ...]] = tuple(ORDERED_CUBOID_COL_NAMES) + ("num_interior_pts",)
-UUID_COLUMN_NAMES: Final[Tuple[str, ...]] = (
+TP_ERROR_COLUMNS: Final = tuple(x.value for x in TruePositiveErrorNames)
+DTS_COLUMN_NAMES: Final = tuple(ORDERED_CUBOID_COLUMNS) + ("score",)
+GTS_COLUMN_NAMES: Final = tuple(ORDERED_CUBOID_COLUMNS) + ("num_interior_pts",)
+UUID_COLUMN_NAMES: Final = (
     "log_id",
     "timestamp_ns",
     "category",
