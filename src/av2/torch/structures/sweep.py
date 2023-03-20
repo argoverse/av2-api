@@ -44,7 +44,9 @@ class Sweep:
         Returns:
             Sweep object.
         """
-        cuboids = Cuboids(_frame=sweep.cuboids.to_pandas())
+        cuboids: Optional[Cuboids] = None
+        if sweep.cuboids is not None:
+            cuboids = Cuboids(_frame=sweep.cuboids.to_pandas())
         city_SE3_ego = SE3_from_frame(frame=sweep.city_pose.to_pandas())
         lidar = Lidar(sweep.lidar.to_pandas())
         return cls(city_SE3_ego=city_SE3_ego, lidar=lidar, sweep_uuid=sweep.sweep_uuid, cuboids=cuboids)
