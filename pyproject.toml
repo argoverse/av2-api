@@ -29,6 +29,7 @@ dependencies = [
     "rich",
     "scipy",
     "torch",
+    "tqdm",
     "universal_pathlib",
 ]
 
