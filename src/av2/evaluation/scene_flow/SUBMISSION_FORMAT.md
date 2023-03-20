@@ -16,7 +16,7 @@ The evaluation is run on a subset of the test set. Use the utility function `get
 - `is_dynamic` (bool): Your predicted dynamic/static labels for each point. A point is considered dynamic if its ground truth flow has a norm greater then 0.05m once ego-motion has been removed.
 
 
-For example the first log in the test set is `0c6e62d7-bdfa-3061-8d3d-03b13aa21f68` and the first timestamp is `315971435999927221`, so there should be a folder and file in the archive of the form: `0c6e62d7-bdfa-3061-8d3d-03b13aa21f68/315971435999927221.feather`. That fill should look like this:
+For example, the first log in the test set is `0c6e62d7-bdfa-3061-8d3d-03b13aa21f68` and the first timestamp is `315971435999927221`, so there should be a folder and file in the archive of the form: `0c6e62d7-bdfa-3061-8d3d-03b13aa21f68/315971435999927221.feather`. That fill should look like this:
 ```
        flow_tx_m  flow_ty_m  flow_tz_m
 0      -0.699219   0.002869   0.020233
