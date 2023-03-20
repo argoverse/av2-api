@@ -8,7 +8,7 @@ The evaluation expects a zip archive of [Apache Feather](https://arrow.apache.or
 - <test_log_2>/
 - ...
 
-The evaluation is run on a subset of the test set, use the utility function `get_eval_subset` to get the `SceneFlowDataloader` indices to submit.  Each feather file should contain your flow predictions for the subset of points returned by `get_eval_mask` in the format:
+The evaluation is run on a subset of the test set. Use the utility function `get_eval_subset` to get the `SceneFlowDataloader` indices to submit.  Each feather file should contain your flow predictions for the subset of points returned by `get_eval_mask` in the format:
 
 - `flow_tx_m` (float16): x-component of the flow in the first sweeps's egovehicle reference frame.
 - `flow_ty_m` (float16): y-component of the flow in the first sweeps's egovehicle reference frame.
