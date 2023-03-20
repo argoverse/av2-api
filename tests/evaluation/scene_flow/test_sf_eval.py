@@ -163,7 +163,14 @@ def test_metrics() -> None:
     Verify that the metric breakdown has the correct subset counts and values.
     """
     metrics = eval.compute_metrics(
-        dts_perfect, dts_dynamic, gts, gts_classes, gts_dynamic, gts_close, gts_valid, constants.FOREGROUND_BACKGROUND
+        dts_perfect,
+        dts_dynamic,
+        gts,
+        gts_classes,
+        gts_dynamic,
+        gts_close,
+        gts_valid,
+        constants.FOREGROUND_BACKGROUND_BREAKDOWN,
     )
 
     for sub in metrics:

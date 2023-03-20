@@ -7,6 +7,7 @@ import av2.evaluation.scene_flow.eval as eval
 from av2.datasets.sensor.constants import AnnotationCategories
 
 SCENE_FLOW_DYNAMIC_THRESHOLD: Final = 0.05
+SWEEP_PAIR_TIME_DELTA = 0.1
 
 CATEGORY_TO_INDEX: Final = {**{"NONE": 0}, **{k.value: i + 1 for i, k in enumerate(AnnotationCategories)}}
 
@@ -23,55 +24,77 @@ SEG_METRICS: Final = {
     "FN": eval.compute_false_negatives,
 }
 
-BACKGROUND_CATEGORIES: Final = (
-    "BOLLARD",
-    "CONSTRUCTION_BARREL",
-    "CONSTRUCTION_CONE",
-    "MOBILE_PEDESTRIAN_CROSSING_SIGN",
-    "SIGN",
-    "STOP_SIGN",
-)
-LEGGED_CATEGORIES: Final = ("ANIMAL", "DOG", "OFFICIAL_SIGNALER", "PEDESTRIAN")
-SMALL_VEHICLE_CATEGORIES: Final = (
-    "STROLLER",
-    "WHEELCHAIR",
-    "BICYCLE",
-    "BICYCLIST",
-    "MOTORCYCLE",
-    "MOTORCYCLIST",
-    "WHEELED_DEVICE",
-    "WHEELED_RIDER",
-)
-VEHICLE_CATEGORIES: Final = (
-    "ARTICULATED_BUS",
-    "BOX_TRUCK",
-    "BUS",
-    "LARGE_VEHICLE",
-    "RAILED_VEHICLE",
-    "REGULAR_VEHICLE",
-    "SCHOOL_BUS",
-    "TRUCK",
-    "TRUCK_CAB",
-    "VEHICULAR_TRAILER",
-    "TRAFFIC_LIGHT_TRAILER",
-    "MESSAGE_BOARD_TRAILER",
-)
+
+@unique
+class InanimateCategories(str, Enum):
+    """Annotation categories representing inanimate objects that aren't vehicles."""
+
+    BOLLARD = "BOLLARD"
+    CONSTRUCTION_BARREL = "CONSTRUCTION_BARREL"
+    CONSTRUCTION_CONE = "CONSTRUCTION_CONE"
+    MOBILE_PEDESTRIAN_CROSSING_SIGN = "MOBILE_PEDESTRIAN_CROSSING_SIGN"
+    SIGN = "SIGN"
+    STOP_SIGN = "STOP_SIGN"
 
 
-NO_CLASSES: Final = {"All": list(range(31))}
-FOREGROUND_BACKGROUND: Final = {
+@unique
+class LeggedCategories(str, Enum):
+    """Annotation categories representing objects that move using legs."""
+
+    ANIMAL = "ANIMAL"
+    DOG = "DOG"
+    OFFICIAL_SIGNALER = "OFFICIAL_SIGNALER"
+    PEDESTRIAN = "PEDESTRIAN"
+
+
+@unique
+class SmallVehicleCategories(str, Enum):
+    """Annotation categories representing small vehicles."""
+
+    STROLLER = "STROLLER"
+    WHEELCHAIR = "WHEELCHAIR"
+    BICYCLE = "BICYCLE"
+    BICYCLIST = "BICYCLIST"
+    MOTORCYCLE = "MOTORCYCLE"
+    MOTORCYCLIST = "MOTORCYCLIST"
+    WHEELED_DEVICE = "WHEELED_DEVICE"
+    WHEELED_RIDER = "WHEELED_RIDER"
+
+
+@unique
+class VehicleCategories(str, Enum):
+    """Annotation categories representing regular vehicles."""
+
+    ARTICULATED_BUS = "ARTICULATED_BUS"
+    BOX_TRUCK = "BOX_TRUCK"
+    BUS = "BUS"
+    LARGE_VEHICLE = "LARGE_VEHICLE"
+    RAILED_VEHICLE = "RAILED_VEHICLE"
+    REGULAR_VEHICLE = "REGULAR_VEHICLE"
+    SCHOOL_BUS = "SCHOOL_BUS"
+    TRUCK = "TRUCK"
+    TRUCK_CAB = "TRUCK_CAB"
+    VEHICULAR_TRAILER = "VEHICULAR_TRAILER"
+    TRAFFIC_LIGHT_TRAILER = "TRAFFIC_LIGHT_TRAILER"
+    MESSAGE_BOARD_TRAILER = "MESSAGE_BOARD_TRAILER"
+
+
+NO_CLASS_BREAKDOWN: Final = {"All": list(range(31))}
+FOREGROUND_BACKGROUND_BREAKDOWN: Final = {
     "Background": [0],
     "Foreground": [
-        CATEGORY_TO_INDEX[k]
-        for k in (BACKGROUND_CATEGORIES + LEGGED_CATEGORIES + SMALL_VEHICLE_CATEGORIES + VEHICLE_CATEGORIES)
+        CATEGORY_TO_INDEX[k.value]
+        for k in (
+            list(InanimateCategories) + list(LeggedCategories) + list(SmallVehicleCategories) + list(VehicleCategories)
+        )
     ],
 }
-PED_CYC_VEH_ANI: Final = {
+PED_CYC_VEH_ANI_BREAKDOWN: Final = {
     "Background": [0],
-    "Object": [CATEGORY_TO_INDEX[k] for k in BACKGROUND_CATEGORIES],
-    "Legged": [CATEGORY_TO_INDEX[k] for k in LEGGED_CATEGORIES],
-    "Small Vehicle": [CATEGORY_TO_INDEX[k] for k in SMALL_VEHICLE_CATEGORIES],
-    "Vehicle": [CATEGORY_TO_INDEX[k] for k in VEHICLE_CATEGORIES],
+    "Object": [CATEGORY_TO_INDEX[k.value] for k in InanimateCategories],
+    "Legged": [CATEGORY_TO_INDEX[k.value] for k in LeggedCategories],
+    "Small Vehicle": [CATEGORY_TO_INDEX[k.value] for k in SmallVehicleCategories],
+    "Vehicle": [CATEGORY_TO_INDEX[k.value] for k in VehicleCategories],
 }
 
 FLOW_COLUMNS: Final = ("flow_tx_m", "flow_ty_m", "flow_tz_m")

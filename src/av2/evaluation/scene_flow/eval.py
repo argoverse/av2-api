@@ -28,7 +28,7 @@ def compute_end_point_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloa
         The point-wise end-point error.
     """
     end_point_error: NDArrayFloat = np.linalg.norm(dts - gts, axis=-1).astype(np.float64)
-    return epe
+    return end_point_error
 
 
 def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> NDArrayFloat:
@@ -87,11 +87,12 @@ def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     Returns:
         The pointwise angle errors in space-time.
     """
-    gts_pad = np.pad(gts, ((0, 0), (0, 1)), constant_values=0.1)  # frames are 0.1s apart
-    dts_pad = np.pad(dts, ((0, 0), (0, 1)), constant_values=0.1)
+    # convert the 3D flow vectors to 4D space-time vectors
+    gts_space_time = np.pad(gts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA)
+    dts_space_time = np.pad(dts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA)
 
-    unit_gts = gts_pad / (np.linalg.norm(gts_pad, axis=-1, keepdims=True))
-    unit_dts = dts_pad / (np.linalg.norm(dts_pad, axis=-1, keepdims=True))
+    unit_gts = gts_space_time / (np.linalg.norm(gts_space_time, axis=-1, keepdims=True))
+    unit_dts = dts_space_time / (np.linalg.norm(dts_space_time, axis=-1, keepdims=True))
     # floating point errors can cause the dp to be slightly greater than 1 or less than -1
     dot_product = np.clip(np.sum(unit_gts * unit_dts, axis=-1), -1.0, 1.0)
     angle_error: NDArrayFloat = np.arccos(dot_product).astype(np.float64)
@@ -153,7 +154,7 @@ def compute_false_negatives(dts: NDArrayBool, gts: NDArrayBool) -> int:
 def compute_metrics(
     pred_flow: NDArrayFloat,
     pred_dynamic: NDArrayBool,
-    gt: NDArrayFloat,
+    gts: NDArrayFloat,
     classes: NDArrayInt,
     is_dynamic: NDArrayBool,
     is_close: NDArrayBool,
@@ -180,7 +181,7 @@ def compute_metrics(
     results = []
     pred_flow = pred_flow[is_valid].astype(np.float64)
     pred_dynamic = pred_dynamic[is_valid].astype(bool)
-    gt = gt[is_valid].astype(np.float64)
+    gts = gts[is_valid].astype(np.float64)
     classes = classes[is_valid].astype(int)
     is_dynamic = is_dynamic[is_valid].astype(bool)
     is_close = is_close[is_valid].astype(bool)
@@ -196,11 +197,11 @@ def compute_metrics(
             for distance, d_mask in [("Close", is_close), ("Far", ~is_close)]:
                 mask = class_mask & m_mask & d_mask
                 cnt = mask.sum().item()
-                gt_sub = gt[mask]
+                gts_sub = gts[mask]
                 pred_sub = pred_flow[mask]
                 result = [cls, motion, distance, cnt]
                 if cnt > 0:
-                    result += [flow_metrics[m](pred_sub, gt_sub).mean() for m in flow_metrics]
+                    result += [flow_metrics[m](pred_sub, gts_sub).mean() for m in flow_metrics]
                     result += [seg_metrics[m](pred_dynamic[mask], is_dynamic[mask]) for m in seg_metrics]
                 else:
                     result += [np.nan for m in flow_metrics]
@@ -222,7 +223,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
     results: List[List[Union[str, float, int]]] = []
     annotation_files = list(annotations_dir.rglob("*.feather"))
     for anno_file in track(annotation_files, description="Evaluating..."):
-        gt = pd.read_feather(anno_file)
+        gts = pd.read_feather(anno_file)
         name: str = str(anno_file.relative_to(annotations_dir))
         pred_file = predictions_dir / name
         if not pred_file.exists():
@@ -232,12 +233,12 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
         loss_breakdown = compute_metrics(
             pred[list(constants.FLOW_COLUMNS)].to_numpy(),
             pred["is_dynamic"].to_numpy(),
-            gt[list(constants.FLOW_COLUMNS)].to_numpy(),
-            gt["classes"].to_numpy(),
-            gt["is_dynamic"].to_numpy(),
-            gt["is_close"].to_numpy(),
-            gt["is_valid"].to_numpy(),
-            constants.FOREGROUND_BACKGROUND,
+            gts[list(constants.FLOW_COLUMNS)].to_numpy(),
+            gts["classes"].to_numpy(),
+            gts["is_dynamic"].to_numpy(),
+            gts["is_close"].to_numpy(),
+            gts["is_valid"].to_numpy(),
+            constants.FOREGROUND_BACKGROUND_BREAKDOWN,
         )
 
         n: Union[str, float, int] = name  # make the type checker happy
