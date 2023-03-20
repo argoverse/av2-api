@@ -49,7 +49,7 @@ def write_annotation(
 
     output_dir = output_root / log
     output_dir.mkdir(exist_ok=True)
-    output_file = (output_dir / str(ts)).with_suffix(".feather")
+    output_file = output_dir / f"{timestamp_ns}.feather"
     output.to_feather(output_file)
 
 
