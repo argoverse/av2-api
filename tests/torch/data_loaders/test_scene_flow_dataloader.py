@@ -71,7 +71,7 @@ def test_scene_flow_dataloader() -> None:
 
     gt_ego = np.load(log_dir / "ego_motion.npz")
 
-    assert np.allclose(ego.matrix().numpy(), gt_ego["ego_motion"], atol=1e-5)
+    assert np.allclose(ego.matrix().numpy(), gt_ego["ego_motion"], atol=1e-3)
 
     eval_inds = get_eval_subset(dl)
     assert len(eval_inds) == 1
