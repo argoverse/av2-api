@@ -111,7 +111,6 @@ def evaluate(
         K refers to the number of evaluation metrics.
 
     Raises:
-        RuntimeError: If accumulation fails.
         ValueError: If ROI pruning is enabled but a dataset directory is not specified.
     """
     if cfg.eval_only_roi_instances and cfg.dataset_dir is None:
@@ -168,10 +167,8 @@ def evaluate(
 
     logger.info("Starting evaluation ...")
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate, args_list)
+        outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = p.starmap(accumulate, args_list)
 
-    if outputs is None:
-        raise RuntimeError("Accumulation has failed! Please check the integrity of your detections and annotations.")
     dts_list, gts_list = zip(*outputs)
 
     METRIC_COLUMN_NAMES = cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
@@ -198,7 +195,7 @@ def summarize_metrics(
         dts: (N,14) Table of detections.
         gts: (M,15) Table of ground truth annotations.
         cfg: Detection configuration.
-        
+
     Returns:
         The summary metrics.
     """

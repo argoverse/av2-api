@@ -90,7 +90,6 @@ def _convert_tracks_to_tabular_format(tracks: List[Track]) -> pd.DataFrame:
     track_dfs: List[pd.DataFrame] = []
 
     for track in tracks:
-
         track_df = pd.DataFrame()
 
         observed_states: List[bool] = []
@@ -138,7 +137,6 @@ def _load_tracks_from_tabular_format(tracks_df: pd.DataFrame) -> List[Track]:
     tracks: List[Track] = []
 
     for track_id, track_df in tracks_df.groupby("track_id"):
-
         observed_states: List[bool] = track_df.loc[:, "observed"].values.tolist()
         object_type: ObjectType = ObjectType(track_df["object_type"].iloc[0])
         object_category: TrackCategory = TrackCategory(track_df["object_category"].iloc[0])

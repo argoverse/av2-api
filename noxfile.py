@@ -22,7 +22,6 @@ def _setup(session: Session) -> None:
         session: `nox` session.
     """
     if isinstance(session.virtualenv, CondaEnv):
-
         # Load environment.yml file and install conda dependencies.
         env = yaml.safe_load(Path("conda/environment.yml").read_text())
 

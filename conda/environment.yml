@@ -5,15 +5,20 @@ dependencies:
   - av
   - click
   - joblib
+  - kornia
   - matplotlib-base
+  - maturin
   - nox
   - numba
   - numpy
   - opencv
   - pandas
   - pip
+  - polars
   - pyarrow
   - pyproj
   - rich
+  - rust
   - scipy
+  - pytorch
   - universal_pathlib

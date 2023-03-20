@@ -23,7 +23,7 @@ If you have any questions or run into any problems with either the data or API, 
 
 ## TL;DR
 
-- Install the API: `pip install av2`
+- Install the API: `bash conda/install.sh`
 - Read the [instructions](DOWNLOAD.md) to download the data.
 
 ## Overview
@@ -39,11 +39,13 @@ If you have any questions or run into any problems with either the data or API, 
 
 ### Setup
 
-The easiest way to install the API is via [pip](https://pypi.org/project/av2/) by running the following command:
+The easiest way to install the API is via [conda](https://docs.conda.io/en/latest/) by running the following command:
 
 ```bash
-pip install av2
+bash conda/install.sh
 ```
+
+Additional information can be found in the: [INSTALL README](conda/INSTALL.md).
 
 ### Datasets
 

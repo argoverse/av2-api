@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Union
 
-logger = logging.Logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def convert_path_to_named_record(path: Path) -> Dict[str, Union[str, int]]:

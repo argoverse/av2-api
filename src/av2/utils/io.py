@@ -14,7 +14,7 @@ from upath import UPath
 
 import av2.geometry.geometry as geometry_utils
 from av2.geometry.se3 import SE3
-from av2.utils.typing import NDArrayByte, NDArrayFloat
+from av2.utils.typing import NDArrayByte, NDArrayFloat, PathType
 
 # Mapping from egovehicle time in nanoseconds to egovehicle pose.
 TimestampedCitySE3EgoPoses = Dict[int, SE3]
@@ -23,7 +23,7 @@ TimestampedCitySE3EgoPoses = Dict[int, SE3]
 SensorPosesMapping = Dict[str, SE3]
 
 
-def read_feather(path: Union[Path, UPath], columns: Optional[Tuple[str, ...]] = None) -> pd.DataFrame:
+def read_feather(path: PathType, columns: Optional[Tuple[str, ...]] = None) -> pd.DataFrame:
     """Read Apache Feather data from a .feather file.
 
     AV2 uses .feather to serialize much of its data. This function handles the deserialization
@@ -37,9 +37,9 @@ def read_feather(path: Union[Path, UPath], columns: Optional[Tuple[str, ...]] = 
     Returns:
         (N,len(columns)) Apache Feather data represented as a `pandas` DataFrame.
     """
-    with path.open("rb") as f:
-        data: pd.DataFrame = feather.read_feather(f, columns=columns)
-    return data
+    with path.open("rb") as file_handle:
+        dataframe: pd.DataFrame = feather.read_feather(file_handle, columns=columns, memory_map=True)
+    return dataframe
 
 
 def read_lidar_sweep(fpath: Path, attrib_spec: str = "xyz") -> NDArrayFloat:

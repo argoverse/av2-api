@@ -171,7 +171,6 @@ class EgoViewMapRenderer:
         """
         interp_polyline, num_waypts = polyline_utils.interp_polyline_by_fixed_waypt_interval(polyline, dash_interval_m)
         for i in range(num_waypts - 1):
-
             # every other segment is a gap
             # (first the next dash interval is a line, and then the dash interval is empty, ...)
             if (i % dash_frequency) != 0:
@@ -254,7 +253,6 @@ def draw_visible_polyline_segments_cv2(
     """
     line_segments_arr_int: NDArrayInt = np.round(line_segments_arr).astype(int)
     for i in range(len(line_segments_arr_int) - 1):
-
         if (not valid_pts_bool[i]) or (not valid_pts_bool[i + 1]):
             continue
 
