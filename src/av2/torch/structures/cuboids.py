@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
-from typing import Final, List
+from typing import List
 
 import pandas as pd
 import torch
@@ -13,19 +13,6 @@ from kornia.geometry.conversions import euler_from_quaternion
 
 from .. import XYZLWH_QWXYZ_COLUMNS
 from .utils import tensor_from_frame
-
-XYZLWH_QWXYZ_COLUMNS: Final = (
-    "tx_m",
-    "ty_m",
-    "tz_m",
-    "length_m",
-    "width_m",
-    "height_m",
-    "qw",
-    "qx",
-    "qy",
-    "qz",
-)
 
 
 class CuboidMode(str, Enum):
