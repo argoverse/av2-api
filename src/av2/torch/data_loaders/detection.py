@@ -1,4 +1,4 @@
-"""Pytorch dataloader for 3D object detection task."""
+"""PyTorch data-loader for 3D object detection task."""
 
 from __future__ import annotations
 
@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class DetectionDataloader(Dataset[Sweep]):
-    """Pytorch dataloader for the sensor dataset.
+class DetectionDataLoader(Dataset[Sweep]):
+    """PyTorch data-loader for the sensor dataset.
 
     The sensor dataset should exist somewhere such as `~/data/datasets/{dataset_name}/{dataset_type}/{split_name}`,
     where
@@ -26,13 +26,13 @@ class DetectionDataloader(Dataset[Sweep]):
         dataset_type = "sensor,
         split_name = "train".
 
-    This dataloader backend is implemented in Rust for speed. Each iteration will yield a new sweep.
+    This data-loader backend is implemented in Rust for speed. Each iteration will yield a new sweep.
 
     Args:
         root_dir: Path to the dataset directory.
         dataset_name: Dataset name (e.g., "av2").
         split_name: Name of the dataset split (e.g., "train").
-        num_accum_sweeps: Number of temporally accumulated sweeps (accounting for ego-vehicle motion).
+        num_accumulated_sweeps: Number of temporally accumulated sweeps (accounting for ego-vehicle motion).
         memory_mapped: Boolean flag indicating whether to memory map the dataframes.
     """
 
@@ -42,12 +42,12 @@ class DetectionDataloader(Dataset[Sweep]):
     num_accumulated_sweeps: int = 1
     memory_mapped: bool = False
 
-    _backend: rust.Dataloader = field(init=False)
+    _backend: rust.DataLoader = field(init=False)
     _current_idx: int = 0
 
     def __post_init__(self) -> None:
         """Initialize Rust backend."""
-        self._backend = rust.Dataloader(
+        self._backend = rust.DataLoader(
             str(self.root_dir),
             self.dataset_name,
             "sensor",
@@ -65,8 +65,8 @@ class DetectionDataloader(Dataset[Sweep]):
         """Length of the sensor dataset (number of sweeps)."""
         return self._backend.__len__()
 
-    def __iter__(self) -> DetectionDataloader:
-        """Iterate method for the dataloader."""
+    def __iter__(self) -> DetectionDataLoader:
+        """Iterate method for the data-loader."""
         return self
 
     def __next__(self) -> Sweep:

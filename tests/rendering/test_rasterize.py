@@ -1,4 +1,4 @@
-"""Tests for the rasterize module."""
+"""Tests for the rasterize sub-module."""
 
 from typing import Tuple
 

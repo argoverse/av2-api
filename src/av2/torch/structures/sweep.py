@@ -1,4 +1,4 @@
-"""Pytorch sweep module."""
+"""PyTorch sweep sub-module."""
 
 from __future__ import annotations
 
@@ -11,10 +11,10 @@ from kornia.geometry.linalg import transform_points
 
 import av2._r as rust
 from av2.map.map_api import ArgoverseStaticMap
+from av2.torch.structures.lidar import Lidar
 
-from .. import LIDAR_COLUMNS
 from .cuboids import Cuboids
-from .utils import SE3_from_frame, tensor_from_frame
+from .utils import SE3_from_frame
 
 
 @dataclass(frozen=True)
@@ -23,17 +23,18 @@ class Sweep:
 
     Notation:
         N: Number of lidar points.
+        K: Number of lidar features.
 
     Args:
         city_SE3_ego: Rigid transformation describing the city pose of the ego-vehicle.
-        lidar_xyzi: (N,4) torch.Tensor of lidar points containing (x,y,z) in meters and intensity (i).
+        lidar: Lidar sensor data.
         sweep_uuid: Log id and nanosecond timestamp (unique identifier).
         cuboids: Cuboids representing objects in the scene.
         is_ground: Tensor of boolean values indicatind which points belong to the ground
     """
 
     city_SE3_ego: Se3
-    lidar_xyzi: torch.Tensor
+    lidar: Lidar
     sweep_uuid: Tuple[str, int]
     cuboids: Optional[Cuboids]
     is_ground: Optional[torch.Tensor] = None
@@ -43,21 +44,21 @@ class Sweep:
         """Build a sweep from the Rust backend.
 
         Args:
-            sweep: Sweep object from the Rust backend dataloader.
+            sweep: Sweep object from the Rust backend data-loader.
             avm: Map object for computing ground labels
 
         Returns:
             Sweep object.
         """
-        if sweep.annotations is not None:
-            cuboids = Cuboids(_frame=sweep.annotations.to_pandas())
+        if sweep.cuboids is not None:
+            cuboids = cuboids = Cuboids(_frame=sweep.cuboids.to_pandas())
         else:
             cuboids = None
 
         city_SE3_ego = SE3_from_frame(frame=sweep.city_pose.to_pandas())
-        lidar_xyzi = tensor_from_frame(sweep.lidar.to_pandas(), list(LIDAR_COLUMNS))
+        lidar = Lidar(sweep.lidar.to_pandas())
         if avm is not None:
-            pcl_ego = lidar_xyzi[:, :3]
+            pcl_ego = lidar.as_tensor()[:, :3]
             pcl_city_1 = transform_points(city_SE3_ego.matrix(), pcl_ego[None])[0]
             is_ground = torch.from_numpy(avm.get_ground_points_boolean(pcl_city_1.numpy()).astype(bool))
         else:
@@ -65,7 +66,7 @@ class Sweep:
 
         return cls(
             city_SE3_ego=city_SE3_ego,
-            lidar_xyzi=lidar_xyzi,
+            lidar=lidar,
             sweep_uuid=sweep.sweep_uuid,
             is_ground=is_ground,
             cuboids=cuboids,

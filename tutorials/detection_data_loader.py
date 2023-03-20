@@ -1,4 +1,4 @@
-"""Example of rust-backed, torch dataloader."""
+"""Example of Rust-backed, PyTorch data-loader."""
 
 import logging
 from pathlib import Path
@@ -7,9 +7,9 @@ from typing import Final
 from kornia.geometry.linalg import transform_points
 from tqdm import tqdm
 
-from av2.torch.dataloaders.detection import DetectionDataloader
-from av2.torch.dataloaders.utils import CuboidMode
+from av2.torch.data_loaders.detection import DetectionDataLoader
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 HOME_DIR: Final = Path.home()
@@ -22,7 +22,7 @@ def main(
     num_accumulated_sweeps: int = 1,
     max_iterations: int = 1000,
 ) -> None:
-    """Iterate over the detection dataloader.
+    """Iterate over the detection data-loader.
 
     Dataset should live at ~/data/datasets/{dataset_name}/{split_name}.
 
@@ -31,28 +31,34 @@ def main(
         dataset_name: Name of the dataset (e.g., "av2").
         split_name: Name of the split (e.g., "val").
         num_accumulated_sweeps: Number of sweeps to accumulate.
-        max_iterations: Maximum number of iterations for the dataloader example.
+        max_iterations: Maximum number of iterations for the data-loader example.
     """
-    logger.info("Starting detection dataloader example ...")
-    dataloader = DetectionDataloader(root_dir, dataset_name, split_name, num_accumulated_sweeps=num_accumulated_sweeps)
-    for i, sweep in enumerate(tqdm(dataloader)):
+    logger.info("Starting detection data-loader example ...")
+    data_loader = DetectionDataLoader(root_dir, dataset_name, split_name, num_accumulated_sweeps=num_accumulated_sweeps)
+    for i, sweep in enumerate(tqdm(data_loader)):
         # 4x4 matrix representing the SE(3) transformation to city from ego-vehicle coordinates.
-        city_SE3_ego_4x4 = sweep.city_SE3_ego.matrix()
+        city_SE3_ego_mat4 = sweep.city_SE3_ego.matrix()
 
         # Lidar (x,y,z) in meters and intensity (i).
-        lidar_xyzi_ego = sweep.lidar_xyzi[:, :3]
+        lidar_tensor = sweep.lidar.as_tensor()
 
         # Transform the points to city coordinates.
-        lidar_xyz_city = transform_points(city_SE3_ego_4x4, lidar_xyzi_ego[:, :3])
+        lidar_xyz_city = transform_points(city_SE3_ego_mat4, lidar_tensor[:, :3])
 
         # Cuboids might not be available (e.g., using the "test" split).
         if sweep.cuboids is not None:
             # Annotations in (x,y,z,l,w,h,yaw) format.
             cuboids = sweep.cuboids.as_tensor()
 
-            # Annotations in (x,y,z,l,w,h,qw,qx,qy,qz) format.
-            # Full 3-DOF rotation.
-            cuboids_qwxyz = sweep.cuboids.as_tensor(cuboid_mode=CuboidMode.XYZLWH_QWXYZ)
+            # Annotations in (x,y,z,l,theta) format.
+            # 1-DOF rotation.
+            xyzlwh_t = sweep.cuboids.as_tensor()
+
+            # Access cuboid category.
+            category = sweep.cuboids.category
+
+            # Access track uuid.
+            track_uuid = sweep.cuboids.track_uuid
 
         if i >= max_iterations:
             logger.info(f"Reached max iterations of {max_iterations}!")

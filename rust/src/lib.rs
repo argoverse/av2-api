@@ -6,14 +6,14 @@
 #![warn(missing_doc_code_examples)]
 
 pub mod constants;
-pub mod dataloader;
+pub mod data_loader;
 pub mod io;
 pub mod ops;
 pub mod path;
 pub mod se3;
 pub mod so3;
 
-use dataloader::{Dataloader, Sweep};
+use data_loader::{DataLoader, Sweep};
 use ndarray::Dim;
 use numpy::{IntoPyArray, PyArray};
 use pyo3::prelude::*;
@@ -54,7 +54,7 @@ fn py_voxelize<'py>(
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _r(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<Dataloader>()?;
+    m.add_class::<DataLoader>()?;
     m.add_class::<Sweep>()?;
     m.add_function(wrap_pyfunction!(py_voxelize, m)?)?;
     Ok(())

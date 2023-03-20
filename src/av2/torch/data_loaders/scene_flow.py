@@ -1,4 +1,4 @@
-"""Pytorch dataloader for the scene flow task."""
+"""PyTorch data-loader for the scene flow task."""
 
 from __future__ import annotations
 
@@ -26,13 +26,13 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
-    """Pytorch dataloader for the sensor dataset.
+    """Pytorch data-loader for the sensor dataset.
 
     Args:
         root_dir: Path to the dataset directory.
         dataset_name: Dataset name (e.g., "av2").
         split_name: Name of the dataset split (e.g., "train").
-        num_accum_sweeps: Number of temporally accumulated sweeps (accounting for ego-vehicle motion).
+        num_accumulated_sweeps: Number of temporally accumulated sweeps (accounting for ego-vehicle motion).
         memory_mapped: Boolean flag indicating whether to memory map the dataframes.
     """
 
@@ -106,7 +106,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
         return len(self.index_map)
 
     def __iter__(self) -> SceneFlowDataloader:
-        """Iterate method for the dataloader."""
+        """Iterate method for the data-loader."""
         return self
 
     def __next__(self) -> Tuple[Sweep, Sweep, Se3, Optional[Flow]]:
