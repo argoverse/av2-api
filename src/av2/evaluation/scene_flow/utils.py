@@ -63,12 +63,14 @@ def compute_eval_point_mask(datum: Tuple[Sweep, Sweep, Se3, Optional[Flow]]) -> 
     return BoolTensor(torch.logical_and(is_close, not_ground))
 
 
-def write_output_file(flow: NDArrayFloat, dynamic: NDArrayBool, sweep_uuid: Tuple[str, int], output_dir: Path) -> None:
+def write_output_file(
+    flow: NDArrayFloat, is_dynamic: NDArrayBool, sweep_uuid: Tuple[str, int], output_dir: Path
+) -> None:
     """Write an output predictions file in the correct format for submission.
 
     Args:
         flow: (N,3) Flow predictions.
-        dynamic: (N,) Dynamic segmentation prediction.
+        is_dynamic: (N,) Dynamic segmentation prediction.
         sweep_uuid: Identifier of the sweep being predicted (log_id, timestamp).
         output_dir: Top level directory containing all predictions.
     """
@@ -77,5 +79,5 @@ def write_output_file(flow: NDArrayFloat, dynamic: NDArrayBool, sweep_uuid: Tupl
     fx = flow[:, 0].astype(np.float16)
     fy = flow[:, 1].astype(np.float16)
     fz = flow[:, 2].astype(np.float16)
-    output = pd.DataFrame({"flow_tx_m": fx, "flow_ty_m": fy, "flow_tz_m": fz, "dynamic": dynamic.astype(bool)})
+    output = pd.DataFrame({"flow_tx_m": fx, "flow_ty_m": fy, "flow_tz_m": fz, "is_dynamic": is_dynamic.astype(bool)})
     output.to_feather(output_log_dir / f"{sweep_uuid[1]}.feather")

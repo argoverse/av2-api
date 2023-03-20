@@ -30,11 +30,11 @@ def validate(submission_root: Path, fmt: Dict[str, int]) -> None:
             raise FileNotFoundError(f"{str(input_file)} not found in submission directory")
         pred = pd.read_feather(input_file)
 
-        cols = ["flow_tx_m", "flow_ty_m", "flow_tz_m", "dynamic"]
+        cols = ["flow_tx_m", "flow_ty_m", "flow_tz_m", "is_dynamic"]
         for c in cols:
             if c not in pred.columns:
                 raise ValueError(f"{str(input_file)} does not contain {c}")
-            if c == "dynamic":
+            if c == "is_dynamic":
                 if pred[c].dtype != bool:
                     raise ValueError(f"{str(input_file)} column {c} should be bool but is {pred[c].dtype}")
             else:

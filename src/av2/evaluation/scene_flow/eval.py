@@ -47,8 +47,8 @@ def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> 
     relative_err = l2_norm / (gts_norm + EPS)
     error_lt_5 = (l2_norm < threshold).astype(bool)
     relative_err_lt_5 = (relative_err < threshold).astype(bool)
-    accuracy: NDArrayFloat = np.nan_to_num(np.logical_or(error_lt_5, relative_err_lt_5).astype(np.float64))
-    return acc
+    accuracy: NDArrayFloat = np.logical_or(error_lt_5, relative_err_lt_5).astype(np.float64)
+    return accuracy
 
 
 def compute_accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
@@ -95,7 +95,7 @@ def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     # floating point errors can cause the dp to be slightly greater than 1 or less than -1
     dot_product = np.clip(np.sum(unit_gts * unit_dts, axis=-1), -1.0, 1.0)
     angle_error: NDArrayFloat = np.arccos(dot_product).astype(np.float64)
-    return err
+    return angle_error
 
 
 def compute_true_positives(dts: NDArrayBool, gts: NDArrayBool) -> int:
@@ -150,20 +150,6 @@ def compute_false_negatives(dts: NDArrayBool, gts: NDArrayBool) -> int:
     return int(np.logical_and(~dts, gts).sum())
 
 
-FLOW_METRICS: Final = {
-    "EPE": compute_end_point_error,
-    "Accuracy Strict": compute_accuracy_strict,
-    "Accuracy Relax": compute_accuracy_relax,
-    "Angle Error": compute_angle_error,
-}
-SEG_METRICS: Final = {
-    "TP": compute_true_positives,
-    "TN": compute_true_negatives,
-    "FP": compute_false_positives,
-    "FN": compute_false_negatives,
-}
-
-
 def compute_metrics(
     pred_flow: NDArrayFloat,
     pred_dynamic: NDArrayBool,
@@ -181,9 +167,9 @@ def compute_metrics(
         pred_dynamic: (N,) Predicted dynamic labels.
         gt: (N, 3) Ground truth flow vectors.
         classes: (N,) Integer class labels for each point.
-        dynamic: (N,) Ground truth dynamic labels.
-        close: (N,) true for a point if it is within a 70m x 70m box around the AV
-        valid: (N,) true for a point if its flow vector was succesfully computed.
+        is_dynamic: (N,) Ground truth dynamic labels.
+        is_close: (N,) true for a point if it is within a 70m x 70m box around the AV
+        is_valid: (N,) true for a point if its flow vector was succesfully computed.
         object_classes: A dictionary mapping class integers to segmentation labels (e.g., FOREGROUND_BACKGROUND).
 
     Returns:
@@ -192,70 +178,75 @@ def compute_metrics(
         and the size of the subset.
     """
     results = []
-    pred_flow = pred_flow[valid].astype(np.float64)
-    pred_dynamic = pred_dynamic[valid].astype(bool)
-    gt = gt[valid].astype(np.float64)
-    classes = classes[valid].astype(int)
-    dynamic = dynamic[valid].astype(bool)
-    close = close[valid].astype(bool)
+    pred_flow = pred_flow[is_valid].astype(np.float64)
+    pred_dynamic = pred_dynamic[is_valid].astype(bool)
+    gt = gt[is_valid].astype(np.float64)
+    classes = classes[is_valid].astype(int)
+    is_dynamic = is_dynamic[is_valid].astype(bool)
+    is_close = is_close[is_valid].astype(bool)
+    flow_metrics = constants.FLOW_METRICS
+    seg_metrics = constants.SEG_METRICS
 
     for cls, class_idxs in object_classes.items():
         class_mask = classes == class_idxs[0]
         for i in class_idxs[1:]:
             class_mask = np.logical_or(class_mask, (classes == i))
 
-        for motion, m_mask in [("Dynamic", dynamic), ("Static", ~dynamic)]:
-            for distance, d_mask in [("Close", close), ("Far", ~close)]:
+        for motion, m_mask in [("Dynamic", is_dynamic), ("Static", ~is_dynamic)]:
+            for distance, d_mask in [("Close", is_close), ("Far", ~is_close)]:
                 mask = class_mask & m_mask & d_mask
                 cnt = mask.sum().item()
                 gt_sub = gt[mask]
                 pred_sub = pred_flow[mask]
                 result = [cls, motion, distance, cnt]
                 if cnt > 0:
-                    result += [FLOW_METRICS[m](pred_sub, gt_sub).mean() for m in FLOW_METRICS]
-                    result += [SEG_METRICS[m](pred_dynamic[mask], dynamic[mask]) for m in SEG_METRICS]
+                    result += [flow_metrics[m](pred_sub, gt_sub).mean() for m in flow_metrics]
+                    result += [seg_metrics[m](pred_dynamic[mask], is_dynamic[mask]) for m in seg_metrics]
                 else:
-                    result += [np.nan for m in FLOW_METRICS]
-                    result += [0 for m in SEG_METRICS]
+                    result += [np.nan for m in flow_metrics]
+                    result += [0 for m in seg_metrics]
                 results.append(result)
     return results
 
 
-def evaluate_directories(annotations_root: Path, predictions_root: Path) -> pd.DataFrame:
+def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.DataFrame:
     """Run the evaluation on predictions and labels saved to disk.
 
     Args:
         annotations_dir: path to the directory containing the annotation files produced by `make_annotation_files.py`.
-        predictions_root: path to the prediction files in submission format
+        predictions_dir: path to the prediction files in submission format
 
     Returns:
         A DataFrame containing the average metrics on each subset of each example.
     """
     results: List[List[Union[str, float, int]]] = []
-    annotation_files = list(annotations_root.rglob("*.feather"))
+    annotation_files = list(annotations_dir.rglob("*.feather"))
     for anno_file in track(annotation_files, description="Evaluating..."):
         gt = pd.read_feather(anno_file)
-        name: str = str(anno_file.relative_to(annotations_root))
-        pred_file = predictions_root / name
+        name: str = str(anno_file.relative_to(annotations_dir))
+        pred_file = predictions_dir / name
         if not pred_file.exists():
             print(f"Warning: {name} missing")
             continue
         pred = pd.read_feather(pred_file)
         loss_breakdown = compute_metrics(
             pred[constants.FLOW_COLUMNS].to_numpy(),
-            pred["dynamic"].to_numpy(),
+            pred["is_dynamic"].to_numpy(),
             gt[constants.FLOW_COLUMNS].to_numpy(),
             gt["classes"].to_numpy(),
-            gt["dynamic"].to_numpy(),
-            gt["close"].to_numpy(),
-            gt["valid"].to_numpy(),
+            gt["is_dynamic"].to_numpy(),
+            gt["is_close"].to_numpy(),
+            gt["is_valid"].to_numpy(),
             constants.FOREGROUND_BACKGROUND,
         )
 
         n: Union[str, float, int] = name  # make the type checker happy
         results.extend([[n] + bd for bd in loss_breakdown])
     df = pd.DataFrame(
-        results, columns=["Example", "Class", "Motion", "Distance", "Count"] + list(FLOW_METRICS) + list(SEG_METRICS)
+        results,
+        columns=["Example", "Class", "Motion", "Distance", "Count"]
+        + list(constants.FLOW_METRICS)
+        + list(constants.SEG_METRICS),
     )
     return df
 
@@ -280,7 +271,7 @@ def results_to_dict(results_dataframe: pd.DataFrame) -> Dict[str, float]:
         averages: pd.Series[float] = (x[metric] * x.Count).sum() / total
         return averages
 
-    for m in FLOW_METRICS.keys():
+    for m in constants.FLOW_METRICS.keys():
         avg = grouped.apply(partial(weighted_average, metric=m))
         for segment in avg.index:
             if segment[0] == "Background" and segment[1] == "Dynamic":
@@ -288,7 +279,7 @@ def results_to_dict(results_dataframe: pd.DataFrame) -> Dict[str, float]:
             name = m + "/" + "/".join([str(i) for i in segment])
             output[name] = avg[segment]
     grouped = results_dataframe.groupby(["Class", "Motion"])
-    for m in FLOW_METRICS.keys():
+    for m in constants.FLOW_METRICS.keys():
         avg = grouped.apply(partial(weighted_average, metric=m))
         for segment in avg.index:
             if segment[0] == "Background" and segment[1] == "Dynamic":

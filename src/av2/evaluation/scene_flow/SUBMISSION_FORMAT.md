@@ -13,7 +13,7 @@ The evaluation is run on a subset of the test set, use the utility function `get
 - `flow_tx_m` (float16): x-component of the flow in the first sweeps's egovehicle reference frame.
 - `flow_ty_m` (float16): y-component of the flow in the first sweeps's egovehicle reference frame.
 - `flow_tz_m` (float16): z-component of the flow in the first sweeps's egovehicle reference frame.
-- `dynamic` (bool): Your predicted dynamic/static labels for each point. A point is considered dynamic if its ground truth flow has a norm greater then 0.05m once ego-motion has been removed.
+- `is_dynamic` (bool): Your predicted dynamic/static labels for each point. A point is considered dynamic if its ground truth flow has a norm greater then 0.05m once ego-motion has been removed.
 
 
 For example the first log in the test set is `0c6e62d7-bdfa-3061-8d3d-03b13aa21f68` and the first timestamp is `315971435999927221`, so there should be a folder and file in the archive of the form: `0c6e62d7-bdfa-3061-8d3d-03b13aa21f68/315971435999927221.feather`. That fill should look like this:

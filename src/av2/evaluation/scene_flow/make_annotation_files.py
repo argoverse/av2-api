@@ -15,9 +15,9 @@ from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 def write_annotation(
     classes: NDArrayInt,
-    close: NDArrayBool,
-    dynamic: NDArrayBool,
-    valid: NDArrayBool,
+    is_close: NDArrayBool,
+    is_dynamic: NDArrayBool,
+    is_valid: NDArrayBool,
     flow: NDArrayFloat,
     sweep_uuid: Tuple[str, int],
     output_root: Path,
@@ -26,9 +26,9 @@ def write_annotation(
 
     Args:
         classes: Class labels.
-        close: Close (inside 70m box) labels.
-        dynamic: Dynamic labels.
-        valid: Valid flow labels.
+        is_close: Close (inside 70m box) labels.
+        is_dynamic: Dynamic labels.
+        is_valid: Valid flow labels.
         flow: Flow labels.
         sweep_uuid: Log and timestamp of the sweep.
         output_root: Top level directory to store the output in.
@@ -36,9 +36,9 @@ def write_annotation(
     output = pd.DataFrame(
         {
             "classes": classes.astype(np.uint8),
-            "close": close.astype(bool),
-            "dynamic": dynamic.astype(bool),
-            "valid": valid.astype(bool),
+            "is_close": is_close.astype(bool),
+            "is_dynamic": is_dynamic.astype(bool),
+            "is_valid": is_valid.astype(bool),
             "flow_tx_m": flow[:, 0].astype(np.float16),
             "flow_ty_m": flow[:, 1].astype(np.float16),
             "flow_tz_m": flow[:, 2].astype(np.float16),
@@ -87,11 +87,11 @@ if __name__ == "__main__":
         mask = get_eval_point_mask(datum[0].sweep_uuid)
 
         flow = datum[3].flow[mask].numpy().astype(np.float16)
-        valid = datum[3].valid[mask].numpy().astype(bool)
+        is_valid = datum[3].is_valid[mask].numpy().astype(bool)
         classes = datum[3].classes[mask].numpy().astype(np.uint8)
-        dynamic = datum[3].dynamic[mask].numpy().astype(bool)
+        is_dynamic = datum[3].is_dynamic[mask].numpy().astype(bool)
 
         pc = datum[0].lidar.as_tensor()[mask, :3].numpy()
-        close = ((np.abs(pc[:, 0]) <= 35) & (np.abs(pc[:, 1]) <= 35)).astype(bool)
+        is_close = ((np.abs(pc[:, 0]) <= 35) & (np.abs(pc[:, 1]) <= 35)).astype(bool)
 
-        write_annotation(classes, close, dynamic, valid, flow, datum[0].sweep_uuid, output_root)
+        write_annotation(classes, is_close, is_dynamic, is_valid, flow, datum[0].sweep_uuid, output_root)

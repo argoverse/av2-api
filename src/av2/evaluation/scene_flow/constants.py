@@ -3,9 +3,25 @@
 from enum import Enum, unique
 from typing import Dict, Final, List
 
+import av2.evaluation.scene_flow.eval as eval
 from av2.datasets.sensor.constants import AnnotationCategories
 
+SCENE_FLOW_DYNAMIC_THRESHOLD: Final = 0.05
+
 CATEGORY_TO_INDEX: Final = {**{"NONE": 0}, **{k.value: i + 1 for i, k in enumerate(AnnotationCategories)}}
+
+FLOW_METRICS: Final = {
+    "EPE": eval.compute_end_point_error,
+    "Accuracy Strict": eval.compute_accuracy_strict,
+    "Accuracy Relax": eval.compute_accuracy_relax,
+    "Angle Error": eval.compute_angle_error,
+}
+SEG_METRICS: Final = {
+    "TP": eval.compute_true_positives,
+    "TN": eval.compute_true_negatives,
+    "FP": eval.compute_false_positives,
+    "FN": eval.compute_false_negatives,
+}
 
 BACKGROUND_CATEGORIES: Final = (
     "BOLLARD",
@@ -46,16 +62,16 @@ NO_CLASSES: Final = {"All": list(range(31))}
 FOREGROUND_BACKGROUND: Final = {
     "Background": [0],
     "Foreground": [
-        CATEGORY_MAP[k]
+        CATEGORY_TO_INDEX[k]
         for k in (BACKGROUND_CATEGORIES + LEGGED_CATEGORIES + SMALL_VEHICLE_CATEGORIES + VEHICLE_CATEGORIES)
     ],
 }
 PED_CYC_VEH_ANI: Final = {
     "Background": [0],
-    "Object": [CATEGORY_MAP[k] for k in BACKGROUND_CATEGORIES],
-    "Legged": [CATEGORY_MAP[k] for k in LEGGED_CATEGORIES],
-    "Small Vehicle": [CATEGORY_MAP[k] for k in SMALL_VEHICLE_CATEGORIES],
-    "Vehicle": [CATEGORY_MAP[k] for k in VEHICLE_CATEGORIES],
+    "Object": [CATEGORY_TO_INDEX[k] for k in BACKGROUND_CATEGORIES],
+    "Legged": [CATEGORY_TO_INDEX[k] for k in LEGGED_CATEGORIES],
+    "Small Vehicle": [CATEGORY_TO_INDEX[k] for k in SMALL_VEHICLE_CATEGORIES],
+    "Vehicle": [CATEGORY_TO_INDEX[k] for k in VEHICLE_CATEGORIES],
 }
 
 FLOW_COLUMNS: Final = ("flow_tx_m", "flow_ty_m", "flow_tz_m")

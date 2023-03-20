@@ -95,11 +95,11 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
         else:
             flow = None
 
-        ego_motion = next_sweep.city_SE3_ego.inverse() * sweep.city_SE3_ego
-        ego_motion.rotation._q.requires_grad_(False)
-        ego_motion.translation.requires_grad_(False)
+        ego_1_SE3_ego_0 = next_sweep.city_SE3_ego.inverse() * sweep.city_SE3_ego
+        ego_1_SE3_ego_0.rotation._q.requires_grad_(False)
+        ego_1_SE3_ego_0.translation.requires_grad_(False)
 
-        return sweep, next_sweep, ego_motion, flow
+        return sweep, next_sweep, ego_1_SE3_ego_0, flow
 
     def __len__(self) -> int:
         """Length of the scene flow dataset (number of pairs of sweeps)."""
