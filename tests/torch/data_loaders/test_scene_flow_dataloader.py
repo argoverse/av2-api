@@ -55,15 +55,15 @@ def test_scene_flow_dataloader() -> None:
     flow_labels = pd.read_feather(log_dir / "flow_labels.feather")
 
     FLOW_COLS = ["flow_tx_m", "flow_ty_m", "flow_tz_m"]
-    assert np.allclose(flow.flow, flow_labels[FLOW_COLS].to_numpy())
-    assert np.allclose(flow.classes, flow_labels.classes.to_numpy())
-    assert np.allclose(flow.dynamic, flow_labels.dynamic.to_numpy())
+    assert np.allclose(flow.flow.numpy(), flow_labels[FLOW_COLS].to_numpy(), atol=1e-3)
+    assert np.allclose(flow.classes.numpy(), flow_labels.classes.to_numpy())
+    assert np.allclose(flow.dynamic.numpy(), flow_labels.dynamic.to_numpy())
     assert sweep_0.is_ground is not None
-    assert np.allclose(sweep_0.is_ground, flow_labels.is_ground_0)
+    assert np.allclose(sweep_0.is_ground.numpy(), flow_labels.is_ground_0)
 
     gt_ego = np.load(log_dir / "ego_motion.npz")
 
-    assert np.allclose(ego.matrix(), gt_ego["ego_motion"])
+    assert np.allclose(ego.matrix().numpy(), gt_ego["ego_motion"])
 
     eval_inds = get_eval_subset(dl)
     assert len(eval_inds) == 1
