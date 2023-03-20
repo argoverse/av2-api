@@ -58,4 +58,4 @@ PED_CYC_VEH_ANI: Final = {
     "Vehicle": [CATEGORY_MAP[k] for k in VEHICLE_CATEGORIES],
 }
 
-FLOW_COLS: Final = ["flow_tx_m", "flow_ty_m", "flow_tz_m"]
+FLOW_COLUMNS: Final = ("flow_tx_m", "flow_ty_m", "flow_tz_m")
