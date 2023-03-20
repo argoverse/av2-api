@@ -169,9 +169,9 @@ def compute_metrics(
     pred_dynamic: NDArrayBool,
     gt: NDArrayFloat,
     classes: NDArrayInt,
-    dynamic: NDArrayBool,
-    close: NDArrayBool,
-    valid: NDArrayBool,
+    is_dynamic: NDArrayBool,
+    is_close: NDArrayBool,
+    is_valid: NDArrayBool,
     object_classes: Dict[str, List[int]],
 ) -> List[List[Union[str, float, int]]]:
     """Compute all the metrics for a given example and package them into a list to be put into a DataFrame.
