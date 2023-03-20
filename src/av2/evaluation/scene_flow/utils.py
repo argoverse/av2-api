@@ -19,7 +19,7 @@ _EVAL_ROOT = Path(__file__).resolve().parent
 
 
 def get_eval_subset(dataloader: SceneFlowDataloader) -> List[int]:
-    """Return the indicies of the test set used for evaluation on the leaderboard."""
+    """Return the indices of the test set used for evaluation on the leaderboard."""
     return list(range(len(dataloader)))[::5]
 
 
