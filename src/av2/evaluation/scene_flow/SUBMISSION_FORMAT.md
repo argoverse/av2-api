@@ -1,6 +1,6 @@
 # 3D Scene Flow Submission Format
 
-The evaluation expects a zip archive of pandas DataFrames stored as feather files, one for each example. The unzipped directory must have the format:
+The evaluation expects a zip archive of [Apache Feather](https://arrow.apache.org/docs/python/feather.html) files --- one for each example. The unzipped directory must have the format:
 - <test_log_1>/
   - <test_timestamp_ns_1>.feather
   - <test_timestamp_ns_2>.feather
