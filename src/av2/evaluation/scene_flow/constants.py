@@ -5,7 +5,7 @@ from typing import Dict, Final, List
 
 from av2.datasets.sensor.constants import AnnotationCategories
 
-CATEGORY_MAP: Final = {**{k.value: i + 1 for i, k in list(enumerate(AnnotationCategories))}, **{"NONE": 0}}
+CATEGORY_TO_INDEX: Final = {**{"NONE": 0}, **{k.value: i + 1 for i, k in enumerate(AnnotationCategories)}}
 
 BACKGROUND_CATEGORIES: Final = (
     "BOLLARD",
