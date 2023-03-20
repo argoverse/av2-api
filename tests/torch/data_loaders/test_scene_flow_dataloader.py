@@ -59,7 +59,8 @@ def test_scene_flow_dataloader() -> None:
     assert np.allclose(flow.classes.numpy(), flow_labels.classes.to_numpy())
     assert np.allclose(flow.dynamic.numpy(), flow_labels.dynamic.to_numpy())
     assert sweep_0.is_ground is not None
-    assert np.all(sweep_0.is_ground.numpy() == flow_labels.is_ground_0.to_numpy())
+    ground_match: NDArrayBool = sweep_0.is_ground.numpy() == flow_labels.is_ground_0.to_numpy()
+    assert np.all(ground_match), f"{ground_match.sum()} differences: {list(ground_match)}"
 
     gt_ego = np.load(log_dir / "ego_motion.npz")
 
