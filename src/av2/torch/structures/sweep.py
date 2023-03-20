@@ -30,7 +30,7 @@ class Sweep:
         lidar: Lidar sensor data.
         sweep_uuid: Log id and nanosecond timestamp (unique identifier).
         cuboids: Cuboids representing objects in the scene.
-        is_ground: Tensor of boolean values indicatind which points belong to the ground
+        is_ground: Tensor of boolean values indicatind which points belong to the ground.
     """
 
     city_SE3_ego: Se3
