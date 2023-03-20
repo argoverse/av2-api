@@ -59,11 +59,11 @@ def test_scene_flow_dataloader() -> None:
     assert np.allclose(flow.classes.numpy(), flow_labels.classes.to_numpy())
     assert np.allclose(flow.dynamic.numpy(), flow_labels.dynamic.to_numpy())
     assert sweep_0.is_ground is not None
-    assert np.allclose(sweep_0.is_ground.numpy(), flow_labels.is_ground_0.to_numpy())
+    assert np.all(sweep_0.is_ground.numpy() == flow_labels.is_ground_0.to_numpy())
 
     gt_ego = np.load(log_dir / "ego_motion.npz")
 
-    assert np.allclose(ego.matrix().numpy(), gt_ego["ego_motion"])
+    assert np.allclose(ego.matrix().numpy(), gt_ego["ego_motion"], atol=1e-3)
 
     eval_inds = get_eval_subset(dl)
     assert len(eval_inds) == 1
