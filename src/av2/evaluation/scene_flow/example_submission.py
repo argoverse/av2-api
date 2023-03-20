@@ -35,7 +35,7 @@ if __name__ == "__main__":
     eval_inds = get_eval_subset(dl)
     for i in track(eval_inds, description="Generating outputs..."):
         sweep_0, sweep_1, ego_motion, flow = dl[i]
-        mask = get_eval_point_mask((sweep_0, sweep_1, ego_motion, flow))
+        mask = get_eval_point_mask(sweep_0.sweep_uuid)
 
         pc1 = sweep_0.lidar.as_tensor()[mask, :3]
         pc1_rigid = transform_points(ego_motion.matrix(), pc1[None])[0]

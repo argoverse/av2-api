@@ -211,9 +211,9 @@ def test_average_metrics() -> pd.DataFrame:
 
         timestamp_ns = 111111111111111111
 
-        write_annotation(gts_classes, gts_close, gts_dynamic, gts_valid, gts, ("log", ts), anno_dir)
-        write_annotation(gts_classes, gts_close, gts_dynamic, gts_valid, gts, ("log_missing", ts), anno_dir)
-        write_output_file(dts_perfect, dts_dynamic, ("log", ts), pred_dir)
+        write_annotation(gts_classes, gts_close, gts_dynamic, gts_valid, gts, ("log", timestamp_ns), anno_dir)
+        write_annotation(gts_classes, gts_close, gts_dynamic, gts_valid, gts, ("log_missing", timestamp_ns), anno_dir)
+        write_output_file(dts_perfect, dts_dynamic, ("log", timestamp_ns), pred_dir)
 
         results_df = eval.evaluate_directories(anno_dir, pred_dir)
 

@@ -47,7 +47,7 @@ def write_annotation(
 
     log_id, timestamp_ns = sweep_uuid
 
-    output_dir = output_root / log
+    output_dir = output_root / log_id
     output_dir.mkdir(exist_ok=True)
     output_file = output_dir / f"{timestamp_ns}.feather"
     output.to_feather(output_file)
@@ -78,9 +78,9 @@ if __name__ == "__main__":
     output_root = Path(args.output_root)
     output_root.mkdir(exist_ok=True)
 
-    eval_inds = get_eval_subset(dl)
+    eval_inds = get_eval_subset(data_loader)
     for i in track(eval_inds):
-        datum = dl[i]
+        datum = data_loader[i]
         if datum[3] is None:
             raise ValueError("Missing flow annotations")
 
