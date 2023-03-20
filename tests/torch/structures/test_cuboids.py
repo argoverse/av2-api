@@ -25,12 +25,12 @@ def test_build_cuboids() -> None:
     cuboids_xyzlwht = cuboids.as_tensor()
 
     cuboids_xyzlwh_qwxyz = torch.as_tensor(cuboids_npy)
-    torch.testing.assert_close(cuboids_xyzlwht[:, :6], cuboids_xyzlwh_qwxyz[:, :6])
+    torch.testing.assert_allclose(cuboids_xyzlwht[:, :6], cuboids_xyzlwh_qwxyz[:, :6])
 
     w, x, y, z = cuboids_xyzlwh_qwxyz[:, 6:10].t()
     _, _, yaw = euler_from_quaternion(w, x, y, z)
-    torch.testing.assert_close(cuboids_xyzlwht[:, 6], yaw)
-    torch.testing.assert_close(cuboids.as_tensor(cuboid_mode=CuboidMode.XYZLWH_QWXYZ), cuboids_xyzlwh_qwxyz)
+    torch.testing.assert_allclose(cuboids_xyzlwht[:, 6], yaw)
+    torch.testing.assert_allclose(cuboids.as_tensor(cuboid_mode=CuboidMode.XYZLWH_QWXYZ), cuboids_xyzlwh_qwxyz)
 
     track_uuid_expected: List[str] = annotations_frame["track_uuid"].to_list()
     assert cuboids.track_uuid == track_uuid_expected

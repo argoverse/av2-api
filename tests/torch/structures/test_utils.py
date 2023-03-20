@@ -34,7 +34,7 @@ def test_tensor_from_frame() -> None:
     tensor_expected = torch.as_tensor(
         [[frame.loc[0, "qw"], frame.loc[0, "qx"], frame.loc[0, "qy"], frame.loc[0, "qz"]]]
     )
-    torch.testing.assert_close(tensor, tensor_expected)
+    torch.testing.assert_allclose(tensor, tensor_expected)
 
 
 def test_SE3_from_frame() -> None:
@@ -48,5 +48,5 @@ def test_SE3_from_frame() -> None:
     city_SE3_ego_expected = Se3(rotation, translation)
     city_SE3_ego = SE3_from_frame(frame)
 
-    torch.testing.assert_close(city_SE3_ego.translation, city_SE3_ego_expected.translation)
-    torch.testing.assert_close(city_SE3_ego.rotation.matrix(), city_SE3_ego_expected.rotation.matrix())
+    torch.testing.assert_allclose(city_SE3_ego.translation, city_SE3_ego_expected.translation)
+    torch.testing.assert_allclose(city_SE3_ego.rotation.matrix(), city_SE3_ego_expected.rotation.matrix())
