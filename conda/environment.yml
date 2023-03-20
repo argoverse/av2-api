@@ -21,4 +21,5 @@ dependencies:
   - rust
   - scipy
   - pytorch
+  - tqdm
   - universal_pathlib
