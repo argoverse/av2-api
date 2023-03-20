@@ -45,7 +45,7 @@ def write_annotation(
         }
     )
 
-    log, ts = sweep_uuid
+    log_id, timestamp_ns = sweep_uuid
 
     output_dir = output_root / log
     output_dir.mkdir(exist_ok=True)
