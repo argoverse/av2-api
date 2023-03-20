@@ -59,7 +59,7 @@ class DetectionDataLoader(Dataset[Sweep]):
     def __getitem__(self, index: int) -> Sweep:
         """Get a sweep from the sensor dataset."""
         sweep = self._backend.get(index)
-        return Sweep.from_rust(sweep, None)
+        return Sweep.from_rust(sweep)
 
     def __len__(self) -> int:
         """Length of the sensor dataset (number of sweeps)."""
