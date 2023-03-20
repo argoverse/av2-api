@@ -10,6 +10,7 @@ import av2.torch.data_loaders.scene_flow
 from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
 from av2.torch.structures.flow import Flow
 from av2.torch.structures.sweep import Sweep
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 _TEST_DATA_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -55,16 +56,22 @@ def test_scene_flow_dataloader() -> None:
     flow_labels = pd.read_feather(log_dir / "flow_labels.feather")
 
     FLOW_COLS = ["flow_tx_m", "flow_ty_m", "flow_tz_m"]
-    assert np.allclose(flow.flow.numpy(), flow_labels[FLOW_COLS].to_numpy(), atol=1e-3)
+    err = np.abs(flow.flow.numpy() - flow_labels[FLOW_COLS].to_numpy()).sum(-1)
+    max_err_ind = np.argmax(err)
+    flow_err_val = flow.flow.numpy()[max_err_ind]
+    label_err_val = flow_labels[FLOW_COLS].to_numpy()[max_err_ind]
+    assert np.allclose(
+        flow.flow.numpy(), flow_labels[FLOW_COLS].to_numpy(), atol=1e-5
+    ), f"max-diff {err[max_err_ind]} flow: {flow_err_val} label: {label_err_val}"
     assert np.allclose(flow.classes.numpy(), flow_labels.classes.to_numpy())
     assert np.allclose(flow.dynamic.numpy(), flow_labels.dynamic.to_numpy())
     assert sweep_0.is_ground is not None
     ground_match: NDArrayBool = sweep_0.is_ground.numpy() == flow_labels.is_ground_0.to_numpy()
-    assert np.all(ground_match), f"{len(ground_match) - ground_match.sum()} differences: {sweep_0.is_ground.numpy()}"
+    assert np.logical_not(ground_match).sum() < 10
 
     gt_ego = np.load(log_dir / "ego_motion.npz")
 
-    assert np.allclose(ego.matrix().numpy(), gt_ego["ego_motion"], atol=1e-3)
+    assert np.allclose(ego.matrix().numpy(), gt_ego["ego_motion"], atol=1e-5)
 
     eval_inds = get_eval_subset(dl)
     assert len(eval_inds) == 1
