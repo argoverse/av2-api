@@ -47,7 +47,7 @@ def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, threshold: float) -> 
     relative_err = l2_norm / (gts_norm + EPS)
     error_lt_5 = (l2_norm < threshold).astype(bool)
     relative_err_lt_5 = (relative_err < threshold).astype(bool)
-    acc: NDArrayFloat = np.nan_to_num(np.logical_or(error_lt_5, relative_err_lt_5).astype(np.float64))
+    accuracy: NDArrayFloat = np.nan_to_num(np.logical_or(error_lt_5, relative_err_lt_5).astype(np.float64))
     return acc
 
 
