@@ -1,4 +1,5 @@
-"""Pytorch flow module."""
+"""PyTorch flow module."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
