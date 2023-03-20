@@ -13,7 +13,7 @@ from torch.utils.data import Dataset
 import av2._r as rust
 from av2.utils.typing import PathType
 
-from .utils import Sweep
+from ..structures.sweep import Sweep
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,12 +37,12 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Optional[Sweep]]]):
     num_accumulated_sweeps: int = 1
     memory_mapped: bool = False
 
-    _backend: rust.Dataloader = field(init=False)
+    _backend: rust.DataLoader = field(init=False)
     _current_idx: int = 0
 
     def __post_init__(self) -> None:
         """Initialize Rust backend."""
-        self._backend = rust.Dataloader(
+        self._backend = rust.DataLoader(
             str(self.root_dir),
             self.dataset_name,
             "sensor",
