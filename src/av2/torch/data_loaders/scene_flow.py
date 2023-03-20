@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
-    """Pytorch data-loader for the sensor dataset.
+    """PyTorch data-loader for the sensor dataset.
 
     Args:
         root_dir: Path to the dataset directory.
