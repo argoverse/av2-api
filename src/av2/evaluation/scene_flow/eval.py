@@ -94,7 +94,7 @@ def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     unit_dts = dts_pad / (np.linalg.norm(dts_pad, axis=-1, keepdims=True))
     # floating point errors can cause the dp to be slightly greater than 1 or less than -1
     dot_product = np.clip(np.sum(unit_gts * unit_dts, axis=-1), -1.0, 1.0)
-    err: NDArrayFloat = np.arccos(dot_product).astype(np.float64)
+    angle_error: NDArrayFloat = np.arccos(dot_product).astype(np.float64)
     return err
 
 
