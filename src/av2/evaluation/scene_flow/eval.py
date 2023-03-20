@@ -27,7 +27,7 @@ def compute_end_point_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloa
     Returns:
         The point-wise end-point error.
     """
-    epe: NDArrayFloat = np.linalg.norm(dts - gts, axis=-1).astype(np.float64)
+    end_point_error: NDArrayFloat = np.linalg.norm(dts - gts, axis=-1).astype(np.float64)
     return epe
 
 
