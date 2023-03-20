@@ -9,7 +9,7 @@ import pandas as pd
 from kornia.geometry.liegroup import Se3
 from rich.progress import track
 
-from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
+from av2.evaluation.scene_flow.utils import compute_eval_point_mask, get_eval_subset
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 from av2.torch.structures.flow import Flow
 from av2.torch.structures.sweep import Sweep
@@ -30,8 +30,7 @@ def write_mask(
         ego: The relative ego-motion between the two sweeps.
         output_root: The top levevel directory to store the output in.
     """
-
-    mask = get_eval_point_mask((sweep_0, sweep_1, ego, None))
+    mask = compute_eval_point_mask((sweep_0, sweep_1, ego, None))
 
     output = pd.DataFrame({"mask": mask.numpy().astype(bool)})
 
