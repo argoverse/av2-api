@@ -9,7 +9,7 @@ import pandas as pd
 import av2.evaluation.scene_flow.constants as constants
 import av2.evaluation.scene_flow.eval as eval
 from av2.evaluation.scene_flow.make_annotation_files import write_annotation
-from av2.evaluation.scene_flow.utils import write_output_file
+from av2.evaluation.scene_flow.utils import get_eval_point_mask, write_output_file
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 gts: NDArrayFloat = np.array(
@@ -239,3 +239,13 @@ def test_average_metrics() -> pd.DataFrame:
     assert len([True for k in results_dict if "Background/Dyamic" in k]) == 0
     assert results_dict["Dynamic IoU"] == 2 / (3 + 2 + 2)
     assert results_dict["EPE 3-Way Average"] == 0.0
+
+
+def test_eval_masks() -> pd.DataFrame:
+    """Load an example mask a compare a susbset of it to some known values."""
+    uuid = ("0c6e62d7-bdfa-3061-8d3d-03b13aa21f68", 315971436059707000)
+    mask = get_eval_point_mask(uuid).numpy()
+
+    inds = np.array([85029, 38229, 13164, 24083, 55903, 95251, 85976, 24794, 67262, 9531])
+    gt_mask = np.array([False, False, True, True, True, True, False, True, True, True])
+    assert np.all(mask[inds] == gt_mask)

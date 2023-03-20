@@ -84,7 +84,7 @@ if __name__ == "__main__":
         if datum[3] is None:
             raise ValueError("Missing flow annotations")
 
-        mask = get_eval_point_mask(datum)
+        mask = get_eval_point_mask(datum[0].sweep_uuid)
 
         flow = datum[3].flow[mask].numpy().astype(np.float16)
         valid = datum[3].valid[mask].numpy().astype(bool)

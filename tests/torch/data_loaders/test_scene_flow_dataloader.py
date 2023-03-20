@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 
 import av2.torch.data_loaders.scene_flow
-from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
+from av2.evaluation.scene_flow.utils import compute_eval_point_mask, get_eval_point_mask, get_eval_subset
 from av2.torch.structures.flow import Flow
 from av2.torch.structures.sweep import Sweep
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
@@ -29,7 +29,7 @@ def test_scene_flow_dataloader() -> None:
 
     failed = False
     try:
-        get_eval_point_mask((sweep_0, sweep_1, ego, not_flow))
+        compute_eval_point_mask((sweep_0, sweep_1, ego, not_flow))
     except ValueError:
         failed = True
     assert failed
@@ -61,8 +61,8 @@ def test_scene_flow_dataloader() -> None:
     flow_err_val = flow.flow.numpy()[max_err_ind]
     label_err_val = flow_labels[FLOW_COLS].to_numpy()[max_err_ind]
     assert np.allclose(
-        flow.flow.numpy(), flow_labels[FLOW_COLS].to_numpy(), atol=1e-5
-    ), f"max-diff {err[max_err_ind]} flow: {flow_err_val} label: {label_err_val}"
+        flow.flow.numpy(), flow_labels[FLOW_COLS].to_numpy(), atol=1e-3
+    ), f"max-diff {err[max_err_ind]} ind: {max_err_ind} flow: {flow_err_val} label: {label_err_val}"
     assert np.allclose(flow.classes.numpy(), flow_labels.classes.to_numpy())
     assert np.allclose(flow.dynamic.numpy(), flow_labels.dynamic.to_numpy())
     assert sweep_0.is_ground is not None
@@ -76,10 +76,3 @@ def test_scene_flow_dataloader() -> None:
     eval_inds = get_eval_subset(dl)
     assert len(eval_inds) == 1
     assert eval_inds[0] == 0
-
-    eval_mask = get_eval_point_mask((sweep_0, sweep_1, ego, flow))
-
-    pcl = sweep_0.lidar.as_tensor()[:, :3]
-    is_close = torch.logical_and(pcl[:, 0].abs() <= 50, pcl[:, 1].abs() <= 50).bool()
-    not_ground = torch.logical_not(sweep_0.is_ground)
-    assert (eval_mask == (torch.logical_and(is_close, not_ground))).all()

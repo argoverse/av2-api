@@ -30,6 +30,7 @@ def write_mask(
         ego: The relative ego-motion between the two sweeps.
         output_root: The top levevel directory to store the output in.
     """
+
     mask = get_eval_point_mask((sweep_0, sweep_1, ego, None))
 
     output = pd.DataFrame({"mask": mask.numpy().astype(bool)})
