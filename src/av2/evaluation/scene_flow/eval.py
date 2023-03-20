@@ -225,7 +225,7 @@ def evaluate_directories(annotations_root: Path, predictions_root: Path) -> pd.D
     """Run the evaluation on predictions and labels saved to disk.
 
     Args:
-        annotations_root: path to the directory containing the annotation files produced by make_annotation_files.py
+        annotations_dir: path to the directory containing the annotation files produced by `make_annotation_files.py`.
         predictions_root: path to the prediction files in submission format
 
     Returns:
