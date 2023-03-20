@@ -35,8 +35,8 @@ dts_zero: NDArrayFloat = np.zeros_like(gts).astype(np.float64)
 
 gts_dynamic: NDArrayBool = np.array([False, False, False, False, True, True, True, True, False, False])
 gts_classes: NDArrayInt = np.array([0, 0, 0, 0, 17, 17, 1, 11, 0, 23])
-gts_valid: NDArrayInt = np.array([False, True, True, True, True, True, True, True, True, True])
-gts_close: NDArrayInt = np.array([True, True, False, False, True, True, False, False, True, True])
+gts_valid: NDArrayBool = np.array([False, True, True, True, True, True, True, True, True, True])
+gts_close: NDArrayBool = np.array([True, True, False, False, True, True, False, False, True, True])
 
 dts_dynamic: NDArrayBool = np.array([False, True, False, True, False, True, False, True, False, True])
 
@@ -174,20 +174,26 @@ def test_metrics() -> None:
         else:
             assert not np.isnan(sub[5:8]).any()
 
-    assert sum([sub[3] for sub in metrics]) == sum(gts_valid)
+    counted_points: int = sum([int(sub[3]) for sub in metrics])
+    valid_points: int = sum(gts_valid.astype(int))
+    assert counted_points == valid_points
 
-    assert sum([sub[8] for sub in metrics]) == 2
-    assert sum([sub[9] for sub in metrics]) == 2  # The first TN is marked invalid
-    assert sum([sub[10] for sub in metrics]) == 3
-    assert sum([sub[11] for sub in metrics]) == 2
+    tp: int = sum([int(sub[8]) for sub in metrics])
+    assert tp == 2
+    tn: int = sum([int(sub[9]) for sub in metrics])
+    assert tp == 2  # The first TN is marked invalid
+    fp: int = sum([int(sub[10]) for sub in metrics])
+    assert fp == 3
+    fn: int = sum([int(sub[11]) for sub in metrics])
+    assert fn == 2
 
     nz_subsets = sum([1 for sub in metrics if not np.isnan(sub[4])])
     assert nz_subsets == 5
 
-    assert np.allclose(sum([sub[4] for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 0.0)
-    assert np.allclose(sum([sub[5] for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 1.0)
-    assert np.allclose(sum([sub[6] for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 1.0)
-    assert np.allclose(sum([sub[7] for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 0.0)
+    assert np.allclose(sum([float(sub[4]) for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 0.0)
+    assert np.allclose(sum([float(sub[5]) for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 1.0)
+    assert np.allclose(sum([float(sub[6]) for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 1.0)
+    assert np.allclose(sum([float(sub[7]) for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 0.0)
 
 
 def test_average_metrics() -> pd.DataFrame:

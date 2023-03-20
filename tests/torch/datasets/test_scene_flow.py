@@ -1,4 +1,4 @@
-"""Unit tests on scene_flow data loader"""
+"""Unit tests on scene_flow data loader."""
 
 from pathlib import Path
 
@@ -20,15 +20,15 @@ def test_scene_flow_dataloader() -> None:
     The computed flow should check the visually confirmed labels in flow_labels.feather.
     """
     dl_test = av2.torch.dataloaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "test")
-    sweep_0, sweep_1, ego, flow = dl_test[0]
-    assert flow is None
+    sweep_0, sweep_1, ego, not_flow = dl_test[0]
+    assert not_flow is None
     rust_sweep = dl_test._backend.get(0)
     sweep_0 = Sweep.from_rust(rust_sweep)
     assert sweep_0.cuboids is None
 
     failed = False
     try:
-        get_eval_point_mask((sweep_0, sweep_1, ego, flow))
+        get_eval_point_mask((sweep_0, sweep_1, ego, not_flow))
     except ValueError:
         failed = True
     assert failed
@@ -45,8 +45,10 @@ def test_scene_flow_dataloader() -> None:
     assert dl.get_log_id(0) == "7fab2350-7eaf-3b7e-a39d-6937a4c1bede"
 
     for datum in dl:
-        sweep_0, sweep_1, ego, flow = datum
+        sweep_0, sweep_1, ego, maybe_flow = datum
 
+    assert maybe_flow is not None
+    flow: Flow = maybe_flow
     assert len(flow) == len(sweep_0.lidar_xyzi)
 
     log_dir = _TEST_DATA_ROOT / "test_data/sensor/val/7fab2350-7eaf-3b7e-a39d-6937a4c1bede"
@@ -56,6 +58,7 @@ def test_scene_flow_dataloader() -> None:
     assert np.allclose(flow.flow, flow_labels[FLOW_COLS].to_numpy())
     assert np.allclose(flow.classes, flow_labels.classes.to_numpy())
     assert np.allclose(flow.dynamic, flow_labels.dynamic.to_numpy())
+    assert sweep_0.is_ground is not None
     assert np.allclose(sweep_0.is_ground, flow_labels.is_ground_0)
 
     gt_ego = np.load(log_dir / "ego_motion.npz")
