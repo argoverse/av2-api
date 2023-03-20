@@ -22,8 +22,8 @@ def test_build_lidar() -> None:
     lidar_tensor = torch.as_tensor(frame[list(LIDAR_COLUMNS)].to_numpy().astype(np.float32))
 
     lidar = Lidar(frame)
-    torch.testing.assert_close(lidar.as_tensor(), lidar_tensor)
-    torch.testing.assert_close(
+    torch.testing.assert_allclose(lidar.as_tensor(), lidar_tensor)
+    torch.testing.assert_allclose(
         lidar.as_tensor(
             columns=(
                 "y",
