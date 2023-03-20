@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    dl = SceneFlowDataloader(args.data_root, args.name, "test")
+    data_loader = SceneFlowDataloader(args.data_root, args.name, "test")
 
     output_root = Path(args.output_root)
     output_root.mkdir(exist_ok=True)
