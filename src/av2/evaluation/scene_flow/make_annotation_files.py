@@ -25,13 +25,13 @@ def write_annotation(
     """Write an annotation file.
 
     Args:
-        classes: The class labels.
-        close: The close (inside 70m box) labels.
-        dynamic: The dynamic labels.
-        valid: The valid flow labels.
-        flow: The flow labels.
-        sweep_uuid: The log and timestamp of the sweep.
-        output_root: The top levevel directory to store the output in.
+        classes: Class labels.
+        close: Close (inside 70m box) labels.
+        dynamic: Dynamic labels.
+        valid: Valid flow labels.
+        flow: Flow labels.
+        sweep_uuid: Log and timestamp of the sweep.
+        output_root: Top level directory to store the output in.
     """
     output = pd.DataFrame(
         {
