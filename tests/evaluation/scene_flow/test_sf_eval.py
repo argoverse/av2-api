@@ -209,7 +209,7 @@ def test_average_metrics() -> pd.DataFrame:
         pred_dir = test_dir / "predictions"
         pred_dir.mkdir()
 
-        ts = 111111111111111111
+        timestamp_ns = 111111111111111111
 
         write_annotation(gts_classes, gts_close, gts_dynamic, gts_valid, gts, ("log", ts), anno_dir)
         write_annotation(gts_classes, gts_close, gts_dynamic, gts_valid, gts, ("log_missing", ts), anno_dir)
