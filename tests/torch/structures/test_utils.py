@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 from kornia.geometry.liegroup import Se3, So3
 from kornia.geometry.quaternion import Quaternion
+from torch.testing._comparison import assert_close
 
 from av2.torch import QWXYZ_COLUMNS, TRANSLATION_COLUMNS
 from av2.torch.structures.utils import SE3_from_frame, tensor_from_frame
@@ -34,7 +35,7 @@ def test_tensor_from_frame() -> None:
     tensor_expected = torch.as_tensor(
         [[frame.loc[0, "qw"], frame.loc[0, "qx"], frame.loc[0, "qy"], frame.loc[0, "qz"]]]
     )
-    torch.testing.assert_allclose(tensor, tensor_expected)
+    assert_close(tensor, tensor_expected)
 
 
 def test_SE3_from_frame() -> None:
@@ -48,5 +49,5 @@ def test_SE3_from_frame() -> None:
     city_SE3_ego_expected = Se3(rotation, translation)
     city_SE3_ego = SE3_from_frame(frame)
 
-    torch.testing.assert_allclose(city_SE3_ego.translation, city_SE3_ego_expected.translation)
-    torch.testing.assert_allclose(city_SE3_ego.rotation.matrix(), city_SE3_ego_expected.rotation.matrix())
+    assert_close(city_SE3_ego.translation, city_SE3_ego_expected.translation)
+    assert_close(city_SE3_ego.rotation.matrix(), city_SE3_ego_expected.rotation.matrix())

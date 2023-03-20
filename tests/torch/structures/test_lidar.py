@@ -6,6 +6,7 @@ from typing import Final
 import numpy as np
 import pandas as pd
 import torch
+from torch.testing._comparison import assert_close
 
 from av2.torch import LIDAR_COLUMNS
 from av2.torch.structures.lidar import Lidar
@@ -22,8 +23,8 @@ def test_build_lidar() -> None:
     lidar_tensor = torch.as_tensor(frame[list(LIDAR_COLUMNS)].to_numpy().astype(np.float32))
 
     lidar = Lidar(frame)
-    torch.testing.assert_allclose(lidar.as_tensor(), lidar_tensor)
-    torch.testing.assert_allclose(
+    assert_close(lidar.as_tensor(), lidar_tensor)
+    assert_close(
         lidar.as_tensor(
             columns=(
                 "y",
