@@ -22,7 +22,7 @@ def get_eval_subset(dataloader: SceneFlowDataloader) -> List[int]:
 
 def get_eval_point_mask(datum: Tuple[Sweep, Sweep, Se3, Optional[Flow]]) -> BoolTensor:
     """Return for a given sweep, a boolean mask indicating which points are evaluated on."""
-    pcl = datum[0].lidar_xyzi[:, :3]
+    pcl = datum[0].lidar.as_tensor()[:, :3]
     is_close = torch.logical_and((pcl[:, 0].abs() <= 50), (pcl[:, 1].abs() <= 50)).bool()
 
     if datum[0].is_ground is None:

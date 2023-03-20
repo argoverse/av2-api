@@ -49,7 +49,7 @@ class Flow:
             cuboids: List[Cuboids] = [sweeps[0].cuboids, sweeps[1].cuboids]
 
         cuboid_maps = [cuboids_to_id_cuboid_map(cubs) for cubs in cuboids]
-        pcs = [sweep.lidar_xyzi[:, :3] for sweep in sweeps]
+        pcs = [sweep.lidar.as_tensor()[:, :3] for sweep in sweeps]
 
         rigid_flow = (transform_points(ego1_SE3_ego0.matrix(), pcs[0][None])[0] - pcs[0]).float().detach()
         flow = rigid_flow.clone()

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-import av2.torch.dataloaders.scene_flow
+import av2.torch.data_loaders.scene_flow
 from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
 from av2.torch.structures.flow import Flow
 from av2.torch.structures.sweep import Sweep
@@ -19,7 +19,7 @@ def test_scene_flow_dataloader() -> None:
 
     The computed flow should check the visually confirmed labels in flow_labels.feather.
     """
-    dl_test = av2.torch.dataloaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "test")
+    dl_test = av2.torch.data_loaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "test")
     sweep_0, sweep_1, ego, not_flow = dl_test[0]
     assert not_flow is None
     rust_sweep = dl_test._backend.get(0)
@@ -40,7 +40,7 @@ def test_scene_flow_dataloader() -> None:
         failed = True
     assert failed
 
-    dl = av2.torch.dataloaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "val")
+    dl = av2.torch.data_loaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "val")
     assert len(dl) == 1
     assert dl.get_log_id(0) == "7fab2350-7eaf-3b7e-a39d-6937a4c1bede"
 
@@ -49,7 +49,7 @@ def test_scene_flow_dataloader() -> None:
 
     assert maybe_flow is not None
     flow: Flow = maybe_flow
-    assert len(flow) == len(sweep_0.lidar_xyzi)
+    assert len(flow) == len(sweep_0.lidar.as_tensor())
 
     log_dir = _TEST_DATA_ROOT / "test_data/sensor/val/7fab2350-7eaf-3b7e-a39d-6937a4c1bede"
     flow_labels = pd.read_feather(log_dir / "flow_labels.feather")
@@ -71,7 +71,7 @@ def test_scene_flow_dataloader() -> None:
 
     eval_mask = get_eval_point_mask((sweep_0, sweep_1, ego, flow))
 
-    pcl = sweep_0.lidar_xyzi[:, :3]
+    pcl = sweep_0.lidar.as_tensor()[:, :3]
     is_close = torch.logical_and(pcl[:, 0].abs() <= 50, pcl[:, 1].abs() <= 50).bool()
     not_ground = torch.logical_not(sweep_0.is_ground)
     assert (eval_mask == (torch.logical_and(is_close, not_ground))).all()

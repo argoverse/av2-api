@@ -4,11 +4,11 @@ import argparse
 from pathlib import Path
 
 import numpy as np
+from kornia.geometry.linalg import transform_points
 from rich.progress import track
 
 from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset, write_output_file
-from av2.torch.dataloaders.scene_flow import SceneFlowDataloader
-from av2.torch.dataloaders.utils import apply_se3
+from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -37,8 +37,8 @@ if __name__ == "__main__":
         sweep_0, sweep_1, ego_motion, flow = dl[i]
         mask = get_eval_point_mask((sweep_0, sweep_1, ego_motion, flow))
 
-        pc1 = sweep_0.lidar_xyzi[mask, :3]
-        pc1_rigid = apply_se3(ego_motion, pc1)
+        pc1 = sweep_0.lidar.as_tensor()[mask, :3]
+        pc1_rigid = transform_points(ego_motion.matrix(), pc1[None])[0]
         rigid_flow = (pc1_rigid - pc1).detach().numpy()
         dynamic = np.zeros(len(rigid_flow), dtype=bool)
 

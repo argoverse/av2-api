@@ -9,7 +9,7 @@ import pandas as pd
 from rich.progress import track
 
 from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
-from av2.torch.dataloaders.scene_flow import SceneFlowDataloader
+from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         classes = datum[3].classes[mask].numpy().astype(np.uint8)
         dynamic = datum[3].dynamic[mask].numpy().astype(bool)
 
-        pc = datum[0].lidar_xyzi[mask, :3].numpy()
+        pc = datum[0].lidar.as_tensor()[mask, :3].numpy()
         close = ((np.abs(pc[:, 0]) <= 35) & (np.abs(pc[:, 1]) <= 35)).astype(bool)
 
         write_annotation(classes, close, dynamic, valid, flow, datum[0].sweep_uuid, output_root)
