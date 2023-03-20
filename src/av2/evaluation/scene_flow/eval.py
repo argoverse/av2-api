@@ -165,7 +165,7 @@ def compute_metrics(
     Args:
         pred_flow: (N,3) Predicted flow vectors.
         pred_dynamic: (N,) Predicted dynamic labels.
-        gt: (N, 3) Ground truth flow vectors.
+        gts: (N,3) Ground truth flow vectors.
         classes: (N,) Integer class labels for each point.
         is_dynamic: (N,) Ground truth dynamic labels.
         is_close: (N,) true for a point if it is within a 70m x 70m box around the AV
