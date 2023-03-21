@@ -1,4 +1,4 @@
-"""PyTorch flow module."""
+"""PyTorch flow sub-module."""
 
 from __future__ import annotations
 

@@ -120,8 +120,8 @@ def compute_true_negatives(dts: NDArrayBool, gts: NDArrayBool) -> int:
     """Compute true negative count.
 
     Args:
-        dts: (N,) array containing predicted dynamic segmentation.
-        gts: (N,) array containing ground truth dynamic segmentation.
+        dts: (N,) Array containing predicted dynamic segmentation.
+        gts: (N,) Array containing ground truth dynamic segmentation.
 
     Returns:
         The number of true negative classifications.
@@ -133,8 +133,8 @@ def compute_false_positives(dts: NDArrayBool, gts: NDArrayBool) -> int:
     """Compute false positive count.
 
     Args:
-        dts: (N,) array containing predicted dynamic segmentation.
-        gts: (N,) array containing ground truth dynamic segmentation.
+        dts: (N,) Array containing predicted dynamic segmentation.
+        gts: (N,) Array containing ground truth dynamic segmentation.
 
     Returns:
         The number of false positive classifications.
@@ -256,7 +256,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
     return df
 
 
-def results_to_dict(results_dataframe: pd.DataFrame) -> Dict[str, float]:
+def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
     """Convert a results DataFrame to a dictionary of whole dataset metrics.
 
     Args:

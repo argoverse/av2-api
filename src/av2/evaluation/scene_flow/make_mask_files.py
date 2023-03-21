@@ -17,9 +17,9 @@ from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 
 def write_mask(
-    sweep_0: Sweep,
-    sweep_1: Sweep,
-    ego: Se3,
+    s0: Sweep,
+    s1: Sweep,
+    s1_SE3_s0: Se3,
     output_root: Path,
 ) -> None:
     """Write an annotation file.
@@ -38,7 +38,7 @@ def write_mask(
 
     output_dir = output_root / log
     output_dir.mkdir(exist_ok=True)
-    output_file = (output_dir / str(ts)).with_suffix(".feather")
+    output_file = output_dir / f"{timestamp_ns}.feather"
     output.to_feather(output_file)
 
 
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    dl = SceneFlowDataloader(args.data_root, args.name, args.split)
+    data_loader = SceneFlowDataloader(args.data_root, args.name, args.split)
 
     output_root = Path(args.output_root)
     output_root.mkdir(exist_ok=True)
