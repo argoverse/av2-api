@@ -13,11 +13,11 @@ from rich.progress import track
 import av2.evaluation.scene_flow.utils
 
 
-def validate(submission_root: Path, fmt: Dict[str, int]) -> None:
+def validate(root_dir: Path, fmt: Dict[str, int]) -> None:
     """Validate the filenames and shapes of all predictions required for submission.
 
     Args:
-        submission_root: Path to the top level submission file directory.
+        root_dir: Path to the top level submission file directory.
         fmt: Dictionary containing all the files needed for submission and the number of points in that file.
 
     Raises:
@@ -48,11 +48,11 @@ def validate(submission_root: Path, fmt: Dict[str, int]) -> None:
             raise ValueError(f"{str(input_file)} has {len(pred)} rows but it should have {fmt[filename]}")
 
 
-def zip(submission_root: Path, fmt: Dict[str, int], output_file: Path) -> None:
+def zip(root_dir: Path, fmt: Dict[str, int], output_file: Path) -> None:
     """Package all validated submission files into a zip archive.
 
     Args:
-        submission_root: Path to the top level submission file directory.
+        root_dir: Path to the top level submission file directory.
         fmt: Dictionary containing all the files needed for submission and the number of points in that file.
         output_file: File to store the zip archive in.
     """

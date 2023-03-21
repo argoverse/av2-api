@@ -1,4 +1,4 @@
-"""Unit tests on scene_flow data loader."""
+"""Unit tests on scene_flow data-loader."""
 
 from pathlib import Path
 

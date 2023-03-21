@@ -15,7 +15,7 @@ from av2.torch.structures.flow import Flow
 from av2.torch.structures.sweep import Sweep
 from av2.utils.typing import NDArrayBool, NDArrayFloat
 
-_EVAL_ROOT = Path(__file__).resolve().parent
+_EVAL_ROOT: Final = Path(__file__).resolve().parent
 
 
 def get_eval_subset(dataloader: SceneFlowDataloader) -> List[int]:

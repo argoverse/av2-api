@@ -63,19 +63,19 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
     @cached_property
     def index_map(self) -> List[int]:
         """Create a mapping between indicies in this dataloader and the underlying one."""
-        inds = []
+        indices = []
         N = self._backend.__len__()
         for i in range(N):
             if i + 1 < N:
-                next_log_id = self.file_index.loc[i + 1, ["log_id"]].item()
-                current_log_id = self.file_index.loc[i, ["log_id"]].item()
+                next_log_id = self.file_index.loc[i + 1, "log_id"].item()
+                current_log_id = self.file_index.loc[i, "log_id"].item()
                 if current_log_id == next_log_id:
                     inds.append(i)
         return inds
 
     def get_log_id(self, index: int) -> str:
         """Return the log name for a given sweep index."""
-        return str(self.file_index.loc[index, ["log_id"]].item())
+        return str(self.file_index.loc[index, "log_id"].item())
 
     def __getitem__(self, index: int) -> Tuple[Sweep, Sweep, Se3, Optional[Flow]]:
         """Get a pair of sweeps, ego motion, and flow if annotations are available."""

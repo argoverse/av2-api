@@ -256,7 +256,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
     return df
 
 
-def results_to_dict(results_dataframe: pd.DataFrame) -> Dict[str, float]:
+def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
     """Convert a results DataFrame to a dictionary of whole dataset metrics.
 
     Args:
