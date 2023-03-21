@@ -7,11 +7,11 @@ from typing import Final, Tuple
 import click
 import numpy as np
 import pandas as pd
-from rich.progress import track
-
-from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
+from av2.evaluation.scene_flow.utils import (get_eval_point_mask,
+                                             get_eval_subset)
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
+from rich.progress import track
 
 CLOSE_DISTANCE_THRESHOLD: Final = 35
 
@@ -56,31 +56,15 @@ def write_annotation(
     output.to_feather(output_file)
 
 
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser(
-#         "make_annotation_files",
-#         description="Make a directory of feather files storing " "just enough info to run a scene flow evaluation",
-#     )
-#     parser.add_argument("output_root", type=str, help="path/to/output/")
-#     parser.add_argument("data_root", type=str, help="root/path/to/data")
-#     parser.add_argument(
-#         "--name", type=str, default="av2", help="the data should be located in <data_root>/<name>/sensor/<split>"
-#     )
-#     parser.add_argument(
-#         "--split",
-#         type=str,
-#         default="val",
-#         choices=("val", "test"),
-#         help="the data should be located in <data_root>/<name>/sensor/<split>",
-#     )
-
-#     args = parser.parse_args()
-
-
 @click.command()
-@click.argument("output_dir", type=str, help="path/to/output")
-@click.argument("data_dir", type=str, help="path/to/data")
-@click.option("--name", type=str, help="the data should be located in <data_dir>/<name>/sensor/<split>", default="av2")
+@click.argument("output_dir", type=str)
+@click.argument("data_dir", type=str)
+@click.option(
+    "--name",
+    type=str,
+    help="the data should be located in <data_dir>/<name>/sensor/<split>",
+    default="av2",
+)
 @click.option(
     "--split",
     help="the data should be located in <data_dir>/<name>/sensor/<split>",
@@ -108,6 +92,20 @@ def make_annotation_files(output_dir: str, data_dir: str, name: str, split: str)
         is_dynamic = datum[3].is_dynamic[mask].numpy().astype(bool)
 
         pc = datum[0].lidar.as_tensor()[mask, :3].numpy()
-        is_close = np.logical_and.reduce(np.abs(pc[:, :2]) <= CLOSE_DISTANCE_THRESHOLD, axis=1).astype(bool)
+        is_close = np.logical_and.reduce(
+            np.abs(pc[:, :2]) <= CLOSE_DISTANCE_THRESHOLD, axis=1
+        ).astype(bool)
 
-        write_annotation(category_indices, is_close, is_dynamic, is_valid, flow, datum[0].sweep_uuid, output_root)
+        write_annotation(
+            category_indices,
+            is_close,
+            is_dynamic,
+            is_valid,
+            flow,
+            datum[0].sweep_uuid,
+            output_root,
+        )
+
+
+if __name__ == "__main__":
+    make_annotation_files()
