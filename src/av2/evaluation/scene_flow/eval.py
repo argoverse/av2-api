@@ -91,13 +91,13 @@ def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     Returns:
         The pointwise angle errors in space-time.
     """
-    # convert the 3D flow vectors to 4D space-time vectors
+    # Convert the 3D flow vectors to 4D space-time vectors.
     gts_space_time = np.pad(gts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA)
     dts_space_time = np.pad(dts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA)
 
     unit_gts = gts_space_time / (np.linalg.norm(gts_space_time, axis=-1, keepdims=True))
     unit_dts = dts_space_time / (np.linalg.norm(dts_space_time, axis=-1, keepdims=True))
-    # floating point errors can cause the dp to be slightly greater than 1 or less than -1
+    # Floating point errors can cause the dp to be slightly greater than 1 or less than -1.
     dot_product = np.clip(np.sum(unit_gts * unit_dts, axis=-1), -1.0, 1.0)
     angle_error: NDArrayFloat = np.arccos(dot_product).astype(np.float64)
     return angle_error

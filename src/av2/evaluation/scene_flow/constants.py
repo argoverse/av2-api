@@ -83,7 +83,7 @@ class VehicleCategories(str, Enum):
 
 @unique
 class MetricBreakdownCategories(str, Enum):
-    """Meta-cateogiries to break down metrics into."""
+    """Meta-categories for the scene flow task."""
 
     ALL = "All"
     FOREGROUND = "Foreground"

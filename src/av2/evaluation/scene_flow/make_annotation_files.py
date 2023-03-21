@@ -20,18 +20,18 @@ def write_annotation(
     is_valid: NDArrayBool,
     flow: NDArrayFloat,
     sweep_uuid: Tuple[str, int],
-    output_root: Path,
+    output_dir: Path,
 ) -> None:
     """Write an annotation file.
 
     Args:
-        category_indices: Category labels.
+        category_indices: Category label indices.
         is_close: Close (inside 70m box) labels.
         is_dynamic: Dynamic labels.
         is_valid: Valid flow labels.
         flow: Flow labels.
         sweep_uuid: Log and timestamp of the sweep.
-        output_root: Top level directory to store the output in.
+        output_dir: Top level directory to store the output in.
     """
     output = pd.DataFrame(
         {
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     for i in track(eval_inds):
         datum = data_loader[i]
         if datum[3] is None:
-            raise ValueError("Missing flow annotations")
+            raise ValueError("Missing flow annotations!")
 
         mask = get_eval_point_mask(datum[0].sweep_uuid, split=args.split)
 
@@ -92,6 +92,6 @@ if __name__ == "__main__":
         is_dynamic = datum[3].is_dynamic[mask].numpy().astype(bool)
 
         pc = datum[0].lidar.as_tensor()[mask, :3].numpy()
-        is_close = ((np.abs(pc[:, 0]) <= 35) & (np.abs(pc[:, 1]) <= 35)).astype(bool)
+        is_close = np.logical_and.reduce(np.abs(pc[:, :2]) <= CLOSE_DISTANCE_THRESHOLD, axis=1).astype(bool)
 
         write_annotation(category_indices, is_close, is_dynamic, is_valid, flow, datum[0].sweep_uuid, output_root)
