@@ -7,7 +7,7 @@ import av2.evaluation.scene_flow.eval as eval
 from av2.datasets.sensor.constants import AnnotationCategories
 
 SCENE_FLOW_DYNAMIC_THRESHOLD: Final = 0.05
-SWEEP_PAIR_TIME_DELTA = 0.1
+SWEEP_PAIR_TIME_DELTA: Final = 0.1
 
 CATEGORY_TO_INDEX: Final = {**{"NONE": 0}, **{k.value: i + 1 for i, k in enumerate(AnnotationCategories)}}
 
