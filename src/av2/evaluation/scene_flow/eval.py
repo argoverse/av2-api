@@ -101,7 +101,6 @@ def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     dot_product = np.einsum("bd,bd->b", unit_dts, unit_gts)
 
     # Floating point errors can cause `dot_product` to be slightly greater than 1 or less than -1.
-
     clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
     angle_error: NDArrayFloat = np.arccos(clipped_dot_product).astype(np.float64)
     return angle_error
@@ -194,11 +193,7 @@ def compute_metrics(
     flow_metrics = constants.FLOW_METRICS
     seg_metrics = constants.SEGMENTATION_METRICS
 
-    results: Dict[str, List[Any]] = {"Class": [], "Motion": [], "Distance": [], "Count": []}
-    for m in flow_metrics:
-        results[m] = []
-    for m in seg_metrics:
-        results[m] = []
+    results: DefaultDict[List[Any]] = defaultdict(list)
 
     # Each metric is broken down by point labels on Object Class, Motion, and Distance from the AV.
     # We iterate over all combinations of those three categories and compute average metrics on each subset.

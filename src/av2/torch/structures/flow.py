@@ -52,12 +52,13 @@ class Flow:
         Raises:
             ValueError: If the sweeps do not have annotations loaded.
         """
-        poses = [sweep.city_SE3_ego for sweep in sweeps]
-        ego1_SE3_ego0 = poses[1].inverse() * poses[0]
-        if sweeps[0].cuboids is None or sweeps[1].cuboids is None:
+        current_sweep, next_sweep = (sweeps[0], sweeps[1])
+        if current_sweep.cuboids is None or next_sweep.cuboids is None:
             raise ValueError("Can only create flow from sweeps with annotations")
         else:
-            cuboids: List[Cuboids] = [sweeps[0].cuboids, sweeps[1].cuboids]
+            current_cuboids, next_cuboids = current_sweep.cuboids, next_sweep.cuboids
+        city_SE3_ego0, city_SE3_ego1 = current_sweep.city_SE3_ego, next_sweep.city_SE3_ego
+        ego1_SE3_ego0 = poses[1].inverse() * poses[0]
 
         cuboid_maps = [cuboids_to_id_cuboid_map(cubs) for cubs in cuboids]
         pcs = [sweep.lidar.as_tensor()[:, :3] for sweep in sweeps]
