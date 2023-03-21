@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from functools import partial
 from pathlib import Path
-from typing import Dict, Final, List, Union
+from typing import Dict, Final, List, Tuple, Union, cast
 
 import click
 import numpy as np
@@ -12,10 +11,12 @@ import pandas as pd
 from rich.progress import track
 
 import av2.evaluation.scene_flow.constants as constants
+from av2.evaluation.scene_flow.constants import SceneFlowMetricType, SegmentationMetricType
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 ACCURACY_RELAX_DISTANCE_THRESHOLD: Final = 0.1
 ACCURACY_STRICT_DISTANCE_THRESHOLD: Final = 0.05
+NO_FMT_INDICES: Final = ("Background", "Dynamic")
 EPS: Final = 1e-10
 
 
@@ -159,6 +160,62 @@ def compute_false_negatives(dts: NDArrayBool, gts: NDArrayBool) -> int:
     return int(np.logical_and(~dts, gts).sum())
 
 
+def compute_scene_flow_metrics(
+    dts: NDArrayFloat, gts: NDArrayFloat, scene_flow_metric_type: SceneFlowMetricType
+) -> NDArrayFloat:
+    """Compute scene flow metrics.
+
+    Args:
+        dts: (N,3) Array containing predicted flows.
+        gts: (N,3) Array containing ground truth flows.
+        scene_flow_metric_type: Scene flow metric type.
+
+    Returns:
+        Scene flow metric corresponding to `scene_flow_metric_type`.
+
+    Raises:
+        NotImplementedError: If the `scene_flow_metric_type` is not implemented.
+    """
+    if scene_flow_metric_type == SceneFlowMetricType.ACCURACY_RELAX:
+        return compute_accuracy_relax(dts, gts)
+    elif scene_flow_metric_type == SceneFlowMetricType.ACCURACY_STRICT:
+        return compute_accuracy_strict(dts, gts)
+    elif scene_flow_metric_type == SceneFlowMetricType.ANGLE_ERROR:
+        return compute_angle_error(dts, gts)
+    elif scene_flow_metric_type == SceneFlowMetricType.EPE:
+        return compute_end_point_error(dts, gts)
+    else:
+        raise NotImplementedError(f"The scene flow metric type {scene_flow_metric_type} is not implemented!")
+
+
+def compute_segmentation_metrics(
+    dts: NDArrayBool, gts: NDArrayBool, segmentation_metric_type: SegmentationMetricType
+) -> int:
+    """Compute segmentation metrics.
+
+    Args:
+        dts: (N,) Array containing predicted dynamic segmentation.
+        gts: (N,) Array containing ground truth dynamic segmentation.
+        segmentation_metric_type: Segmentation metric type.
+
+    Returns:
+        Segmentation metric corresponding to `segmentation_metric_type`.
+
+    Raises:
+        NotImplementedError: If the `segmentation_metric_type` is not implemented.
+    """
+    if segmentation_metric_type == SegmentationMetricType.TP:
+        return compute_true_positives(dts, gts)
+    elif segmentation_metric_type == SegmentationMetricType.TN:
+        return compute_true_negatives(dts, gts)
+    elif segmentation_metric_type == SegmentationMetricType.FP:
+        return compute_false_positives(dts, gts)
+    elif segmentation_metric_type == SegmentationMetricType.FN:
+        return compute_false_negatives(dts, gts)
+    else:
+        raise NotImplementedError(f"The segmentation metric type {segmentation_metric_type} is not implemented!")
+
+
 def compute_metrics(
     pred_flow: NDArrayFloat,
     pred_dynamic: NDArrayBool,
@@ -192,8 +249,6 @@ def compute_metrics(
     category_indices = category_indices[is_valid].astype(int)
     is_dynamic = is_dynamic[is_valid].astype(bool)
     is_close = is_close[is_valid].astype(bool)
-    flow_metrics = constants.FLOW_METRICS
-    seg_metrics = constants.SEGMENTATION_METRICS
 
     results = []
     for cls, category_idxs in metric_categories.items():
@@ -209,11 +264,17 @@ def compute_metrics(
                 pred_sub = pred_flow[mask]
                 result = [cls.value, motion, distance, subset_size]
                 if subset_size > 0:
-                    result += [flow_metrics[m](pred_sub, gts_sub).mean() for m in flow_metrics]
-                    result += [seg_metrics[m](pred_dynamic[mask], is_dynamic[mask]) for m in seg_metrics]
+                    result += [
+                        compute_scene_flow_metrics(pred_sub, gts_sub, metric_type).mean()
+                        for metric_type in SceneFlowMetricType
+                    ]
+                    result += [
+                        compute_segmentation_metrics(pred_dynamic[mask], is_dynamic[mask], metric_type)
+                        for metric_type in SegmentationMetricType
+                    ]
                 else:
-                    result += [np.nan for _ in flow_metrics]
-                    result += [0 for _ in seg_metrics]
+                    result += [np.nan for _ in SceneFlowMetricType]
+                    result += [0 for _ in SegmentationMetricType]
                 results.append(result)
     return results
 
@@ -254,8 +315,8 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
     df = pd.DataFrame(
         results,
         columns=["Example", "Class", "Motion", "Distance", "Count"]
-        + list(constants.FLOW_METRICS)
-        + list(constants.SEGMENTATION_METRICS),
+        + list(SceneFlowMetricType)
+        + list(SegmentationMetricType)
     )
     return df
 
@@ -272,34 +333,52 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
     output = {}
     grouped = frame.groupby(["Class", "Motion", "Distance"])
 
-    def weighted_average(x: pd.DataFrame, metric: str) -> float:
-        """Weighted average of metric m using the Count column."""
-        total = int(x["Count"].sum())
+    def weighted_average(x: pd.DataFrame, metric_type: Union[SceneFlowMetricType, SegmentationMetricType]) -> float:
+        """Weighted average of metric m using the Count column.
+
+        Args:
+            x: Input data-frame.
+            metric_type: Metric type.
+
+        Returns:
+            Weighted average over the metric_type;
+        """
+        total = cast(int, x["Count"].sum())
         if total == 0:
             return np.nan
-        averages: float = (x[metric] * x.Count).sum() / total
+        averages: float = (x[metric_type.value] * x.Count).sum() / total
         return averages
 
-    for m in constants.FLOW_METRICS.keys():
-        avg = grouped.apply(partial(weighted_average, metric=m))
-        for segment in avg.index:
-            if segment[0] == "Background" and segment[1] == "Dynamic":
+    for metric_type in SceneFlowMetricType:
+        avg: pd.Series[float] = grouped.apply(lambda x: weighted_average(x, metric_type=metric_type))
+        segments: List[Tuple[str, str, str]] = avg.index.to_list()
+        for segment in segments:
+            if segment[:2] == NO_FMT_INDICES:
                 continue
-            name = m + "/" + "/".join([str(i) for i in segment])
-            output[name] = avg[segment]
+
+            metric_type_str = (
+                metric_type.title().replace("_", " ") if metric_type != SceneFlowMetricType.EPE else metric_type
+            )
+            name = metric_type_str + "/" + "/".join([str(i) for i in segment])
+            output[name] = avg.loc[segment]
+
     grouped = frame.groupby(["Class", "Motion"])
-    for m in constants.FLOW_METRICS.keys():
-        avg = grouped.apply(partial(weighted_average, metric=m))
-        for segment in avg.index:
-            if segment[0] == "Background" and segment[1] == "Dynamic":
+    for metric_type in SceneFlowMetricType:
+        avg: pd.Series[float] = grouped.apply(lambda x: weighted_average(x, metric_type=metric_type))
+        segments: List[Tuple[str, str, str]] = avg.index.to_list()
+        for segment in segments:
+            if segment[:2] == NO_FMT_INDICES:
                 continue
-            name = m + "/" + "/".join([str(i) for i in segment])
-            output[name] = avg[segment]
+
+            metric_type_str = (
+                metric_type.title().replace("_", " ") if metric_type != SceneFlowMetricType.EPE else metric_type
+            )
+            name = metric_type_str + "/" + "/".join([str(i) for i in segment])
+            output[name] = avg.loc[segment]
     output["Dynamic IoU"] = frame.TP.sum() / (frame.TP.sum() + frame.FP.sum() + frame.FN.sum())
     output["EPE 3-Way Average"] = (
         output["EPE/Foreground/Dynamic"] + output["EPE/Foreground/Static"] + output["EPE/Background/Static"]
     ) / 3
-
     return output
 
 

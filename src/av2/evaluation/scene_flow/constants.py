@@ -5,7 +5,6 @@ from __future__ import annotations
 from enum import Enum, unique
 from typing import Final
 
-import av2.evaluation.scene_flow.eval as eval
 from av2.datasets.sensor.constants import AnnotationCategories
 
 SCENE_FLOW_DYNAMIC_THRESHOLD: Final = 0.05
@@ -13,18 +12,25 @@ SWEEP_PAIR_TIME_DELTA: Final = 0.1
 
 CATEGORY_TO_INDEX: Final = {**{"NONE": 0}, **{k.value: i + 1 for i, k in enumerate(AnnotationCategories)}}
 
-FLOW_METRICS: Final = {
-    "Accuracy Relax": eval.compute_accuracy_relax,
-    "Accuracy Strict": eval.compute_accuracy_strict,
-    "Angle Error": eval.compute_angle_error,
-    "EPE": eval.compute_end_point_error,
-}
-SEGMENTATION_METRICS: Final = {
-    "TP": eval.compute_true_positives,
-    "TN": eval.compute_true_negatives,
-    "FP": eval.compute_false_positives,
-    "FN": eval.compute_false_negatives,
-}
+
+@unique
+class SceneFlowMetricType(str, Enum):
+    """Scene Flow metrics."""
+
+    ACCURACY_RELAX = "ACCURACY_RELAX"
+    ACCURACY_STRICT = "ACCURACY_STRICT"
+    ANGLE_ERROR = "ANGLE_ERROR"
+    EPE = "EPE"
+
+
+@unique
+class SegmentationMetricType(str, Enum):
+    """Segmentation metrics."""
+
+    TP = "TP"
+    TN = "TN"
+    FP = "FP"
+    FN = "FN"
 
 
 @unique

@@ -4,7 +4,6 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 
 import av2.evaluation.scene_flow.constants as constants
 import av2.evaluation.scene_flow.eval as eval
@@ -203,7 +202,7 @@ def test_metrics() -> None:
     assert np.allclose(sum([float(sub[7]) for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 0.0)
 
 
-def test_average_metrics() -> pd.DataFrame:
+def test_average_metrics() -> None:
     """Initialize dummy ground truth labels and predictions.
 
     Verify that the weighted average metric breakdown has the correct subset counts and values.
@@ -228,9 +227,9 @@ def test_average_metrics() -> pd.DataFrame:
         assert results_df.Count.sum() == 9
 
         assert np.allclose(results_df.EPE.mean(), 0.0)
-        assert np.allclose(results_df["Accuracy Strict"].mean(), 1.0)
-        assert np.allclose(results_df["Accuracy Relax"].mean(), 1.0)
-        assert np.allclose(results_df["Angle Error"].mean(), 0.0)
+        assert np.allclose(results_df["ACCURACY_STRICT"].mean(), 1.0)
+        assert np.allclose(results_df["ACCURACY_RELAX"].mean(), 1.0)
+        assert np.allclose(results_df["ANGLE_ERROR"].mean(), 0.0)
 
         assert results_df.TP.sum() == 2
         assert results_df.TN.sum() == 2  # First true negative marked invalid
@@ -238,7 +237,6 @@ def test_average_metrics() -> pd.DataFrame:
         assert results_df.FN.sum() == 2
 
         assert results_df.groupby(["Class", "Motion"]).Count.sum().Background.Dynamic == 0
-
     results_dict = eval.results_to_dict(results_df)
 
     assert len(results_dict) == 38
@@ -248,7 +246,7 @@ def test_average_metrics() -> pd.DataFrame:
     assert results_dict["EPE 3-Way Average"] == 0.0
 
 
-def test_eval_masks() -> pd.DataFrame:
+def test_eval_masks() -> None:
     """Load an example mask a compare a susbset of it to some known values."""
     uuid = ("0c6e62d7-bdfa-3061-8d3d-03b13aa21f68", 315971436059707000)
     mask = get_eval_point_mask(uuid).numpy()
