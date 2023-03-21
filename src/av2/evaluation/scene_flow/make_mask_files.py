@@ -2,7 +2,7 @@
 
 import zipfile
 from pathlib import Path
-from typing.IO import BinaryIO
+from typing import BinaryIO
 
 import click
 import pandas as pd
@@ -34,6 +34,27 @@ def get_mask(
     return output
 
 
+def make_mask_files(output_file: str, data_dir: str, name: str, split: str) -> None:
+    """Create an archive file of pointwise masks for submission to the leaderboard.
+
+    Args:
+        output_file: Path to output file archive.
+        data_dir: Path to input data.
+        name: Name of the dataset (e.g. av2).
+        split: Split to make masks for.
+    """
+    data_loader = SceneFlowDataloader(Path(data_dir), name, split)
+    eval_inds = get_eval_subset(data_loader)
+    with zipfile.ZipFile(Path(output_file), "w") as maskzip:
+        for i in track(eval_inds):
+            sweep_0, sweep_1, ego, _ = data_loader[i]
+            mask_df = get_mask(sweep_0, sweep_1, ego)
+            log, timestamp_ns = sweep_0.sweep_uuid
+            output_path = f"{log}/{timestamp_ns}.feather"
+            with maskzip.open(output_path, "w") as zip_output_file:
+                mask_df.to_feather(zip_output_file)
+
+
 @click.command()
 @click.argument("output_dir", type=str)
 @click.argument("data_dir", type=str)
@@ -49,31 +70,10 @@ def get_mask(
     default="val",
     type=click.Choice(["test", "val"]),
 )
-def make_mask_files(output_file: str, data_dir: str, name: str, split: str) -> None:
-    """Create an archive file of pointwise masks for submission to the leaderboard.
-
-    Args:
-        output_file: Path to output file archive.
-        data_dir: Path to input data.
-        name: Name of the dataset (e.g. av2).
-        split: Split to make masks for.
-    """
-    data_loader = SceneFlowDataloader(Path(data_dir), name, split)
-
-    output_root = Path(output_dir)
-    output_root.mkdir(exist_ok=True)
-
-    eval_inds = get_eval_subset(data_loader)
-
-    with ZipFile(Path(output_file), "w") as maskzip:
-        for i in track(eval_inds):
-            sweep_0, sweep_1, ego, _ = data_loader[i]
-            mask_df = get_mask(sweep_0, sweep_1, ego, output_root)
-            log, timestamp_ns = sweep_0.sweep_uuid
-            output_path = f"{log}/{timestamp_ns}.feather"
-            with maskzip.open(output_path, "w") as output_file:
-                mask_df.to_feather(output_file)
+def _make_mask_files_entry(output_file: str, data_dir: str, name: str, split: str) -> None:
+    """Entry point for make_mask_files."""
+    make_mask_files(output_file, data_dir, name, split)
 
 
 if __name__ == "__main__":
-    make_mask_files()
+    _make_mask_files_entry()

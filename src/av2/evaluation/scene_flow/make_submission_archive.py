@@ -67,26 +67,35 @@ def zip(submission_dir: Path, mask_file: Path, output_file: Path) -> None:
             myzip.write(input_file, arcname=filename)
 
 
-@click.command()
-@click.argument("submission_dir", type=str)
-@click.argument("mask_file", type=str)
-@click.option("--output_filename", type=str, help="name of the output archive file", default="submission.zip")
-def make_submission_archive(submission_dir: str, mask_file: str, output_filename: str) -> None:
+def make_submission_archive(submission_dir: str, mask_file: str, output_filename: str) -> bool:
     """Package prediction files into a zip archive for submission.
 
     Args:
         submission_dir: Directory containing the prediction files to submit.
         mask_file: Archive containing all the mask files required for submission.
         output_filename: Name of the submission archive.
+
+    Returns:
+        True if validation and zipping succeeded, False otherwise.
     """
     output_file = Path(output_filename)
     try:
         validate(Path(submission_dir), Path(mask_file))
     except (FileNotFoundError, ValueError) as e:
         print(f"Input validation failed with: {e}")
+        return False
 
     zip(Path(submission_dir), Path(mask_file), output_file)
+    return True
+
+
+@click.command()
+@click.argument("submission_dir", type=str)
+@click.argument("mask_file", type=str)
+@click.option("--output_filename", type=str, help="name of the output archive file", default="submission.zip")
+def _make_submission_archive_entry(submission_dir: str, mask_file: str, output_filename: str) -> bool:
+    return make_submission_archive(submission_dir, mask_file, output_filename)
 
 
 if __name__ == "__main__":
-    make_submission_archive()
+    _make_submission_archive_entry()

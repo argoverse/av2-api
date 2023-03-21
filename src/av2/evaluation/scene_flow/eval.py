@@ -310,15 +310,15 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
     return output
 
 
-@click.command()
-@click.argument("annotations_dir", type=str)
-@click.argument("predictions_dir", type=str)
-def evaluate(annotations_dir: str, predictions_dir: str) -> None:
+def evaluate(annotations_dir: str, predictions_dir: str) -> Dict[str, float]:
     """Evaluate a set of predictions and print the results.
 
     Args:
         annotations_dir: Path to the directory containing the annotation files produced by `make_annotation_files.py`.
         predictions_dir: Path to the prediction files in submission format.
+
+    Returns:
+        The results as a dict of metric names and values.
     """
     results_df = evaluate_directories(Path(annotations_dir), Path(predictions_dir))
     results_dict = results_to_dict(results_df)
@@ -326,6 +326,16 @@ def evaluate(annotations_dir: str, predictions_dir: str) -> None:
     for metric in sorted(results_dict):
         print(f"{metric}: {results_dict[metric]:.3f}")
 
+    return results_dict
+
+
+@click.command()
+@click.argument("annotations_dir", type=str)
+@click.argument("predictions_dir", type=str)
+def _evaluate_entry(annotations_dir: str, predictions_dir: str) -> Dict[str, float]:
+    """Entry point for evaluate."""
+    return evaluate(annotations_dir, predictions_dir)
+
 
 if __name__ == "__main__":
-    evaluate()
+    _evaluate_entry()
