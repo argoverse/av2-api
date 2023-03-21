@@ -32,7 +32,7 @@ class Flow:
 
     flow: FloatTensor
     is_valid: BoolTensor
-    classes: ByteTensor
+    category_indices: ByteTensor
     is_dynamic: BoolTensor
 
     def __len__(self) -> int:
