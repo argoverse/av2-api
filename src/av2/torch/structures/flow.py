@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, Final, List, Tuple
 
 import torch
 from kornia.geometry.linalg import transform_points
@@ -13,6 +13,8 @@ from av2.evaluation.scene_flow.constants import CATEGORY_TO_INDEX, SCENE_FLOW_DY
 from av2.structures.cuboid import Cuboid, CuboidList
 from av2.torch.structures.cuboids import Cuboids
 from av2.torch.structures.sweep import Sweep
+
+BOUNDING_BOX_EXPANSION = 0.2
 
 
 @dataclass(frozen=True)
@@ -74,8 +76,8 @@ class Flow:
 
         for id in current_cuboid_map:
             c0 = current_cuboid_map[id]
-            c0.length_m += 0.2  # the bounding boxes are a little too tight and some points are missed
-            c0.width_m += 0.2
+            c0.length_m += BOUNDING_BOX_EXPANSION  # the bounding boxes are a little too tight sometimes
+            c0.width_m += BOUNDING_BOX_EXPANSION
             obj_pts, obj_mask = [torch.from_numpy(arr) for arr in c0.compute_interior_points(current_pc.numpy())]
             category_inds[obj_mask] = CATEGORY_TO_INDEX[str(c0.category)]
 

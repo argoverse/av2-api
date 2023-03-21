@@ -35,7 +35,7 @@ def get_eval_point_mask(sweep_uuid: Tuple[str, int], mask_file: Path) -> BoolTen
     """
     with ZipFile(mask_file) as masks:
         log_id, timestamp_ns = sweep_uuid
-        mask = pd.read_feather(masks.open(f"{log}/{ts}.feather")).to_numpy().astype(bool)
+        mask = pd.read_feather(masks.open(f"{log_id}/{timestamp_ns}.feather")).to_numpy().astype(bool)
 
     return BoolTensor(torch.from_numpy(mask).squeeze())
 
@@ -79,5 +79,7 @@ def write_output_file(
     fx_m = flow[:, 0].astype(np.float16)
     fy_m = flow[:, 1].astype(np.float16)
     fz_m = flow[:, 2].astype(np.float16)
-    output = pd.DataFrame({"flow_tx_m": fx, "flow_ty_m": fy, "flow_tz_m": fz, "is_dynamic": is_dynamic.astype(bool)})
+    output = pd.DataFrame(
+        {"flow_tx_m": fx_m, "flow_ty_m": fy_m, "flow_tz_m": fz_m, "is_dynamic": is_dynamic.astype(bool)}
+    )
     output.to_feather(output_log_dir / f"{sweep_uuid[1]}.feather")
