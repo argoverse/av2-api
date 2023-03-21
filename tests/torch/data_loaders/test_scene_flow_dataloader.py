@@ -41,11 +41,11 @@ def test_scene_flow_dataloader() -> None:
         failed = True
     assert failed
 
-    dl = av2.torch.data_loaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "val")
-    assert len(dl) == 1
-    assert dl.get_log_id(0) == "7fab2350-7eaf-3b7e-a39d-6937a4c1bede"
+    data_loader = av2.torch.data_loaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "val")
+    assert len(data_loader) == 1
+    assert data_loader.get_log_id(0) == "7fab2350-7eaf-3b7e-a39d-6937a4c1bede"
 
-    for datum in dl:
+    for datum in data_loader:
         sweep_0, sweep_1, ego, maybe_flow = datum
 
     assert maybe_flow is not None
@@ -73,6 +73,6 @@ def test_scene_flow_dataloader() -> None:
 
     assert np.allclose(ego.matrix().numpy(), gt_ego["ego_motion"], atol=1e-3)
 
-    eval_inds = get_eval_subset(dl)
+    eval_inds = get_eval_subset(data_loader)
     assert len(eval_inds) == 1
     assert eval_inds[0] == 0

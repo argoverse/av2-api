@@ -49,9 +49,9 @@ def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, distance_threshold: f
     l2_norm = np.linalg.norm(dts - gts, axis=-1)
     gts_norm = np.linalg.norm(gts, axis=-1)
     relative_err = l2_norm / (gts_norm + EPS)
-    error_lt_5 = (l2_norm < distance_threshold).astype(bool)
-    relative_err_lt_5 = (relative_err < distance_threshold).astype(bool)
-    accuracy: NDArrayFloat = np.logical_or(error_lt_5, relative_err_lt_5).astype(np.float64)
+    abs_error_inlier = (l2_norm < distance_threshold).astype(bool)
+    relative_err_inlier = (relative_err < distance_threshold).astype(bool)
+    accuracy: NDArrayFloat = np.logical_or(abs_error_inlier, relative_err_inlier).astype(np.float64)
     return accuracy
 
 
@@ -173,8 +173,8 @@ def compute_metrics(
         gts: (N,3) Ground truth flow vectors.
         category_indices: (N,) Integer class labels for each point.
         is_dynamic: (N,) Ground truth dynamic labels.
-        is_close: (N,) true for a point if it is within a 70m x 70m box around the AV
-        is_valid: (N,) true for a point if its flow vector was succesfully computed.
+        is_close: (N,) True for a point if it is within a 70m x 70m box around the AV.
+        is_valid: (N,) True for a point if its flow vector was succesfully computed.
         metric_classes: A dictionary mapping segmentation labels to groups of category indices.
 
     Returns:
@@ -218,11 +218,11 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
     """Run the evaluation on predictions and labels saved to disk.
 
     Args:
-        annotations_dir: path to the directory containing the annotation files produced by `make_annotation_files.py`.
-        predictions_dir: path to the prediction files in submission format
+        annotations_dir: Path to the directory containing the annotation files produced by `make_annotation_files.py`.
+        predictions_dir: Path to the prediction files in submission format.
 
     Returns:
-        A DataFrame containing the average metrics on each subset of each example.
+        DataFrame containing the average metrics on each subset of each example.
     """
     results: List[List[Union[str, float, int]]] = []
     annotation_files = list(annotations_dir.rglob("*.feather"))
@@ -260,13 +260,13 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
     """Convert a results DataFrame to a dictionary of whole dataset metrics.
 
     Args:
-        results_dataframe: DataFrame returned by evaluate_directories
+        frame: DataFrame returned by evaluate_directories.
 
     Returns:
-        A dictionary string keys "<Motion/Class/Distance/Metric>" mapped to average metrics on that subset.
+        Dictionary string keys "<Motion/Class/Distance/Metric>" mapped to average metrics on that subset.
     """
     output = {}
-    grouped = results_dataframe.groupby(["Class", "Motion", "Distance"])
+    grouped = frame.groupby(["Class", "Motion", "Distance"])
 
     def weighted_average(x: pd.DataFrame, metric: str) -> pd.Series:
         """Weighted average of metric m using the Count column."""
@@ -283,7 +283,7 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
                 continue
             name = m + "/" + "/".join([str(i) for i in segment])
             output[name] = avg[segment]
-    grouped = results_dataframe.groupby(["Class", "Motion"])
+    grouped = frame.groupby(["Class", "Motion"])
     for m in constants.FLOW_METRICS.keys():
         avg = grouped.apply(partial(weighted_average, metric=m))
         for segment in avg.index:
@@ -291,9 +291,7 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
                 continue
             name = m + "/" + "/".join([str(i) for i in segment])
             output[name] = avg[segment]
-    output["Dynamic IoU"] = results_dataframe.TP.sum() / (
-        results_dataframe.TP.sum() + results_dataframe.FP.sum() + results_dataframe.FN.sum()
-    )
+    output["Dynamic IoU"] = frame.TP.sum() / (frame.TP.sum() + frame.FP.sum() + frame.FN.sum())
     output["EPE 3-Way Average"] = (
         output["EPE/Foreground/Dynamic"] + output["EPE/Foreground/Static"] + output["EPE/Background/Static"]
     ) / 3

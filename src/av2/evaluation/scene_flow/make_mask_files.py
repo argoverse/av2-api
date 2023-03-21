@@ -25,16 +25,16 @@ def write_mask(
     """Write an annotation file.
 
     Args:
-        sweep_0: The first sweep of the pair.
-        sweep_1: The second sweep of the pair.
-        ego: The relative ego-motion between the two sweeps.
+        s0: The first sweep of the pair.
+        s1: The second sweep of the pair.
+        s1_SE3_s0: The relative ego-motion between the two sweeps.
         output_root: The top levevel directory to store the output in.
     """
-    mask = compute_eval_point_mask((sweep_0, sweep_1, ego, None))
+    mask = compute_eval_point_mask((s0, s1, s1_SE3_s0, None))
 
     output = pd.DataFrame({"mask": mask.numpy().astype(bool)})
 
-    log, ts = sweep_0.sweep_uuid
+    log, timestamp_ns = s0.sweep_uuid
 
     output_dir = output_root / log
     output_dir.mkdir(exist_ok=True)
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     output_root = Path(args.output_root)
     output_root.mkdir(exist_ok=True)
 
-    eval_inds = get_eval_subset(dl)
+    eval_inds = get_eval_subset(data_loader)
     for i in track(eval_inds):
-        sweep_0, sweep_1, ego, _ = dl[i]
+        sweep_0, sweep_1, ego, _ = data_loader[i]
         write_mask(sweep_0, sweep_1, ego, output_root)

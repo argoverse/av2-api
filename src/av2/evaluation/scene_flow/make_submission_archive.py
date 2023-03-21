@@ -3,7 +3,7 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Final
 from zipfile import ZipFile
 
 import numpy as np
@@ -11,6 +11,8 @@ import pandas as pd
 from rich.progress import track
 
 import av2.evaluation.scene_flow.utils
+
+SUBMISSION_COLUMNS: Final = ("flow_tx_m", "flow_ty_m", "flow_tz_m", "is_dynamic")
 
 
 def validate(root_dir: Path, fmt: Dict[str, int]) -> None:
@@ -27,25 +29,24 @@ def validate(root_dir: Path, fmt: Dict[str, int]) -> None:
     for filename in track(fmt.keys(), description="Validating..."):
         input_file = submission_root / filename
         if not input_file.exists():
-            raise FileNotFoundError(f"{str(input_file)} not found in submission directory")
+            raise FileNotFoundError(f"{input_file} not found in submission directory")
         pred = pd.read_feather(input_file)
 
-        cols = ["flow_tx_m", "flow_ty_m", "flow_tz_m", "is_dynamic"]
-        for c in cols:
+        for c in SUBMISSION_COLUMNS:
             if c not in pred.columns:
-                raise ValueError(f"{str(input_file)} does not contain {c}")
+                raise ValueError(f"{input_file} does not contain {c}")
             if c == "is_dynamic":
                 if pred[c].dtype != bool:
-                    raise ValueError(f"{str(input_file)} column {c} should be bool but is {pred[c].dtype}")
+                    raise ValueError(f"{input_file} column {c} should be bool but is {pred[c].dtype}")
             else:
                 if pred[c].dtype != np.float16:
-                    raise ValueError(f"{str(input_file)} column {c} should be float16 but is {pred[c].dtype}")
+                    raise ValueError(f"{input_file} column {c} should be float16 but is {pred[c].dtype}")
 
         if len(pred.columns) > 4:
-            raise ValueError(f"{str(input_file)} contains extra columns")
+            raise ValueError(f"{input_file} contains extra columns")
 
         if len(pred) != fmt[filename]:
-            raise ValueError(f"{str(input_file)} has {len(pred)} rows but it should have {fmt[filename]}")
+            raise ValueError(f"{input_file} has {len(pred)} rows but it should have {fmt[filename]}")
 
 
 def zip(root_dir: Path, fmt: Dict[str, int], output_file: Path) -> None:

@@ -55,12 +55,12 @@ class Sweep:
             cuboids = Cuboids(_frame=sweep.cuboids.to_pandas())
         city_SE3_ego = SE3_from_frame(frame=sweep.city_pose.to_pandas())
         lidar = Lidar(sweep.lidar.to_pandas())
+
+        is_ground = None
         if avm is not None:
             pcl_ego = lidar.as_tensor()[:, :3]
             pcl_city_1 = transform_points(city_SE3_ego.matrix(), pcl_ego[None])[0]
             is_ground = torch.from_numpy(avm.get_ground_points_boolean(pcl_city_1.numpy()).astype(bool))
-        else:
-            is_ground = None
 
         return cls(
             city_SE3_ego=city_SE3_ego,

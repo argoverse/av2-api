@@ -67,20 +67,20 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
         N = self._backend.__len__()
         for i in range(N):
             if i + 1 < N:
-                next_log_id = self.file_index.loc[i + 1, "log_id"].item()
-                current_log_id = self.file_index.loc[i, "log_id"].item()
+                next_log_id = self.file_index.loc[i + 1, "log_id"]
+                current_log_id = self.file_index.loc[i, "log_id"]
                 if current_log_id == next_log_id:
-                    inds.append(i)
-        return inds
+                    indices.append(i)
+        return indices
 
     def get_log_id(self, index: int) -> str:
         """Return the log name for a given sweep index."""
-        return str(self.file_index.loc[index, "log_id"].item())
+        return str(self.file_index.loc[index, "log_id"])
 
     def __getitem__(self, index: int) -> Tuple[Sweep, Sweep, Se3, Optional[Flow]]:
         """Get a pair of sweeps, ego motion, and flow if annotations are available."""
         backend_index = self.index_map[index]
-        log = self.file_index.loc[index, ["log_id"]].item()
+        log = self.file_index.loc[index, "log_id"]
         log_dir_path = log_map_dirpath = self.data_dir / log
         log_map_dirpath = self.data_dir / log / "map"
         avm = ArgoverseStaticMap.from_map_dir(log_map_dirpath, build_raster=True)

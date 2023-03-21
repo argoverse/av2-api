@@ -1,7 +1,7 @@
 """Utilities for generating output for the scene flow challenge."""
 
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Final, List, Optional, Tuple
 from zipfile import ZipFile
 
 import numpy as np
