@@ -46,10 +46,10 @@ def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, distance_threshold: f
     """
     l2_norm = np.linalg.norm(dts - gts, axis=-1)
     gts_norm = np.linalg.norm(gts, axis=-1)
-    relative_err = l2_norm / (gts_norm + EPS)
+    relative_error = l2_norm / (gts_norm + EPS)
     abs_error_inlier = (l2_norm < distance_threshold).astype(bool)
-    relative_err_inlier = (relative_err < distance_threshold).astype(bool)
-    accuracy: NDArrayFloat = np.logical_or(abs_error_inlier, relative_err_inlier).astype(np.float64)
+    relative_error_inlier = (relative_error < distance_threshold).astype(bool)
+    accuracy: NDArrayFloat = np.logical_or(abs_error_inlier, relative_error_inlier).astype(np.float64)
     return accuracy
 
 
@@ -161,7 +161,7 @@ def compute_metrics(
     is_dynamic: NDArrayBool,
     is_close: NDArrayBool,
     is_valid: NDArrayBool,
-    metric_classes: Dict[constants.MetricBreakdownCategories, List[int]],
+    metric_categories: Dict[constants.MetricBreakdownCategories, List[int]],
 ) -> List[List[Union[str, float, int]]]:
     """Compute all the metrics for a given example and package them into a list to be put into a DataFrame.
 
@@ -173,14 +173,13 @@ def compute_metrics(
         is_dynamic: (N,) Ground truth dynamic labels.
         is_close: (N,) True for a point if it is within a 70m x 70m box around the AV.
         is_valid: (N,) True for a point if its flow vector was succesfully computed.
-        metric_classes: A dictionary mapping segmentation labels to groups of category indices.
+        metric_categories: A dictionary mapping segmentation labels to groups of category indices.
 
     Returns:
         A list of lists where each sublist corresponds to some subset of the point cloud.
         (e.g., Dynamic/Foreground/Close). Each sublist contains the average of each metrics on that subset
         and the size of the subset.
     """
-    results = []
     pred_flow = pred_flow[is_valid].astype(np.float64)
     pred_dynamic = pred_dynamic[is_valid].astype(bool)
     gts = gts[is_valid].astype(np.float64)
@@ -190,7 +189,8 @@ def compute_metrics(
     flow_metrics = constants.FLOW_METRICS
     seg_metrics = constants.SEGMENTATION_METRICS
 
-    for cls, category_idxs in metric_classes.items():
+    results = []
+    for cls, category_idxs in metric_categories.items():
         category_mask = category_indices == category_idxs[0]
         for i in category_idxs[1:]:
             category_mask = np.logical_or(category_mask, (category_indices == i))
@@ -206,8 +206,8 @@ def compute_metrics(
                     result += [flow_metrics[m](pred_sub, gts_sub).mean() for m in flow_metrics]
                     result += [seg_metrics[m](pred_dynamic[mask], is_dynamic[mask]) for m in seg_metrics]
                 else:
-                    result += [np.nan for m in flow_metrics]
-                    result += [0 for m in seg_metrics]
+                    result += [np.nan for _ in flow_metrics]
+                    result += [0 for _ in seg_metrics]
                 results.append(result)
     return results
 
