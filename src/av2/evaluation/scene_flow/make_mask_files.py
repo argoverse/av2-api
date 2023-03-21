@@ -1,19 +1,15 @@
 """Utility program for producing submission mask files."""
 
 from pathlib import Path
-from typing import Tuple
 
 import click
-import numpy as np
 import pandas as pd
 from kornia.geometry.liegroup import Se3
 from rich.progress import track
 
 from av2.evaluation.scene_flow.utils import compute_eval_point_mask, get_eval_subset
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
-from av2.torch.structures.flow import Flow
 from av2.torch.structures.sweep import Sweep
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 
 def write_mask(

@@ -4,13 +4,11 @@ from __future__ import annotations
 
 from functools import partial
 from pathlib import Path
-from typing import Dict, Final, Iterator, List, Optional, Tuple, Union
+from typing import Dict, Final, List, Union
 
 import click
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn.functional as F
 from rich.progress import track
 
 import av2.evaluation.scene_flow.constants as constants

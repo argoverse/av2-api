@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Final, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
-import numpy as np
 import torch
 from kornia.geometry.linalg import transform_points
-from torch import BoolTensor, ByteTensor, FloatTensor, Tensor
+from torch import BoolTensor, ByteTensor, FloatTensor
 
 from av2.evaluation.scene_flow.constants import CATEGORY_TO_INDEX, SCENE_FLOW_DYNAMIC_THRESHOLD
 from av2.structures.cuboid import Cuboid, CuboidList
