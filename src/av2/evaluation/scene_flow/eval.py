@@ -107,8 +107,8 @@ def compute_true_positives(dts: NDArrayBool, gts: NDArrayBool) -> int:
     """Compute true positive count.
 
     Args:
-        dts: (N,) array containing predicted dynamic segmentation.
-        gts: (N,) array containing ground truth dynamic segmentation.
+        dts: (N,) Array containing predicted dynamic segmentation.
+        gts: (N,) Array containing ground truth dynamic segmentation.
 
     Returns:
         The number of true positive classifications.
@@ -270,7 +270,7 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
 
     def weighted_average(x: pd.DataFrame, metric: str) -> pd.Series:
         """Weighted average of metric m using the Count column."""
-        total = x.Count.sum()
+        total = int(x["Count"].sum())
         if total == 0:
             return np.nan
         averages: pd.Series[float] = (x[metric] * x.Count).sum() / total
@@ -292,9 +292,8 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
             name = m + "/" + "/".join([str(i) for i in segment])
             output[name] = avg[segment]
     output["Dynamic IoU"] = frame.TP.sum() / (frame.TP.sum() + frame.FP.sum() + frame.FN.sum())
-    output["EPE 3-Way Average"] = (
-        output["EPE/Foreground/Dynamic"] + output["EPE/Foreground/Static"] + output["EPE/Background/Static"]
-    ) / 3
+    output["EPE 3-Way Average"] = 
+        output[["EPE/Foreground/Dynamic", "EPE/Foreground/Static", "EPE/Background/Static"]].mean(axis=1)
     return output
 
 
