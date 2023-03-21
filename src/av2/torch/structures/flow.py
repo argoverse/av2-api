@@ -14,12 +14,12 @@ from av2.structures.cuboid import Cuboid, CuboidList
 from av2.torch.structures.cuboids import Cuboids
 from av2.torch.structures.sweep import Sweep
 
-BOUNDING_BOX_EXPANSION = 0.2
+BOUNDING_BOX_EXPANSION: Final = 0.2
 
 
 @dataclass(frozen=True)
 class Flow:
-    """Models scene flow pseudolabels for a LiDARSweep.
+    """Models scene flow pseudo-labels for a lidar sweep.
 
        Scene Flow pseudolabels come from the relative motion of all tracked objects
        between two sweeps.
