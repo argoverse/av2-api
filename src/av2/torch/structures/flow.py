@@ -58,26 +58,29 @@ class Flow:
         else:
             current_cuboids, next_cuboids = current_sweep.cuboids, next_sweep.cuboids
         city_SE3_ego0, city_SE3_ego1 = current_sweep.city_SE3_ego, next_sweep.city_SE3_ego
-        ego1_SE3_ego0 = poses[1].inverse() * poses[0]
+        ego1_SE3_ego0 = city_SE3_ego1.inverse() * city_SE3_ego0
 
-        cuboid_maps = [cuboids_to_id_cuboid_map(cubs) for cubs in cuboids]
-        pcs = [sweep.lidar.as_tensor()[:, :3] for sweep in sweeps]
+        current_cuboid_map = cuboids_to_id_cuboid_map(current_cuboids)
+        next_cuboid_map = cuboids_to_id_cuboid_map(next_cuboids)
 
-        rigid_flow = (transform_points(ego1_SE3_ego0.matrix(), pcs[0][None])[0] - pcs[0]).float().detach()
+        current_pc = current_sweep.lidar.as_tensor()[:, :3]
+        next_pc = next_sweep.lidar.as_tensor()[:, :3]
+
+        rigid_flow = (transform_points(ego1_SE3_ego0.matrix(), current_pc[None])[0] - current_pc).float().detach()
         flow = rigid_flow.clone()
 
-        is_valid = torch.ones(len(pcs[0]), dtype=torch.bool)
-        category_inds = torch.zeros(len(pcs[0]), dtype=torch.uint8)
+        is_valid = torch.ones(len(current_pc), dtype=torch.bool)
+        category_inds = torch.zeros(len(current_pc), dtype=torch.uint8)
 
-        for id in cuboid_maps[0]:
-            c0 = cuboid_maps[0][id]
+        for id in current_cuboid_map:
+            c0 = current_cuboid_map[id]
             c0.length_m += 0.2  # the bounding boxes are a little too tight and some points are missed
             c0.width_m += 0.2
-            obj_pts, obj_mask = [torch.from_numpy(arr) for arr in c0.compute_interior_points(pcs[0].numpy())]
+            obj_pts, obj_mask = [torch.from_numpy(arr) for arr in c0.compute_interior_points(current_pc.numpy())]
             category_inds[obj_mask] = CATEGORY_TO_INDEX[str(c0.category)]
 
-            if id in cuboid_maps[1]:
-                c1 = cuboid_maps[1][id]
+            if id in next_cuboid_map:
+                c1 = next_cuboid_map[id]
                 c1_SE3_c0 = c1.dst_SE3_object.compose(c0.dst_SE3_object.inverse())
                 obj_flow = torch.from_numpy(c1_SE3_c0.transform_point_cloud(obj_pts.numpy())) - obj_pts
                 flow[obj_mask] = (obj_flow.float()).detach()
