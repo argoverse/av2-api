@@ -133,8 +133,8 @@ def compute_false_positives(dts: NDArrayBool, gts: NDArrayBool) -> int:
     """Compute false positive count.
 
     Args:
-        dts: (N,) array containing predicted dynamic segmentation.
-        gts: (N,) array containing ground truth dynamic segmentation.
+        dts: (N,) Array containing predicted dynamic segmentation.
+        gts: (N,) Array containing ground truth dynamic segmentation.
 
     Returns:
         The number of false positive classifications.
