@@ -14,10 +14,10 @@ SWEEP_PAIR_TIME_DELTA: Final = 0.1
 CATEGORY_TO_INDEX: Final = {**{"NONE": 0}, **{k.value: i + 1 for i, k in enumerate(AnnotationCategories)}}
 
 FLOW_METRICS: Final = {
-    "EPE": eval.compute_end_point_error,
-    "Accuracy Strict": eval.compute_accuracy_strict,
     "Accuracy Relax": eval.compute_accuracy_relax,
+    "Accuracy Strict": eval.compute_accuracy_strict,
     "Angle Error": eval.compute_angle_error,
+    "EPE": eval.compute_end_point_error,
 }
 SEGMENTATION_METRICS: Final = {
     "TP": eval.compute_true_positives,
@@ -53,12 +53,12 @@ class LeggedCategories(str, Enum):
 class SmallVehicleCategories(str, Enum):
     """Annotation categories representing small vehicles."""
 
-    STROLLER = "STROLLER"
-    WHEELCHAIR = "WHEELCHAIR"
     BICYCLE = "BICYCLE"
     BICYCLIST = "BICYCLIST"
     MOTORCYCLE = "MOTORCYCLE"
     MOTORCYCLIST = "MOTORCYCLIST"
+    STROLLER = "STROLLER"
+    WHEELCHAIR = "WHEELCHAIR"
     WHEELED_DEVICE = "WHEELED_DEVICE"
     WHEELED_RIDER = "WHEELED_RIDER"
 
@@ -71,14 +71,14 @@ class VehicleCategories(str, Enum):
     BOX_TRUCK = "BOX_TRUCK"
     BUS = "BUS"
     LARGE_VEHICLE = "LARGE_VEHICLE"
+    MESSAGE_BOARD_TRAILER = "MESSAGE_BOARD_TRAILER"
     RAILED_VEHICLE = "RAILED_VEHICLE"
     REGULAR_VEHICLE = "REGULAR_VEHICLE"
     SCHOOL_BUS = "SCHOOL_BUS"
+    TRAFFIC_LIGHT_TRAILER = "TRAFFIC_LIGHT_TRAILER"
     TRUCK = "TRUCK"
     TRUCK_CAB = "TRUCK_CAB"
     VEHICULAR_TRAILER = "VEHICULAR_TRAILER"
-    TRAFFIC_LIGHT_TRAILER = "TRAFFIC_LIGHT_TRAILER"
-    MESSAGE_BOARD_TRAILER = "MESSAGE_BOARD_TRAILER"
 
 
 @unique
@@ -86,8 +86,8 @@ class MetricBreakdownCategories(str, Enum):
     """Meta-categories for the scene flow task."""
 
     ALL = "All"
-    FOREGROUND = "Foreground"
     BACKGROUND = "Background"
+    FOREGROUND = "Foreground"
 
 
 NO_CLASS_BREAKDOWN: Final = {MetricBreakdownCategories.ALL: list(range(31))}

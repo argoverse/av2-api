@@ -2,7 +2,7 @@
 
 import argparse
 from pathlib import Path
-from typing import Tuple
+from typing import Final, Tuple
 
 import numpy as np
 import pandas as pd
@@ -11,6 +11,8 @@ from rich.progress import track
 from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
+
+CLOSE_DISTANCE_THRESHOLD: Final = 35
 
 
 def write_annotation(

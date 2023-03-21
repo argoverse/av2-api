@@ -235,9 +235,9 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
             continue
         pred = pd.read_feather(pred_file)
         loss_breakdown = compute_metrics(
-            pred[list(constants.FLOW_COLUMNS)].to_numpy().astype(np.float),
+            pred[list(constants.FLOW_COLUMNS)].to_numpy().astype(float),
             pred["is_dynamic"].to_numpy().astype(bool),
-            gts[list(constants.FLOW_COLUMNS)].to_numpy().astype(np.float),
+            gts[list(constants.FLOW_COLUMNS)].to_numpy().astype(float),
             gts["category_indices"].to_numpy().astype(np.uint8),
             gts["is_dynamic"].to_numpy().astype(bool),
             gts["is_close"].to_numpy().astype(bool),
