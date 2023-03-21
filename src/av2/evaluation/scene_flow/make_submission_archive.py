@@ -14,17 +14,19 @@ import av2.evaluation.scene_flow.utils
 SUBMISSION_COLUMNS: Final = ("flow_tx_m", "flow_ty_m", "flow_tz_m", "is_dynamic")
 
 
-def validate(submission_dir: Path, fmt: Dict[str, int]) -> None:
+def validate(submission_dir: Path, mask_file; Path) -> None:
     """Validate the filenames and shapes of all predictions required for submission.
 
     Args:
         submission_dir: Path to the top level submission file directory.
-        fmt: Dictionary containing all the files needed for submission and the number of points in that file.
+        mask_file: Archive containing all the mask files required for submission.
 
     Raises:
         FileNotFoundError: If any of the required files are missing
         ValueError: If any supplied file is malformed
     """
+    with ZipFile(mask_file, "r") as masks:
+        pass
     for filename in track(fmt.keys(), description="Validating..."):
         input_file = submission_dir / filename
         if not input_file.exists():
