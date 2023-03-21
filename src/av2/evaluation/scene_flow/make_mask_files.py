@@ -2,6 +2,7 @@
 
 import zipfile
 from pathlib import Path
+from typing.IO import BinaryIO
 
 import click
 import pandas as pd
@@ -13,30 +14,24 @@ from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 from av2.torch.structures.sweep import Sweep
 
 
-def write_mask(
+def get_mask(
     s0: Sweep,
     s1: Sweep,
     s1_SE3_s0: Se3,
-    output_root: Path,
-) -> None:
-    """Write an annotation file.
+) -> pd.DataFrame:
+    """Get a mask packaged up into a DataFrame.
 
     Args:
         s0: The first sweep of the pair.
         s1: The second sweep of the pair.
         s1_SE3_s0: The relative ego-motion between the two sweeps.
-        output_root: The top levevel directory to store the output in.
+
+    Returns:
+        DataFrame with a single column for the mask.
     """
     mask = compute_eval_point_mask((s0, s1, s1_SE3_s0, None))
-
     output = pd.DataFrame({"mask": mask.numpy().astype(bool)})
-
-    log, timestamp_ns = s0.sweep_uuid
-
-    output_dir = output_root / log
-    output_dir.mkdir(exist_ok=True)
-    output_file = output_dir / f"{timestamp_ns}.feather"
-    output.to_feather(output_file)
+    return output
 
 
 @click.command()
