@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, Final, List, Union
+from typing import Any, DefaultDict, Dict, Final, List, Union
 
 import click
 import numpy as np
@@ -101,7 +102,6 @@ def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     dot_product = np.einsum("bd,bd->b", unit_dts, unit_gts)
 
     # Floating point errors can cause `dot_product` to be slightly greater than 1 or less than -1.
-
     clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
     angle_error: NDArrayFloat = np.arccos(clipped_dot_product).astype(np.float64)
     return angle_error
@@ -194,11 +194,7 @@ def compute_metrics(
     flow_metrics = constants.FLOW_METRICS
     seg_metrics = constants.SEGMENTATION_METRICS
 
-    results: Dict[str, List[Any]] = {"Class": [], "Motion": [], "Distance": [], "Count": []}
-    for m in flow_metrics:
-        results[m] = []
-    for m in seg_metrics:
-        results[m] = []
+    results: DefaultDict[str, List[Any]] = defaultdict(list)
 
     # Each metric is broken down by point labels on Object Class, Motion, and Distance from the AV.
     # We iterate over all combinations of those three categories and compute average metrics on each subset.
@@ -214,22 +210,22 @@ def compute_metrics(
                 subset_size = mask.sum().item()
                 gts_sub = gts[mask]
                 pred_sub = pred_flow[mask]
-                results["Class"].append(cls.value)
-                results["Motion"].append(motion)
-                results["Distance"].append(distance)
-                results["Count"].append(subset_size)
+                results["Class"] += [cls.value]
+                results["Motion"] += [motion]
+                results["Distance"] += [distance]
+                results["Count"] += [subset_size]
 
                 # Check if there are any points in this subset and if so compute all the average metrics.
                 if subset_size > 0:
                     for metric, flow_metric_fn in flow_metrics.items():
-                        results[metric].append(flow_metric_fn(pred_sub, gts_sub).mean())
+                        results[metric] += [flow_metric_fn(pred_sub, gts_sub).mean()]
                     for metric, seg_metric_fn in seg_metrics.items():
-                        results[metric].append(seg_metric_fn(pred_dynamic[mask], is_dynamic[mask]))
+                        results[metric] += [seg_metric_fn(pred_dynamic[mask], is_dynamic[mask])]
                 else:
                     for metric in flow_metrics:
-                        results[metric].append(np.nan)
+                        results[metric] += [np.nan]
                     for metric in seg_metrics:
-                        results[metric].append(0)
+                        results[metric] += [0]
     return results
 
 
@@ -243,7 +239,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
     Returns:
         DataFrame containing the average metrics on each subset of each example.
     """
-    results: Dict[str, List[Any]] = {"Example": []}
+    results: DefaultDict[str, List[Any]] = defaultdict(list)
     annotation_files = list(annotations_dir.rglob("*.feather"))
     for anno_file in track(annotation_files, description="Evaluating..."):
         gts = pd.read_feather(anno_file)
@@ -253,7 +249,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
             print(f"Warning: File {name} is missing!")
             continue
         pred = pd.read_feather(pred_file)
-        loss_breakdown = compute_metrics(
+        current_example_results = compute_metrics(
             pred[list(constants.FLOW_COLUMNS)].to_numpy().astype(float),
             pred["is_dynamic"].to_numpy().astype(bool),
             gts[list(constants.FLOW_COLUMNS)].to_numpy().astype(float),
@@ -263,13 +259,10 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
             gts["is_valid"].to_numpy().astype(bool),
             constants.FOREGROUND_BACKGROUND_BREAKDOWN,
         )
-        num_subsets = len(list(loss_breakdown.values())[0])
+        num_subsets = len(list(current_example_results.values())[0])
         results["Example"] += [name for _ in range(num_subsets)]
-        for m in loss_breakdown:
-            if m not in results:
-                results[m] = loss_breakdown[m]
-            else:
-                results[m] += loss_breakdown[m]
+        for m in current_example_results:
+            results[m] += current_example_results[m]
 
     return pd.DataFrame(results)
 
