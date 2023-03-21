@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import argparse
 from functools import partial
 from pathlib import Path
 from typing import Dict, Final, Iterator, List, Optional, Tuple, Union
 
+import click
 import numpy as np
 import pandas as pd
 import torch
@@ -299,14 +299,22 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
     return output
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog="eval", description="Run a local scene flow evaluation on the val split")
-    parser.add_argument("predictions_root", type=str, help="path/to/predictions/")
-    parser.add_argument("annotations_root", type=str, help="path/to/annotation_files/")
+@click.command()
+@click.argument("annotations_dir", type=str)
+@click.argument("predictions_dir", type=str)
+def evaluate(annotations_dir: str, predictions_dir: str) -> None:
+    """Evaluate a set of predictions and print the results.
 
-    args = parser.parse_args()
-    results_df = evaluate_directories(Path(args.annotations_root), Path(args.predictions_root))
+    Args:
+        annotations_dir: Path to the directory containing the annotation files produced by `make_annotation_files.py`.
+        predictions_dir: Path to the prediction files in submission format.
+    """
+    results_df = evaluate_directories(Path(annotations_dir), Path(predictions_dir))
     results_dict = results_to_dict(results_df)
 
     for metric in sorted(results_dict):
         print(f"{metric}: {results_dict[metric]:.3f}")
+
+
+if __name__ == "__main__":
+    evaluate()

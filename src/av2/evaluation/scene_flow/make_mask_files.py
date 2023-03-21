@@ -1,9 +1,9 @@
 """Utility program for producing submission mask files."""
 
-import argparse
 from pathlib import Path
 from typing import Tuple
 
+import click
 import numpy as np
 import pandas as pd
 from kornia.geometry.liegroup import Se3
@@ -42,32 +42,40 @@ def write_mask(
     output.to_feather(output_file)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        "make_mask_files",
-        description="Make a directory of feather files storing masks for submission",
-    )
-    parser.add_argument("output_root", type=str, help="path/to/output/")
-    parser.add_argument("data_root", type=str, help="root/path/to/data")
-    parser.add_argument(
-        "--name", type=str, default="av2", help="the data should be located in <data_root>/<name>/sensor/<split>"
-    )
-    parser.add_argument(
-        "--split",
-        type=str,
-        default="val",
-        choices=["val", "test"],
-        help="the data should be located in <data_root>/<name>/sensor/<split>",
-    )
+@click.command()
+@click.argument("output_dir", type=str)
+@click.argument("data_dir", type=str)
+@click.option(
+    "--name",
+    type=str,
+    help="the data should be located in <data_dir>/<name>/sensor/<split>",
+    default="av2",
+)
+@click.option(
+    "--split",
+    help="the data should be located in <data_dir>/<name>/sensor/<split>",
+    default="val",
+    type=click.Choice(["test", "val"]),
+)
+def make_mask_files(output_dir: str, data_dir: str, name: str, split: str) -> None:
+    """Output the point masks for submission to the leaderboard.
 
-    args = parser.parse_args()
+    Args:
+        output_dir: Path to output directory.
+        data_dir: Path to input data.
+        name: Name of the dataset (e.g. av2).
+        split: Split to make masks for.
+    """
+    data_loader = SceneFlowDataloader(Path(data_dir), name, split)
 
-    data_loader = SceneFlowDataloader(args.data_root, args.name, args.split)
-
-    output_root = Path(args.output_root)
+    output_root = Path(output_dir)
     output_root.mkdir(exist_ok=True)
 
     eval_inds = get_eval_subset(data_loader)
     for i in track(eval_inds):
         sweep_0, sweep_1, ego, _ = data_loader[i]
         write_mask(sweep_0, sweep_1, ego, output_root)
+
+
+if __name__ == "__main__":
+    make_mask_files()

@@ -1,8 +1,7 @@
 """An example showing how to output flow predictions in the format required for submission."""
-
-import argparse
 from pathlib import Path
 
+import click
 import numpy as np
 from kornia.geometry.linalg import transform_points
 from rich.progress import track
@@ -10,26 +9,27 @@ from rich.progress import track
 from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset, write_output_file
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        prog="example_submission",
-        description="example program demonstrating how to use the API "
-        "to output the correct files for submission to the leaderboard",
-    )
-    parser.add_argument("output_root", type=str, help="path/to/output/")
-    parser.add_argument("data_root", type=str, help="root/path/to/data")
-    parser.add_argument(
-        "--name",
-        type=str,
-        default="av2",
-        help="the data should be located in <data_root>/<name>/sensor/<split> (default: av2)",
-    )
 
-    args = parser.parse_args()
+@click.command()
+@click.argument("output_dir", type=str)
+@click.argument("data_dir", type=str)
+@click.option(
+    "--name",
+    type=str,
+    help="the data should be located in <data_dir>/<name>/sensor/<split>",
+    default="av2",
+)
+def example_submission(output_dir: str, data_dir: str, name: str) -> None:
+    """Output the point masks for submission to the leaderboard.
 
-    data_loader = SceneFlowDataloader(args.data_root, args.name, "test")
+    Args:
+        output_dir: Path to output directory.
+        data_dir: Path to input data.
+        name: Name of the dataset (e.g. av2).
+    """
+    data_loader = SceneFlowDataloader(Path(data_dir), name, "test")
 
-    output_root = Path(args.output_root)
+    output_root = Path(output_dir)
     output_root.mkdir(exist_ok=True)
 
     eval_inds = get_eval_subset(data_loader)
@@ -43,3 +43,7 @@ if __name__ == "__main__":
         is_dynamic = np.zeros(len(rigid_flow), dtype=bool)
 
         write_output_file(rigid_flow, is_dynamic, sweep_0.sweep_uuid, output_root)
+
+
+if __name__ == "__main__":
+    example_submission()

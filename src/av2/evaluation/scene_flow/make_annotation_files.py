@@ -1,17 +1,16 @@
 """Utility program for producing minimnal annotation files used for evaluation on the val and test splits."""
 
-import argparse
 from pathlib import Path
 from typing import Final, Tuple
 
 import click
 import numpy as np
 import pandas as pd
-from av2.evaluation.scene_flow.utils import (get_eval_point_mask,
-                                             get_eval_subset)
+from rich.progress import track
+
+from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
-from rich.progress import track
 
 CLOSE_DISTANCE_THRESHOLD: Final = 35
 
@@ -71,9 +70,19 @@ def write_annotation(
     default="val",
     type=click.Choice(["test", "val"]),
 )
-def make_annotation_files(output_dir: str, data_dir: str, name: str, split: str):
-    """Create annotation files for running the evaluation."""
-    data_loader = SceneFlowDataloader(data_dir, name, "val")
+def make_annotation_files(output_dir: str, data_dir: str, name: str, split: str) -> None:
+    """Create annotation files for running the evaluation.
+
+    Args:
+        output_dir: Path to output directory.
+        data_dir: Path to input data.
+        name: Name of the dataset (e.g. av2).
+        split: Split to make annotations for.
+
+    Raises:
+        ValueError: If the dataset does not have annotations.
+    """
+    data_loader = SceneFlowDataloader(Path(data_dir), name, "val")
 
     output_root = Path(output_dir)
     output_root.mkdir(exist_ok=True)
@@ -92,9 +101,7 @@ def make_annotation_files(output_dir: str, data_dir: str, name: str, split: str)
         is_dynamic = datum[3].is_dynamic[mask].numpy().astype(bool)
 
         pc = datum[0].lidar.as_tensor()[mask, :3].numpy()
-        is_close = np.logical_and.reduce(
-            np.abs(pc[:, :2]) <= CLOSE_DISTANCE_THRESHOLD, axis=1
-        ).astype(bool)
+        is_close = np.logical_and.reduce(np.abs(pc[:, :2]) <= CLOSE_DISTANCE_THRESHOLD, axis=1).astype(bool)
 
         write_annotation(
             category_indices,
