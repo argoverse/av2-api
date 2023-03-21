@@ -84,7 +84,8 @@ class Flow:
             else:
                 is_valid[obj_mask] = 0
 
-        is_dynamic = np.linalg.norm(flow - rigid_flow, axis=-1) >= SCENE_FLOW_DYNAMIC_THRESHOLD
+        dynamic_norm = torch.linalg.vector_norm(flow - rigid_flow, dim=-1)
+        is_dynamic: BoolTensor = dynamic_norm >= SCENE_FLOW_DYNAMIC_THRESHOLD
 
         return cls(
             flow=torch.FloatTensor(flow),
