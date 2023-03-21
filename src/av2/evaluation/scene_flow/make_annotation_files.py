@@ -55,23 +55,7 @@ def write_annotation(
     output.to_feather(output_file)
 
 
-@click.command()
-@click.argument("output_dir", type=str)
-@click.argument("data_dir", type=str)
-@click.argument("mask_file", type=str)
-@click.option(
-    "--name",
-    type=str,
-    help="the data should be located in <data_dir>/<name>/sensor/<split>",
-    default="av2",
-)
-@click.option(
-    "--split",
-    help="the data should be located in <data_dir>/<name>/sensor/<split>",
-    default="val",
-    type=click.Choice(["test", "val"]),
-)
-def make_annotation_files(output_dir: str, data_dir: str, mask_file: str, name: str, split: str) -> None:
+def make_annotation_files(output_dir: str, mask_file: str, data_dir: str, name: str, split: str) -> None:
     """Create annotation files for running the evaluation.
 
     Args:
@@ -116,5 +100,26 @@ def make_annotation_files(output_dir: str, data_dir: str, mask_file: str, name: 
         )
 
 
+@click.command()
+@click.argument("output_dir", type=str)
+@click.argument("data_dir", type=str)
+@click.argument("mask_file", type=str)
+@click.option(
+    "--name",
+    type=str,
+    help="the data should be located in <data_dir>/<name>/sensor/<split>",
+    default="av2",
+)
+@click.option(
+    "--split",
+    help="the data should be located in <data_dir>/<name>/sensor/<split>",
+    default="val",
+    type=click.Choice(["test", "val"]),
+)
+def _make_annotation_files_entry(output_dir: str, mask_file: str, data_dir: str, name: str, split: str) -> None:
+    """Entry point for make_annotation_files."""
+    make_annotation_files(output_dir, mask_file, data_dir, name, split)
+
+
 if __name__ == "__main__":
-    make_annotation_files()
+    _make_annotation_files_entry()

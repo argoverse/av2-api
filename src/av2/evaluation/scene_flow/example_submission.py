@@ -11,23 +11,13 @@ from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 
 
-@click.command()
-@click.argument("output_dir", type=str)
-@click.argument("data_dir", type=str)
-@click.argument("mask_file", type=str)
-@click.option(
-    "--name",
-    type=str,
-    help="the data should be located in <data_dir>/<name>/sensor/<split>",
-    default="av2",
-)
-def example_submission(output_dir: str, data_dir: str, mask_file: str, name: str) -> None:
-    """Output the point masks for submission to the leaderboard.
+def example_submission(output_dir: str, mask_file: str, data_dir: str, name: str) -> None:
+    """Output example submission files for the leaderboard. Predicts the ego motion for every point.
 
     Args:
         output_dir: Path to output directory.
-        data_dir: Path to input data.
         mask_file: Archive of submission masks.
+        data_dir: Path to input data.
         name: Name of the dataset (e.g. av2).
     """
     data_loader = SceneFlowDataloader(Path(data_dir), name, "test")
@@ -48,5 +38,20 @@ def example_submission(output_dir: str, data_dir: str, mask_file: str, name: str
         write_output_file(rigid_flow, is_dynamic, sweep_0.sweep_uuid, output_root)
 
 
+@click.command()
+@click.argument("output_dir", type=str)
+@click.argument("data_dir", type=str)
+@click.argument("mask_file", type=str)
+@click.option(
+    "--name",
+    type=str,
+    help="the data should be located in <data_dir>/<name>/sensor/<split>",
+    default="av2",
+)
+def _example_submission_entry(output_dir: str, mask_file: str, data_dir: str, name: str) -> None:
+    """Entry point for example_submission."""
+    example_submission(output_dir, mask_file, data_dir, name)
+
+
 if __name__ == "__main__":
-    example_submission()
+    _example_submission_entry()
