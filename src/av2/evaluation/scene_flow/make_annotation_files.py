@@ -67,7 +67,7 @@ if __name__ == "__main__":
         "--split",
         type=str,
         default="val",
-        choices=["val", "test"],
+        choices=("val", "test"),
         help="the data should be located in <data_root>/<name>/sensor/<split>",
     )
 

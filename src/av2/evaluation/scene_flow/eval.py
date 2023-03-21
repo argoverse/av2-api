@@ -16,9 +16,9 @@ from rich.progress import track
 import av2.evaluation.scene_flow.constants as constants
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
-EPS: Final = 1e-10
-ACCURACY_STRICT_DISTANCE_THRESHOLD: Final = 0.05
 ACCURACY_RELAX_DISTANCE_THRESHOLD: Final = 0.1
+ACCURACY_STRICT_DISTANCE_THRESHOLD: Final = 0.05
+EPS: Final = 1e-10
 
 
 def compute_end_point_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
@@ -235,13 +235,13 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
             continue
         pred = pd.read_feather(pred_file)
         loss_breakdown = compute_metrics(
-            pred[list(constants.FLOW_COLUMNS)].to_numpy(),
-            pred["is_dynamic"].to_numpy(),
-            gts[list(constants.FLOW_COLUMNS)].to_numpy(),
-            gts["category_indices"].to_numpy(),
-            gts["is_dynamic"].to_numpy(),
-            gts["is_close"].to_numpy(),
-            gts["is_valid"].to_numpy(),
+            pred[list(constants.FLOW_COLUMNS)].to_numpy().astype(np.float),
+            pred["is_dynamic"].to_numpy().astype(bool),
+            gts[list(constants.FLOW_COLUMNS)].to_numpy().astype(np.float),
+            gts["category_indices"].to_numpy().astype(np.uint8),
+            gts["is_dynamic"].to_numpy().astype(bool),
+            gts["is_close"].to_numpy().astype(bool),
+            gts["is_valid"].to_numpy().astype(bool),
             constants.FOREGROUND_BACKGROUND_BREAKDOWN,
         )
 
