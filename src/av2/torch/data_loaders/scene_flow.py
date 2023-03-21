@@ -90,10 +90,9 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
         sweep = Sweep.from_rust(self._backend.get(backend_index), avm=avm)
         next_sweep = Sweep.from_rust(self._backend.get(backend_index + 1), avm=avm)
 
+        flow = None
         if sweep.cuboids is not None:
             flow = Flow.from_sweep_pair((sweep, next_sweep))
-        else:
-            flow = None
 
         ego_1_SE3_ego_0 = next_sweep.city_SE3_ego.inverse() * sweep.city_SE3_ego
         ego_1_SE3_ego_0.rotation._q.requires_grad_(False)
