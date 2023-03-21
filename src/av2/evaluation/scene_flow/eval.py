@@ -221,15 +221,15 @@ def compute_metrics(
 
                 # Check if there are any points in this subset and if so compute all the average metrics.
                 if subset_size > 0:
-                    for m in flow_metrics:
-                        results[m].append(flow_metrics[m](pred_sub, gts_sub).mean())
-                    for m in seg_metrics:
-                        results[m].append(seg_metrics[m](pred_dynamic[mask], is_dynamic[mask]))
+                    for metric, flow_metric_fn in flow_metrics.items():
+                        results[metric].append(flow_metric_fn(pred_sub, gts_sub).mean())
+                    for metric, seg_metric_fn in seg_metrics.items():
+                        results[metric].append(seg_metric_fn(pred_dynamic[mask], is_dynamic[mask]))
                 else:
-                    for m in flow_metrics:
-                        results[m].append(np.nan)
-                    for m in seg_metrics:
-                        results[m].append(0)
+                    for metric in flow_metrics:
+                        results[metric].append(np.nan)
+                    for metric in seg_metrics:
+                        results[metric].append(0)
     return results
 
 
@@ -250,7 +250,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
         name: str = str(anno_file.relative_to(annotations_dir))
         pred_file = predictions_dir / name
         if not pred_file.exists():
-            print(f"Warning: {name} missing")
+            print(f"Warning: File {name} is missing!")
             continue
         pred = pd.read_feather(pred_file)
         loss_breakdown = compute_metrics(
@@ -271,9 +271,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
             else:
                 results[m] += loss_breakdown[m]
 
-    df = pd.DataFrame(results)
-
-    return df
+    return pd.DataFrame(results)
 
 
 def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
