@@ -10,6 +10,17 @@ _TEST_DATA_ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_submission():
+    # Pipeline:
+    # 1. make mask files and produce masks.zip
+    # 2. make annotation files using masks.zip
+    # 3. make format file? maybe just eliminate this and use masks.zip
+    # 3. make example submission files
+    # 3. make submission archive from submission files
+
+    # TODO
+    # - add zipping step to make_mask_files
+    # - change get_eval_point_mask so that it can handle a temporary mask file
+    # - change make_submission_archive to use just masks.zip and allow overriding the default mask file
     dl_test = av2.torch.data_loaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "test")
     data_loader = av2.torch.data_loaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "val")
 
