@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 from typing import Final, Tuple
 
+import click
 import numpy as np
 import pandas as pd
 from rich.progress import track
@@ -49,35 +50,48 @@ def write_annotation(
 
     log_id, timestamp_ns = sweep_uuid
 
-    output_dir = output_root / log_id
-    output_dir.mkdir(exist_ok=True)
-    output_file = output_dir / f"{timestamp_ns}.feather"
+    output_subdir = output_dir / log_id
+    output_subdir.mkdir(exist_ok=True)
+    output_file = output_subdir / f"{timestamp_ns}.feather"
     output.to_feather(output_file)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        "make_annotation_files",
-        description="Make a directory of feather files storing " "just enough info to run a scene flow evaluation",
-    )
-    parser.add_argument("output_root", type=str, help="path/to/output/")
-    parser.add_argument("data_root", type=str, help="root/path/to/data")
-    parser.add_argument(
-        "--name", type=str, default="av2", help="the data should be located in <data_root>/<name>/sensor/<split>"
-    )
-    parser.add_argument(
-        "--split",
-        type=str,
-        default="val",
-        choices=("val", "test"),
-        help="the data should be located in <data_root>/<name>/sensor/<split>",
-    )
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser(
+#         "make_annotation_files",
+#         description="Make a directory of feather files storing " "just enough info to run a scene flow evaluation",
+#     )
+#     parser.add_argument("output_root", type=str, help="path/to/output/")
+#     parser.add_argument("data_root", type=str, help="root/path/to/data")
+#     parser.add_argument(
+#         "--name", type=str, default="av2", help="the data should be located in <data_root>/<name>/sensor/<split>"
+#     )
+#     parser.add_argument(
+#         "--split",
+#         type=str,
+#         default="val",
+#         choices=("val", "test"),
+#         help="the data should be located in <data_root>/<name>/sensor/<split>",
+#     )
 
-    args = parser.parse_args()
+#     args = parser.parse_args()
 
-    data_loader = SceneFlowDataloader(args.data_root, args.name, "val")
 
-    output_root = Path(args.output_root)
+@click.command()
+@click.argument("output_dir", type=str, help="path/to/output")
+@click.argument("data_dir", type=str, help="path/to/data")
+@click.option("--name", type=str, help="the data should be located in <data_dir>/<name>/sensor/<split>", default="av2")
+@click.option(
+    "--split",
+    help="the data should be located in <data_dir>/<name>/sensor/<split>",
+    default="val",
+    type=click.Choice(["test", "val"]),
+)
+def make_annotation_files(output_dir: str, data_dir: str, name: str, split: str):
+    """Create annotation files for running the evaluation."""
+    data_loader = SceneFlowDataloader(data_dir, name, "val")
+
+    output_root = Path(output_dir)
     output_root.mkdir(exist_ok=True)
 
     eval_inds = get_eval_subset(data_loader)
@@ -86,7 +100,7 @@ if __name__ == "__main__":
         if datum[3] is None:
             raise ValueError("Missing flow annotations!")
 
-        mask = get_eval_point_mask(datum[0].sweep_uuid, split=args.split)
+        mask = get_eval_point_mask(datum[0].sweep_uuid, split=split)
 
         flow = datum[3].flow[mask].numpy().astype(np.float16)
         is_valid = datum[3].is_valid[mask].numpy().astype(bool)

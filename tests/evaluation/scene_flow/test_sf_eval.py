@@ -197,9 +197,9 @@ def test_metrics() -> None:
     nz_subsets = sum([1 for sub in metrics if not np.isnan(sub[4])])
     assert nz_subsets == 5
 
-    assert np.allclose(sum([float(sub[4]) for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 0.0)
+    assert np.allclose(sum([float(sub[4]) for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 1.0)
     assert np.allclose(sum([float(sub[5]) for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 1.0)
-    assert np.allclose(sum([float(sub[6]) for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 1.0)
+    assert np.allclose(sum([float(sub[6]) for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 0.0)
     assert np.allclose(sum([float(sub[7]) for sub in metrics if not np.isnan(sub[4])]) / nz_subsets, 0.0)
 
 

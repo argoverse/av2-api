@@ -200,11 +200,11 @@ def compute_metrics(
         for motion, m_mask in [("Dynamic", is_dynamic), ("Static", ~is_dynamic)]:
             for distance, d_mask in [("Close", is_close), ("Far", ~is_close)]:
                 mask = category_mask & m_mask & d_mask
-                cnt = mask.sum().item()
+                subset_size = mask.sum().item()
                 gts_sub = gts[mask]
                 pred_sub = pred_flow[mask]
-                result = [cls.value, motion, distance, cnt]
-                if cnt > 0:
+                result = [cls.value, motion, distance, subset_size]
+                if subset_size > 0:
                     result += [flow_metrics[m](pred_sub, gts_sub).mean() for m in flow_metrics]
                     result += [seg_metrics[m](pred_dynamic[mask], is_dynamic[mask]) for m in seg_metrics]
                 else:
@@ -268,12 +268,12 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
     output = {}
     grouped = frame.groupby(["Class", "Motion", "Distance"])
 
-    def weighted_average(x: pd.DataFrame, metric: str) -> pd.Series:
+    def weighted_average(x: pd.DataFrame, metric: str) -> float:
         """Weighted average of metric m using the Count column."""
         total = int(x["Count"].sum())
         if total == 0:
             return np.nan
-        averages: pd.Series[float] = (x[metric] * x.Count).sum() / total
+        averages: float = (x[metric] * x.Count).sum() / total
         return averages
 
     for m in constants.FLOW_METRICS.keys():
@@ -292,8 +292,10 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
             name = m + "/" + "/".join([str(i) for i in segment])
             output[name] = avg[segment]
     output["Dynamic IoU"] = frame.TP.sum() / (frame.TP.sum() + frame.FP.sum() + frame.FN.sum())
-    output["EPE 3-Way Average"] = 
-        output[["EPE/Foreground/Dynamic", "EPE/Foreground/Static", "EPE/Background/Static"]].mean(axis=1)
+    output["EPE 3-Way Average"] = (
+        output["EPE/Foreground/Dynamic"] + output["EPE/Foreground/Static"] + output["EPE/Background/Static"]
+    ) / 3
+
     return output
 
 
