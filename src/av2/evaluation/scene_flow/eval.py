@@ -275,7 +275,9 @@ def compute_metrics(
                     for metric_type in SceneFlowMetricType:
                         results[metric_type] += [compute_scene_flow_metrics(pred_sub, gts_sub, metric_type).mean()]
                     for metric_type in SegmentationMetricType:
-                        results[metric_type] += [compute_segmentation_metrics(pred_dynamic[mask], is_dynamic[mask], metric_type)]
+                        results[metric_type] += [
+                            compute_segmentation_metrics(pred_dynamic[mask], is_dynamic[mask], metric_type)
+                        ]
                 else:
                     for metric_type in SceneFlowMetricType:
                         results[metric_type] += [np.nan]
@@ -322,7 +324,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
         results,
         columns=["Example", "Class", "Motion", "Distance", "Count"]
         + list(SceneFlowMetricType)
-        + list(SegmentationMetricType)
+        + list(SegmentationMetricType),
     )
     return df
 
