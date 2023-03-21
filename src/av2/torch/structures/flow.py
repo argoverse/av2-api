@@ -19,7 +19,7 @@ BOUNDING_BOX_EXPANSION = 0.2
 
 @dataclass(frozen=True)
 class Flow:
-    """Models scene flow pseudolabels for a LiDARSweep.
+    """Models scene flow pseudo-labels for a lidar sweep.
 
        Scene Flow pseudolabels come from the relative motion of all tracked objects
        between two sweeps.
