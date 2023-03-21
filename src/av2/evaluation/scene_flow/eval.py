@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import partial
 from pathlib import Path
-from typing import Dict, Final, List, Union
+from typing import Any, Dict, Final, List, Union
 
 import click
 import numpy as np
@@ -162,7 +162,7 @@ def compute_metrics(
     is_close: NDArrayBool,
     is_valid: NDArrayBool,
     metric_categories: Dict[constants.MetricBreakdownCategories, List[int]],
-) -> List[List[Union[str, float, int]]]:
+) -> Dict[str, List[Any]]:
     """Compute all the metrics for a given example and package them into a list to be put into a DataFrame.
 
     Args:
@@ -176,9 +176,8 @@ def compute_metrics(
         metric_categories: A dictionary mapping segmentation labels to groups of category indices.
 
     Returns:
-        A list of lists where each sublist corresponds to some subset of the point cloud.
-        (e.g., Dynamic/Foreground/Close). Each sublist contains the average of each metrics on that subset
-        and the size of the subset.
+        A dictionary of columns to create a long-form DataFrame of the results from.
+        One row for each subset in the breakdown.
     """
     pred_flow = pred_flow[is_valid].astype(np.float64)
     pred_dynamic = pred_dynamic[is_valid].astype(bool)
@@ -189,8 +188,16 @@ def compute_metrics(
     flow_metrics = constants.FLOW_METRICS
     seg_metrics = constants.SEGMENTATION_METRICS
 
-    results = []
+    results: Dict[str, List[Any]] = {"Class": [], "Motion": [], "Distance": [], "Count": []}
+    for m in flow_metrics:
+        results[m] = []
+    for m in seg_metrics:
+        results[m] = []
+
+    # Each metric is broken down by point labels on Object Class, Motion, and Distance from the AV.
+    # We iterate over all combinations of those three categories and compute average metrics on each subset.
     for cls, category_idxs in metric_categories.items():
+        # Compute the union of all masks within the meta-category.
         category_mask = category_indices == category_idxs[0]
         for i in category_idxs[1:]:
             category_mask = np.logical_or(category_mask, (category_indices == i))
@@ -201,14 +208,22 @@ def compute_metrics(
                 subset_size = mask.sum().item()
                 gts_sub = gts[mask]
                 pred_sub = pred_flow[mask]
-                result = [cls.value, motion, distance, subset_size]
+                results["Class"].append(cls.value)
+                results["Motion"].append(motion)
+                results["Distance"].append(distance)
+                results["Count"].append(subset_size)
+
+                # Check if there are any points in this subset and if so compute all the average metrics.
                 if subset_size > 0:
-                    result += [flow_metrics[m](pred_sub, gts_sub).mean() for m in flow_metrics]
-                    result += [seg_metrics[m](pred_dynamic[mask], is_dynamic[mask]) for m in seg_metrics]
+                    for m in flow_metrics:
+                        results[m].append(flow_metrics[m](pred_sub, gts_sub).mean())
+                    for m in seg_metrics:
+                        results[m].append(seg_metrics[m](pred_dynamic[mask], is_dynamic[mask]))
                 else:
-                    result += [np.nan for _ in flow_metrics]
-                    result += [0 for _ in seg_metrics]
-                results.append(result)
+                    for m in flow_metrics:
+                        results[m].append(np.nan)
+                    for m in seg_metrics:
+                        results[m].append(0)
     return results
 
 
@@ -222,7 +237,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
     Returns:
         DataFrame containing the average metrics on each subset of each example.
     """
-    results: List[List[Union[str, float, int]]] = []
+    results: Dict[str, List[Any]] = {"Example": []}
     annotation_files = list(annotations_dir.rglob("*.feather"))
     for anno_file in track(annotation_files, description="Evaluating..."):
         gts = pd.read_feather(anno_file)
@@ -242,15 +257,16 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
             gts["is_valid"].to_numpy().astype(bool),
             constants.FOREGROUND_BACKGROUND_BREAKDOWN,
         )
+        num_subsets = len(list(loss_breakdown.values())[0])
+        results["Example"] += [name for _ in range(num_subsets)]
+        for m in loss_breakdown:
+            if m not in results:
+                results[m] = loss_breakdown[m]
+            else:
+                results[m] += loss_breakdown[m]
 
-        n: Union[str, float, int] = name  # make the type checker happy
-        results.extend([[n] + bd for bd in loss_breakdown])
-    df = pd.DataFrame(
-        results,
-        columns=["Example", "Class", "Motion", "Distance", "Count"]
-        + list(constants.FLOW_METRICS)
-        + list(constants.SEGMENTATION_METRICS),
-    )
+    df = pd.DataFrame(results)
+
     return df
 
 

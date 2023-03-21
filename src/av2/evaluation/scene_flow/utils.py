@@ -23,17 +23,16 @@ def get_eval_subset(dataloader: SceneFlowDataloader) -> List[int]:
     return list(range(len(dataloader)))[::5]
 
 
-def get_eval_point_mask(sweep_uuid: Tuple[str, int], split: str = "test") -> BoolTensor:
+def get_eval_point_mask(sweep_uuid: Tuple[str, int], mask_file: Path) -> BoolTensor:
     """Retrieve for a given sweep, a boolean mask indicating which points are evaluated on.
 
     Args:
         sweep_uuid: The uuid of the first sweep in the pair to retrieve the mask for.
-        split: Split that the uuid is from (val or test)
+        mask_file: Archive of submission masks.
 
     Returns:
         The submission mask for that pair.
     """
-    mask_file = _EVAL_ROOT / f"{split}-masks.zip"
     with ZipFile(mask_file) as masks:
         log, ts = sweep_uuid
         mask = pd.read_feather(masks.open(f"{log}/{ts}.feather")).to_numpy().astype(bool)

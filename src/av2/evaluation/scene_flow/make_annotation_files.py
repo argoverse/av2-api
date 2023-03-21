@@ -58,6 +58,7 @@ def write_annotation(
 @click.command()
 @click.argument("output_dir", type=str)
 @click.argument("data_dir", type=str)
+@click.argument("mask_file", type=str)
 @click.option(
     "--name",
     type=str,
@@ -70,12 +71,13 @@ def write_annotation(
     default="val",
     type=click.Choice(["test", "val"]),
 )
-def make_annotation_files(output_dir: str, data_dir: str, name: str, split: str) -> None:
+def make_annotation_files(output_dir: str, data_dir: str, mask_file: str, name: str, split: str) -> None:
     """Create annotation files for running the evaluation.
 
     Args:
         output_dir: Path to output directory.
         data_dir: Path to input data.
+        mask_file: Archive of submission masks.
         name: Name of the dataset (e.g. av2).
         split: Split to make annotations for.
 
@@ -93,7 +95,7 @@ def make_annotation_files(output_dir: str, data_dir: str, name: str, split: str)
         if datum[3] is None:
             raise ValueError("Missing flow annotations!")
 
-        mask = get_eval_point_mask(datum[0].sweep_uuid, split=split)
+        mask = get_eval_point_mask(datum[0].sweep_uuid, Path(mask_file))
 
         flow = datum[3].flow[mask].numpy().astype(np.float16)
         is_valid = datum[3].is_valid[mask].numpy().astype(bool)
