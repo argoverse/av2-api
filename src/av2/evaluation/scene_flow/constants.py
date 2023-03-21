@@ -1,5 +1,7 @@
 """Constants for scene flow evaluation."""
 
+from __future__ import annotations
+
 from enum import Enum, unique
 from typing import Dict, Final, List
 
@@ -17,7 +19,7 @@ FLOW_METRICS: Final = {
     "Accuracy Relax": eval.compute_accuracy_relax,
     "Angle Error": eval.compute_angle_error,
 }
-SEG_METRICS: Final = {
+SEGMENTATION_METRICS: Final = {
     "TP": eval.compute_true_positives,
     "TN": eval.compute_true_negatives,
     "FP": eval.compute_false_positives,
@@ -79,22 +81,24 @@ class VehicleCategories(str, Enum):
     MESSAGE_BOARD_TRAILER = "MESSAGE_BOARD_TRAILER"
 
 
-NO_CLASS_BREAKDOWN: Final = {"All": list(range(31))}
+@unique
+class MetricBreakdownCategories(str, Enum):
+    """Meta-cateogiries to break down metrics into."""
+
+    ALL = "All"
+    FOREGROUND = "Foreground"
+    BACKGROUND = "Background"
+
+
+NO_CLASS_BREAKDOWN: Final = {MetricBreakdownCategories.ALL: list(range(31))}
 FOREGROUND_BACKGROUND_BREAKDOWN: Final = {
-    "Background": [0],
-    "Foreground": [
+    MetricBreakdownCategories.BACKGROUND: [0],
+    MetricBreakdownCategories.FOREGROUND: [
         CATEGORY_TO_INDEX[k.value]
         for k in (
             list(InanimateCategories) + list(LeggedCategories) + list(SmallVehicleCategories) + list(VehicleCategories)
         )
     ],
-}
-PED_CYC_VEH_ANI_BREAKDOWN: Final = {
-    "Background": [0],
-    "Object": [CATEGORY_TO_INDEX[k.value] for k in InanimateCategories],
-    "Legged": [CATEGORY_TO_INDEX[k.value] for k in LeggedCategories],
-    "Small Vehicle": [CATEGORY_TO_INDEX[k.value] for k in SmallVehicleCategories],
-    "Vehicle": [CATEGORY_TO_INDEX[k.value] for k in VehicleCategories],
 }
 
 FLOW_COLUMNS: Final = ("flow_tx_m", "flow_ty_m", "flow_tz_m")

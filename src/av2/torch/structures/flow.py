@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Final, List, Optional, Tuple
 
+import numpy as np
 import torch
 from kornia.geometry.linalg import transform_points
 from torch import BoolTensor, ByteTensor, FloatTensor, Tensor
@@ -37,11 +38,21 @@ class Flow:
 
     def __len__(self) -> int:
         """Return the number of LiDAR returns in the aggregated sweep."""
-        return int(self.flow.shape[0]) if self.flow is not None else 0
+        return int(self.flow.shape[0])
 
     @classmethod
     def from_sweep_pair(cls, sweeps: Tuple[Sweep, Sweep]) -> Flow:
-        """Create flow object from a pair of Sweeps."""
+        """Create flow object from a pair of Sweeps.
+
+        Args:
+            sweeps: Pair of sweeps to compute the flow between.
+
+        Returns:
+            Flow object.
+
+        Raises:
+            ValueError: If the sweeps do not have annotations loaded.
+        """
         poses = [sweep.city_SE3_ego for sweep in sweeps]
         ego1_SE3_ego0 = poses[1].inverse() * poses[0]
         if sweeps[0].cuboids is None or sweeps[1].cuboids is None:
@@ -56,14 +67,14 @@ class Flow:
         flow = rigid_flow.clone()
 
         is_valid = torch.ones(len(pcs[0]), dtype=torch.bool)
-        classes = torch.zeros(len(pcs[0]), dtype=torch.uint8)
+        category_inds = torch.zeros(len(pcs[0]), dtype=torch.uint8)
 
         for id in cuboid_maps[0]:
             c0 = cuboid_maps[0][id]
             c0.length_m += 0.2  # the bounding boxes are a little too tight and some points are missed
             c0.width_m += 0.2
             obj_pts, obj_mask = [torch.from_numpy(arr) for arr in c0.compute_interior_points(pcs[0].numpy())]
-            classes[obj_mask] = CATEGORY_TO_INDEX[str(c0.category)]
+            category_inds[obj_mask] = CATEGORY_TO_INDEX[str(c0.category)]
 
             if id in cuboid_maps[1]:
                 c1 = cuboid_maps[1][id]
@@ -73,12 +84,12 @@ class Flow:
             else:
                 is_valid[obj_mask] = 0
 
-        is_dynamic = ((flow - rigid_flow) ** 2).sum(-1).sqrt() >= SCENE_FLOW_DYNAMIC_THRESHOLD
+        is_dynamic = np.linalg.norm(flow - rigid_flow, axis=-1) >= SCENE_FLOW_DYNAMIC_THRESHOLD
 
         return cls(
             flow=torch.FloatTensor(flow),
             is_valid=torch.BoolTensor(is_valid),
-            classes=torch.ByteTensor(classes),
+            category_indices=torch.ByteTensor(category_inds),
             is_dynamic=torch.BoolTensor(is_dynamic),
         )
 

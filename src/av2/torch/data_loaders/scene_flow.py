@@ -5,11 +5,9 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from functools import cached_property
-from math import inf
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import numpy as np
 import pandas as pd
 from kornia.geometry.liegroup import Se3
 from torch.utils.data import Dataset

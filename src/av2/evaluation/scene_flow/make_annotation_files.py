@@ -14,7 +14,7 @@ from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 
 def write_annotation(
-    classes: NDArrayInt,
+    category_indices: NDArrayInt,
     is_close: NDArrayBool,
     is_dynamic: NDArrayBool,
     is_valid: NDArrayBool,
@@ -25,7 +25,7 @@ def write_annotation(
     """Write an annotation file.
 
     Args:
-        classes: Class labels.
+        category_indices: Category labels.
         is_close: Close (inside 70m box) labels.
         is_dynamic: Dynamic labels.
         is_valid: Valid flow labels.
@@ -35,7 +35,7 @@ def write_annotation(
     """
     output = pd.DataFrame(
         {
-            "classes": classes.astype(np.uint8),
+            "category_indices": category_indices.astype(np.uint8),
             "is_close": is_close.astype(bool),
             "is_dynamic": is_dynamic.astype(bool),
             "is_valid": is_valid.astype(bool),
@@ -88,10 +88,10 @@ if __name__ == "__main__":
 
         flow = datum[3].flow[mask].numpy().astype(np.float16)
         is_valid = datum[3].is_valid[mask].numpy().astype(bool)
-        classes = datum[3].classes[mask].numpy().astype(np.uint8)
+        category_indices = datum[3].category_indices[mask].numpy().astype(np.uint8)
         is_dynamic = datum[3].is_dynamic[mask].numpy().astype(bool)
 
         pc = datum[0].lidar.as_tensor()[mask, :3].numpy()
         is_close = ((np.abs(pc[:, 0]) <= 35) & (np.abs(pc[:, 1]) <= 35)).astype(bool)
 
-        write_annotation(classes, is_close, is_dynamic, is_valid, flow, datum[0].sweep_uuid, output_root)
+        write_annotation(category_indices, is_close, is_dynamic, is_valid, flow, datum[0].sweep_uuid, output_root)

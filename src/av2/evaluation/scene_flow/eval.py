@@ -1,5 +1,7 @@
 """Argoverse 2 Scene Flow Evaluation."""
 
+from __future__ import annotations
+
 import argparse
 from functools import partial
 from pathlib import Path
@@ -15,6 +17,8 @@ import av2.evaluation.scene_flow.constants as constants
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 EPS: Final = 1e-10
+ACCURACY_STRICT_DISTANCE_THRESHOLD: Final = 0.05
+ACCURACY_RELAX_DISTANCE_THRESHOLD: Final = 0.1
 
 
 def compute_end_point_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
@@ -37,7 +41,7 @@ def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, distance_threshold: f
     Args:
         dts: (N,3) Array containing predicted flows.
         gts: (N,3) Array containing ground truth flows.
-        threshold: Distance threshold for classifying inliers.
+        distance_threshold: Distance threshold for classifying inliers.
 
     Returns:
         The pointwise inlier assignments.
@@ -45,8 +49,8 @@ def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, distance_threshold: f
     l2_norm = np.linalg.norm(dts - gts, axis=-1)
     gts_norm = np.linalg.norm(gts, axis=-1)
     relative_err = l2_norm / (gts_norm + EPS)
-    error_lt_5 = (l2_norm < threshold).astype(bool)
-    relative_err_lt_5 = (relative_err < threshold).astype(bool)
+    error_lt_5 = (l2_norm < distance_threshold).astype(bool)
+    relative_err_lt_5 = (relative_err < distance_threshold).astype(bool)
     accuracy: NDArrayFloat = np.logical_or(error_lt_5, relative_err_lt_5).astype(np.float64)
     return accuracy
 
@@ -61,7 +65,7 @@ def compute_accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloa
     Returns:
         The pointwise inlier assignments at a 0.05 threshold
     """
-    return compute_accuracy(dts, gts, 0.05)
+    return compute_accuracy(dts, gts, ACCURACY_STRICT_DISTANCE_THRESHOLD)
 
 
 def compute_accuracy_relax(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
@@ -74,7 +78,7 @@ def compute_accuracy_relax(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat
     Returns:
         The pointwise inlier assignments at a 0.1 threshold.
     """
-    return compute_accuracy(dts, gts, 0.10)
+    return compute_accuracy(dts, gts, ACCURACY_RELAX_DISTANCE_THRESHOLD)
 
 
 def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
@@ -155,11 +159,11 @@ def compute_metrics(
     pred_flow: NDArrayFloat,
     pred_dynamic: NDArrayBool,
     gts: NDArrayFloat,
-    classes: NDArrayInt,
+    category_indices: NDArrayInt,
     is_dynamic: NDArrayBool,
     is_close: NDArrayBool,
     is_valid: NDArrayBool,
-    object_classes: Dict[str, List[int]],
+    metric_classes: Dict[constants.MetricBreakdownCategories, List[int]],
 ) -> List[List[Union[str, float, int]]]:
     """Compute all the metrics for a given example and package them into a list to be put into a DataFrame.
 
@@ -167,11 +171,11 @@ def compute_metrics(
         pred_flow: (N,3) Predicted flow vectors.
         pred_dynamic: (N,) Predicted dynamic labels.
         gts: (N,3) Ground truth flow vectors.
-        classes: (N,) Integer class labels for each point.
+        category_indices: (N,) Integer class labels for each point.
         is_dynamic: (N,) Ground truth dynamic labels.
         is_close: (N,) true for a point if it is within a 70m x 70m box around the AV
         is_valid: (N,) true for a point if its flow vector was succesfully computed.
-        object_classes: A dictionary mapping class integers to segmentation labels (e.g., FOREGROUND_BACKGROUND).
+        metric_classes: A dictionary mapping segmentation labels to groups of category indices.
 
     Returns:
         A list of lists where each sublist corresponds to some subset of the point cloud.
@@ -182,24 +186,24 @@ def compute_metrics(
     pred_flow = pred_flow[is_valid].astype(np.float64)
     pred_dynamic = pred_dynamic[is_valid].astype(bool)
     gts = gts[is_valid].astype(np.float64)
-    classes = classes[is_valid].astype(int)
+    category_indices = category_indices[is_valid].astype(int)
     is_dynamic = is_dynamic[is_valid].astype(bool)
     is_close = is_close[is_valid].astype(bool)
     flow_metrics = constants.FLOW_METRICS
-    seg_metrics = constants.SEG_METRICS
+    seg_metrics = constants.SEGMENTATION_METRICS
 
-    for cls, class_idxs in object_classes.items():
-        class_mask = classes == class_idxs[0]
-        for i in class_idxs[1:]:
-            class_mask = np.logical_or(class_mask, (classes == i))
+    for cls, category_idxs in metric_classes.items():
+        category_mask = category_indices == category_idxs[0]
+        for i in category_idxs[1:]:
+            category_mask = np.logical_or(category_mask, (category_indices == i))
 
         for motion, m_mask in [("Dynamic", is_dynamic), ("Static", ~is_dynamic)]:
             for distance, d_mask in [("Close", is_close), ("Far", ~is_close)]:
-                mask = class_mask & m_mask & d_mask
+                mask = category_mask & m_mask & d_mask
                 cnt = mask.sum().item()
                 gts_sub = gts[mask]
                 pred_sub = pred_flow[mask]
-                result = [cls, motion, distance, cnt]
+                result = [cls.value, motion, distance, cnt]
                 if cnt > 0:
                     result += [flow_metrics[m](pred_sub, gts_sub).mean() for m in flow_metrics]
                     result += [seg_metrics[m](pred_dynamic[mask], is_dynamic[mask]) for m in seg_metrics]
@@ -234,7 +238,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
             pred[list(constants.FLOW_COLUMNS)].to_numpy(),
             pred["is_dynamic"].to_numpy(),
             gts[list(constants.FLOW_COLUMNS)].to_numpy(),
-            gts["classes"].to_numpy(),
+            gts["category_indices"].to_numpy(),
             gts["is_dynamic"].to_numpy(),
             gts["is_close"].to_numpy(),
             gts["is_valid"].to_numpy(),
@@ -247,7 +251,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
         results,
         columns=["Example", "Class", "Motion", "Distance", "Count"]
         + list(constants.FLOW_METRICS)
-        + list(constants.SEG_METRICS),
+        + list(constants.SEGMENTATION_METRICS),
     )
     return df
 
