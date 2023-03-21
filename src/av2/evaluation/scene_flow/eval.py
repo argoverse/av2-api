@@ -250,7 +250,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
         name: str = str(anno_file.relative_to(annotations_dir))
         pred_file = predictions_dir / name
         if not pred_file.exists():
-            print(f"Warning: {name} missing")
+            print(f"Warning: File {name} is missing!")
             continue
         pred = pd.read_feather(pred_file)
         loss_breakdown = compute_metrics(
@@ -271,9 +271,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
             else:
                 results[m] += loss_breakdown[m]
 
-    df = pd.DataFrame(results)
-
-    return df
+    return pd.DataFrame(results)
 
 
 def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:

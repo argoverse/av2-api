@@ -79,9 +79,8 @@ def make_submission_archive(submission_dir: str, output_filename: str) -> None:
     output_file = Path(output_filename)
     try:
         validate(Path(submission_dir), fmt)
-    except Exception as e:
-        print("Input validation failed with:")
-        print(e)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Input validation failed with: {e}")
 
     zip(Path(submission_dir), fmt, output_file)
 

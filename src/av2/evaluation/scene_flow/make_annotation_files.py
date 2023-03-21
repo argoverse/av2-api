@@ -12,7 +12,7 @@ from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
-CLOSE_DISTANCE_THRESHOLD: Final = 35
+CLOSE_DISTANCE_THRESHOLD: Final = 35.0
 
 
 def write_annotation(
@@ -28,7 +28,7 @@ def write_annotation(
 
     Args:
         category_indices: Category label indices.
-        is_close: Close (inside 70m box) labels.
+        is_close: Close (inside 70 meter box) labels.
         is_dynamic: Dynamic labels.
         is_valid: Valid flow labels.
         flow: Flow labels.

@@ -1,4 +1,5 @@
 """An example showing how to output flow predictions in the format required for submission."""
+
 from pathlib import Path
 
 import click
