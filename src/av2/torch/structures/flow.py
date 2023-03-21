@@ -14,7 +14,7 @@ from av2.structures.cuboid import Cuboid, CuboidList
 from av2.torch.structures.cuboids import Cuboids
 from av2.torch.structures.sweep import Sweep
 
-BOUNDING_BOX_EXPANSION = 0.2
+BOUNDING_BOX_EXPANSION: Final = 0.2
 
 
 @dataclass(frozen=True)
