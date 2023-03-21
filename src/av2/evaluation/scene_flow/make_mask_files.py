@@ -19,7 +19,7 @@ def get_mask(
     s1: Sweep,
     s1_SE3_s0: Se3,
 ) -> pd.DataFrame:
-    """Get a mask packaged up into a DataFrame.
+    """Get a mask packaged up and ready for writing to disk.
 
     Args:
         s0: The first sweep of the pair.
@@ -50,10 +50,10 @@ def get_mask(
     type=click.Choice(["test", "val"]),
 )
 def make_mask_files(output_file: str, data_dir: str, name: str, split: str) -> None:
-    """Output the point masks for submission to the leaderboard.
+    """Create an archive file of pointwise masks for submission to the leaderboard.
 
     Args:
-        output_file: Path to output files.
+        output_file: Path to output file archive.
         data_dir: Path to input data.
         name: Name of the dataset (e.g. av2).
         split: Split to make masks for.
@@ -68,7 +68,11 @@ def make_mask_files(output_file: str, data_dir: str, name: str, split: str) -> N
     with ZipFile(Path(output_file), "w") as maskzip:
         for i in track(eval_inds):
             sweep_0, sweep_1, ego, _ = data_loader[i]
-            write_mask(sweep_0, sweep_1, ego, output_root)
+            mask_df = get_mask(sweep_0, sweep_1, ego, output_root)
+            log, timestamp_ns = sweep_0.sweep_uuid
+            output_path = f"{log}/{timestamp_ns}.feather"
+            with maskzip.open(output_path, "w") as output_file:
+                mask_df.to_feather(output_file)
 
 
 if __name__ == "__main__":
