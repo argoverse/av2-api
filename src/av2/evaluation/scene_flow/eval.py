@@ -4,13 +4,11 @@ from __future__ import annotations
 
 from functools import partial
 from pathlib import Path
-from typing import Dict, Final, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Final, List, Union
 
 import click
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn.functional as F
 from rich.progress import track
 
 import av2.evaluation.scene_flow.constants as constants
@@ -48,10 +46,10 @@ def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, distance_threshold: f
     """
     l2_norm = np.linalg.norm(dts - gts, axis=-1)
     gts_norm = np.linalg.norm(gts, axis=-1)
-    relative_err = l2_norm / (gts_norm + EPS)
-    abs_error_inlier = (l2_norm < distance_threshold).astype(bool)
-    relative_err_inlier = (relative_err < distance_threshold).astype(bool)
-    accuracy: NDArrayFloat = np.logical_or(abs_error_inlier, relative_err_inlier).astype(np.float64)
+    relative_error = np.divide(l2_norm, gts_norm + EPS)
+    abs_error_inlier = np.less(l2_norm, distance_threshold).astype(bool)
+    relative_error_inlier = np.less(relative_error, distance_threshold).astype(bool)
+    accuracy: NDArrayFloat = np.logical_or(abs_error_inlier, relative_error_inlier).astype(np.float64)
     return accuracy
 
 
@@ -92,14 +90,20 @@ def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
         The pointwise angle errors in space-time.
     """
     # Convert the 3D flow vectors to 4D space-time vectors.
-    gts_space_time = np.pad(gts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA)
     dts_space_time = np.pad(dts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA)
+    gts_space_time = np.pad(gts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA)
 
-    unit_gts = gts_space_time / (np.linalg.norm(gts_space_time, axis=-1, keepdims=True))
-    unit_dts = dts_space_time / (np.linalg.norm(dts_space_time, axis=-1, keepdims=True))
-    # Floating point errors can cause the dp to be slightly greater than 1 or less than -1.
-    dot_product = np.clip(np.sum(unit_gts * unit_dts, axis=-1), -1.0, 1.0)
-    angle_error: NDArrayFloat = np.arccos(dot_product).astype(np.float64)
+    dts_space_time_norm = np.linalg.norm(dts_space_time, axis=-1, keepdims=True)
+    gts_space_time_norm = np.linalg.norm(gts_space_time, axis=-1, keepdims=True)
+    unit_dts = dts_space_time / dts_space_time_norm
+    unit_gts = gts_space_time / gts_space_time_norm
+
+    dot_product = np.einsum("bd,bd->b", unit_dts, unit_gts)
+
+    # Floating point errors can cause `dot_product` to be slightly greater than 1 or less than -1.
+
+    clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
+    angle_error: NDArrayFloat = np.arccos(clipped_dot_product).astype(np.float64)
     return angle_error
 
 
@@ -163,8 +167,8 @@ def compute_metrics(
     is_dynamic: NDArrayBool,
     is_close: NDArrayBool,
     is_valid: NDArrayBool,
-    metric_classes: Dict[constants.MetricBreakdownCategories, List[int]],
-) -> List[List[Union[str, float, int]]]:
+    metric_categories: Dict[constants.MetricBreakdownCategories, List[int]],
+) -> Dict[str, List[Any]]:
     """Compute all the metrics for a given example and package them into a list to be put into a DataFrame.
 
     Args:
@@ -175,14 +179,12 @@ def compute_metrics(
         is_dynamic: (N,) Ground truth dynamic labels.
         is_close: (N,) True for a point if it is within a 70m x 70m box around the AV.
         is_valid: (N,) True for a point if its flow vector was succesfully computed.
-        metric_classes: A dictionary mapping segmentation labels to groups of category indices.
+        metric_categories: A dictionary mapping segmentation labels to groups of category indices.
 
     Returns:
-        A list of lists where each sublist corresponds to some subset of the point cloud.
-        (e.g., Dynamic/Foreground/Close). Each sublist contains the average of each metrics on that subset
-        and the size of the subset.
+        A dictionary of columns to create a long-form DataFrame of the results from.
+        One row for each subset in the breakdown.
     """
-    results = []
     pred_flow = pred_flow[is_valid].astype(np.float64)
     pred_dynamic = pred_dynamic[is_valid].astype(bool)
     gts = gts[is_valid].astype(np.float64)
@@ -192,7 +194,16 @@ def compute_metrics(
     flow_metrics = constants.FLOW_METRICS
     seg_metrics = constants.SEGMENTATION_METRICS
 
-    for cls, category_idxs in metric_classes.items():
+    results: Dict[str, List[Any]] = {"Class": [], "Motion": [], "Distance": [], "Count": []}
+    for m in flow_metrics:
+        results[m] = []
+    for m in seg_metrics:
+        results[m] = []
+
+    # Each metric is broken down by point labels on Object Class, Motion, and Distance from the AV.
+    # We iterate over all combinations of those three categories and compute average metrics on each subset.
+    for cls, category_idxs in metric_categories.items():
+        # Compute the union of all masks within the meta-category.
         category_mask = category_indices == category_idxs[0]
         for i in category_idxs[1:]:
             category_mask = np.logical_or(category_mask, (category_indices == i))
@@ -203,14 +214,22 @@ def compute_metrics(
                 subset_size = mask.sum().item()
                 gts_sub = gts[mask]
                 pred_sub = pred_flow[mask]
-                result = [cls.value, motion, distance, subset_size]
+                results["Class"].append(cls.value)
+                results["Motion"].append(motion)
+                results["Distance"].append(distance)
+                results["Count"].append(subset_size)
+
+                # Check if there are any points in this subset and if so compute all the average metrics.
                 if subset_size > 0:
-                    result += [flow_metrics[m](pred_sub, gts_sub).mean() for m in flow_metrics]
-                    result += [seg_metrics[m](pred_dynamic[mask], is_dynamic[mask]) for m in seg_metrics]
+                    for m in flow_metrics:
+                        results[m].append(flow_metrics[m](pred_sub, gts_sub).mean())
+                    for m in seg_metrics:
+                        results[m].append(seg_metrics[m](pred_dynamic[mask], is_dynamic[mask]))
                 else:
-                    result += [np.nan for m in flow_metrics]
-                    result += [0 for m in seg_metrics]
-                results.append(result)
+                    for m in flow_metrics:
+                        results[m].append(np.nan)
+                    for m in seg_metrics:
+                        results[m].append(0)
     return results
 
 
@@ -224,7 +243,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
     Returns:
         DataFrame containing the average metrics on each subset of each example.
     """
-    results: List[List[Union[str, float, int]]] = []
+    results: Dict[str, List[Any]] = {"Example": []}
     annotation_files = list(annotations_dir.rglob("*.feather"))
     for anno_file in track(annotation_files, description="Evaluating..."):
         gts = pd.read_feather(anno_file)
@@ -244,15 +263,16 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
             gts["is_valid"].to_numpy().astype(bool),
             constants.FOREGROUND_BACKGROUND_BREAKDOWN,
         )
+        num_subsets = len(list(loss_breakdown.values())[0])
+        results["Example"] += [name for _ in range(num_subsets)]
+        for m in loss_breakdown:
+            if m not in results:
+                results[m] = loss_breakdown[m]
+            else:
+                results[m] += loss_breakdown[m]
 
-        n: Union[str, float, int] = name  # make the type checker happy
-        results.extend([[n] + bd for bd in loss_breakdown])
-    df = pd.DataFrame(
-        results,
-        columns=["Example", "Class", "Motion", "Distance", "Count"]
-        + list(constants.FLOW_METRICS)
-        + list(constants.SEGMENTATION_METRICS),
-    )
+    df = pd.DataFrame(results)
+
     return df
 
 

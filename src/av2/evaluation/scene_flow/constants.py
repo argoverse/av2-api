@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum, unique
-from typing import Dict, Final, List
+from typing import Final
 
 import av2.evaluation.scene_flow.eval as eval
 from av2.datasets.sensor.constants import AnnotationCategories
