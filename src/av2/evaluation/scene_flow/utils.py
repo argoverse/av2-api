@@ -23,20 +23,19 @@ def get_eval_subset(dataloader: SceneFlowDataloader) -> List[int]:
     return list(range(len(dataloader)))[::5]
 
 
-def get_eval_point_mask(sweep_uuid: Tuple[str, int], split: str = "test") -> BoolTensor:
+def get_eval_point_mask(sweep_uuid: Tuple[str, int], mask_file: Path) -> BoolTensor:
     """Retrieve for a given sweep, a boolean mask indicating which points are evaluated on.
 
     Args:
         sweep_uuid: The uuid of the first sweep in the pair to retrieve the mask for.
-        split: Split that the uuid is from (val or test)
+        mask_file: Archive of submission masks.
 
     Returns:
         The submission mask for that pair.
     """
-    mask_file = _EVAL_ROOT / f"{split}-masks.zip"
     with ZipFile(mask_file) as masks:
-        log, ts = sweep_uuid
-        mask = pd.read_feather(masks.open(f"{log}/{ts}.feather")).to_numpy().astype(bool)
+        log_id, timestamp_ns = sweep_uuid
+        mask = pd.read_feather(masks.open(f"{log_id}/{timestamp_ns}.feather")).to_numpy().astype(bool)
 
     return BoolTensor(torch.from_numpy(mask).squeeze())
 
@@ -44,10 +43,10 @@ def get_eval_point_mask(sweep_uuid: Tuple[str, int], split: str = "test") -> Boo
 def compute_eval_point_mask(datum: Tuple[Sweep, Sweep, Se3, Optional[Flow]]) -> BoolTensor:
     """Compute for a given sweep, a boolean mask indicating which points are evaluated on.
 
-    Note this should NOT BE USED FOR CREATING SUBMISSIONS use get_eval_point_mask to ensure consistency.
+    Note: This should NOT BE USED FOR CREATING SUBMISSIONS use get_eval_point_mask to ensure consistency.
 
     Args:
-        datum: A tuple returned from a SceneFlowDataloader to compute the mask for.
+        datum: Tuple returned from a `SceneFlowDataloader` to compute the mask for.
 
     Returns:
         A mask indicating roughly which points will be evauated on.
@@ -77,8 +76,10 @@ def write_output_file(
     """
     output_log_dir = output_dir / sweep_uuid[0]
     output_log_dir.mkdir(exist_ok=True, parents=True)
-    fx = flow[:, 0].astype(np.float16)
-    fy = flow[:, 1].astype(np.float16)
-    fz = flow[:, 2].astype(np.float16)
-    output = pd.DataFrame({"flow_tx_m": fx, "flow_ty_m": fy, "flow_tz_m": fz, "is_dynamic": is_dynamic.astype(bool)})
+    fx_m = flow[:, 0].astype(np.float16)
+    fy_m = flow[:, 1].astype(np.float16)
+    fz_m = flow[:, 2].astype(np.float16)
+    output = pd.DataFrame(
+        {"flow_tx_m": fx_m, "flow_ty_m": fy_m, "flow_tz_m": fz_m, "is_dynamic": is_dynamic.astype(bool)}
+    )
     output.to_feather(output_log_dir / f"{sweep_uuid[1]}.feather")

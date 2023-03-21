@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Final, List, Tuple, Union, cast
+from typing import Any, DefaultDict, Dict, Final, List, Tuple, Union, cast
 
 import click
 import numpy as np
@@ -102,7 +103,6 @@ def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
     dot_product = np.einsum("bd,bd->b", unit_dts, unit_gts)
 
     # Floating point errors can cause `dot_product` to be slightly greater than 1 or less than -1.
-
     clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
     angle_error: NDArrayFloat = np.arccos(clipped_dot_product).astype(np.float64)
     return angle_error
@@ -225,7 +225,7 @@ def compute_metrics(
     is_close: NDArrayBool,
     is_valid: NDArrayBool,
     metric_categories: Dict[constants.MetricBreakdownCategories, List[int]],
-) -> List[List[Union[str, float, int]]]:
+) -> Dict[str, List[Any]]:
     """Compute all the metrics for a given example and package them into a list to be put into a DataFrame.
 
     Args:
@@ -239,9 +239,8 @@ def compute_metrics(
         metric_categories: A dictionary mapping segmentation labels to groups of category indices.
 
     Returns:
-        A list of lists where each sublist corresponds to some subset of the point cloud.
-        (e.g., Dynamic/Foreground/Close). Each sublist contains the average of each metrics on that subset
-        and the size of the subset.
+        A dictionary of columns to create a long-form DataFrame of the results from.
+        One row for each subset in the breakdown.
     """
     pred_flow = pred_flow[is_valid].astype(np.float64)
     pred_dynamic = pred_dynamic[is_valid].astype(bool)
@@ -250,8 +249,12 @@ def compute_metrics(
     is_dynamic = is_dynamic[is_valid].astype(bool)
     is_close = is_close[is_valid].astype(bool)
 
-    results = []
+    results: DefaultDict[str, List[Any]] = defaultdict(list)
+
+    # Each metric is broken down by point labels on Object Class, Motion, and Distance from the AV.
+    # We iterate over all combinations of those three categories and compute average metrics on each subset.
     for cls, category_idxs in metric_categories.items():
+        # Compute the union of all masks within the meta-category.
         category_mask = category_indices == category_idxs[0]
         for i in category_idxs[1:]:
             category_mask = np.logical_or(category_mask, (category_indices == i))
@@ -262,20 +265,22 @@ def compute_metrics(
                 subset_size = mask.sum().item()
                 gts_sub = gts[mask]
                 pred_sub = pred_flow[mask]
-                result = [cls.value, motion, distance, subset_size]
+                results["Class"] += [cls.value]
+                results["Motion"] += [motion]
+                results["Distance"] += [distance]
+                results["Count"] += [subset_size]
+
+                # Check if there are any points in this subset and if so compute all the average metrics.
                 if subset_size > 0:
-                    result += [
-                        compute_scene_flow_metrics(pred_sub, gts_sub, metric_type).mean()
-                        for metric_type in SceneFlowMetricType
-                    ]
-                    result += [
-                        compute_segmentation_metrics(pred_dynamic[mask], is_dynamic[mask], metric_type)
-                        for metric_type in SegmentationMetricType
-                    ]
+                    for metric_type in SceneFlowMetricType:
+                        results[metric_type] += [compute_scene_flow_metrics(pred_sub, gts_sub, metric_type).mean()]
+                    for metric_type in SegmentationMetricType:
+                        results[metric_type] += [compute_segmentation_metrics(pred_dynamic[mask], is_dynamic[mask], metric_type)]
                 else:
-                    result += [np.nan for _ in SceneFlowMetricType]
-                    result += [0 for _ in SegmentationMetricType]
-                results.append(result)
+                    for metric_type in SceneFlowMetricType:
+                        results[metric_type] += [np.nan]
+                    for metric_type in SegmentationMetricType:
+                        results[metric_type] += [0.0]
     return results
 
 
@@ -289,17 +294,17 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
     Returns:
         DataFrame containing the average metrics on each subset of each example.
     """
-    results: List[List[Union[str, float, int]]] = []
+    results: DefaultDict[str, List[Any]] = defaultdict(list)
     annotation_files = list(annotations_dir.rglob("*.feather"))
     for anno_file in track(annotation_files, description="Evaluating..."):
         gts = pd.read_feather(anno_file)
         name: str = str(anno_file.relative_to(annotations_dir))
         pred_file = predictions_dir / name
         if not pred_file.exists():
-            print(f"Warning: {name} missing")
+            print(f"Warning: File {name} is missing!")
             continue
         pred = pd.read_feather(pred_file)
-        loss_breakdown = compute_metrics(
+        current_example_results = compute_metrics(
             pred[list(constants.FLOW_COLUMNS)].to_numpy().astype(float),
             pred["is_dynamic"].to_numpy().astype(bool),
             gts[list(constants.FLOW_COLUMNS)].to_numpy().astype(float),
@@ -309,9 +314,10 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
             gts["is_valid"].to_numpy().astype(bool),
             constants.FOREGROUND_BACKGROUND_BREAKDOWN,
         )
-
-        n: Union[str, float, int] = name  # make the type checker happy
-        results.extend([[n] + bd for bd in loss_breakdown])
+        num_subsets = len(list(current_example_results.values())[0])
+        results["Example"] += [name for _ in range(num_subsets)]
+        for m in current_example_results:
+            results[m] += current_example_results[m]
     df = pd.DataFrame(
         results,
         columns=["Example", "Class", "Motion", "Distance", "Count"]
@@ -382,15 +388,15 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
     return output
 
 
-@click.command()
-@click.argument("annotations_dir", type=str)
-@click.argument("predictions_dir", type=str)
-def evaluate(annotations_dir: str, predictions_dir: str) -> None:
+def evaluate(annotations_dir: str, predictions_dir: str) -> Dict[str, float]:
     """Evaluate a set of predictions and print the results.
 
     Args:
         annotations_dir: Path to the directory containing the annotation files produced by `make_annotation_files.py`.
         predictions_dir: Path to the prediction files in submission format.
+
+    Returns:
+        The results as a dict of metric names and values.
     """
     results_df = evaluate_directories(Path(annotations_dir), Path(predictions_dir))
     results_dict = results_to_dict(results_df)
@@ -398,6 +404,16 @@ def evaluate(annotations_dir: str, predictions_dir: str) -> None:
     for metric in sorted(results_dict):
         print(f"{metric}: {results_dict[metric]:.3f}")
 
+    return results_dict
+
+
+@click.command()
+@click.argument("annotations_dir", type=str)
+@click.argument("predictions_dir", type=str)
+def _evaluate_entry(annotations_dir: str, predictions_dir: str) -> Dict[str, float]:
+    """Entry point for evaluate."""
+    return evaluate(annotations_dir, predictions_dir)
+
 
 if __name__ == "__main__":
-    evaluate()
+    _evaluate_entry()
