@@ -26,7 +26,7 @@ class Flow:
     Args:
         flow: (N,3) Motion vectors (x,y,z) in meters.
         is_valid: (N,) 1 if the flow was succesfuly estimated for that point 0 otherwise
-        classes: (N,) the semantic object class of each point (0 is background)
+        category_indices: (N,) the semantic object class of each point (0 is background)
         is_dynamic: (N,) 1 if the point is considered dynamic 0 otherwise
     """
 
