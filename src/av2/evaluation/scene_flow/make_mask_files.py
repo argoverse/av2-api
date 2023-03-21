@@ -1,5 +1,6 @@
 """Utility program for producing submission mask files."""
 
+import zipfile
 from pathlib import Path
 from typing import Tuple
 
@@ -57,11 +58,11 @@ def write_mask(
     default="val",
     type=click.Choice(["test", "val"]),
 )
-def make_mask_files(output_dir: str, data_dir: str, name: str, split: str) -> None:
+def make_mask_files(output_file: str, data_dir: str, name: str, split: str) -> None:
     """Output the point masks for submission to the leaderboard.
 
     Args:
-        output_dir: Path to output directory.
+        output_file: Path to output files.
         data_dir: Path to input data.
         name: Name of the dataset (e.g. av2).
         split: Split to make masks for.
@@ -72,9 +73,11 @@ def make_mask_files(output_dir: str, data_dir: str, name: str, split: str) -> No
     output_root.mkdir(exist_ok=True)
 
     eval_inds = get_eval_subset(data_loader)
-    for i in track(eval_inds):
-        sweep_0, sweep_1, ego, _ = data_loader[i]
-        write_mask(sweep_0, sweep_1, ego, output_root)
+
+    with ZipFile(Path(output_file), "w") as maskzip:
+        for i in track(eval_inds):
+            sweep_0, sweep_1, ego, _ = data_loader[i]
+            write_mask(sweep_0, sweep_1, ego, output_root)
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ def test_submission():
 
     # TODO
     # - add zipping step to make_mask_files
-    # - change get_eval_point_mask so that it can handle a temporary mask file
+    # - DONE change get_eval_point_mask so that it can handle a temporary mask file
     # - change make_submission_archive to use just masks.zip and allow overriding the default mask file
     dl_test = av2.torch.data_loaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "test")
     data_loader = av2.torch.data_loaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "val")
