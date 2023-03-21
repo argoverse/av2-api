@@ -1,19 +1,22 @@
 # 3D Scene Flow Submission Format
 
 The evaluation expects a zip archive of [Apache Feather](https://arrow.apache.org/docs/python/feather.html) files --- one for each example. The unzipped directory must have the format:
+
+```terminal
 - <test_log_1>/
   - <test_timestamp_ns_1>.feather
   - <test_timestamp_ns_2>.feather
   - ...
 - <test_log_2>/
 - ...
+```
 
 The evaluation is run on a subset of the test set. Use the utility function `get_eval_subset` to get the `SceneFlowDataloader` indices to submit.  Each feather file should contain your flow predictions for the subset of points returned by `get_eval_mask` in the format:
 
-- `flow_tx_m` (float16): x-component of the flow in the first sweeps's egovehicle reference frame.
-- `flow_ty_m` (float16): y-component of the flow in the first sweeps's egovehicle reference frame.
-- `flow_tz_m` (float16): z-component of the flow in the first sweeps's egovehicle reference frame.
-- `is_dynamic` (bool): Your predicted dynamic/static labels for each point. A point is considered dynamic if its ground truth flow has a norm greater then 0.05m once ego-motion has been removed.
+- `flow_tx_m` (float16): x-component of the flow (in meters) in the first sweeps's ego-vehicle reference frame.
+- `flow_ty_m` (float16): y-component of the flow (in meters) in the first sweeps's ego-vehicle reference frame.
+- `flow_tz_m` (float16): z-component of the flow (in meters) in the first sweeps's ego-vehicle reference frame.
+- `is_dynamic` (bool): Predicted dynamic/static labels for each point. A point is considered dynamic if its ground truth flow has a $\ell^2$-norm greater then $0.05 \textit{ m}$ once ego-motion has been removed.
 
 
 For example, the first log in the test set is `0c6e62d7-bdfa-3061-8d3d-03b13aa21f68` and the first timestamp is `315971435999927221`, so there should be a folder and file in the archive of the form: `0c6e62d7-bdfa-3061-8d3d-03b13aa21f68/315971435999927221.feather`. That fill should look like this:
@@ -36,4 +39,4 @@ The file `example_submission.py` contains a basic example of how to output the s
 
 # Local Evaluation
 
-Before evaluating on the test set, you will want to evaluate your model on the validation set. To do this, first run `make_annotation_files.py` to create a set of files containing the minimum ground truth flow information needed to run the evaluation. Then, once you have your output saved in the feather files described above, run `eval.py` to compute all of the leaderboard metrics.
+Before evaluating on the _test_ set, you will want to evaluate your model on the _validation_ set. To do this, first run `make_annotation_files.py` to create a set of files containing the minimum ground truth flow information needed to run the evaluation. Then, once you have your output saved in the feather files described above, run `eval.py` to compute all of the leaderboard metrics.
