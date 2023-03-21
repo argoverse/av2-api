@@ -46,9 +46,9 @@ def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, distance_threshold: f
     """
     l2_norm = np.linalg.norm(dts - gts, axis=-1)
     gts_norm = np.linalg.norm(gts, axis=-1)
-    relative_error = l2_norm / (gts_norm + EPS)
-    abs_error_inlier = (l2_norm < distance_threshold).astype(bool)
-    relative_error_inlier = (relative_error < distance_threshold).astype(bool)
+    relative_error = np.divide(l2_norm, gts_norm + EPS)
+    abs_error_inlier = np.less(l2_norm, distance_threshold).astype(bool)
+    relative_error_inlier = np.less(relative_error, distance_threshold).astype(bool)
     accuracy: NDArrayFloat = np.logical_or(abs_error_inlier, relative_error_inlier).astype(np.float64)
     return accuracy
 
@@ -90,14 +90,20 @@ def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
         The pointwise angle errors in space-time.
     """
     # Convert the 3D flow vectors to 4D space-time vectors.
-    gts_space_time = np.pad(gts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA)
     dts_space_time = np.pad(dts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA)
+    gts_space_time = np.pad(gts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA)
 
-    unit_gts = gts_space_time / (np.linalg.norm(gts_space_time, axis=-1, keepdims=True))
-    unit_dts = dts_space_time / (np.linalg.norm(dts_space_time, axis=-1, keepdims=True))
-    # Floating point errors can cause the dp to be slightly greater than 1 or less than -1.
-    dot_product = np.clip(np.sum(unit_gts * unit_dts, axis=-1), -1.0, 1.0)
-    angle_error: NDArrayFloat = np.arccos(dot_product).astype(np.float64)
+    dts_space_time_norm = np.linalg.norm(dts_space_time, axis=-1, keepdims=True)
+    gts_space_time_norm = np.linalg.norm(gts_space_time, axis=-1, keepdims=True)
+    unit_dts = dts_space_time / dts_space_time_norm
+    unit_gts = gts_space_time / gts_space_time_norm
+
+    dot_product = np.einsum("bd,bd->b", unit_dts, unit_gts)
+
+    # Floating point errors can cause `dot_product` to be slightly greater than 1 or less than -1.
+
+    clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
+    angle_error: NDArrayFloat = np.arccos(clipped_dot_product).astype(np.float64)
     return angle_error
 
 
