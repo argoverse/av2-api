@@ -272,17 +272,19 @@ def compute_metrics(
 
                 # Check if there are any points in this subset and if so compute all the average metrics.
                 if subset_size > 0:
-                    for metric_type in SceneFlowMetricType:
-                        results[metric_type] += [compute_scene_flow_metrics(pred_sub, gts_sub, metric_type).mean()]
-                    for metric_type in SegmentationMetricType:
-                        results[metric_type] += [
-                            compute_segmentation_metrics(pred_dynamic[mask], is_dynamic[mask], metric_type)
+                    for flow_metric_type in SceneFlowMetricType:
+                        results[flow_metric_type] += [
+                            compute_scene_flow_metrics(pred_sub, gts_sub, flow_metric_type).mean()
+                        ]
+                    for seg_metric_type in SegmentationMetricType:
+                        results[seg_metric_type] += [
+                            compute_segmentation_metrics(pred_dynamic[mask], is_dynamic[mask], seg_metric_type)
                         ]
                 else:
-                    for metric_type in SceneFlowMetricType:
-                        results[metric_type] += [np.nan]
-                    for metric_type in SegmentationMetricType:
-                        results[metric_type] += [0.0]
+                    for flow_metric_type in SceneFlowMetricType:
+                        results[flow_metric_type] += [np.nan]
+                    for seg_metric_type in SegmentationMetricType:
+                        results[seg_metric_type] += [0.0]
     return results
 
 
@@ -358,7 +360,7 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
         return averages
 
     for metric_type in SceneFlowMetricType:
-        avg: pd.Series[float] = grouped.apply(lambda x: weighted_average(x, metric_type=metric_type))
+        avg: pd.Series[float] = grouped.apply(lambda x, m=metric_type: weighted_average(x, metric_type=m))
         segments: List[Tuple[str, str, str]] = avg.index.to_list()
         for segment in segments:
             if segment[:2] == NO_FMT_INDICES:
@@ -372,9 +374,9 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
 
     grouped = frame.groupby(["Class", "Motion"])
     for metric_type in SceneFlowMetricType:
-        avg: pd.Series[float] = grouped.apply(lambda x: weighted_average(x, metric_type=metric_type))
-        segments: List[Tuple[str, str, str]] = avg.index.to_list()
-        for segment in segments:
+        avg_nodist: pd.Series[float] = grouped.apply(lambda x, m=metric_type: weighted_average(x, metric_type=m))
+        segments_nodist: List[Tuple[str, str, str]] = avg_nodist.index.to_list()
+        for segment in segments_nodist:
             if segment[:2] == NO_FMT_INDICES:
                 continue
 
@@ -382,7 +384,7 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
                 metric_type.title().replace("_", " ") if metric_type != SceneFlowMetricType.EPE else metric_type
             )
             name = metric_type_str + "/" + "/".join([str(i) for i in segment])
-            output[name] = avg.loc[segment]
+            output[name] = avg_nodist.loc[segment]
     output["Dynamic IoU"] = frame.TP.sum() / (frame.TP.sum() + frame.FP.sum() + frame.FN.sum())
     output["EPE 3-Way Average"] = (
         output["EPE/Foreground/Dynamic"] + output["EPE/Foreground/Static"] + output["EPE/Background/Static"]
