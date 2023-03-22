@@ -51,6 +51,8 @@ def generate_sensor_dataset_visualizations(
     for _, datum in enumerate(track(dataset, "Creating sensor tutorial videos ...")):
         sweep = datum.sweep
         annotations = datum.annotations
+        if annotations is None:
+            continue
 
         timestamp_city_SE3_ego_dict = datum.timestamp_city_SE3_ego_dict
         synchronized_imagery = datum.synchronized_imagery

@@ -212,6 +212,8 @@ class SensorDataloader:
         if self.with_cache and sensor_cache_path.exists():
             logger.info("Cache found. Loading from disk ...")
             sensor_cache = read_feather(sensor_cache_path)
+            if self.with_annotations:
+                sensor_cache = sensor_cache[sensor_cache.split != "test"]
         else:
             lidar_records = self.populate_lidar_records()
             # Load camera records if enabled.
@@ -338,7 +340,8 @@ class SensorDataloader:
 
         # Load annotations if enabled.
         if self.with_annotations:
-            datum.annotations = self._load_annotations(split, log_id, timestamp_ns)
+            if split != "test":
+                datum.annotations = self._load_annotations(split, log_id, timestamp_ns)
 
         # Load camera imagery if enabled.
         if self.cam_names:
