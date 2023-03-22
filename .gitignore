@@ -153,6 +153,5 @@ condaenv*
 */**/.DS_Store
 experiments
 
-*.parquet
 *.pt
 *.mp4
