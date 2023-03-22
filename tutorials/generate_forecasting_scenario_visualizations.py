@@ -7,7 +7,6 @@ from random import choices
 from typing import Final
 
 import click
-import numpy as np
 from joblib import Parallel, delayed
 from rich.progress import track
 

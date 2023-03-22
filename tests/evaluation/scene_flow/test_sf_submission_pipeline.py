@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 
-import av2.evaluation.scene_flow.constants
 import av2.evaluation.scene_flow.eval as eval
 from av2.evaluation.scene_flow.example_submission import example_submission
 from av2.evaluation.scene_flow.make_annotation_files import make_annotation_files

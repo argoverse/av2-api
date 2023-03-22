@@ -2,7 +2,6 @@
 
 import zipfile
 from pathlib import Path
-from typing import BinaryIO
 
 import click
 import pandas as pd

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Final, List, Tuple
+from typing import Dict, Final, Tuple
 
 import torch
 from kornia.geometry.linalg import transform_points
