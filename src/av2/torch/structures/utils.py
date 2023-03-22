@@ -50,4 +50,6 @@ def SE3_from_frame(frame: pd.DataFrame) -> Se3:
     translation_npy = frame.loc[0, list(TRANSLATION_COLUMNS)].to_numpy().astype(np.float32)
     translation = torch.as_tensor(translation_npy, dtype=torch.float32)
     dst_SE3_src = Se3(rotation[None], translation[None])
+    dst_SE3_src.rotation._q.requires_grad_(False)
+    dst_SE3_src.translation.requires_grad_(False)
     return dst_SE3_src
