@@ -4,21 +4,22 @@ Evaluation Metrics:
     MOTA: see https://jivp-eurasipjournals.springeropen.com/articles/10.1155/2008/246309
     AMOTA: see https://arxiv.org/abs/2008.08063
 """
+
+import argparse
 import contextlib
+import json
+import pickle
 from copy import copy
 from functools import partial
 from itertools import chain
-from typing import Dict, List, Union, Final, Callable, Tuple
+from typing import Callable, Dict, Final, List, Tuple, Union
 
 import numpy as np
 import trackeval
+import utils
 from scipy.optimize import linear_sum_assignment
 from trackeval.datasets._base_dataset import _BaseDataset
-import argparse 
-import os 
-import pickle
-import json
-import utils 
+
 SUBMETRIC_TO_METRIC_CLASS_NAME: Final[Dict[str, str]] = {
     "MOTA": "CLEAR",
     "HOTA": "HOTA",
@@ -68,10 +69,7 @@ class TrackEvalDataset(_BaseDataset):
         raw_data = {
             f"{source}_ids": [frame["track_id"] for frame in tracks],
             f"{source}_classes": [frame["label"] for frame in tracks],
-            f"{source}_dets": [
-                np.concatenate((frame["translation"], frame["size"]), axis=-1)
-                for frame in tracks
-            ],
+            f"{source}_dets": [np.concatenate((frame["translation"], frame["size"]), axis=-1) for frame in tracks],
             "num_timesteps": len(tracks),
             "seq": seq_id,
         }
@@ -104,18 +102,12 @@ class TrackEvalDataset(_BaseDataset):
             data["gt_dets"][t] = data["gt_dets"][t][gt_to_keep_mask, :]
 
             tracker_to_keep_mask = data["tracker_classes"][t] == cls_id
-            data["tracker_classes"][t] = data["tracker_classes"][t][
-                tracker_to_keep_mask
-            ]
+            data["tracker_classes"][t] = data["tracker_classes"][t][tracker_to_keep_mask]
             data["tracker_ids"][t] = data["tracker_ids"][t][tracker_to_keep_mask]
             data["tracker_dets"][t] = data["tracker_dets"][t][tracker_to_keep_mask, :]
-            data["tracker_confidences"][t] = data["tracker_confidences"][t][
-                tracker_to_keep_mask
-            ]
+            data["tracker_confidences"][t] = data["tracker_confidences"][t][tracker_to_keep_mask]
 
-            data["similarity_scores"][t] = data["similarity_scores"][t][
-                :, tracker_to_keep_mask
-            ][gt_to_keep_mask]
+            data["similarity_scores"][t] = data["similarity_scores"][t][:, tracker_to_keep_mask][gt_to_keep_mask]
 
         # map ids to 0 - n
         unique_gt_ids = set(chain.from_iterable(data["gt_ids"]))
@@ -135,21 +127,15 @@ class TrackEvalDataset(_BaseDataset):
 
     def _map_ids(self, ids: List[np.ndarray], unique_ids: List) -> List[np.ndarray]:
         id_map = {id: i for i, id in enumerate(unique_ids)}
-        return [
-            np.array([id_map[id] for id in id_array], dtype=int) for id_array in ids
-        ]
+        return [np.array([id_map[id] for id in id_array], dtype=int) for id_array in ids]
 
-    def _calculate_similarities(
-        self, gt_dets_t: np.ndarray, tracker_dets_t: np.ndarray
-    ) -> np.ndarray:
+    def _calculate_similarities(self, gt_dets_t: np.ndarray, tracker_dets_t: np.ndarray) -> np.ndarray:
         """
         Euclidean distance of the x, y translation coordinates
         """
         gt_xy = gt_dets_t[:, :2]
         tracker_xy = tracker_dets_t[:, :2]
-        return self._calculate_euclidean_similarity(
-            gt_xy, tracker_xy, zero_distance=self.zero_distance
-        )
+        return self._calculate_euclidean_similarity(gt_xy, tracker_xy, zero_distance=self.zero_distance)
 
 
 def evaluate(
@@ -191,24 +177,16 @@ def evaluate(
     Returns:
         dictionary of metric values
     """
-    labels_id_ts = set(
-        (frame["seq_id"], frame["timestamp_ns"]) for frame in utils.ungroup_frames(labels)
-    )
+    labels_id_ts = set((frame["seq_id"], frame["timestamp_ns"]) for frame in utils.ungroup_frames(labels))
     predictions_id_ts = set(
-        (frame["seq_id"], frame["timestamp_ns"])
-        for frame in utils.ungroup_frames(track_predictions)
+        (frame["seq_id"], frame["timestamp_ns"]) for frame in utils.ungroup_frames(track_predictions)
     )
-    assert (
-        labels_id_ts == predictions_id_ts
-    ), "sequence ids and timestamp_ns in labels and predictions don't match"
+    assert labels_id_ts == predictions_id_ts, "sequence ids and timestamp_ns in labels and predictions don't match"
     metrics_config = {
         "METRICS": ["HOTA", "CLEAR"],
         "THRESHOLD": iou_threshold,
     }
-    metrics_list = [
-        getattr(trackeval.metrics, metric)(metrics_config)
-        for metric in metrics_config["METRICS"]
-    ]
+    metrics_list = [getattr(trackeval.metrics, metric)(metrics_config) for metric in metrics_config["METRICS"]]
     dataset_config = {
         **TrackEvalDataset.get_default_dataset_config(),
         "GT_TRACKS": {tracker_name: labels},
@@ -263,8 +241,7 @@ def tune_score_thresholds(
         "PRINT_CONFIG": False,
     }
     metrics_list = [
-        getattr(trackeval.metrics, metric_name)(metrics_config)
-        for metric_name in metrics_config["METRICS"]
+        getattr(trackeval.metrics, metric_name)(metrics_config) for metric_name in metrics_config["METRICS"]
     ]
     dataset_config = {
         **TrackEvalDataset.get_default_dataset_config(),
@@ -291,10 +268,7 @@ def tune_score_thresholds(
     sim_func = partial(xy_center_similarity, zero_distance=match_distance_threshold)
     for name in classes:
         filter_by_class = lambda detections: utils.group_frames(
-            [
-                utils.index_array_values(f, f["name"] == name)
-                for f in utils.ungroup_frames(detections)
-            ]
+            [utils.index_array_values(f, f["name"] == name) for f in utils.ungroup_frames(detections)]
         )
         single_cls_labels = filter_by_class(labels)
         single_cls_predictions = filter_by_class(track_predictions)
@@ -306,18 +280,10 @@ def tune_score_thresholds(
         )
 
     metric_results = []
-    for threshold_i in utils.progressbar(
-        range(num_thresholds), "calculating optimal track score thresholds"
-    ):
-        score_threshold_by_class = {
-            n: score_thresholds_by_class[n][threshold_i] for n in classes
-        }
-        filtered_predictions = utils.filter_by_class_thresholds(
-            track_predictions, score_threshold_by_class
-        )
-        with contextlib.redirect_stdout(
-            None
-        ):  # silence print statements from TrackEval
+    for threshold_i in utils.progressbar(range(num_thresholds), "calculating optimal track score thresholds"):
+        score_threshold_by_class = {n: score_thresholds_by_class[n][threshold_i] for n in classes}
+        filtered_predictions = utils.filter_by_class_thresholds(track_predictions, score_threshold_by_class)
+        with contextlib.redirect_stdout(None):  # silence print statements from TrackEval
             result_for_threshold, _ = evaluator.evaluate(
                 [
                     TrackEvalDataset(
@@ -329,20 +295,14 @@ def tune_score_thresholds(
                 ],
                 metrics_list,
             )
-        metric_results.append(
-            result_for_threshold["TrackEvalDataset"]["tracker"]["COMBINED_SEQ"]
-        )
+        metric_results.append(result_for_threshold["TrackEvalDataset"]["tracker"]["COMBINED_SEQ"])
 
     optimal_score_threshold_by_class = {}
     optimal_metric_values_by_class = {}
     mean_metric_values_by_class = {}
     for name in classes:
-        metric_values = [
-            r[name][metric_class][objective_metric] for r in metric_results
-        ]
-        metric_values = [
-            np.mean(v) if isinstance(v, np.ndarray) else v for v in metric_values
-        ]
+        metric_values = [r[name][metric_class][objective_metric] for r in metric_results]
+        metric_values = [np.mean(v) if isinstance(v, np.ndarray) else v for v in metric_values]
         optimal_threshold = score_thresholds_by_class[name][np.argmax(metric_values)]
         optimal_score_threshold_by_class[name] = optimal_threshold
         optimal_metric_values_by_class[name] = max(0, np.max(metric_values))
@@ -351,15 +311,13 @@ def tune_score_thresholds(
 
 
 def calculate_score_thresholds(
-    labels: Dict, predictions: Dict, sim_func: Callable, num_thresholds: int=40, min_recall: float=0.1
+    labels: Dict, predictions: Dict, sim_func: Callable, num_thresholds: int = 40, min_recall: float = 0.1
 ) -> np.ndarray:
     scores, n_gt = calculate_matched_scores(labels, predictions, sim_func)
     recall_thresholds = np.linspace(min_recall, 1, num_thresholds).round(12)[::-1]
     if len(scores) == 0:
         return np.zeros_like(recall_thresholds)
-    score_thresholds = recall_to_scores(
-        scores, recall_threshold=recall_thresholds, n_gt=n_gt
-    )
+    score_thresholds = recall_to_scores(scores, recall_threshold=recall_thresholds, n_gt=n_gt)
     score_thresholds = np.nan_to_num(score_thresholds, nan=0)
     return score_thresholds
 
@@ -400,17 +358,14 @@ def recall_to_scores(scores: np.ndarray, recall_threshold: np.ndarray, n_gt: int
 def xy_center_similarity(centers1: np.ndarray, centers2: np.ndarray, zero_distance: float) -> np.ndarray:
     if centers1.size == 0 or centers2.size == 0:
         return np.zeros((len(centers1), len(centers2)))
-    xy_dist = np.linalg.norm(
-        centers1[:, np.newaxis, :2] - centers2[np.newaxis, :, :2], axis=2
-    )
+    xy_dist = np.linalg.norm(centers1[:, np.newaxis, :2] - centers2[np.newaxis, :, :2], axis=2)
     sim = np.maximum(0, 1 - xy_dist / zero_distance)
     return sim
 
 
-
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("--predictions",  default="sample/track_predictions.pkl")
+    argparser.add_argument("--predictions", default="sample/track_predictions.pkl")
     argparser.add_argument("--ground_truth", default="sample/labels.pkl")
     argparser.add_argument("--objective_metric", default="HOTA", choices=["HOTA", "MOTA"])
     argparser.add_argument("--out", default="sample/output.pkl")
@@ -430,9 +385,7 @@ if __name__ == "__main__":
         num_thresholds=10,
         match_distance_threshold=2,
     )
-    filtered_track_predictions = utils.filter_by_class_thresholds(
-        track_predictions, score_thresholds
-    )
+    filtered_track_predictions = utils.filter_by_class_thresholds(track_predictions, score_thresholds)
     res = evaluate(
         labels,
         filtered_track_predictions,

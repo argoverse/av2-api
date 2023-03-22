@@ -1,3 +1,1 @@
-# <Released under the MIT license.>
-
-"""Forecasting evaluation subpackage."""
+"""Forecasting evaluation sub-package."""

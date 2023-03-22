@@ -7,11 +7,34 @@ import numpy as np
 from tqdm import tqdm
 
 av2_classes = [
-    'REGULAR_VEHICLE', 'PEDESTRIAN', 'BICYCLIST', 'MOTORCYCLIST', 'WHEELED_RIDER',
-    'BOLLARD', 'CONSTRUCTION_CONE', 'SIGN', 'CONSTRUCTION_BARREL', 'STOP_SIGN', 'MOBILE_PEDESTRIAN_CROSSING_SIGN',
-    'LARGE_VEHICLE', 'BUS', 'BOX_TRUCK', 'TRUCK', 'VEHICULAR_TRAILER', 'TRUCK_CAB', 'SCHOOL_BUS', 'ARTICULATED_BUS',
-    'MESSAGE_BOARD_TRAILER', 'BICYCLE', 'MOTORCYCLE', 'WHEELED_DEVICE', 'WHEELCHAIR', 'STROLLER', 'DOG'
+    "REGULAR_VEHICLE",
+    "PEDESTRIAN",
+    "BICYCLIST",
+    "MOTORCYCLIST",
+    "WHEELED_RIDER",
+    "BOLLARD",
+    "CONSTRUCTION_CONE",
+    "SIGN",
+    "CONSTRUCTION_BARREL",
+    "STOP_SIGN",
+    "MOBILE_PEDESTRIAN_CROSSING_SIGN",
+    "LARGE_VEHICLE",
+    "BUS",
+    "BOX_TRUCK",
+    "TRUCK",
+    "VEHICULAR_TRAILER",
+    "TRUCK_CAB",
+    "SCHOOL_BUS",
+    "ARTICULATED_BUS",
+    "MESSAGE_BOARD_TRAILER",
+    "BICYCLE",
+    "MOTORCYCLE",
+    "WHEELED_DEVICE",
+    "WHEELCHAIR",
+    "STROLLER",
+    "DOG",
 ]
+
 
 def progressbar(itr, desc=None, **kwargs):
     pbar = tqdm(itr, **kwargs)
@@ -66,18 +89,14 @@ def unpack_predictions(frames: List[Dict], classes: List[str]) -> List[Dict]:
                 "yaw": wrap_pi(bboxes[:, 6]),
                 "velocity": bboxes[:, -2:],
                 "label": label,
-                "name": np.array(
-                    [classes[id] if id < len(classes) else "OTHER" for id in label]
-                ),
+                "name": np.array([classes[id] if id < len(classes) else "OTHER" for id in label]),
                 "score": prediction["scores_3d"].numpy(),
             }
         )
     return unpacked_frames
 
 
-def annotate_frame_metadata(
-    prediction_frames: List[Dict], label_frames: List[Dict], metadata_keys: List[str]
-) -> None:
+def annotate_frame_metadata(prediction_frames: List[Dict], label_frames: List[Dict], metadata_keys: List[str]) -> None:
     assert len(prediction_frames) == len(label_frames)
     for prediction, label in zip(prediction_frames, label_frames):
         for key in metadata_keys:
@@ -106,9 +125,7 @@ def ungroup_frames(frames_by_seq_id: Dict[str, List[Dict]]):
 
 
 def index_array_values(array_dict: Dict, index: Union[int, np.ndarray]) -> Dict:
-    return {
-        k: v[index] if isinstance(v, np.ndarray) else v for k, v in array_dict.items()
-    }
+    return {k: v[index] if isinstance(v, np.ndarray) else v for k, v in array_dict.items()}
 
 
 def array_dict_iterator(array_dict: Dict, length: int):
