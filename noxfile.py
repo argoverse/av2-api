@@ -10,9 +10,9 @@ import yaml
 from nox import Session
 from nox.virtualenv import CondaEnv
 
-PYTHON: Final[List[str]] = ["3.8", "3.9", "3.10"]
+PYTHON_VERSION: Final = ("3.8", "3.9", "3.10")
 
-nox.options.sessions = ["black", "isort", "lint", "mypy", "pytest"]
+nox.options.sessions = ("black", "isort", "lint", "mypy", "pytest")
 
 
 def _setup(session: Session) -> None:
@@ -44,7 +44,7 @@ def _setup(session: Session) -> None:
     session.install("-e", ".")
 
 
-@nox.session(python=PYTHON)
+@nox.session(python=PYTHON_VERSION, reuse_venv=True)
 def black(session: Session) -> None:
     """Run `black` against `av2`.
 
@@ -57,7 +57,7 @@ def black(session: Session) -> None:
     session.run("black", ".")
 
 
-@nox.session(python=PYTHON)
+@nox.session(python=PYTHON_VERSION, reuse_venv=True)
 def isort(session: Session) -> None:
     """Run `isort` against `av2`.
 
@@ -70,7 +70,7 @@ def isort(session: Session) -> None:
     session.run("isort", ".")
 
 
-@nox.session(python=PYTHON)
+@nox.session(python=PYTHON_VERSION, reuse_venv=True)
 def lint(session: Session) -> None:
     """Lint using flake8."""
     env = [
@@ -87,7 +87,7 @@ def lint(session: Session) -> None:
     session.run("flake8", ".")
 
 
-@nox.session(python=PYTHON)
+@nox.session(python=PYTHON_VERSION, reuse_venv=True)
 def mypy(session: Session) -> None:
     """Run `mypy` against `av2`.
 
@@ -103,7 +103,7 @@ def mypy(session: Session) -> None:
     session.run("mypy", ".")
 
 
-@nox.session(python=PYTHON)
+@nox.session(python=PYTHON_VERSION, reuse_venv=True)
 def pytest(session: Session) -> None:
     """Run `pytest` against `av2`.
 
