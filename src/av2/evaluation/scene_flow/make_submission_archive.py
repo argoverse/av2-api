@@ -1,15 +1,12 @@
 """Validate and package a set of prediction files for submission to the leaderboard."""
-import json
 from pathlib import Path
-from typing import Dict, Final
+from typing import Final
 from zipfile import ZipFile
 
 import click
 import numpy as np
 import pandas as pd
 from rich.progress import track
-
-import av2.evaluation.scene_flow.utils
 
 SUBMISSION_COLUMNS: Final = ("flow_tx_m", "flow_ty_m", "flow_tz_m", "is_dynamic")
 
