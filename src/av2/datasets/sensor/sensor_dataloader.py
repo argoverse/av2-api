@@ -340,10 +340,8 @@ class SensorDataloader:
 
         # Load annotations if enabled.
         if self.with_annotations:
-            if split != 'test':
+            if split != "test":
                 datum.annotations = self._load_annotations(split, log_id, timestamp_ns)
-            else:
-                datum.annotations = None
 
         # Load camera imagery if enabled.
         if self.cam_names:
