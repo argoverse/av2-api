@@ -78,11 +78,6 @@ Please see [DOWNLOAD.md](DOWNLOAD.md) for detailed instructions on how to downlo
   <img src="https://user-images.githubusercontent.com/29715011/159152102-27c04180-9ca4-4725-be81-95ee6858d367.gif" height="150">
 </div>
 
-### Map API
-
-Please refer to the [map README](src/av2/map/README.md) for additional details about the common format for vector and
-raster maps that we employ across all AV2 datasets.
-
 ## Compatibility Matrix
 
 <div align="center">
