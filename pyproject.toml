@@ -3,8 +3,6 @@ requires = ["maturin>=0.14,<0.15"]
 build-backend = "maturin"
 
 [project]
-author = "Argoverse"
-license = {file = "LICENSE"}
 name = "av2"
 requires-python = ">=3.8"
 classifiers = [
@@ -32,6 +30,18 @@ dependencies = [
     "tqdm",
     "universal_pathlib",
 ]
+
+dynamic = [
+    "authors",
+    "description",
+    "license",
+    "readme",
+    "version"
+]
+
+[project.urls]
+homepage = "argoverse.org"
+repository = "https://github.com/argoai/av2-api"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
