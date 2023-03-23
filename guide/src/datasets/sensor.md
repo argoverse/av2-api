@@ -1,4 +1,4 @@
-# Overview
+# Sensor Dataset
 
 <div align="center">
   <img src="https://user-images.githubusercontent.com/29715011/158742778-557f31a4-569d-44aa-a032-99836094dc97.gif" height="225">
