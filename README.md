@@ -115,8 +115,3 @@ Use the following citation when referencing the [Argoverse 2](https://datasets-b
   year = {2021}
 }
 ```
-
-## License
-
-All code provided within this repository is released under the **MIT license** and bound by the _Argoverse_ **terms of use**,
-please see [LICENSE](LICENSE) and [NOTICE](NOTICE) for additional details.
