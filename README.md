@@ -51,8 +51,8 @@ Additional information can be found in the: [INSTALL README](conda/INSTALL.md).
 
 The _Argoverse 2_ family consists of **four** distinct datasets:
 
-| Dataset Name   | Scenarios | Camera Imagery | Lidar| Maps | Additional Information|
-| ---------------| --------: | :------------: | :--: | :--: | :--------------------:|
+| Dataset | Scenarios | Cameras | Lidar| Maps | Additional Information|
+| :---------------| :-------- | :------------ | :-- | :-- | :--------------------|
 | Sensor | 1,000 | :white_check_mark: | :white_check_mark: | :white_check_mark: | [Sensor Dataset README](src/av2/datasets/sensor/README.md) |
 | Lidar  | 20,000 | | :white_check_mark: | :white_check_mark: | [Lidar Dataset README](src/av2/datasets/lidar/README.md) |
 | Motion Forecasting | 250,000 | | | :white_check_mark: | [Motion Forecasting Dataset README](src/av2/datasets/motion_forecasting/README.md) |
@@ -100,7 +100,7 @@ raster maps that we employ across all AV2 datasets.
 ## Compatibility Matrix
 
 | `Python Version` |       `linux`      |       `macOS`      |      `windows`     |
-| -------------    | :----------------: | :----------------: | :----------------: |
+| :-------------    | :---------------- | :---------------- | :---------------- |
 | `3.8`            | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | `3.9`            | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | `3.10`           | :white_check_mark: | :white_check_mark: | :white_check_mark: |
