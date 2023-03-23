@@ -6,8 +6,6 @@
 
 > _Official_ GitHub repository for the [Argoverse 2](https://www.argoverse.org) family of datasets.
 
-If you have any questions or run into any problems with either the data or API, please feel free to open a [GitHub issue](https://github.com/argoai/av2-api/issues)!
-
 ## Announcements
 
 ### Argoverse competitions are live!
