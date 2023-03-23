@@ -30,8 +30,9 @@
     - [4D Occupancy Forecasting](./tasks/4d_occupancy_forecasting/README.md)
         - [Evaluation](./tasks/4d_occupancy_forecasting/evaluation.md)
         - [Submission Format](./tasks/4d_occupancy_forecasting/submission_format.md)
-
 # Reference Guide
-
 - [API](./api/README.md)
     - [Map](./api/map.md)
+# Misc.
+- [Testing](./testing.md)
+- [Contributing](./contributing.md)

@@ -1,5 +1,7 @@
 # Introduction
 
+## Overview
+
 Welcome to the Argoverse User Guide! In this guide, we outline the following:
 
 - Installing `av2-api`.
@@ -7,24 +9,9 @@ Welcome to the Argoverse User Guide! In this guide, we outline the following:
 - Competition tasks.
 - API Documentation.
 
-## Testing
-
-All incoming pull requests are tested using [nox](https://nox.thea.codes/en/stable/) as
-part of the CI process. This ensures that the latest version of the API is always stable on all supported platforms. You
-can run the full suite of automated checks and tests locally using the following command:
-
-```bash
-nox -r
-```
-
-## Contributing
-
-Have a cool feature you'd like to add? Found an unhandled corner case? The Argoverse team welcomes contributions from
-the open source community - please open a PR using the following [template](.github/pull_request_template.md)!
-
 ## Citing
 
-## [Argoverse 2: Next Generation Datasets for Self-Driving Perception and Forecasting](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/4734ba6f3de83d861c3176a6273cac6d-Paper-round2.pdf)
+### [Argoverse 2: Next Generation Datasets for Self-Driving Perception and Forecasting](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/4734ba6f3de83d861c3176a6273cac6d-Paper-round2.pdf)
   - [Sensor](./datasets/sensor.md)
   - [Lidar](./datasets/lidar.md)
   - [Motion Forecasting](./datasets/motion_forecasting.md)
@@ -38,7 +25,7 @@ the open source community - please open a PR using the following [template](.git
 }
 ```
 
-## [Trust, but Verify: Cross-Modality Fusion for HD Map Change Detection](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/6f4922f45568161a8cdf4ad2299f6d23-Paper-round2.pdf)
+### [Trust, but Verify: Cross-Modality Fusion for HD Map Change Detection](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/6f4922f45568161a8cdf4ad2299f6d23-Paper-round2.pdf)
   - [Map Change Detection](./datasets/map_change_detection.md)
   
 ```BibTeX

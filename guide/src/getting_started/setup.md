@@ -1,4 +1,4 @@
-# Installation
+# Setup
 
 We _highly_ recommend using `conda` with the `conda-forge` channel for package management.
 

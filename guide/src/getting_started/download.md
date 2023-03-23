@@ -1,8 +1,18 @@
-# Downloading the Argoverse 2 Datasets
+# Downloading the data
 
 Our datasets are available for download from [AWS S3](https://aws.amazon.com/s3/). For the best experience, we highly recommend using the open-source [s5cmd](https://github.com/peak/s5cmd) tool to transfer the data to your local filesystem (additional info available [here](https://aws.amazon.com/blogs/opensource/parallelizing-s3-workloads-s5cmd/)). Please note that an AWS account is not required to download the datasets.
 
 ## Installing `s5cmd`
+
+### Conda Installation (Recommended)
+
+The easiest way to install `s5cmd` is through `conda` using the `conda-forge` channel:
+
+```terminal
+conda install s5cmd -c conda-forge
+```
+
+### Manual Installation
 
 `s5cmd` can be easily installed with the following script:
 
