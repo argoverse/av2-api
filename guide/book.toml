@@ -7,3 +7,6 @@ title = "Argoverse User Guide"
 
 [output.html]
 mathjax-support = true
+
+[output.html.fold]
+enable = true
