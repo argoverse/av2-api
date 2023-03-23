@@ -156,3 +156,5 @@ experiments
 *.parquet
 *.pt
 *.mp4
+
+guide/book
