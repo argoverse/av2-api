@@ -41,7 +41,7 @@ dynamic = [
 
 [project.urls]
 homepage = "argoverse.org"
-repository = "https://github.com/argoai/av2-api"
+repository = "https://github.com/argoverse/av2-api"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
