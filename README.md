@@ -78,18 +78,6 @@ Please see [DOWNLOAD.md](DOWNLOAD.md) for detailed instructions on how to downlo
   <img src="https://user-images.githubusercontent.com/29715011/159152102-27c04180-9ca4-4725-be81-95ee6858d367.gif" height="150">
 </div>
 
-## Compatibility Matrix
-
-<div align="center">
-
-| `Python Version` |       `linux`      |       `macOS`      |      `windows`     |
-| :-------------   | :----------------  | :----------------  | :----------------  |
-| `3.8`            | :ballot_box_with_check: | :ballot_box_with_check: | :ballot_box_with_check: |
-| `3.9`            | :ballot_box_with_check: | :ballot_box_with_check: | :ballot_box_with_check: |
-| `3.10`           | :ballot_box_with_check: | :ballot_box_with_check: | :ballot_box_with_check: |
-  
-</div>
-
 ## Testing
 
 All incoming pull requests are tested using [nox](https://nox.thea.codes/en/stable/) as
