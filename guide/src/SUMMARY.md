@@ -6,7 +6,7 @@
     - [Sensor](./datasets/sensor.md)
     - [Lidar](./datasets/lidar.md)
     - [Motion Forecasting](./datasets/motion_forecasting.md)
-    - [TbV](./datasets/tbv.md)
+    - [Map Change Detection](./datasets/map_change_detection.md)
 - [Tasks](./tasks/README.md)
     - [Object Detection](./tasks/object_detection.md)
     - [Tracking](./tasks/tracking.md)
