@@ -12,5 +12,7 @@
     - [Tracking](./tasks/tracking.md)
     - [Motion Forecasting](./tasks/motion_forecasting.md)
     - [Scene Flow](./tasks/scene_flow.md)
+    - [E2E Forecasting](./tasks/e2e_forecasting.md)
+    - [4D Occupancy Forecasting](./tasks/4d_occupancy_forecasting.md)
 - [API](./api/README.md)
     - [Map API](./api/map_api.md)
