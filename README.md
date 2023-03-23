@@ -26,15 +26,6 @@ If you have any questions or run into any problems with either the data or API, 
 - Install the API: `bash conda/install.sh`
 - Read the [instructions](DOWNLOAD.md) to download the data.
 
-## Overview
-
-- [Setup](#setup)
-- [Datasets](#datasets)
-- [Testing](#testing)
-- [Contributing](#contributing)
-- [Citing](#citing)
-- [License](#license)
-
 ## Getting Started
 
 ### Setup
@@ -47,16 +38,18 @@ bash conda/install.sh
 
 Additional information can be found in the: [INSTALL README](conda/INSTALL.md).
 
-### Datasets
+### Supported Datasets
 
-The _Argoverse 2_ family consists of **four** distinct datasets:
+<div align="center">
 
-| Dataset | Scenarios | Cameras | Lidar| Maps | Additional Information|
-| :---------------| :-------- | :------------ | :-- | :-- | :--------------------|
-| Sensor | 1,000 | :white_check_mark: | :white_check_mark: | :white_check_mark: | [Sensor Dataset README](src/av2/datasets/sensor/README.md) |
-| Lidar  | 20,000 | | :white_check_mark: | :white_check_mark: | [Lidar Dataset README](src/av2/datasets/lidar/README.md) |
-| Motion Forecasting | 250,000 | | | :white_check_mark: | [Motion Forecasting Dataset README](src/av2/datasets/motion_forecasting/README.md) |
-| Map Change (Trust, but Verify) | 1,045 | :white_check_mark:  | :white_check_mark: | :white_check_mark: | [Map Change Dataset README](src/av2/datasets/tbv/README.md) |
+| Dataset | Scenarios | Cameras | Lidar| Maps|
+| :---------------| :-------- | :------------ | :-- | :-- |
+| [Sensor](src/av2/datasets/sensor/README.md) | 1,000 |  :ballot_box_with_check: | :ballot_box_with_check: | :ballot_box_with_check: |
+| [Lidar](src/av2/datasets/lidar/README.md)  | 20,000 | | :ballot_box_with_check: | :ballot_box_with_check: |
+| [Motion Forecasting](src/av2/datasets/motion_forecasting/README.md) | 250,000 | | | :ballot_box_with_check: | [Motion Forecasting Dataset README](src/av2/datasets/motion_forecasting/README.md) |
+| [Map Change (Trust, but Verify)](src/av2/datasets/tbv/README.md) | 1,045 | :ballot_box_with_check:  | :ballot_box_with_check: | :ballot_box_with_check: | [Map Change Dataset README](src/av2/datasets/tbv/README.md) |
+  
+</div>
 
 Please see [DOWNLOAD.md](DOWNLOAD.md) for detailed instructions on how to download each dataset.
 
@@ -99,11 +92,15 @@ raster maps that we employ across all AV2 datasets.
 
 ## Compatibility Matrix
 
+<div align="center">
+
 | `Python Version` |       `linux`      |       `macOS`      |      `windows`     |
-| :-------------    | :---------------- | :---------------- | :---------------- |
-| `3.8`            | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `3.9`            | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| `3.10`           | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| :-------------   | :----------------  | :----------------  | :----------------  |
+| `3.8`            | :ballot_box_with_check: | :ballot_box_with_check: | :ballot_box_with_check: |
+| `3.9`            | :ballot_box_with_check: | :ballot_box_with_check: | :ballot_box_with_check: |
+| `3.10`           | :ballot_box_with_check: | :ballot_box_with_check: | :ballot_box_with_check: |
+  
+</div>
 
 ## Testing
 
