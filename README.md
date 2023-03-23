@@ -37,10 +37,10 @@ Additional information can be found in [INSTALL.md](conda/INSTALL.md).
 
 | Dataset | Scenarios | Cameras | Lidar| Maps|
 | :---------------| :-------- | :------------ | :-- | :-- |
-| [Sensor](src/av2/datasets/sensor/README.md) | 1,000 |  :ballot_box_with_check: | :ballot_box_with_check: | :ballot_box_with_check: |
-| [Lidar](src/av2/datasets/lidar/README.md)  | 20,000 | | :ballot_box_with_check: | :ballot_box_with_check: |
-| [Motion Forecasting](src/av2/datasets/motion_forecasting/README.md) | 250,000 | | | :ballot_box_with_check: | [Motion Forecasting Dataset README](src/av2/datasets/motion_forecasting/README.md) |
-| [Map Change (Trust, but Verify)](src/av2/datasets/tbv/README.md) | 1,045 | :ballot_box_with_check:  | :ballot_box_with_check: | :ballot_box_with_check: | [Map Change Dataset README](src/av2/datasets/tbv/README.md) |
+| [Sensor](src/av2/datasets/sensor/README.md) | `1,000` |  :ballot_box_with_check: | :ballot_box_with_check: | :ballot_box_with_check: |
+| [Lidar](src/av2/datasets/lidar/README.md)  | `20,000` | | :ballot_box_with_check: | :ballot_box_with_check: |
+| [Motion Forecasting](src/av2/datasets/motion_forecasting/README.md) | `250,000` | | | :ballot_box_with_check: | [Motion Forecasting Dataset README](src/av2/datasets/motion_forecasting/README.md) |
+| [Map Change (Trust, but Verify)](src/av2/datasets/tbv/README.md) | `1,045` | :ballot_box_with_check:  | :ballot_box_with_check: | :ballot_box_with_check: | [Map Change Dataset README](src/av2/datasets/tbv/README.md) |
   
 </div>
 
