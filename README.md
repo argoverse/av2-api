@@ -21,11 +21,6 @@ If you have any questions or run into any problems with either the data or API, 
     - Stereo
       - Challenge Link: https://eval.ai/challenge/1704/overview
 
-## TL;DR
-
-- Install the API: `bash conda/install.sh`
-- Read the [instructions](DOWNLOAD.md) to download the data.
-
 ## Getting Started
 
 ### Setup
