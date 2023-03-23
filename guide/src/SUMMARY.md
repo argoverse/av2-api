@@ -1,5 +1,7 @@
 # Summary
 
+# User Guide
+
 - [Introduction](./introduction.md)
 - [Getting Started](./getting_started/README.md)
     - [Setup](./getting_started/setup.md)
@@ -16,5 +18,8 @@
     - [Scene Flow](./tasks/scene_flow.md)
     - [E2E Forecasting](./tasks/e2e_forecasting.md)
     - [4D Occupancy Forecasting](./tasks/4d_occupancy_forecasting.md)
+
+# Reference Guide
+
 - [API](./api/README.md)
-    - [Map API](./api/map_api.md)
+    - [Map](./api/map.md)
