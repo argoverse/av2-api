@@ -1,7 +1,9 @@
 # Summary
 
 - [Introduction](./introduction.md)
-- [Getting Started](./getting_started.md)
+- [Getting Started](./getting_started/README.md)
+    - [Setup](./getting_started/setup.md)
+    - [Download](./getting_started/download.md)
 - [Datasets](./datasets/README.md)
     - [Sensor](./datasets/sensor.md)
     - [Lidar](./datasets/lidar.md)
