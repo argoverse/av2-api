@@ -8,16 +8,11 @@
 
 ## Announcements
 
-### Argoverse competitions are live!
-  - Argoverse 2
-    - 3D Object Detection
-      - Challenge Link: https://eval.ai/challenge/1710/overview
-      - Baseline: https://github.com/benjaminrwilson/torchbox3d
-    - Motion Forecasting
-      - Challenge Link: https://eval.ai/challenge/1719/overview
-  - Argoverse 1
-    - Stereo
-      - Challenge Link: https://eval.ai/challenge/1704/overview
+> 05/20/22 - Argoverse competitions are live!
+> - [3D Object Detection](https://eval.ai/challenge/1710/overview) (Argoverse 2)
+>      - [Baseline](https://github.com/benjaminrwilson/torchbox3d)
+>  - [Motion Forecasting](https://eval.ai/challenge/1719/overview) (Argoverse 2)
+>  - [Stereo](https://eval.ai/challenge/1704/overview) (Argoverse 1)
 
 ## Getting Started
 
