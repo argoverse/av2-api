@@ -1,5 +1,5 @@
 
-# Maps for Argoverse 2.0
+# Maps for Argoverse 2
 
 ## Table of Contents
 
