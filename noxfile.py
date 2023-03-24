@@ -3,14 +3,13 @@
 """Test automation using `nox`."""
 
 from pathlib import Path
-from typing import Dict, Final, List, Union
+from typing import Dict, List, Union
 
 import nox
 import yaml
 from nox import Session
 from nox.virtualenv import CondaEnv
 
-PYTHON_VERSION: Final = ("3.8", "3.9", "3.10")
 
 nox.options.sessions = ("black", "isort", "lint", "mypy", "pytest")
 
@@ -44,7 +43,7 @@ def _setup(session: Session) -> None:
     session.install("-e", ".")
 
 
-@nox.session(python=PYTHON_VERSION)
+@nox.session
 def black(session: Session) -> None:
     """Run `black` against `av2`.
 
@@ -57,7 +56,7 @@ def black(session: Session) -> None:
     session.run("black", ".")
 
 
-@nox.session(python=PYTHON_VERSION)
+@nox.session
 def isort(session: Session) -> None:
     """Run `isort` against `av2`.
 
@@ -70,7 +69,7 @@ def isort(session: Session) -> None:
     session.run("isort", ".")
 
 
-@nox.session(python=PYTHON_VERSION)
+@nox.session
 def lint(session: Session) -> None:
     """Lint using flake8."""
     env = [
@@ -87,7 +86,7 @@ def lint(session: Session) -> None:
     session.run("flake8", ".")
 
 
-@nox.session(python=PYTHON_VERSION)
+@nox.session
 def mypy(session: Session) -> None:
     """Run `mypy` against `av2`.
 
@@ -103,7 +102,7 @@ def mypy(session: Session) -> None:
     session.run("mypy", ".")
 
 
-@nox.session(python=PYTHON_VERSION)
+@nox.session
 def pytest(session: Session) -> None:
     """Run `pytest` against `av2`.
 
