@@ -2,17 +2,9 @@
 ![CI Status](https://github.com/argoai/av2-api/actions/workflows/ci.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-# Argoverse 2 API
+# Argoverse 2
 
 > _Official_ GitHub repository for the [Argoverse 2](https://www.argoverse.org) family of datasets.
-
-## Announcements
-
-> 05/20/22 - Argoverse competitions are live!
-> - [3D Object Detection](https://eval.ai/challenge/1710/overview) (Argoverse 2)
->      - [Baseline](https://github.com/benjaminrwilson/torchbox3d)
->  - [Motion Forecasting](https://eval.ai/challenge/1719/overview) (Argoverse 2)
->  - [Stereo](https://eval.ai/challenge/1704/overview) (Argoverse 1)
 
 ## User Guide
 
