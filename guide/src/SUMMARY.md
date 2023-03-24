@@ -7,10 +7,12 @@
     - [Setup](./getting_started/setup.md)
     - [Download](./getting_started/download.md)
 - [Datasets](./datasets/README.md)
-    - [Sensor](./datasets/sensor.md)
-    - [Lidar](./datasets/lidar.md)
-    - [Motion Forecasting](./datasets/motion_forecasting.md)
-    - [Map Change Detection](./datasets/map_change_detection.md)
+    - [Argoverse 2](./datasets/av2/README.md)
+        - [Sensor](./datasets/av2/sensor.md)
+        - [Lidar](./datasets/av2/lidar.md)
+        - [Motion Forecasting](./datasets/av2/motion_forecasting.md)
+    - [Trust, but Verify](./datasets/tbv/README.md)
+        - [Map Change Detection](./datasets/tbv/map_change_detection.md)
 - [Tasks](./tasks/README.md)
     - [3D Object Detection](./tasks/3d_object_detection/README.md)
         - [Evaluation](./tasks/3d_object_detection/evaluation.md)
@@ -31,10 +33,12 @@
         - [Evaluation](./tasks/4d_occupancy_forecasting/evaluation.md)
         - [Submission Format](./tasks/4d_occupancy_forecasting/submission_format.md)
 - [Tutorials](./tutorials/README.md)
-    - [3D Object Detection](./tutorials/3d_object_detection.md)
+    - [Tutorials](./tutorials/detection_data_loader.md)
+
 # Reference Guide
 - [API](./api/README.md)
     - [Map](./api/map.md)
+
 # Misc.
 - [Testing](./testing.md)
 - [Contributing](./contributing.md)
