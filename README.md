@@ -6,7 +6,7 @@
 
 > _Official_ GitHub repository for the [Argoverse 2](https://www.argoverse.org) family of datasets.
 
-## User Guide
+## Getting Started
 
 Please see the [Argoverse User Guide](https://argoverse.github.io/av2-api/).
 
