@@ -7,14 +7,9 @@ use ndarray::Array2;
 
 use polars::lazy::dsl::lit;
 use polars::lazy::dsl::Expr;
-use polars::prelude::Float32Type;
-use polars::prelude::NamedFrom;
 
-use polars::prelude::concat;
-use polars::prelude::LazyFrame;
-use polars::prelude::SerReader;
+use polars::prelude::*;
 
-use polars::prelude::TakeRandom;
 use polars::series::Series;
 use polars::{
     self,
@@ -31,13 +26,32 @@ use crate::se3::SE3;
 use crate::so3::quat_to_mat3;
 
 /// Read a feather file and load into a `polars` dataframe.
-pub fn read_feather(path: &PathBuf, memory_mapped: bool) -> DataFrame {
-    let file = File::open(path).expect("File not found");
+pub fn read_feather_eager(path: &PathBuf, memory_mapped: bool) -> DataFrame {
+    let file =
+        File::open(path).unwrap_or_else(|_| panic!("{path} not found.", path = path.display()));
     polars::io::ipc::IpcReader::new(file)
         .memory_mapped(memory_mapped)
         .finish()
-        .unwrap_or_else(|_| panic!("This IPC file is malformed: {:?}.", path))
+        .unwrap_or_else(|_| panic!("The IPC file, {:?}, is malformed.", path))
 }
+
+/// Read a feather file and load into a `polars` dataframe.
+/// TODO: Implement once upstream half-type is fixed.
+// pub fn read_feather_lazy(path: &PathBuf, memory_mapped: bool) -> DataFrame {
+//     LazyFrame::scan_ipc(
+//         path,
+//         ScanArgsIpc {
+//             n_rows: None,
+//             cache: true,
+//             rechunk: true,
+//             row_count: None,
+//             memmap: memory_mapped,
+//         },
+//     )
+//     .unwrap()
+//     .collect()
+//     .unwrap()
+// }
 
 /// Read and accumulate lidar sweeps.
 /// Accumulation will only occur if `num_accumulated_sweeps` > 1.
@@ -55,7 +69,7 @@ pub fn read_accumulate_lidar(
     let log_ids = file_index["log_id"].utf8().unwrap();
     let timestamps = file_index["timestamp_ns"].u64().unwrap();
     let poses_path = log_dir.join("city_SE3_egovehicle.feather");
-    let poses = read_feather(&poses_path, memory_mapped);
+    let poses = read_feather_eager(&poses_path, memory_mapped);
 
     let pose_ref = ndarray_filtered_from_frame(
         &poses,
@@ -84,10 +98,9 @@ pub fn read_accumulate_lidar(
         .map(|i| {
             let timestamp_ns_i = timestamps.get(i).unwrap();
             let lidar_path = build_lidar_file_path(log_dir.clone(), timestamp_ns_i);
-            let mut lidar = read_feather(&lidar_path, memory_mapped).lazy();
+            let mut lidar = read_feather_eager(&lidar_path, memory_mapped).lazy();
 
-            let xyz =
-                ndarray_from_frame(&lidar.clone().collect().unwrap(), cols(["x", "y", "z"]));
+            let xyz = ndarray_from_frame(&lidar.clone().collect().unwrap(), cols(["x", "y", "z"]));
             let timedeltas = Series::new(
                 "timedelta_ns",
                 vec![(timestamp_ns - timestamp_ns_i) as f32 * 1e-9; xyz.shape()[0]],
@@ -151,7 +164,7 @@ pub fn read_timestamped_feather(
     timestamp_ns: &u64,
     memory_mapped: bool,
 ) -> LazyFrame {
-    read_feather(path, memory_mapped)
+    read_feather_eager(path, memory_mapped)
         .lazy()
         .filter(col("timestamp_ns").eq(*timestamp_ns))
         .select(&[cols(columns)])
