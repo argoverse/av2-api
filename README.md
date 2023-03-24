@@ -19,6 +19,16 @@ Please see the [Argoverse User Guide](https://argoverse.github.io/av2-api/).
 - Trust, but Verify (TbV)
   - [Map Change Detection](https://argoverse.github.io/av2-api/datasets/map_change_detection.html)
 
+## Supported Tasks
+
+- Argoverse 2 (AV2)
+  - [3D Object Detection](https://argoverse.github.io/av2-api/tasks/object_detection/index.html)
+  - [Motion Forecasting](https://argoverse.github.io/av2-api/tasks/motion_forecasting/index.html)
+  - [3D Tracking](https://argoverse.github.io/av2-api/tasks/3d_tracking/index.html)
+  - [3D Scene Flow](https://argoverse.github.io/av2-api/tasks/3d_scene_flow/index.html)
+  - [End-to-End Forecasting](https://argoverse.github.io/av2-api/tasks/e2e_forecasting/index.html)
+  - [4D Occupancy Forecasting](https://argoverse.github.io/av2-api/tasks/4d_occupancy_forecasting/index.html)
+
 ## Citing
 
 Please use the following citation when referencing the [Argoverse 2](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/4734ba6f3de83d861c3176a6273cac6d-Paper-round2.pdf) _Sensor_, _Lidar_, or _Motion Forecasting_ Datasets:
