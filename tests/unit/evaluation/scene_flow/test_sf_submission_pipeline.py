@@ -64,7 +64,7 @@ def test_submission() -> None:
         assert output_file.stat().st_size > 0
 
         annotation_files = list(annotations_dir.rglob("*.feather"))
-        print(annotation_files)
+        print([str(anno_file.relative_to(annotations_dir)) for anno_file in annotation_files])
         with ZipFile(output_file, "r") as zf:
             files = {f.filename for f in zf.filelist}
         print(files)
