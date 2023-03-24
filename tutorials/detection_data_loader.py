@@ -20,7 +20,7 @@ def main(
     dataset_name: str = "av2",
     split_name: str = "val",
     num_accumulated_sweeps: int = 1,
-    max_iterations: int = 1000,
+    max_iterations: int = 10000,
 ) -> None:
     """Iterate over the detection data-loader.
 

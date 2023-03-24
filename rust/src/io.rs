@@ -32,7 +32,8 @@ use crate::so3::quat_to_mat3;
 
 /// Read a feather file and load into a `polars` dataframe.
 pub fn read_feather(path: &PathBuf, memory_mapped: bool) -> DataFrame {
-    let file = File::open(path).expect("File not found");
+    let file =
+        File::open(path).unwrap_or_else(|_| panic!("{path} not found.", path = path.display()));
     polars::io::ipc::IpcReader::new(file)
         .memory_mapped(memory_mapped)
         .finish()
@@ -86,8 +87,7 @@ pub fn read_accumulate_lidar(
             let lidar_path = build_lidar_file_path(log_dir.clone(), timestamp_ns_i);
             let mut lidar = read_feather(&lidar_path, memory_mapped).lazy();
 
-            let xyz =
-                ndarray_from_frame(&lidar.clone().collect().unwrap(), cols(["x", "y", "z"]));
+            let xyz = ndarray_from_frame(&lidar.clone().collect().unwrap(), cols(["x", "y", "z"]));
             let timedeltas = Series::new(
                 "timedelta_ns",
                 vec![(timestamp_ns - timestamp_ns_i) as f32 * 1e-9; xyz.shape()[0]],
