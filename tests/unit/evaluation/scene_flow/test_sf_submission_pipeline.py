@@ -21,7 +21,8 @@ def _zipdir(directory: Path, output_file: Path) -> None:
 
     Args:
         directory: The directory to recursively zip up.
-        output_file: The name of the output archive."""
+        output_file: The name of the output archive.
+    """
     with ZipFile(output_file, "w") as zf:
         for f in directory.rglob("**"):
             zf.write(f, arcname=f.relative_to(directory))
