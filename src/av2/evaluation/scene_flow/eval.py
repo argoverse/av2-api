@@ -304,7 +304,7 @@ def evaluate_predictions(annotations_dir: Path, predictions: Callable[[str], pd.
     annotation_files = list(annotations_dir.rglob("*.feather"))
     for anno_file in track(annotation_files, description="Evaluating..."):
         gts = pd.read_feather(anno_file)
-        name: str = str(anno_file.relative_to(annotations_dir))
+        name: str = anno_file.relative_to(annotations_dir).as_posix()
         pred = predictions(name)
         if pred is None:
             continue
