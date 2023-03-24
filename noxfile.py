@@ -40,9 +40,6 @@ def _setup(session: Session) -> None:
         if len(reqs) > 0:
             session.install(*reqs, "--no-deps")
 
-    # Install package.
-    session.install("-e", ".")
-
 
 @nox.session(python=PYTHON_VERSION)
 def black(session: Session) -> None:
@@ -52,7 +49,6 @@ def black(session: Session) -> None:
         session: `nox` session.
     """
     env = ["black[jupyter]"]
-    # _setup(session)
     session.install(*env)
     session.run("black", ".")
 
@@ -65,7 +61,6 @@ def isort(session: Session) -> None:
         session: `nox` session.
     """
     env = ["isort"]
-    # _setup(session)
     session.install(*env)
     session.run("isort", ".")
 
@@ -82,7 +77,6 @@ def lint(session: Session) -> None:
         "flake8-import-order",
         "darglint",
     ]
-    # _setup(session)
     session.install(*env)
     session.run("flake8", ".")
 
@@ -98,7 +92,7 @@ def mypy(session: Session) -> None:
         "mypy",
         "types-pyyaml",
     ]
-    # _setup(session)
+    _setup(session)
     session.install(*env)
     session.run("mypy", ".")
 
@@ -114,7 +108,9 @@ def pytest(session: Session) -> None:
         "pytest",
         "pytest-benchmark",
         "pytest-cov",
+        "-e",
+        ".",
     ]
-    # _setup(session)
+    _setup(session)
     session.install(*env)
     session.run("pytest", "tests", "--cov", "src/av2")
