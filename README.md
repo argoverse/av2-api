@@ -10,6 +10,15 @@
 
 Please see the [Argoverse User Guide](https://argoverse.github.io/av2-api/).
 
+## Supported Datasets
+
+- Argoverse 2 (AV2)
+  - [Sensor](https://argoverse.github.io/av2-api/datasets/sensor.html)
+  - [Lidar](https://argoverse.github.io/av2-api/datasets/lidar.html)
+  - [Motion Forecasting](https://argoverse.github.io/av2-api/datasets/motion_forecasting.html)
+- Trust, but Verify (TbV)
+  - [Map Change Detection](https://argoverse.github.io/av2-api/datasets/map_change_detection.html)
+
 ## Citing
 
 Please use the following citation when referencing the [Argoverse 2](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/4734ba6f3de83d861c3176a6273cac6d-Paper-round2.pdf) _Sensor_, _Lidar_, or _Motion Forecasting_ Datasets:
