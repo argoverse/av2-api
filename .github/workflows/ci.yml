@@ -29,8 +29,6 @@ jobs:
       
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: av2
-          environment-file: conda/environment.yml
           mamba-version: "*"
           miniforge-version: latest
           python-version: ${{ matrix.python_version }}
@@ -40,8 +38,8 @@ jobs:
           mamba install -y nox pip pyyaml
 
       - name: Run nox with ${{ matrix.venv_backend }}.
-        run: |  # Cache the environments (-r), fail on missing python interpreters (--error-on-missing-interpreters), set dependency resolver backend.
-          python -m nox -r --error-on-missing-interpreters --python ${{ matrix.python_version }} --default-venv-backend ${{ matrix.venv_backend }}
+        run: |  # Cache the environments (-R), fail on missing python interpreters (--error-on-missing-interpreters), set dependency resolver backend.
+          python -m nox -R --error-on-missing-interpreters --python ${{ matrix.python_version }} --default-venv-backend ${{ matrix.venv_backend }}
 
       - name: Install pypa/build.
         run: >-
