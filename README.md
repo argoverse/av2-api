@@ -18,8 +18,6 @@
 
 Please see the [Argoverse User Guide](https://argoverse.github.io/av2-api/).
 
-Additional information can be found in [INSTALL.md](conda/INSTALL.md).
-
 ## Citing
 
 Please use the following citation when referencing the [Argoverse 2](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/4734ba6f3de83d861c3176a6273cac6d-Paper-round2.pdf) _Sensor_, _Lidar_, or _Motion Forecasting_ Datasets:
