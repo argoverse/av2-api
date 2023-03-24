@@ -63,6 +63,12 @@ def test_submission() -> None:
         assert success
         assert output_file.stat().st_size > 0
 
+        annotation_files = list(annotations_dir.rglob("*.feather"))
+        print(annotation_files)
+        with ZipFile(output_file, "r") as zf:
+            files = {f.filename for f in zf.filelist}
+        print(files)
+
         results_zip = eval.results_to_dict(eval.evaluate_zip(annotations_dir, output_file))
         for metric in results:
             assert np.allclose(results[metric], results_zip[metric], equal_nan=True)
