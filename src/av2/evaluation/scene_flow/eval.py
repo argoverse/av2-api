@@ -367,6 +367,7 @@ def evaluate_zip(annotations_dir: Path, predictions_zip: Path) -> pd.DataFrame:
 
     def predictions(name: str) -> pd.DataFrame:
         if name not in files:
+            print(f"Warning {name} not in files")
             return None
         with ZipFile(predictions_zip, "r") as zf:
             return pd.read_feather(zf.open(name))

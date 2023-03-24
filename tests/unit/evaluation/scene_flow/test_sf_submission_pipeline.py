@@ -25,7 +25,7 @@ def _zipdir(directory: Path, output_file: Path) -> None:
     """
     with ZipFile(output_file, "w") as zf:
         for f in directory.rglob("**"):
-            zf.write(f, arcname=f.relative_to(directory))
+            zf.write(f, arcname=str(f.relative_to(directory)))
 
 
 def test_submission() -> None:
@@ -61,6 +61,7 @@ def test_submission() -> None:
         output_file = test_dir / "submission.zip"
         success = make_submission_archive(str(predictions_dir), str(mask_file), str(output_file))
         assert success
+        assert output_file.stat().st_size > 0
 
         results_zip = eval.results_to_dict(eval.evaluate_zip(annotations_dir, output_file))
         for metric in results:
