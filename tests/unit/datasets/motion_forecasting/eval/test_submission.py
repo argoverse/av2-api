@@ -82,9 +82,9 @@ def test_challenge_submission_serialization(tmpdir: Path, test_submission_dict: 
     deserialized_submission = ChallengeSubmission.from_parquet(submission_file_path)
 
     # Check that deserialized data matches original data exactly
-    for scenario_id, scenario_predictions in submission.predictions.items():
-        for track_id, (expected_trajectories, expected_probabilities) in scenario_predictions.items():
-            deserialized_predictions = deserialized_submission.predictions[scenario_id][track_id]
-            (deserialized_trajectories, deserialized_probabilities) = deserialized_predictions
+    for scenario_id, (expected_probabilities, scenario_trajectories) in submission.predictions.items():
+        for track_id, expected_trajectories in scenario_trajectories.items():
+            deserialized_probabilities = deserialized_submission.predictions[scenario_id][0]
+            deserialized_trajectories = deserialized_submission.predictions[scenario_id][1][track_id]
             assert np.array_equal(deserialized_trajectories, expected_trajectories)
             assert np.array_equal(deserialized_probabilities, expected_probabilities)
