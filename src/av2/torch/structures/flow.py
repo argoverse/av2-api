@@ -76,9 +76,8 @@ class Flow:
             c0 = current_cuboid_map[id]
             c0.length_m += BOUNDING_BOX_EXPANSION  # the bounding boxes are a little too tight sometimes
             c0.width_m += BOUNDING_BOX_EXPANSION
-            obj_pts, obj_mask = [
-                torch.as_tensor(arr, dtype=torch.float32) for arr in c0.compute_interior_points(current_pc.numpy())
-            ]
+            obj_pts_npy, obj_mask_npy = c0.compute_interior_points(current_pc.numpy())
+            obj_pts, obj_mask = torch.as_tensor(obj_pts_npy, dtype=torch.float32), torch.as_tensor(obj_mask_npy)
             category_inds[obj_mask] = CATEGORY_TO_INDEX[str(c0.category)]
 
             if id in next_cuboid_map:
