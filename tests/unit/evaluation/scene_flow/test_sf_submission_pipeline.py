@@ -12,6 +12,8 @@ from av2.evaluation.scene_flow.example_submission import example_submission
 from av2.evaluation.scene_flow.make_annotation_files import make_annotation_files
 from av2.evaluation.scene_flow.make_mask_files import make_mask_files
 from av2.evaluation.scene_flow.make_submission_archive import make_submission_archive, validate
+from av2.evaluation.scene_flow.utils import compute_eval_point_mask
+from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 
 _TEST_DATA_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -88,7 +90,10 @@ def test_submission() -> None:
         # Missing a column
         log_id = "7fab2350-7eaf-3b7e-a39d-6937a4c1bede"
         timestamp_ns = 315966265259836000
-        npts = 78507
+        data_loader = SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "val")
+        sweep_0, sweep_1, s1_SE3_s0, _ = data_loader[0]
+        mask = compute_eval_point_mask((sweep_0, sweep_1, s1_SE3_s0, None))
+        npts = mask.sum()
         bad_df = pd.DataFrame(
             {
                 "flow_tx_m": np.zeros(npts, dtype=np.float16),
