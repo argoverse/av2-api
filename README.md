@@ -43,7 +43,7 @@ Please use the following citation when referencing the [Argoverse 2](https://dat
 }
 ```
 
-Use the following citation when referencing the [Argoverse 2](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/6f4922f45568161a8cdf4ad2299f6d23-Paper-round2.pdf) _Map Change_ Dataset:
+Use the following citation when referencing the [Trust, but Verify](https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/6f4922f45568161a8cdf4ad2299f6d23-Paper-round2.pdf) _Map Change Detection_ Dataset:
 ```BibTeX
 @INPROCEEDINGS { TrustButVerify,
   author = {John Lambert and James Hays},
