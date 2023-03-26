@@ -22,7 +22,11 @@ $$
 \end{align}
 $$
 
-### Average Precision:
+## Metrics
+
+All of the reported metrics require _assigning_ detections to ground truth annotations written as $a_{(\text{dt}, \text{gt})}$.
+
+### Average Precision
 
 Average precision measures the area underneath the precision / recall curve.
 
@@ -36,7 +40,7 @@ $$
 
 where $\mathcal{T}$ is the set of true positive thresholds and $\mathcal{R}$ is the set of sampled recall thresholds. 
 
-### Average Translation Error:
+### Average Translation Error
 
 $$
 \begin{align}
@@ -44,7 +48,10 @@ $$
 \end{align}
 $$
 
-### Average Scale Error:
+### Average Scale Error
+
+For an assignment  $a^i_\text{(\text{dt}, \text{gt})} = \left\{ (\text{dt}, \text{gt}) : \lVert v_{\text{dt}} - v_{\text{gt}} \rVert_2 \leq t \right\}$.
+For a true positive at $2 \text{ m}$, the average scale error is a measure of extent misalignment when both the object and ground 
 
 $$
 \begin{align}
@@ -52,7 +59,7 @@ $$
 \end{align}
 $$
 
-### Average Orientation Error:
+### Average Orientation Error
 
 $$
 \begin{align}
@@ -60,7 +67,7 @@ $$
 \end{align}
 $$
 
-### Composite Detection Score:
+### Composite Detection Score
 
 $$
 \begin{align}
