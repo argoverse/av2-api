@@ -1,10 +1,12 @@
-# Overview
+# 3D Object Detection
 
-The Argoverse 2 Sensor dataset contains _long range_ ($150 \text{ meters}$) annotations for $26$ different object categories.
+```admonish summary
+    For a unique tuple, `(log_id, timestamp_ns)`, produce a _ranked_ set of detections $\mathcal{D}$ that describe an object's location, size, and orientation in the 3D scene.
+```
 
-## Goal
+## Detection Parameterization
 
-Given sensor data at time $t$ produce a _ranked_ set of detections parameterized as:
+We parameterize detections as a set of 3D cuboids with an associated likelihood and predicted object category:
 
 $$
 \begin{align}

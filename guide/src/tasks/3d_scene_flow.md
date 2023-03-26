@@ -1,4 +1,6 @@
-# 3D Scene Flow Submission Format
+# 3D Scene Flow
+
+## Submission Format
 
 The evaluation expects a zip archive of [Apache Feather](https://arrow.apache.org/docs/python/feather.html) files --- one for each example. The unzipped directory must have the format:
 

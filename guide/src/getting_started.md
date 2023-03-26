@@ -1,9 +1,11 @@
 # Getting Started
 
+```admonish info
 In this section, we outline the following:
 
 1. Installing the supporting API, `av2`, for the Argoverse 2 and TbV family of datasets.
 2. Downloading the datasets to your local machine or server.
+```
 
 ## Setup
 
@@ -17,9 +19,15 @@ You will need to install `conda` on your machine. We recommend to install the `c
 $(which conda) init $SHELL
 ```
 
-```admonish note
-If `conda` is not found, you will need to add the binary to your `PATH` environment variable.
+~~~admonish note collapsible=true
+You may need to run a post-install step to initialize `conda`:
+
+```terminal
+$(which conda) init $SHELL
 ```
+
+If `conda` is not found, you will need to add the binary to your `PATH` environment variable.
+~~~
 
 ### Install `av2`
 
@@ -43,7 +51,7 @@ Our datasets are available for download from [AWS S3](https://aws.amazon.com/s3/
 
 For the best experience, we highly recommend using the open-source [s5cmd](https://github.com/peak/s5cmd) tool to transfer the data to your local filesystem. Please note that an AWS account is not required to download the datasets.
 
-```admonish note
+```admonish note collapsible=true
 Additional info can be found at [https://aws.amazon.com/blogs/opensource/parallelizing-s3-workloads-s5cmd/]().
 ```
 
@@ -76,7 +84,7 @@ Note that it will install `s5cmd` in your local bin directory. You can always ch
 
 # Download the Datasets
 
-Run the following command to download the 
+Run the following command to download the one or more of the datasets:
 
 ```bash
 #!/usr/bin/env bash
