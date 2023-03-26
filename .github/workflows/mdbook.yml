@@ -34,7 +34,7 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf -y | sh
           rustup update
-          cargo install mdbook mdbook-katex
+          cargo install mdbook mdbook-katex mdbook-admonish
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v3
