@@ -1,5 +1,21 @@
 
-# Maps for Argoverse 2
+# HD Maps
+
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/29715011/157915615-42fa04ff-86f7-407e-bf3a-743e127aec0b.jpg" height="300">
+  <img src="https://user-images.githubusercontent.com/29715011/157915595-b8c4a627-49fb-4f52-b375-0aa81593eac7.jpg" height="300">
+</p>
+
+
+```admonish summary
+In all three datasets, each scenario contains its own HD Map with 3D lane, crosswalk, and drivable area geometry — sourced from data captured in six distinct cities (Austin, Detroit, Miami, Palo Alto, Pittsburgh, and Washington D.C.).
+
+Each scenario in the three datasets described above shares the same HD map representation. Each scenario carries its own local map region. This is a departure from the original Argoverse datasets in which all scenarios were localized onto two city-scale maps. Advantages of per-scenario maps include:
+
+- More efficient queries.
+- The ability to handle map changes. A particular intersection might be observed multiple times in our datasets, and there could be changes to the lanes, crosswalks, or even ground height in between the times when the logs or sequences were captured.
+
+```
 
 ## Table of Contents
 
@@ -12,18 +28,9 @@
 - [Raster Maps: Ground surface height](#ground-height)
 - [Training Online Map Inference Models](#training-online-map-inference-models)
 
-## Overview
-
-In all three datasets, each scenario contains its own HD Map with 3D lane, crosswalk, and drivable area geometry — sourced from data captured in six distinct cities (Austin, Detroit, Miami, Palo Alto, Pittsburgh, and Washington D.C.).
-
-Each scenario in the three datasets described above shares the same HD map representation. Each scenario carries its own local map region. This is a departure from the original Argoverse datasets in which all scenarios were localized onto two city-scale maps. Advantages of per-scenario maps include:
-
-- More efficient queries.
-- The ability to handle map changes. A particular intersection might be observed multiple times in our datasets, and there could be changes to the lanes, crosswalks, or even ground height in between the times when the logs or sequences were captured.
-
 ## Map Counts
 
-Argoverse 2.0 offers a massive number of highly diverse HD maps:
+Argoverse 2 offers a massive number of highly diverse HD maps:
 
 - **Motion Forecasting Dataset**: ~250,000 vector maps.
 - **Sensor Dataset**: 1,000 vector maps and 1,000 ground height raster maps.
@@ -66,10 +73,10 @@ Please refer to the [`LaneSegment`](lane_segment.py#L71) class, with the followi
 - `right_neighbor_id`: unique identifier of the lane segment representing this object's right neighbor.
 - `left_neighbor_id`: unique identifier of the lane segment representing this object's left neighbor.
 
-<p align="center">
+<!-- <p align="center">
   <img src="https://user-images.githubusercontent.com/29715011/157915615-42fa04ff-86f7-407e-bf3a-743e127aec0b.jpg" height="500">
   <img src="https://user-images.githubusercontent.com/29715011/157915595-b8c4a627-49fb-4f52-b375-0aa81593eac7.jpg" height="500">
-</p>
+</p> -->
 
 <a name="drivable-area"></a>
 
