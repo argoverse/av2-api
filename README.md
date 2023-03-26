@@ -28,7 +28,7 @@ Please see the [Argoverse User Guide](https://argoverse.github.io/av2-api/).
 - Argoverse 2 (AV2)
   - [3D Object Detection](https://argoverse.github.io/av2-api/tasks/3d_object_detection/index.html)
   - [Motion Forecasting](https://argoverse.github.io/av2-api/tasks/motion_forecasting/index.html)
-  - [3D Scene Flow](https://argoverse.github.io/av2-api/tasks/3d_scene_flow/index.html)
+
 
 ## Citing
 
