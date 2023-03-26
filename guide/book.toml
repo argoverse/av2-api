@@ -9,7 +9,7 @@ title = "Argoverse User Guide"
 mathjax-support = true
 
 [output.html.fold]
-enable = true
-level = 0
+# enable = true
+# level = 1
 
 [preprocessor.katex]
