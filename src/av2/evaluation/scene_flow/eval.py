@@ -301,7 +301,7 @@ def evaluate_predictions(annotations_dir: Path, predictions: Callable[[str], pd.
         DataFrame containing the average metrics on each subset of each example.
     """
     results: DefaultDict[str, List[Any]] = defaultdict(list)
-    annotation_files = list(annotations_dir.rglob("*.feather"))
+    annotation_files = sorted(annotations_dir.rglob("*.feather"))
     for anno_file in track(annotation_files, description="Evaluating..."):
         gts = pd.read_feather(anno_file)
         name: str = anno_file.relative_to(annotations_dir).as_posix()
