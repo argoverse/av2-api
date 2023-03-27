@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import zipfile
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Callable, DefaultDict, Dict, Final, List, Tuple, Union, cast
@@ -289,13 +290,13 @@ def compute_metrics(
     return results
 
 
-def evaluate_predictions(annotations_dir: Path, predictions: Callable[[str], pd.DataFrame]) -> pd.DataFrame:
+def evaluate_predictions(annotations_dir: Path, get_prediction: Callable[[Path], pd.DataFrame]) -> pd.DataFrame:
     """Run the evaluation on predictions and labels.
 
     Args:
         annotations_dir: Path to the directory containing the annotation files produced by `make_annotation_files.py`.
-        predictions: Function that returns a predictions DataFrame for a given annotation file
-                     or None if no prediction exists.
+        get_prediction: Function that retrieves a predictions DataFrame for a given relative
+                        annotation filepath, or None if no prediction exists.
 
     Returns:
         DataFrame containing the average metrics on each subset of each example.
@@ -304,8 +305,8 @@ def evaluate_predictions(annotations_dir: Path, predictions: Callable[[str], pd.
     annotation_files = list(annotations_dir.rglob("*.feather"))
     for anno_file in track(annotation_files, description="Evaluating..."):
         gts = pd.read_feather(anno_file)
-        name: str = anno_file.relative_to(annotations_dir).as_posix()
-        pred = predictions(name)
+        name: Path = anno_file.relative_to(annotations_dir)
+        pred = get_prediction(name)
         if pred is None:
             continue
         current_example_results = compute_metrics(
@@ -319,7 +320,7 @@ def evaluate_predictions(annotations_dir: Path, predictions: Callable[[str], pd.
             constants.FOREGROUND_BACKGROUND_BREAKDOWN,
         )
         num_subsets = len(list(current_example_results.values())[0])
-        results["Example"] += [name for _ in range(num_subsets)]
+        results["Example"] += [str(name) for _ in range(num_subsets)]
         for m in current_example_results:
             results[m] += current_example_results[m]
     df = pd.DataFrame(
@@ -329,6 +330,42 @@ def evaluate_predictions(annotations_dir: Path, predictions: Callable[[str], pd.
         + list(SegmentationMetricType),
     )
     return df
+
+
+def get_prediction_from_directory(annotation_name: Path, predictions_dir: Path) -> pd.DataFrame:
+    """Get the prediction corresponding annotation from a directory of prediction files.
+
+    Args:
+        annotation_name: Relative path to the annotation file.
+        predictions_dir: Path to the predicition files in submission_format.
+
+    Returns:
+        DataFrame contating the predictions for that annotation file or None if it does not exist.
+    """
+    pred_file = predictions_dir / annotation_name
+    if not pred_file.exists():
+        return None
+    pred = pd.read_feather(pred_file)
+    return pred
+
+
+def get_prediction_from_zipfile(annotation_name: Path, predictions_zip: Path) -> pd.DataFrame:
+    """Get the prediction corresponding annotation from a zip archive of prediction files.
+
+    Args:
+        annotation_name: Relative path to the annotation file.
+        predictions_zip: Path to the prediction files in a zip archive.
+
+    Returns:
+        DataFrame contating the predictions for that annotation file or None if it does not exist.
+    """
+    with ZipFile(predictions_zip, "r") as zf:
+        name = annotation_name.as_posix()
+        path = zipfile.Path(zf, name)
+        if path.exists():
+            return pd.read_feather(zf.open(name))
+        else:
+            return None
 
 
 def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.DataFrame:
@@ -341,15 +378,7 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
     Returns:
         DataFrame containing the average metrics on each subset of each example.
     """
-
-    def predictions(name: str) -> pd.DataFrame:
-        pred_file = predictions_dir / name
-        if not pred_file.exists():
-            return None
-        pred = pd.read_feather(pred_file)
-        return pred
-
-    return evaluate_predictions(annotations_dir, predictions)
+    return evaluate_predictions(annotations_dir, lambda n: get_prediction_from_directory(n, predictions_dir))
 
 
 def evaluate_zip(annotations_dir: Path, predictions_zip: Path) -> pd.DataFrame:
@@ -362,17 +391,7 @@ def evaluate_zip(annotations_dir: Path, predictions_zip: Path) -> pd.DataFrame:
     Returns:
         DataFrame containing the average metrics on each subset of each example.
     """
-    with ZipFile(predictions_zip, "r") as zf:
-        files = {f.filename for f in zf.filelist}
-
-    def predictions(name: str) -> pd.DataFrame:
-        if name not in files:
-            print(f"Warning {name} not in files")
-            return None
-        with ZipFile(predictions_zip, "r") as zf:
-            return pd.read_feather(zf.open(name))
-
-    return evaluate_predictions(annotations_dir, predictions)
+    return evaluate_predictions(annotations_dir, lambda n: get_prediction_from_zipfile(n, predictions_zip))
 
 
 def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
