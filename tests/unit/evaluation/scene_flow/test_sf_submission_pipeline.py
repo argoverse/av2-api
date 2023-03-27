@@ -15,7 +15,7 @@ from av2.evaluation.scene_flow.make_submission_archive import make_submission_ar
 from av2.evaluation.scene_flow.utils import compute_eval_point_mask
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 
-_TEST_DATA_ROOT = Path(__file__).resolve().parent.parent.parent
+_TEST_DATA_ROOT: Final = Path(__file__).resolve().parent.parent.parent
 
 
 def _zipdir(directory: Path, output_file: Path) -> None:
