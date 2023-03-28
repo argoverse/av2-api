@@ -1,15 +1,16 @@
 # Getting Started
 
-```admonish summary
+## Table of Contents
+
+<!-- toc -->
+
+## Overview
+
 In this section, we outline the following:
 
 1. Installing the supporting API, `av2`, for the Argoverse 2 and TbV family of datasets.
 2. Downloading the datasets to your local machine or server.
-```
 
-## Table of Contents
-
-<!-- toc -->
 
 ## Setup
 

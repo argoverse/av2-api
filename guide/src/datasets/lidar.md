@@ -7,13 +7,13 @@
   <img src="https://user-images.githubusercontent.com/29715011/158715497-d1603423-c32f-4cf0-ab1e-6bbc9c458535.gif" height="180">
 </p>
 
-```admonish summary
-The Argoverse 2 Lidar Dataset is intended to support research into self-supervised learning in the lidar domain as well as point cloud forecasting. The AV2 Lidar Dataset is mined with the same criteria as the Forecasting Dataset to ensure that each scene is interesting. While the Lidar Dataset does not have 3D object annotations, each scenario carries an HD map with rich, 3D information about the scene.
-```
-
 ## Table of Contents
 
 <!-- toc -->
+
+## Overview
+
+The Argoverse 2 Lidar Dataset is intended to support research into self-supervised learning in the lidar domain as well as point cloud forecasting. The AV2 Lidar Dataset is mined with the same criteria as the Forecasting Dataset to ensure that each scene is interesting. While the Lidar Dataset does not have 3D object annotations, each scenario carries an HD map with rich, 3D information about the scene.
 
 ## Dataset Size
 

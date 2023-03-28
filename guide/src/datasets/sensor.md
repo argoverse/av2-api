@@ -7,15 +7,15 @@
   <img src="https://user-images.githubusercontent.com/29715011/158739767-886e1c2f-4613-495d-9204-a7b4813af16d.gif" height="225">
 </div>
 
-```admonish summary
-The Argoverse 2 Sensor Dataset is the successor to the Argoverse 1 3D Tracking Dataset. AV2 is larger, with 1,000 scenes totalling 4.2 hours of driving data, up from 113 scenes in Argoverse 1.
-
-The total dataset amounts to 1 TB of data in its extracted form. Each vehicle log is approximately 15 seconds in duration and 1 GB in size, including ~150 LiDAR sweeps on average, and ~300 images from each of the 9 cameras (~2700 images per log).
-```
-
 ## Table of Contents
 
 <!-- toc -->
+
+## Overview
+
+The Argoverse 2 Sensor Dataset is the successor to the Argoverse 1 3D Tracking Dataset. AV2 is larger, with 1,000 scenes totalling 4.2 hours of driving data, up from 113 scenes in Argoverse 1.
+
+The total dataset amounts to 1 TB of data in its extracted form. Each vehicle log is approximately 15 seconds in duration and 1 GB in size, including ~150 LiDAR sweeps on average, and ~300 images from each of the 9 cameras (~2700 images per log).
 
 ## Sensor Suite
 

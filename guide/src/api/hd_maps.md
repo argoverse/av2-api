@@ -6,27 +6,18 @@
   <img src="https://user-images.githubusercontent.com/29715011/157915595-b8c4a627-49fb-4f52-b375-0aa81593eac7.jpg" height="300">
 </p>
 
+## Table of Contents
 
-```admonish summary
+<!-- toc -->
+
+## Overview
+
 In all three datasets, each scenario contains its own HD Map with 3D lane, crosswalk, and drivable area geometry — sourced from data captured in six distinct cities (Austin, Detroit, Miami, Palo Alto, Pittsburgh, and Washington D.C.).
 
 Each scenario in the three datasets described above shares the same HD map representation. Each scenario carries its own local map region. This is a departure from the original Argoverse datasets in which all scenarios were localized onto two city-scale maps. Advantages of per-scenario maps include:
 
 - More efficient queries.
 - The ability to handle map changes. A particular intersection might be observed multiple times in our datasets, and there could be changes to the lanes, crosswalks, or even ground height in between the times when the logs or sequences were captured.
-
-```
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Map Counts](#map-counts)
-- [Vector Map: Lane Graph and Lane Segments](#lane-segments)
-- [Vector Map: Drivable Area](#drivable-area)
-- [Vector Map: Pedestrian Crossings](#ped-crossings)
-- [Area of Local Maps](#area-of-local-maps)
-- [Raster Maps: Ground surface height](#ground-height)
-- [Training Online Map Inference Models](#training-online-map-inference-models)
 
 ## Map Counts
 

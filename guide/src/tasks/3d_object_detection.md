@@ -1,13 +1,12 @@
 # 3D Object Detection
 
-```admonish summary
-    For a unique tuple, `(log_id, timestamp_ns)`, produce a _ranked_ set of detections $\mathcal{D}$ that describe an object's location, size, and orientation in the 3D scene.
-```
-
 ## Table of Contents
 
 <!-- toc -->
 
+## Overview
+
+For a unique tuple, `(log_id, timestamp_ns)`, produce a _ranked_ set of detections $\mathcal{D}$ that describe an object's location, size, and orientation in the 3D scene.
 
 ## Detection Parameterization
 
