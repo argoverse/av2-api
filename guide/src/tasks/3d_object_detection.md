@@ -6,15 +6,16 @@
 
 ## Overview
 
-For a unique tuple, `(log_id, timestamp_ns)`, produce a _ranked_ set of detections $\mathcal{D}$ that describe an object's location, size, and orientation in the 3D scene.
+The Argoverse 3D Object Detection task differentiates itself with its **26** category taxonomy and **long-range** (150 m) detection evaluation. We detail the task, metrics, evaluation protocol, and detailed object taxonomy information below.
 
-## Detection Parameterization
 
-We parameterize detections as a set of 3D cuboids with an associated likelihood and predicted object category:
+## Task Definition
+
+For a unique tuple, `(log_id, timestamp_ns)`, produce a _ranked_ set of predictions $\mathcal{P}$ that describe an object's location, size, and orientation in the 3D scene:
 
 $$
 \begin{align}
-    \mathcal{D} &= \left\{ x^{i}_{\text{ego}}, y^{i}_{\text{ego}}, z^{i}_{\text{ego}}, l^{i}_{\text{obj}}, w^{i}_{\text{obj}}, h^{i}_{\text{obj}}, \theta^{i}_{\text{obj}}, c^i, o^i \right\}_{i=1}^{N} \quad \text{where}, \\\\
+    \mathcal{P} &= \left\{ x^{i}_{\text{ego}}, y^{i}_{\text{ego}}, z^{i}_{\text{ego}}, l^{i}_{\text{obj}}, w^{i}_{\text{obj}}, h^{i}_{\text{obj}}, \theta^{i}_{\text{obj}}, c^i, o^i \right\}_{i=1}^{N} \quad \text{where}, \\\\
 
     x^{i}_{\text{ego}} &: \text{Location along the x-axis in the ego-vehicle reference frame.} \\
     y^{i}_{\text{ego}} &: \text{Location along the y-axis in the ego-vehicle reference frame.} \\
@@ -27,74 +28,6 @@ $$
     o^{i} &: \text{Categorical object label.}
 \end{align}
 $$
-
-## Metrics
-
-All of the reported metrics require _assigning_ detections to ground truth annotations written as $a_{(\text{dt}, \text{gt})}$.
-
-### Average Precision
-
-Average precision measures the area underneath the precision / recall curve.
-
-$$
-\begin{align}
-    \text{AP} &= \frac{1}{100}\underset{t \in \mathcal{T}}{\sum}\underset{r\in\mathcal{R}}{\sum}\text{p}_{\text{interp}}(r) \quad \text{where} \\
-    \quad \mathcal{T} &= \left\{ 0.5 \text{ m}, 1.0 \text{ m}, 2.0 \text{ m}, 4.0 \text{ m} \right\} \\
-    \quad \mathcal{R} &= \left\{ 0.01, 0.02, \dots, 1.00 \right\}
-\end{align}
-$$
-
-where $\mathcal{T}$ is the set of true positive thresholds and $\mathcal{R}$ is the set of sampled recall thresholds. 
-
-### Average Translation Error
-
-$$
-\begin{align}
-    \text{ATE} = \lVert t_{\text{dt}}-t_{\text{gt}} \rVert_2 \quad \text{where} \quad t_{\text{dt}}\in\mathbb{R}^3,t_{\text{gt}}\in\mathbb{R}^3
-\end{align}
-$$
-
-### Average Scale Error
-
-For an assignment  $a^i_\text{(\text{dt}, \text{gt})} = \left\{ (\text{dt}, \text{gt}) : \lVert v_{\text{dt}} - v_{\text{gt}} \rVert_2 \leq t \right\}$.
-For a true positive at $2 \text{ m}$, the average scale error is a measure of extent misalignment when both the object and ground 
-
-$$
-\begin{align}
-    \text{ASE} = 1 - \underset{d\in\mathcal{D}}{\prod}\frac{\min(d_{\text{dt}},d_{\text{gt}})}{\max(d_{\text{dt}},d_\text{gt})}
-\end{align}
-$$
-
-### Average Orientation Error
-
-$$
-\begin{align}
-    \text{AOE} = |\theta_{\text{dt}}-\theta_{\text{gt}}| \quad \text{where} \quad \theta_{\text{dt}}\in[0,\pi) \text{ and } \theta_{\text{gt}}\in[0,\pi)
-\end{align}
-$$
-
-### Composite Detection Score
-
-$$
-\begin{align}
-    \text{CDS}&= \text{mAP} \cdot \underset{x\in\mathcal{X}}{\sum}{ 1-x } \\\mathcal{X}&=\{\text{mATE}_{\text{unit}},\text{mASE}_{\text{unit}},\text{mAOE}_{\text{unit}}\}
-\end{align}
-$$
-
-# Evaluation
-
-The 3D object detection evaluation consists of the following steps:
-
-1. Partition the detections and ground truth objects by a unique id, `(log_id: str, timestamp_ns: uint64)`, which corresponds to a single sweep.
-
-2. For the detections and ground truth objects associated with a single sweep, greedily assign the detections to the ground truth objects in _descending_ order by _likelihood_.
-
-3. Compute the true positive, false positive, and false negatives.
-
-4. Compute the true positive metrics.
-
-2. True positive, false positive, and false negative computation.
-
 
 # 3D Object Detection Taxonomy
 
@@ -175,3 +108,100 @@ Movable sign designating an area where pedestrians may cross the road.
 
 26. `WHEELCHAIR`:
 Chair fitted with wheels for use as a means of transport by a person who is unable to walk as a result of illness, injury, or disability. This includes both motorized and non-motorized wheelchairs as well as low-speed seated scooters not intended for use on the roadway.
+
+## Metrics
+
+All of our reported metrics require _assigning_ predictions to ground truth annotations written as $a_{\text{pd}, \text{gt}}$ to compute true positives (TP), false positives (FP), and false negatives (FN).
+
+Formally, we define a _true positive_ as:
+
+$$
+\text{TP}_{\text{pd}, \text{gt}} = \left\{ a_{\text{pd}, \text{gt}} : \lVert v_{\text{pd}} - v_{\text{gt}} \rVert_2 \leq d \right\},
+$$
+
+where $d$ is a distance threshold in meters.
+
+```admonish important
+Duplicate assignments are considered _false positives_. 
+```
+
+### Average Precision
+
+Average precision measures the area underneath the precision / recall curve across different true positive distance thresholds.
+
+$$
+\begin{align}
+    \text{AP} &= \frac{1}{100}\underset{d \in \mathcal{D}}{\sum}\underset{r\in\mathcal{R}}{\sum}\text{p}_{\text{interp}}(r) \quad \text{where} \\
+    \quad \mathcal{D} &= \left\{ 0.5 \text{ m}, 1.0 \text{ m}, 2.0 \text{ m}, 4.0 \text{ m} \right\} \\
+    \quad \mathcal{R} &= \left\{ 0.01, 0.02, \dots, 1.00 \right\}
+\end{align}
+$$
+
+### True Positive Metrics
+
+All true positive metrics are at a $2 \text{ m}$ threshold. 
+
+#### Average Translation Error (ATE)
+
+ATE measures the distance between true positive assignments.
+
+$$
+\begin{align}
+    \text{ATE} = \lVert t_{\text{pd}}-t_{\text{gt}} \rVert_2 \quad \text{where} \quad t_{\text{pd}}\in\mathbb{R}^3,t_{\text{gt}}\in\mathbb{R}^3.
+\end{align}
+$$
+
+#### Average Scale Error (ASE)
+
+ASE measures the shape misalignent for true positive assignments.
+
+$$
+\begin{align}
+    \text{ASE} = 1 - \underset{d\in\mathcal{D}}{\prod}\frac{\min(d_{\text{pd}},d_{\text{gt}})}{\max(d_{\text{pd}},d_\text{gt})}.
+\end{align}
+$$
+
+#### Average Orientation Error (AOE)
+
+AOE measures the minimum angle between true positive assignments.
+
+$$
+\begin{align}
+    \text{AOE} = |\theta_{\text{pd}}-\theta_{\text{gt}}| \quad \text{where} \quad \theta_{\text{pd}}\in[0,\pi) \text{ and } \theta_{\text{gt}}\in[0,\pi).
+\end{align}
+$$
+
+### Composite Detection Score (CDS)
+
+CDS measures the _overall_ performance across all previously introduced metrics.
+
+$$
+\begin{align}
+    \text{CDS}&= \text{AP} \cdot \underset{x\in\mathcal{X}}{\sum}{ 1-x }, \\
+    \mathcal{X}&=\{\text{ATE}_{\text{unit}},\text{ASE}_{\text{unit}},\text{AOE}_{\text{unit}}\},
+\end{align}
+$$
+
+where $\{\text{ATE}_{\text{unit}},\text{ASE}_{\text{unit}},\text{AOE}_{\text{unit}}\}$ are the _normalized_ true positive errors.
+
+```admonish note
+$\text{ATE}$, $\text{ASE}$, and $\text{AOE}$ are bounded by $2 \text{ m}$, $1$, and $\pi$.
+```
+
+```admonish important
+CDS is the **ranking** metric.
+```
+
+# Evaluation
+
+The 3D object detection evaluation consists of the following steps:
+
+1. Partition the predictions and ground truth objects by a unique id, `(log_id: str, timestamp_ns: uint64)`, which corresponds to a single sweep.
+
+2. For the predictions and ground truth objects associated with a single sweep, greedily assign the predictions to the ground truth objects in _descending_ order by _likelihood_.
+
+3. Compute the true positive, false positive, and false negatives.
+
+4. Compute the true positive metrics.
+
+2. True positive, false positive, and false negative computation.

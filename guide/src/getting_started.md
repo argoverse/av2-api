@@ -95,15 +95,15 @@ Run the following command to download the one or more of the datasets:
 #!/usr/bin/env bash
 
 # Dataset URIs
-# s3://argoai-argoverse/av2/sensor/ 
-# s3://argoai-argoverse/av2/lidar/
-# s3://argoai-argoverse/av2/motion-forecasting/
-# s3://argoai-argoverse/av2/tbv/
+# s3://argoverse/av2/sensor/ 
+# s3://argoverse/av2/lidar/
+# s3://argoverse/av2/motion-forecasting/
+# s3://argoverse/av2/tbv/
 
 export DATASET_NAME="sensor"  # sensor, lidar, motion_forecasting or tbv.
 export TARGET_DIR="$HOME/data/datasets"  # Target directory on your machine.
 
-s5cmd --no-sign-request cp "s3://argoai-argoverse/av2/$DATASET_NAME/*" $TARGET_DIR
+s5cmd --no-sign-request cp "s3://argoverse/av2/$DATASET_NAME/*" $TARGET_DIR
 ```
 
 The command will all data for `$DATASET_NAME` to `$TARGET_DIR`. Given the size of the dataset, it might take a couple of hours depending on the network connectivity.
