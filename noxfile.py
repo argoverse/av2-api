@@ -10,25 +10,9 @@ import yaml
 from nox import Session
 from nox.virtualenv import CondaEnv
 
-PYTHON: Final = ["3.8", "3.9", "3.10"]
-CI_ENV: Final = (
-    "black[jupyter]",
-    "isort",
-    "flake8",
-    "flake8-annotations",
-    "flake8-black",
-    "flake8-bugbear",
-    "flake8-docstrings",
-    "flake8-import-order",
-    "darglint",
-    "mypy",
-    "types-pyyaml",
-    "pytest",
-    "pytest-benchmark",
-    "pytest-cov",
-)
+PYTHON: Final[List[str]] = ["3.8", "3.9", "3.10"]
 
-nox.options.sessions = ["ci"]
+nox.options.sessions = ["black", "isort", "lint", "mypy", "pytest"]
 
 
 def _setup(session: Session) -> None:
@@ -61,16 +45,76 @@ def _setup(session: Session) -> None:
 
 
 @nox.session(python=PYTHON)
-def ci(session: Session) -> None:
-    """Run CI against `av2`.
+def black(session: Session) -> None:
+    """Run `black` against `av2`.
 
     Args:
         session: `nox` session.
     """
+    env = ["black[jupyter]"]
     _setup(session)
-    session.install(*CI_ENV)
+    session.install(*env)
     session.run("black", ".")
+
+
+@nox.session(python=PYTHON)
+def isort(session: Session) -> None:
+    """Run `isort` against `av2`.
+
+    Args:
+        session: `nox` session.
+    """
+    env = ["isort"]
+    _setup(session)
+    session.install(*env)
     session.run("isort", ".")
+
+
+@nox.session(python=PYTHON)
+def lint(session: Session) -> None:
+    """Lint using flake8."""
+    env = [
+        "flake8",
+        "flake8-annotations",
+        "flake8-black",
+        "flake8-bugbear",
+        "flake8-docstrings",
+        "flake8-import-order",
+        "darglint",
+    ]
+    _setup(session)
+    session.install(*env)
     session.run("flake8", ".")
+
+
+@nox.session(python=PYTHON)
+def mypy(session: Session) -> None:
+    """Run `mypy` against `av2`.
+
+    Args:
+        session: `nox` session.
+    """
+    env = [
+        "mypy",
+        "types-pyyaml",
+    ]
+    _setup(session)
+    session.install(*env)
     session.run("mypy", ".")
+
+
+@nox.session(python=PYTHON)
+def pytest(session: Session) -> None:
+    """Run `pytest` against `av2`.
+
+    Args:
+        session: `nox` session.
+    """
+    env = [
+        "pytest",
+        "pytest-benchmark",
+        "pytest-cov",
+    ]
+    _setup(session)
+    session.install(*env)
     session.run("pytest", "tests", "--cov", "src/av2")

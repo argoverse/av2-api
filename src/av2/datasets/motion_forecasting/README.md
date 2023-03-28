@@ -1,18 +1,12 @@
-# Motion Forecasting
+# Argoverse 2 Motion Forecasting
 
-<div align="center">
-  <img src="https://user-images.githubusercontent.com/29715011/158486284-1a0df794-ee0a-4ae6-a320-0dd0d1daad06.gif" height="200">
-  <img src="https://user-images.githubusercontent.com/29715011/158486286-e734e654-b879-4994-a129-9957cc591af4.gif" height="200">
-  <img src="https://user-images.githubusercontent.com/29715011/158486288-5e7c0971-de0c-4ff5-bea7-76f7922dd1e0.gif" height="200">
-</div>
-
-## Table of Contents
-
-<!-- toc -->
+![](https://user-images.githubusercontent.com/29715011/158486284-1a0df794-ee0a-4ae6-a320-0dd0d1daad06.gif)
+![](https://user-images.githubusercontent.com/29715011/158486286-e734e654-b879-4994-a129-9957cc591af4.gif)
+![](https://user-images.githubusercontent.com/29715011/158486288-5e7c0971-de0c-4ff5-bea7-76f7922dd1e0.gif)
 
 ## Overview
 
-The Argoverse 2 motion forecasting dataset consists of 250,000 scenarios, collected from 6 cities spanning multiple seasons.
+The Argoverse 2.0 motion forecasting dataset consists of 250,000 scenarios, collected from 6 cities spanning multiple seasons.
 
 Each scenario is specifically designed to maximize interactions relevant to the ego-vehicle. This naturally results in the inclusion of actor-dense scenes featuring a range of vehicle and non-vehicle actor types. At the time of release, AV2 provides the largest object taxonomy, in addition to the broadest mapped area of any motion forecasting dataset released so far.
 
