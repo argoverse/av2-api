@@ -4,6 +4,11 @@
     For a unique tuple, `(log_id, timestamp_ns)`, produce a _ranked_ set of detections $\mathcal{D}$ that describe an object's location, size, and orientation in the 3D scene.
 ```
 
+## Table of Contents
+
+<!-- toc -->
+
+
 ## Detection Parameterization
 
 We parameterize detections as a set of 3D cuboids with an associated likelihood and predicted object category:

@@ -13,6 +13,10 @@ The Trust, but Verify (TbV) Dataset consists of 1043 vehicle logs. Each vehicle 
 The total dataset amounts to 15.54 hours of driving data, amounting to 922 GB of data in its extracted form. There are 7.84 Million images in the dataset (7,837,614 exactly), and 559,440 LiDAR sweeps in total.
 ```
 
+## Table of Contents
+
+<!-- toc -->
+
 ## Downloading TbV
 
 TbV is available for download in two forms -- either zipped up as 21 tar.gz files -- or in extracted, unzipped form (without tar archives). Downloading either will produce the same result (the underlying log data is identical).
