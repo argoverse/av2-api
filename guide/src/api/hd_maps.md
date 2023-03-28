@@ -1,16 +1,14 @@
 
-# Maps for Argoverse 2.0
+# HD Maps
+
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/29715011/157915615-42fa04ff-86f7-407e-bf3a-743e127aec0b.jpg" height="300">
+  <img src="https://user-images.githubusercontent.com/29715011/157915595-b8c4a627-49fb-4f52-b375-0aa81593eac7.jpg" height="300">
+</p>
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Map Counts](#map-counts)
-- [Vector Map: Lane Graph and Lane Segments](#lane-segments)
-- [Vector Map: Drivable Area](#drivable-area)
-- [Vector Map: Pedestrian Crossings](#ped-crossings)
-- [Area of Local Maps](#area-of-local-maps)
-- [Raster Maps: Ground surface height](#ground-height)
-- [Training Online Map Inference Models](#training-online-map-inference-models)
+<!-- toc -->
 
 ## Overview
 
@@ -23,20 +21,20 @@ Each scenario in the three datasets described above shares the same HD map repre
 
 ## Map Counts
 
-Argoverse 2.0 offers a massive number of highly diverse HD maps:
+Argoverse 2 offers a massive number of highly diverse HD maps:
 
 - **Motion Forecasting Dataset**: ~250,000 vector maps.
 - **Sensor Dataset**: 1,000 vector maps and 1,000 ground height raster maps.
 - **LiDAR Dataset**: 20,000 vector maps.
 - **TbV Dataset**: 1,038 vector maps and 1,038 ground height raster maps.
 
-The core data structure that holds Argoverse 2.0 map data is the [`ArgoverseStaticMap`](map_api.py#280) class. Please refer to the [map tutorial notebook](../../../tutorials/map_tutorial.ipynb) for more examples of how to use the map API.
+The core data structure that holds Argoverse 2 map data is the [`ArgoverseStaticMap`](map_api.py#280) class. Please refer to the [map tutorial notebook](../../../tutorials/map_tutorial.ipynb) for more examples of how to use the map API.
 
 <a name="lane-segments"></a>
 
 ## Vector Map: Lane Graph and Lane Segments
 
-The core feature of the HD map is the lane graph, consisting of a graph G = (V, E), where V are individual lane segments. In the [supplemental material](https://openreview.net/attachment?id=vKQGe36av4k&name=supplementary_material), we enumerate and define the attributes we provide for each lane segment. Unlike Argoverse 1, we provide the actual 3D lane boundaries, instead of only centerlines. However, our API provides code to quickly infer the centerlines at any desired sampling resolution. Polylines are quantized to 1 cm resolution in the release.
+The core feature of the HD map is the lane graph, consisting of a graph $G = (V, E)$, where $V$ are individual lane segments. In the [supplemental material](https://openreview.net/attachment?id=vKQGe36av4k&name=supplementary_material), we enumerate and define the attributes we provide for each lane segment. Unlike Argoverse 1, we provide the actual 3D lane boundaries, instead of only centerlines. However, our API provides code to quickly infer the centerlines at any desired sampling resolution. Polylines are quantized to $1 \text{ cm}$ resolution in the release.
 
 <p align="center">
   <img src="https://user-images.githubusercontent.com/29715011/157802162-e40098c1-8677-4c16-ac60-e9bbded6badf.png" height="300">
@@ -57,8 +55,8 @@ Please refer to the [`LaneSegment`](lane_segment.py#L71) class, with the followi
 - `id`: unique identifier for this lane segment (guaranteed to be unique only within this local map).
 - `is_intersection`: boolean value representing whether or not this lane segment lies within an intersection.
 - `lane_type`: designation of which vehicle types may legally utilize this lane for travel (see [`LaneType`](lane_segment.py#L23)).
-- `right_lane_boundary`: 3d polyline representing the right lane boundary (see [`Polyline`](map_primitives.py#L37)).
-- `left_lane_boundary`: 3d polyline representing the left lane boundary.
+- `right_lane_boundary`: 3D polyline representing the right lane boundary (see [`Polyline`](map_primitives.py#L37)).
+- `left_lane_boundary`: 3D polyline representing the left lane boundary.
 - `right_mark_type`: type of painted marking found along the right lane boundary (see [`LaneMarkType`](lane_segment.py#L31)).
 - `left_mark_type`: type of painted marking found along the left lane boundary.
 - `predecessors`: unique identifiers of lane segments that are predecessors of this object.
@@ -66,10 +64,10 @@ Please refer to the [`LaneSegment`](lane_segment.py#L71) class, with the followi
 - `right_neighbor_id`: unique identifier of the lane segment representing this object's right neighbor.
 - `left_neighbor_id`: unique identifier of the lane segment representing this object's left neighbor.
 
-<p align="center">
+<!-- <p align="center">
   <img src="https://user-images.githubusercontent.com/29715011/157915615-42fa04ff-86f7-407e-bf3a-743e127aec0b.jpg" height="500">
   <img src="https://user-images.githubusercontent.com/29715011/157915595-b8c4a627-49fb-4f52-b375-0aa81593eac7.jpg" height="500">
-</p>
+</p> -->
 
 <a name="drivable-area"></a>
 
@@ -80,7 +78,7 @@ Instead of providing drivable area segmentation in a rasterized format, as we di
 Please refer to the [`DrivableArea`](drivable_area.py#L17) class, with the following attributes:
 
 - `id`: unique identifier.
-- `area_boundary`: 3d vertices of polygon, representing the drivable area's boundary.
+- `area_boundary`: 3D vertices of polygon, representing the drivable area's boundary.
 
 <a name="ped-crossings"></a>
 
@@ -91,18 +89,18 @@ These entities represent crosswalks, and are provided in vector format. They are
 Please refer to the [`PedestrianCrossing`](pedestrian_crossing.py#L17) class, with the following attributes:
 
 - `id`: unique identifier of pedestrian crossing.
-- `edge1`: 3d polyline representing one edge of the crosswalk, with 2 waypoints.
-- `edge2`: 3d polyline representing the other edge of the crosswalk, with 2 waypoints.
+- `edge1`: 3D polyline representing one edge of the crosswalk, with 2 waypoints.
+- `edge2`: 3D polyline representing the other edge of the crosswalk, with 2 waypoints.
 
 ## Area of Local Maps
 
-Each scenario’s local map includes all entities found within a 100 m dilation in l2-norm from the ego-vehicle trajectory.
+Each scenario’s local map includes all entities found within a $100 \text{ m}$ dilation in $\ell_2$-norm from the ego-vehicle trajectory.
 
 <a name="ground-height"></a>
 
 ## Raster Maps: Ground Surface Height
 
-Only the AV 2.0 Sensor Dataset and TbV includes a dense ground surface height map. (The AV 2.0 LiDAR dataset and AV 2.0 Motion Forecasting (MF) datasets **do not** come up with raster maps, but still have sparse 3D height information on polylines).
+Only the AV2 Sensor Dataset and TbV includes a dense ground surface height map. (The AV2 LiDAR dataset and AV2 Motion Forecasting (MF) datasets **do not** come up with raster maps, but still have sparse 3D height information on polylines).
 
 <p align="center">
   <img src="https://user-images.githubusercontent.com/29715011/157802151-1eecfb9f-1e3f-4639-a417-a245d9898b1e.png" height="300">
@@ -134,9 +132,9 @@ points_z = avm.raster_ground_height_layer.get_ground_height_at_xy(points_xy)
 
 ## Training Online Map Inference Models
 
-Argoverse 2.0 offers new opportunities for training online map inference models, as the largest source of paired sensor data and HD maps publicly available at the time of release.
+Argoverse 2 offers new opportunities for training online map inference models, as the largest source of paired sensor data and HD maps publicly available at the time of release.
 
-However, a few Sensor 2.0 Dataset logs intentionally feature HD map changes:
+However, a few Sensor Dataset logs intentionally feature HD map changes:
 
 1. `75e8adad-50a6-3245-8726-5e612db3d165`
 2. `54bc6dbc-ebfb-3fba-b5b3-57f88b4b79ca`
