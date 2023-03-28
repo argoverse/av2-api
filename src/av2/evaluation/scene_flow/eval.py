@@ -5,7 +5,7 @@ from __future__ import annotations
 import zipfile
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Callable, DefaultDict, Dict, Final, List, Tuple, Union, cast
+from typing import Any, Callable, DefaultDict, Dict, Final, List, Optional, Tuple, Union, cast
 from zipfile import ZipFile
 
 import click
@@ -332,7 +332,7 @@ def evaluate_predictions(annotations_dir: Path, get_prediction: Callable[[Path],
     return df
 
 
-def get_prediction_from_directory(annotation_name: Path, predictions_dir: Path) -> pd.DataFrame:
+def get_prediction_from_directory(annotation_name: Path, predictions_dir: Path) -> Optional[pd.DataFrame]:
     """Get the prediction corresponding annotation from a directory of prediction files.
 
     Args:
@@ -349,7 +349,7 @@ def get_prediction_from_directory(annotation_name: Path, predictions_dir: Path) 
     return pred
 
 
-def get_prediction_from_zipfile(annotation_name: Path, predictions_zip: Path) -> pd.DataFrame:
+def get_prediction_from_zipfile(annotation_name: Path, predictions_zip: Path) -> Optional[pd.DataFrame]:
     """Get the prediction corresponding annotation from a zip archive of prediction files.
 
     Args:
