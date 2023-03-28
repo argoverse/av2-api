@@ -2,7 +2,7 @@
 
 ## Overview
 
-In Argoverse 2.0 the LiDAR sensor samples the geometry around the AV every 0.1s, producing a set of 3D points called a "sweep". If the world were static, two successive sweeps would represent two different samples of the same geometry. In a non-static world, however, each point measured in the first sweep could have moved before being sampled again. 3D Scene Flow estimation aims to find these motion vectors that relate two successive LiDAR sweeps.
+In Argoverse 2 the LiDAR sensor samples the geometry around the AV every 0.1s, producing a set of 3D points called a "sweep". If the world were static, two successive sweeps would represent two different samples of the same geometry. In a non-static world, however, each point measured in the first sweep could have moved before being sampled again. 3D Scene Flow estimation aims to find these motion vectors that relate two successive LiDAR sweeps.
 
 ## Labeling Procedure
 

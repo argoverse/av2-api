@@ -17,16 +17,17 @@ Please see the [Argoverse User Guide](https://argoverse.github.io/av2-api/).
 ## Supported Datasets
 
 - Argoverse 2 (AV2)
-  - [Sensor](https://argoverse.github.io/av2-api/datasets/av2/sensor.html)
-  - [Lidar](https://argoverse.github.io/av2-api/datasets/av2/lidar.html)
-  - [Motion Forecasting](https://argoverse.github.io/av2-api/datasets/av2/motion_forecasting.html)
+  - [Sensor](https://argoverse.github.io/av2-api/datasets/sensor.html)
+  - [Lidar](https://argoverse.github.io/av2-api/datasets/lidar.html)
+  - [Motion Forecasting](https://argoverse.github.io/av2-api/datasets/motion_forecasting.html)
 - Trust, but Verify (TbV)
-  - [Map Change Detection](https://argoverse.github.io/av2-api/datasets/tbv/map_change_detection.html)
+  - [Map Change Detection](https://argoverse.github.io/av2-api/datasets/map_change_detection.html)
 
 ## Supported Tasks
 
 - Argoverse 2 (AV2)
   - [3D Object Detection](https://argoverse.github.io/av2-api/tasks/3d_object_detection/index.html)
+  - [3D Scene Flow](https://argoverse.github.io/av2-api/tasks/3d_scene_flow)
   - [Motion Forecasting](https://argoverse.github.io/av2-api/tasks/motion_forecasting/index.html)
 
 
