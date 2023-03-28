@@ -29,7 +29,7 @@ def validate(submission_dir: Path, mask_file: Path) -> None:
             if not input_file.exists():
                 raise FileNotFoundError(f"{input_file} not found in submission directory")
             pred = pd.read_feather(input_file)
-            expected_num_points = pd.read_feather(masks.open(filename)).sum()
+            expected_num_points = pd.read_feather(masks.open(filename)).sum().item()
 
             for c in SUBMISSION_COLUMNS:
                 if c not in pred.columns:
