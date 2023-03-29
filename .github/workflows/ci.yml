@@ -45,11 +45,11 @@ jobs:
         run: |
           isort .
 
-      - name: Run `flake8`.
+      - name: Run `ruff`.
         run: |
-          flake8 .
+          ruff .
 
-      - name: Run `flake8`.
+      - name: Run `mypy`.
         run: |
           mypy .
           

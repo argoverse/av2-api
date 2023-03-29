@@ -42,19 +42,13 @@ dynamic = [
 [project.optional-dependencies]
 test = [
     "black[jupyter]",
-    "flake8",
-    "flake8-annotations",
-    "flake8-black",
-    "flake8-bugbear",
-    "flake8-docstrings",
-    "flake8-import-order",
-    "darglint",
     "isort",
     "mypy",
     "types-pyyaml",
     "pytest",
     "pytest-benchmark",
     "pytest-cov",
+    "ruff",
 ]
 
 [project.urls]
