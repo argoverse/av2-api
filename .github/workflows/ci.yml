@@ -38,7 +38,7 @@ jobs:
           mamba install -y nox pip pyyaml
 
       - name: Run nox with ${{ matrix.venv_backend }}.
-        run: |
+        run: >-
           pip install
           "black[jupyter]"
           "flake8"
