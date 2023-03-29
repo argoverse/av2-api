@@ -74,6 +74,9 @@ strict = true
 [tool.pylint]
 max-line-length = 120
 
+[tool.ruff.pydocstyle]
+convention = "google"
+
 [tool.pyright]
 include = ["src"]
 
