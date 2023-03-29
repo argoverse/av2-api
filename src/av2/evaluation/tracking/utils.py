@@ -64,7 +64,7 @@ def progressbar(itr: Iterable[Any], desc: Optional[str] = None, **kwargs: Dict[s
     return pbar
 
 
-def save(obj: Any, path: str) -> None: # noqa
+def save(obj: Any, path: str) -> None:  # noqa
     """Save an object to a file using pickle serialization.
 
     Args:
@@ -78,7 +78,7 @@ def save(obj: Any, path: str) -> None: # noqa
         pickle.dump(obj, f)
 
 
-def load(path: str) -> Any: # noqa
+def load(path: str) -> Any:  # noqa
     """Load an object from file using pickle module.
 
     Args:
@@ -126,7 +126,7 @@ def ungroup_frames(frames_by_seq_id: Sequences) -> Frames:
 
 def index_array_values(array_dict: Frame, index: Union[int, NDArrayInt]) -> Frame:
     """Index each numpy array in dictionary.
-    
+
     Args:
         array_dict: dictionary of numpy arrays
         index: index used to access each numpy array in array_dict
@@ -180,7 +180,7 @@ def concatenate_array_values(array_dicts: Frames) -> Frame:
 
 def filter_by_class_thresholds(frames_by_seq_id: Sequences, thresholds_by_class: Dict[str, float]) -> Sequences:
     """Filter detections, keeping only detections with score higher than the provided threshold for that class.
-    
+
     If a class threshold is not provided, all detections in that class is filtered.
 
     Args:

@@ -62,7 +62,7 @@ def test_straight_centerline_to_polygon() -> None:
     # fmt: on
 
     polygon = polyline_utils.centerline_to_polygon(centerline, width_scaling_factor=2)
-    
+
     # assert np.array_equal(polygon, gt_polygon)
     assert polygon.shape == (7, 2)
 
