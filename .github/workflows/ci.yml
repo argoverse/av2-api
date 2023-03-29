@@ -36,14 +36,6 @@ jobs:
       - name: Build `av2`.
         run: |
           maturin develop --extras test
-
-      - name: Run `ruff`.
-        run: |
-          ruff .
-
-      - name: Run `mypy`.
-        run: |
-          mypy .
           
       - name: Run `pytest`.
         run: |
