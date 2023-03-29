@@ -1,5 +1,6 @@
 name: av2
 channels:
+  - pytorch
   - conda-forge
 dependencies:
   - av

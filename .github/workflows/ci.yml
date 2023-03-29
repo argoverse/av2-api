@@ -27,17 +27,35 @@ jobs:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
         with:
+          activate-environment: av2
+          environment-file: conda/environment.yml
           mamba-version: "*"
           miniforge-version: latest
           python-version: ${{ matrix.python_version }}
 
-      - name: Install prerequisites.
+      - name: Build `av2`.
         run: |
-          mamba install -y nox pip pyyaml
+          maturin develop --extras test
 
-      - name: Run nox with ${{ matrix.venv_backend }}.
-        run: |  # Cache the environments (-r), fail on missing python interpreters (--error-on-missing-interpreters), set dependency resolver backend.
-          python -m nox -r --error-on-missing-interpreters --python ${{ matrix.python_version }} --default-venv-backend ${{ matrix.venv_backend }}
+      - name: Run `black`.
+        run: |
+          black .
+
+      - name: Run `isort`.
+        run: |
+          isort .
+
+      - name: Run `flake8`.
+        run: |
+          flake8 .
+
+      - name: Run `flake8`.
+        run: |
+          mypy .
+          
+      - name: Run `pytest`.
+        run: |
+          pytest tests --cov src/av2
 
       - name: Install pypa/build.
         run: >-
