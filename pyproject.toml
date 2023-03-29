@@ -67,18 +67,15 @@ select = [
     "D",
 ]
 
+[tool.ruff.pydocstyle]
+convention = "google"
+
 [tool.mypy]
 exclude = "build"
 ignore_missing_imports = true
 disallow_untyped_decorators = false
 plugins = "numpy.typing.mypy_plugin"
 strict = true
-
-[tool.pylint]
-max-line-length = 120
-
-[tool.ruff.pydocstyle]
-convention = "google"
 
 [tool.pyright]
 include = ["src"]
