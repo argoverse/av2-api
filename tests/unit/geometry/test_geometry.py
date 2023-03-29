@@ -112,8 +112,9 @@ def test_quat_to_mat_3d(quat_wxyz: NDArrayFloat) -> None:
     """
     # Quaternion to Quaternion round-trip conversion.
     # (Note: For comparison, Quaternion needs to be converted from scalar last to scalar first.)
-    def quat_to_quat(quat_wxyz):
-        return Rotation.as_quat(Rotation.from_matrix(geometry_utils.quat_to_mat(quat_wxyz)))[..., [3, 0, 1, 2]]
+    quat_to_quat: Callable[[NDArrayFloat], Any] = lambda quat_wxyz: Rotation.as_quat(
+        Rotation.from_matrix(geometry_utils.quat_to_mat(quat_wxyz))
+    )[..., [3, 0, 1, 2]].astype(np.float64)
 
     assert np.allclose(quat_wxyz, quat_to_quat(quat_wxyz))
 
