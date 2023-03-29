@@ -33,11 +33,7 @@ jobs:
           miniforge-version: latest
           python-version: ${{ matrix.python_version }}
 
-      - name: Install prerequisites.
-        run: |
-          mamba install -y pip
-
-      - name: Build ${{ matrix.venv_backend }}.
+      - name: Build `av2`.
         run: |
           maturin develop --extras test
 
