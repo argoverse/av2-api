@@ -266,7 +266,7 @@ def compute_interior_points_mask(points_xyz: NDArrayFloat, cuboid_vertices: NDAr
     Args:
         points_xyz: (N,3) Array representing a point cloud in Cartesian coordinates (x,y,z).
         cuboid_vertices: (8,3) Array representing 3D cuboid vertices, ordered as shown above. 
-   
+
     Returns:
         (N,) An array of boolean flags indicating whether the points are interior to the cuboid.
     """

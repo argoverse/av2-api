@@ -80,8 +80,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
     def __getitem__(self, index: int) -> Tuple[Sweep, Sweep, Se3, Optional[Flow]]:
         """Get a pair of sweeps, ego motion, and flow if annotations are available."""
         backend_index = self.index_map[index]
-        log = self.file_index.loc[index, "log_id"]
-        log_map_dirpath = self.data_dir / log
+        log = str(self.file_index.loc[index, "log_id"])
         log_map_dirpath = self.data_dir / log / "map"
         avm = ArgoverseStaticMap.from_map_dir(log_map_dirpath, build_raster=True)
 
