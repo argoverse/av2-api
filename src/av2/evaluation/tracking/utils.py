@@ -1,12 +1,23 @@
+"""Tracking evaluation utilities.
+
+Detection and track data in a single frame are kept as a dictionary of names to numpy arrays.
+This module provides helper functions for manipulating this data format.
+"""
 import os
 import pickle
 from collections import defaultdict
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
 import numpy as np
 from tqdm import tqdm
 
-av2_classes = [
+from av2.utils.typing import NDArrayInt
+
+Frame = Dict[str, Any]
+Frames = List[Frame]
+Sequences = Dict[str, Frames]
+
+av2_classes: List[str] = [
     "REGULAR_VEHICLE",
     "PEDESTRIAN",
     "BICYCLIST",
@@ -36,14 +47,30 @@ av2_classes = [
 ]
 
 
-def progressbar(itr, desc=None, **kwargs):
+def progressbar(itr: Iterable[Any], desc: Optional[str] = None, **kwargs: Dict[str, Any]) -> tqdm:
+    """Create and return a tqdm progress bar object for the given iterable.
+
+    Args:
+        itr: The iterable object to be looped over.
+        desc: A short description of the progress bar. Defaults to None.
+        kwargs: Optional arguments to be passed to the tqdm constructor.
+
+    Returns:
+        tqdm progress bar
+    """
     pbar = tqdm(itr, **kwargs)
     if desc:
         pbar.set_description(desc)
     return pbar
 
 
-def save(obj, path: str) -> None:
+def save(obj: Any, path: str) -> None: # noqa
+    """Save an object to a file using pickle serialization.
+
+    Args:
+        obj: An object to be saved.
+        path: A string representing the file path to save the object to.
+    """
     dir = os.path.dirname(path)
     if dir != "":
         os.makedirs(dir, exist_ok=True)
@@ -51,11 +78,14 @@ def save(obj, path: str) -> None:
         pickle.dump(obj, f)
 
 
-def load(path: str) -> Any:
-    """
-    Returns
-    -------
-        object or None: returns None if the file does not exist
+def load(path: str) -> Any: # noqa
+    """Load an object from file using pickle module.
+
+    Args:
+        path: File path
+
+    Returns:
+        Object or None if the file does not exist
     """
     if not os.path.exists(path):
         return None
@@ -63,80 +93,74 @@ def load(path: str) -> Any:
         return pickle.load(f)
 
 
-def unpack_predictions(frames: List[Dict], classes: List[str]) -> List[Dict]:
-    """
-    Returns
-    -------
-    list:
-        each prediction item is a dictionary with keys:
-        translation: ndarray[instance, [x, y, z]]
-        size: ndarray[instance, [l, w, h]]
-        yaw: ndarray[instance, float]
-        velocity: ndarray[instance, [x, y]]
-        label: ndarray[instance, int]
-        score: ndarray[instance, float]
-        frame_index: ndarray[instance, int]
-    """
-    unpacked_frames = []
-    for frame_dict in frames:
-        prediction = frame_dict["pts_bbox"]
-        bboxes = prediction["boxes_3d"].tensor.numpy()
-        label = prediction["labels_3d"].numpy()
-        unpacked_frames.append(
-            {
-                "translation": bboxes[:, :3],
-                "size": bboxes[:, 3:6],
-                "yaw": wrap_pi(bboxes[:, 6]),
-                "velocity": bboxes[:, -2:],
-                "label": label,
-                "name": np.array([classes[id] if id < len(classes) else "OTHER" for id in label]),
-                "score": prediction["scores_3d"].numpy(),
-            }
-        )
-    return unpacked_frames
+def group_frames(frames_list: Frames) -> Sequences:
+    """Group list of frames into dictionary by sequence id.
 
+    Args:
+        frames_list: List of frames, each containing a detections snapshot for a timestamp
 
-def annotate_frame_metadata(prediction_frames: List[Dict], label_frames: List[Dict], metadata_keys: List[str]) -> None:
-    assert len(prediction_frames) == len(label_frames)
-    for prediction, label in zip(prediction_frames, label_frames):
-        for key in metadata_keys:
-            prediction[key] = label[key]
-
-
-def group_frames(frames_list: List[Dict]) -> Dict[str, List[Dict]]:
-    """
-    Parameters
-    ----------
-    frames_list: list
-        list of frames, each containing a detections snapshot for a timestamp
+    Returns:
+        Dictionary of frames indexed by sequence id
     """
     frames_by_seq_id = defaultdict(list)
-    frames_list = sorted(frames_list, key=lambda f: f["timestamp_ns"])
+    frames_list = sorted(frames_list, key=lambda f: cast(int, f["timestamp_ns"]))
     for frame in frames_list:
         frames_by_seq_id[frame["seq_id"]].append(frame)
     return dict(frames_by_seq_id)
 
 
-def ungroup_frames(frames_by_seq_id: Dict[str, List[Dict]]):
+def ungroup_frames(frames_by_seq_id: Sequences) -> Frames:
+    """Ungroup dictionary of frames into a list of frames.
+
+    Args:
+        frames_by_seq_id: dictionary of frames
+
+    Returns:
+        List of frames
+    """
     ungrouped_frames = []
     for frames in frames_by_seq_id.values():
         ungrouped_frames.extend(frames)
     return ungrouped_frames
 
 
-def index_array_values(array_dict: Dict, index: Union[int, np.ndarray]) -> Dict:
+def index_array_values(array_dict: Frame, index: Union[int, NDArrayInt]) -> Frame:
+    """Index each numpy array in dictionary.
+    
+    Args:
+        array_dict: dictionary of numpy arrays
+        index: index used to access each numpy array in array_dict
+
+    Returns:
+        Dictionary of numpy arrays, each indexed by the provided index
+    """
     return {k: v[index] if isinstance(v, np.ndarray) else v for k, v in array_dict.items()}
 
 
-def array_dict_iterator(array_dict: Dict, length: int):
+def array_dict_iterator(array_dict: Frame, length: int) -> Iterable[Frame]:
+    """Get an iterator over each index in array_dict.
+
+    Args:
+        array_dict: dictionary of numpy arrays
+        length: number of elements to iterate over
+
+    Returns:
+        Iterator, each element is a dictionary of numpy arrays, indexed from 0 to (length-1)
+    """
     return (index_array_values(array_dict, i) for i in range(length))
 
 
-def concatenate_array_values(array_dicts: List[Dict]) -> Dict[str, np.ndarray]:
-    """
-    Concatenates numpy arrays in list of dictionaries
+def concatenate_array_values(array_dicts: Frames) -> Frame:
+    """Concatenates numpy arrays in list of dictionaries.
+
     Handles inconsistent keys (will skip missing keys)
     Does not concatenate non-numpy values (int, str), sets to value if all values are equal
+
+    Args:
+        array_dicts: list of dictionaries
+
+    Returns:
+        single dictionary of names to numpy arrays
     """
     combined = defaultdict(list)
     for array_dict in array_dicts:
@@ -154,7 +178,18 @@ def concatenate_array_values(array_dicts: List[Dict]) -> Dict[str, np.ndarray]:
     return concatenated
 
 
-def filter_by_class_thresholds(frames_by_seq_id, thresholds_by_class):
+def filter_by_class_thresholds(frames_by_seq_id: Sequences, thresholds_by_class: Dict[str, float]) -> Sequences:
+    """Filter detections, keeping only detections with score higher than the provided threshold for that class.
+    
+    If a class threshold is not provided, all detections in that class is filtered.
+
+    Args:
+        frames_by_seq_id: Dictionary of frames
+        thresholds_by_class: Dictionary containing the score thresholds for each class
+
+    Returns:
+        Dictionary of frames, filtered by class score thresholds
+    """
     frames = ungroup_frames(frames_by_seq_id)
     return group_frames(
         [
@@ -170,18 +205,3 @@ def filter_by_class_thresholds(frames_by_seq_id, thresholds_by_class):
             for frame in frames
         ]
     )
-
-
-def group_by_track_id(frames: List[Dict]):
-    tracks_by_track_id = defaultdict(list)
-    for frame_idx, frame in enumerate(frames):
-        for instance in array_dict_iterator(frame, len(frame["translation"])):
-            instance["frame_idx"] = frame_idx
-            tracks_by_track_id[instance["track_id"]].append(instance)
-    return dict(tracks_by_track_id)
-
-
-def wrap_pi(theta: np.array) -> np.array:
-    theta = np.remainder(theta, 2 * np.pi)
-    theta[theta > np.pi] -= 2 * np.pi
-    return theta

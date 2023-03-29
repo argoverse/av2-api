@@ -1,18 +1,27 @@
+"""Argoverse Forecasting evaluation.
+
+Evaluation Metrics:
+    mAP: see https://arxiv.org/abs/2203.16297
+"""
+
 import argparse
 import json
 import pickle
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any, cast
 
 import numpy as np
-import utils
+from . import utils
+from ..tracking.utils import array_dict_iterator
 from tqdm import tqdm
 
 from av2.utils.typing import NDArrayFloat
 
+Sequences = Dict[str, Dict[int, List[Dict[str, Any]]]]
+
 
 def calc_ap(precision: NDArrayFloat, min_recall: float = 0, min_precision: float = 0) -> float:
-    """Calculated average precision. This is taken directly from the nuScenes evaluation dev-kit
+    """Calculate average precision. This is taken directly from the nuScenes evaluation dev-kit.
 
     Args:
         precision: Precision at each recall threshold.
@@ -20,9 +29,8 @@ def calc_ap(precision: NDArrayFloat, min_recall: float = 0, min_precision: float
         min_precision: Minimum precision to consider.
 
     Returns:
-        ap:  Average Precision.
+        Average Precision
     """
-
     assert 0 <= min_precision < 1
     assert 0 <= min_recall <= 1
 
@@ -33,7 +41,7 @@ def calc_ap(precision: NDArrayFloat, min_recall: float = 0, min_precision: float
     return float(np.mean(prec)) / (1.0 - min_precision)
 
 
-def evaluate(predictions: Dict, ground_truth: Dict, K: int) -> Dict:
+def evaluate(predictions: Sequences, ground_truth: Sequences, K: int) -> Dict[str, Any]:
     """Compute Mean Forecasting AP, ADE, and FDE given predicted and ground truth forecasts.
 
     Args:
@@ -47,7 +55,7 @@ def evaluate(predictions: Dict, ground_truth: Dict, K: int) -> Dict:
     class_names = utils.av2_classes
     class_velocity = utils.CATEGORY_TO_VELOCITY
 
-    res = {}
+    res: Dict[str, Any] = {}
     velocity_profile = utils.VELOCITY_PROFILE
 
     for profile in velocity_profile:
@@ -89,7 +97,6 @@ def evaluate(predictions: Dict, ground_truth: Dict, K: int) -> Dict:
     for cname in class_names:
         cvel = class_velocity[cname]
         for profile in velocity_profile:
-            mAP_F, mADE, mFDE = [], [], []
             for th in utils.DISTANCE_THRESHOLDS_M:
                 args = pred_agents, gt_agents, K, cname, profile, cvel, th
 
@@ -112,15 +119,22 @@ def evaluate(predictions: Dict, ground_truth: Dict, K: int) -> Dict:
 
 
 def accumulate(
-    pred_agents: List, gt_agents: List, K: int, class_name: str, profile: str, velocity: float, threshold: float
-) -> Tuple:
-    """Performs matching between predicted and ground truth trajectories.
+    pred_agents: List[Dict[str, Any]],
+    gt_agents: List[Dict[str, Any]],
+    K: int,
+    class_name: str,
+    profile: str,
+    velocity: float,
+    threshold: float,
+) -> Tuple[float, float, float, str, str]:
+    """Perform matching between predicted and ground truth trajectories.
 
     Args:
         pred_agents: List of predicted trajectories for a given log_id and timestamp.
         gt_agents: List of ground truth trajectories for a given log_id and timestamp.
         K: Number of future trajectories to consider when evaluating Forecastin AP, ADE and FDE (K=5 by default).
-        class_name: Match class name (e.g. car, pedestrian, bicycle) to determine if a trajectory is included in evaluation.
+        class_name: Match class name (e.g. car, pedestrian, bicycle) to determine if a trajectory is included
+            in evaluation.
         profile: Match profile (e.g. static/linear/non-linear) to determine if a trajectory is included in evaluation.
         velocity: Average velocity for each class. This determines whether a trajectory is static/linear/non-linear
         threshold: Match threshold to determine true positives and false positives.
@@ -129,11 +143,12 @@ def accumulate(
         apf: Forecasting AP.
         ade: Average displacement error.
         fde: Final displacement error.
-        class_name: Match class name (e.g. car, pedestrian, bicycle) to determine if a trajectory is included in evaluation.
+        class_name: Match class name (e.g. car, pedestrian, bicycle) to determine if a trajectory is included
+            in evaluation.
         profile: Match profile (e.g. static/linear/non-linear) to determine if a trajectory is included in evaluation.
     """
 
-    def match(gt, pred, profile):
+    def match(gt: str, pred: str, profile: str) -> bool:
         if gt == profile:
             return True
 
@@ -176,7 +191,7 @@ def accumulate(
         # If the closest match is close enough according to threshold we have a match!
         is_match = min_dist < threshold
 
-        if is_match:
+        if is_match and match_gt_idx is not None:
             taken.add((pred_agent["seq_id"], pred_agent["timestamp"], match_gt_idx))
             gt_match_agent = gt_agents_in_frame[match_gt_idx]
 
@@ -184,18 +199,18 @@ def accumulate(
             forecast_match_th = [threshold + utils.FORECAST_SCALAR[i] * velocity for i in range(gt_len + 1)]
 
             if K == 1:
-                ind = np.argmax(pred_agent["score"])
+                ind = cast(int, np.argmax(pred_agent["score"]))
                 forecast_dist = [
                     utils.center_distance(gt_match_agent["future_translation"][i], pred_agent["prediction"][ind][i])
                     for i in range(gt_len)
                 ]
                 forecast_match = [dist < th for dist, th in zip(forecast_dist, forecast_match_th[1:])]
 
-                ade = np.mean(forecast_dist)
+                ade = cast(float, np.mean(forecast_dist))
                 fde = forecast_dist[-1]
 
             elif K == 5:
-                forecast_dist, forecast_match = None, None
+                forecast_dist, forecast_match = None, [False]
                 ade, fde = np.inf, np.inf
 
                 for ind in range(K):
@@ -205,7 +220,7 @@ def accumulate(
                     ]
                     curr_forecast_match = [dist < th for dist, th in zip(curr_forecast_dist, forecast_match_th[1:])]
 
-                    curr_ade = np.mean(curr_forecast_dist)
+                    curr_ade = cast(float, np.mean(curr_forecast_dist))
                     curr_fde = curr_forecast_dist[-1]
 
                     if curr_ade < ade:
@@ -226,47 +241,40 @@ def accumulate(
             tp.append(False)
             fp.append(True)
 
-            ind = np.argmax(pred_agent["score"])
+            ind = cast(int, np.argmax(pred_agent["score"]))
             gt_profiles.append("ignore")
             pred_profiles.append(pred_agent["trajectory_type"][ind])
 
     select = [match(gt, pred, profile) for gt, pred in zip(gt_profiles, pred_profiles)]
-    tp = np.array(tp)[select]
-    fp = np.array(fp)[select]
+    tp_array = np.array(tp)[select]
+    fp_array = np.array(fp)[select]
 
     if len(tp) == 0:
         return np.nan, np.nan, np.nan, class_name, profile
 
-    tp = np.cumsum(tp).astype(float)
-    fp = np.cumsum(fp).astype(float)
+    tp_array = np.cumsum(tp_array).astype(float)
+    fp_array = np.cumsum(fp_array).astype(float)
 
-    prec = tp / (fp + tp)
-    rec = tp / float(npos)
+    prec = tp_array / (fp_array + tp_array)
+    rec = tp_array / float(npos)
 
     rec_interp = np.linspace(0, 1, utils.NUM_ELEMS)  # 101 steps, from 0% to 100% recall.
     prec = np.interp(rec_interp, rec, prec, right=0)
 
     apf = calc_ap(prec)
 
-    return (apf, np.mean(agent_ade), np.mean(agent_fde), class_name, profile)
+    return (apf, cast(float, np.mean(agent_ade)), cast(float, np.mean(agent_fde)), class_name, profile)
 
 
-def convert_forecast_labels(labels: Dict) -> Dict:
-    """Converts the unified label format to a format that is easier to work with for forecasting evaluation.
+def convert_forecast_labels(labels: Dict[str, List[Dict[str, Any]]]) -> Sequences:
+    """Convert the unified label format to a format that is easier to work with for forecasting evaluation.
 
     Args:
         labels: Dictionary of labels.
 
     Returns:
-        forecast_labels: Dictionary of labels in the forecasting format
+        forecast_labels, dictionary of labels in the forecasting format
     """
-
-    def index_array_values(array_dict, index):
-        return {k: v[index] if isinstance(v, np.ndarray) else v for k, v in array_dict.items()}
-
-    def array_dict_iterator(array_dict, length):
-        return (index_array_values(array_dict, i) for i in range(length))
-
     forecast_labels = {}
     for seq_id, frames in labels.items():
         frame_dict = {}

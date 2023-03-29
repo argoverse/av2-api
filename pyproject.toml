@@ -31,6 +31,7 @@ dependencies = [
     "torch",
     "tqdm",
     "universal_pathlib",
+    "trackeval @ git+https://github.com/JonathonLuiten/TrackEval.git"
 ]
 
 [tool.maturin]
