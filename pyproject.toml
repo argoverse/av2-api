@@ -41,14 +41,15 @@ dynamic = [
 ]
 
 [project.optional-dependencies]
-test = [
+lint = [
     "black[jupyter]",
     "mypy",
-    "types-pyyaml",
+    "ruff",
+]
+test = [
     "pytest",
     "pytest-benchmark",
     "pytest-cov",
-    "ruff",
 ]
 
 [project.urls]
