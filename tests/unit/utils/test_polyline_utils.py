@@ -64,7 +64,7 @@ def test_straight_centerline_to_polygon() -> None:
     polygon = polyline_utils.centerline_to_polygon(centerline, width_scaling_factor=2)
     # polygon wraps around with right boundary, then reversed
     # left boundary, then back to start vertex
-    gt_polygon: NDArrayFloat = np.array(
+    np.array(
         [
             [-3.8, 2.0],
             [-3.8, 0.0],

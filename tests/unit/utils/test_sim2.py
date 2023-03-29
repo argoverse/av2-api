@@ -228,7 +228,7 @@ def test_cannot_set_zero_scale() -> None:
     t: NDArrayFloat = np.arange(2, dtype=float)
     s = 0.0
 
-    with pytest.raises(ZeroDivisionError) as e_info:
+    with pytest.raises(ZeroDivisionError):
         Sim2(R, t, s)
 
 
@@ -288,7 +288,7 @@ def test_from_json_invalid_scale() -> None:
     """Ensure that classmethod raises an error with invalid JSON input."""
     json_fpath = _TEST_DATA_ROOT / "a_Sim2_b___invalid.json"
 
-    with pytest.raises(ZeroDivisionError) as e_info:
+    with pytest.raises(ZeroDivisionError):
         Sim2.from_json(json_fpath)
 
 

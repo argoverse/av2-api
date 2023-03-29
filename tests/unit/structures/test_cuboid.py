@@ -172,13 +172,13 @@ def test_getitem() -> None:
 
     assert isinstance(cuboid_list[5], Cuboid)
 
-    with pytest.raises(IndexError) as e_info:
+    with pytest.raises(IndexError):
         cuboid_list[-1]
 
-    with pytest.raises(IndexError) as e_info:
+    with pytest.raises(IndexError):
         cuboid_list[50]
 
-    with pytest.raises(IndexError) as e_info:
+    with pytest.raises(IndexError):
         cuboid_list[51]
 
 

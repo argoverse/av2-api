@@ -43,22 +43,20 @@ def main(
         lidar_tensor = sweep.lidar.as_tensor()
 
         # Transform the points to city coordinates.
-        lidar_xyz_city = transform_points(city_SE3_ego_mat4, lidar_tensor[:, :3])
+        transform_points(city_SE3_ego_mat4, lidar_tensor[:, :3])
 
         # Cuboids might not be available (e.g., using the "test" split).
         if sweep.cuboids is not None:
             # Annotations in (x,y,z,l,w,h,yaw) format.
-            cuboids = sweep.cuboids.as_tensor()
+            sweep.cuboids.as_tensor()
 
             # Annotations in (x,y,z,l,theta) format.
             # 1-DOF rotation.
-            xyzlwh_t = sweep.cuboids.as_tensor()
+            sweep.cuboids.as_tensor()
 
             # Access cuboid category.
-            category = sweep.cuboids.category
 
             # Access track uuid.
-            track_uuid = sweep.cuboids.track_uuid
 
         if i >= max_iterations:
             logger.info(f"Reached max iterations of {max_iterations}!")

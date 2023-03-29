@@ -194,7 +194,7 @@ def test_metrics() -> None:
 
     tp: int = sum(metrics["TP"])
     assert tp == 2
-    tn: int = sum(metrics["TN"])
+    sum(metrics["TN"])
     assert tp == 2  # The first TN is marked invalid
     fp: int = sum(metrics["FP"])
     assert fp == 3
