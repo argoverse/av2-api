@@ -1,4 +1,4 @@
-name: av2
+name: av2-test
 channels:
   - pytorch
   - conda-forge

@@ -37,17 +37,29 @@ jobs:
         run: |
           mamba install -y pip
 
-      - name: Run nox with ${{ matrix.venv_backend }}.
-        run: >-
+      - name: Build ${{ matrix.venv_backend }}.
+        run: |
           maturin develop --extras test
 
-      - name: Run CI.
+      - name: Run `black`.
         run: |
           black .
+
+      - name: Run `isort`.
+        run: |
           isort .
+
+      - name: Run `flake8`.
+        run: |
           flake8 .
+
+      - name: Run `flake8`.
+        run: |
           mypy .
-          "pytest" "tests" "--cov" "src/av2"
+          
+      - name: Run `pytest`.
+        run: |
+          pytest tests --cov src/av2
 
       - name: Install pypa/build.
         run: >-
