@@ -1,41 +1,29 @@
-name: Setup mdBook wth plugins (version)
+name: github pages
+
 on:
   push:
     branches:
-      - "documentation/readmes"
+      - features/user-guide
+  pull_request:
+
 jobs:
-  run:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-20.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: jontze/action-mdbook@v2
+      - uses: actions/checkout@v2
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1
         with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          # Optional Plugins have to be enabled with a version
-          mdbook-version: "~0.3.0" # Use a semver compatible string
-          use-linkcheck: true
-          linkcheck-version: "~0.7.0"
-          use-mermaid: true
-          mermaid-version: "~0.8.0"
-          use-toc: true
-          toc-version: "~0.7.0"
-          use-opengh: true
-          opengh-version: "~2.0.0"
-          use-admonish: true
-          admonish-version: "~1.8.0"
-          use-katex: true
-          admonish-version: "~0.2.17"
-      - name: Show mdbook version
-        run: mdbook --version
-      - name: Show linkchecker version
-        run: mdbook-linkcheck --version
-      - name: Show mermaid version
-        run: mdbook-mermaid --version
-      - name: Show toc version
-        run: mdbook-toc --version
-      - name: Show open-on-gh version
-        run: mdbook-open-on-gh --version
-      - name: Show admonish version
-        run: mdbook-admonish --version
-      - name: Show katex version
-        run: mdbook-katex --version
+          mdbook-version: 'latest'
+
+      - run: mdbook build
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.ref == 'refs/heads/main' }}
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./guide/book
