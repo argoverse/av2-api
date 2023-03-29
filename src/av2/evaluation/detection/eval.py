@@ -51,12 +51,9 @@ Results:
     in addition to the mean statistics average across all classes, and P refers to the number of included statistics,
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
-import itertools
 import logging
 import multiprocessing as mp
 import warnings
-from math import inf
-from statistics import mean
 from typing import Dict, Final, List, Optional, Tuple
 
 import numpy as np

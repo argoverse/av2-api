@@ -1,15 +1,12 @@
 """Validate and package a set of prediction files for submission to the leaderboard."""
-import json
 from pathlib import Path
-from typing import Dict, Final
+from typing import Final
 from zipfile import ZipFile
 
 import click
 import numpy as np
 import pandas as pd
 from rich.progress import track
-
-import av2.evaluation.scene_flow.utils
 
 SUBMISSION_COLUMNS: Final = ("flow_tx_m", "flow_ty_m", "flow_tz_m", "is_dynamic")
 
@@ -32,7 +29,7 @@ def validate(submission_dir: Path, mask_file: Path) -> None:
             if not input_file.exists():
                 raise FileNotFoundError(f"{input_file} not found in submission directory")
             pred = pd.read_feather(input_file)
-            expected_num_points = pd.read_feather(masks.open(filename)).sum()
+            expected_num_points = pd.read_feather(masks.open(filename)).sum().item()
 
             for c in SUBMISSION_COLUMNS:
                 if c not in pred.columns:

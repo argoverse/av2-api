@@ -20,7 +20,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, Final, List, Optional, Tuple, Union
 
-import fsspec
 import numpy as np
 from upath import UPath
 

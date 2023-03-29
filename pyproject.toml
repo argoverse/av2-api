@@ -3,8 +3,6 @@ requires = ["maturin>=0.14,<0.15"]
 build-backend = "maturin"
 
 [project]
-author = "Argoverse"
-license = {file = "LICENSE"}
 name = "av2"
 requires-python = ">=3.8"
 classifiers = [
@@ -34,8 +32,39 @@ dependencies = [
     "trackeval @ git+https://github.com/JonathonLuiten/TrackEval.git"
 ]
 
+dynamic = [
+    "authors",
+    "description",
+    "license",
+    "readme",
+    "version"
+]
+
+[project.optional-dependencies]
+test = [
+    "black[jupyter]",
+    "flake8",
+    "flake8-annotations",
+    "flake8-black",
+    "flake8-bugbear",
+    "flake8-docstrings",
+    "flake8-import-order",
+    "darglint",
+    "isort",
+    "mypy",
+    "types-pyyaml",
+    "pytest",
+    "pytest-benchmark",
+    "pytest-cov",
+]
+
+[project.urls]
+homepage = "argoverse.org"
+repository = "https://github.com/argoverse/av2-api"
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
+module-name = "av2._r"
 
 [tool.black]
 line-length = 120
