@@ -12,23 +12,23 @@
 
 ## Getting Started
 
-Please see the [Argoverse User Guide](https://argoverse.github.io/av2-api/).
+Please see the [Argoverse User Guide](https://argoverse.github.io/user-guide/).
 
 ## Supported Datasets
 
 - Argoverse 2 (AV2)
-  - [Sensor](https://argoverse.github.io/av2-api/datasets/sensor.html)
-  - [Lidar](https://argoverse.github.io/av2-api/datasets/lidar.html)
-  - [Motion Forecasting](https://argoverse.github.io/av2-api/datasets/motion_forecasting.html)
+  - [Sensor](https://argoverse.github.io/user-guide/datasets/sensor.html)
+  - [Lidar](https://argoverse.github.io/user-guide/datasets/lidar.html)
+  - [Motion Forecasting](https://argoverse.github.io/user-guide/datasets/motion_forecasting.html)
 - Trust, but Verify (TbV)
-  - [Map Change Detection](https://argoverse.github.io/av2-api/datasets/map_change_detection.html)
+  - [Map Change Detection](https://argoverse.github.io/user-guide/datasets/map_change_detection.html)
 
 ## Supported Tasks
 
 - Argoverse 2 (AV2)
-  - [3D Object Detection](https://argoverse.github.io/av2-api/tasks/3d_object_detection.html)
-  - [3D Scene Flow](https://argoverse.github.io/av2-api/tasks/3d_scene_flow.html)
-  - [Motion Forecasting](https://argoverse.github.io/av2-api/tasks/motion_forecasting.html)
+  - [3D Object Detection](https://argoverse.github.io/user-guide/tasks/3d_object_detection.html)
+  - [3D Scene Flow](https://argoverse.github.io/user-guide/tasks/3d_scene_flow.html)
+  - [Motion Forecasting](https://argoverse.github.io/user-guide/tasks/motion_forecasting.html)
 
 
 ## Citing
