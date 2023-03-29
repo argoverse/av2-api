@@ -62,7 +62,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
 
     @cached_property
     def index_map(self) -> List[int]:
-        """Create a mapping between indicies in this dataloader and the underlying one."""
+        """Create a mapping between indices in this dataloader and the underlying one."""
         indices = []
         N = self._backend.__len__()
         for i in range(N):

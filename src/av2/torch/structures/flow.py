@@ -27,7 +27,7 @@ class Flow:
 
     Args:
         flow: (N,3) Motion vectors (x,y,z) in meters.
-        is_valid: (N,) 1 if the flow was succesfuly estimated for that point 0 otherwise
+        is_valid: (N,) 1 if the flow was successfully estimated for that point 0 otherwise
         category_indices: (N,) the semantic object class of each point (0 is background)
         is_dynamic: (N,) 1 if the point is considered dynamic 0 otherwise
     """
@@ -107,7 +107,7 @@ def cuboids_to_id_cuboid_map(cuboids: Cuboids) -> Dict[str, Cuboid]:
         cuboids: Cuboids to transform into a mapping.
 
     Returns:
-        A dict with the UUIDs as keys and the coresponding cuboids as values.
+        A dict with the UUIDs as keys and the corresponding cuboids as values.
     """
     ids = cuboids.track_uuid
     annotations_df_with_ts = cuboids._frame.assign(timestamp_ns=None)

@@ -193,7 +193,7 @@ def linear_interpolation(
     """
     t0, t1 = key_timestamps
     if query_timestamp < t0 or query_timestamp > t1:
-        raise ValueError("Query timestamp must be witin the interval [t0,t1].")
+        raise ValueError("Query timestamp must be within the interval [t0,t1].")
 
     interval = t1 - t0
     t = (query_timestamp - t0) / interval
@@ -226,7 +226,7 @@ def interpolate_pose(key_timestamps: Tuple[int, int], key_poses: Tuple[SE3, SE3]
     """
     t0, t1 = key_timestamps
     if query_timestamp < t0 or query_timestamp > t1:
-        raise ValueError("Query timestamp must be witin the interval [t0,t1].")
+        raise ValueError("Query timestamp must be within the interval [t0,t1].")
 
     # Setup the fixed keyframe rotations and times
     key_rots = Rotation.from_matrix(np.array([kp.rotation for kp in key_poses]))

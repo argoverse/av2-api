@@ -112,7 +112,7 @@ class SensorDataloader:
         """Index the dataset for fast sensor data lookup.
 
         Synchronization database and sensor records are separate tables. Sensor records are an enumeration of
-        the records. The synchronization database is a hierarchichal index (Pandas MultiIndex) that functions
+        the records. The synchronization database is a hierarchical index (Pandas MultiIndex) that functions
         as a lookup table with correspondences between nearest images.
         Given reference LiDAR timestamp -> obtain 7 closest ring camera + 2 stereo camera timestamps.
         First level: Log id (1000 uuids)
@@ -390,9 +390,9 @@ class SensorDataloader:
                 # Merge based on matching criterion.
                 # _Very_ important to convert to timedelta. Tolerance below causes precision loss otherwise.
                 target_records[target_sensor_name] = pd.to_timedelta(target_records[target_sensor_name])
-                tolerence = pd.to_timedelta(CAM_SHUTTER_INTERVAL_MS / 2 * 1e6)
+                tolerance = pd.to_timedelta(CAM_SHUTTER_INTERVAL_MS / 2 * 1e6)
                 if "ring" in src_sensor_name:
-                    tolerence = pd.to_timedelta(LIDAR_SWEEP_INTERVAL_W_BUFFER_NS / 2)
+                    tolerance = pd.to_timedelta(LIDAR_SWEEP_INTERVAL_W_BUFFER_NS / 2)
                 src_records = pd.merge_asof(
                     src_records,
                     target_records,
@@ -400,7 +400,7 @@ class SensorDataloader:
                     right_on=target_sensor_name,
                     by=["split", "log_id"],
                     direction=self.matching_criterion,
-                    tolerance=tolerence,
+                    tolerance=tolerance,
                 )
             sync_list.append(src_records)
         sync_records = pd.concat(sync_list).reset_index(drop=True)

@@ -164,12 +164,12 @@ def evaluate(
     Each sequence/log is evaluated separately.
 
     Args:
-        labels: Dict[seq_id: List[frame]] Dictionary of ground truth annotations
-        track_predictions: Dict[seq_id: List[frame]] Dictionary of tracks
-        classes: List of classes to evaluate
-        tracker_name: Name of tracker
-        output_dir: Folder to save evaluation results
-        iou_threshold: IoU threshold for a True Positive match betwee a detection to a ground truth bounding box
+        labels: Dict[seq_id: List[frame]] Dictionary of ground truth annotations.
+        track_predictions: Dict[seq_id: List[frame]] Dictionary of tracks.
+        classes: List of classes to evaluate.
+        tracker_name: Name of tracker.
+        output_dir: Folder to save evaluation results.
+        iou_threshold: IoU threshold for a True Positive match between a detection to a ground truth bounding box.
 
     frame is a dictionary with the following format
         {
@@ -188,10 +188,10 @@ def evaluate(
                 }
             ]
         }
-    where I is the number of objects in the frame
+    where I is the number of objects in the frame.
 
     Returns:
-        dictionary of metric values
+        dictionary of metric values.
     """
     labels_id_ts = set((frame["seq_id"], frame["timestamp_ns"]) for frame in utils.ungroup_frames(labels))
     predictions_id_ts = set(
@@ -247,7 +247,7 @@ def _tune_score_thresholds(
         objective_metric: Name of the metric to optimize, one of HOTA or MOTA
         classes: List of classes to evaluate
         num_thresholds: number of score thresholds to try
-        iou_threshold: IoU threshold for a True Positive match betwee a detection to a ground truth bounding box
+        iou_threshold: IoU threshold for a True Positive match between a detection to a ground truth bounding box
         match_distance_threshold: maximum euclidean distance threshold for a match
 
     Returns:

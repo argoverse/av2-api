@@ -173,7 +173,7 @@ def test_from_matrix() -> None:
 
 
 def test_matrix_homogenous_transform() -> None:
-    """Ensure 3x3 matrix transforms homogenous points as expected."""
+    """Ensure 3x3 matrix transforms homogeneous points as expected."""
     expected_img_pts: NDArrayFloat = np.array([[6, 4], [4, 6], [0, 0], [1, 7]])
 
     world_pts: NDArrayFloat = np.array([[2, -1], [1, 0], [-1, -3], [-0.5, 0.5]])

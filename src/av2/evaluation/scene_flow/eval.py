@@ -58,7 +58,7 @@ def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, distance_threshold: f
 
 
 def compute_accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
-    """Compute the acccuracy with a 0.05 threshold.
+    """Compute the accuracy with a 0.05 threshold.
 
     Args:
         dts: (N,3) Array containing predicted flows.
@@ -71,7 +71,7 @@ def compute_accuracy_strict(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloa
 
 
 def compute_accuracy_relax(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
-    """Compute the acccuracy with a 0.1 threshold.
+    """Compute the accuracy with a 0.1 threshold.
 
     Args:
         dts: (N,3) Array containing predicted flows.
@@ -237,7 +237,7 @@ def compute_metrics(
         category_indices: (N,) Integer class labels for each point.
         is_dynamic: (N,) Ground truth dynamic labels.
         is_close: (N,) True for a point if it is within a 70m x 70m box around the AV.
-        is_valid: (N,) True for a point if its flow vector was succesfully computed.
+        is_valid: (N,) True for a point if its flow vector was successfully computed.
         metric_categories: A dictionary mapping segmentation labels to groups of category indices.
 
     Returns:
@@ -340,7 +340,7 @@ def get_prediction_from_directory(annotation_name: Path, predictions_dir: Path) 
         predictions_dir: Path to the predicition files in submission_format.
 
     Returns:
-        DataFrame contating the predictions for that annotation file or None if it does not exist.
+        DataFrame containing the predictions for that annotation file or None if it does not exist.
     """
     pred_file = predictions_dir / annotation_name
     if not pred_file.exists():
@@ -357,7 +357,7 @@ def get_prediction_from_zipfile(annotation_name: Path, predictions_zip: Path) ->
         predictions_zip: Path to the prediction files in a zip archive.
 
     Returns:
-        DataFrame contating the predictions for that annotation file or None if it does not exist.
+        DataFrame containing the predictions for that annotation file or None if it does not exist.
     """
     with ZipFile(predictions_zip, "r") as zf:
         name = annotation_name.as_posix()
