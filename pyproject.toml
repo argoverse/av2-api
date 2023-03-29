@@ -63,6 +63,7 @@ repository = "https://github.com/argoverse/av2-api"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
+module-name = "av2._r"
 
 [tool.black]
 line-length = 120
