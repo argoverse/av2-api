@@ -35,25 +35,11 @@ jobs:
 
       - name: Install prerequisites.
         run: |
-          mamba install -y nox pip pyyaml
+          mamba install -y pip
 
       - name: Run nox with ${{ matrix.venv_backend }}.
         run: >-
-          pip install
-          "black[jupyter]"
-          "flake8"
-          "flake8-annotations"
-          "flake8-black"
-          "flake8-bugbear"
-          "flake8-docstrings"
-          "flake8-import-order"
-          "darglint"
-          "isort"
-          "mypy"
-          "types-pyyaml"
-          "pytest"
-          "pytest-benchmark"
-          "pytest-cov"
+          maturin develop --extras test
 
       - name: Run CI.
         run: |
