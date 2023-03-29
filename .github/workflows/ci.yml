@@ -8,29 +8,28 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest]
         python_version:
           ["3.8", "3.9", "3.10"]
         venv_backend:
-          ["virtualenv"]
+          ["mamba", "virtualenv"]
     defaults:
       run:
         shell: bash -l {0}
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          mamba-version: "*"
-          miniforge-version: latest
-          python-version: ${{ matrix.python_version }}
-
       - name: Reclaim space.
         run: |
           rm -rf /usr/share/dotnet
           rm -rf /opt/ghc
           rm -rf "/usr/local/share/boost"
           rm -rf "$AGENT_TOOLSDIRECTORY"
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          miniforge-version: latest
+          python-version: ${{ matrix.python_version }}
 
       - name: Install prerequisites.
         run: |
