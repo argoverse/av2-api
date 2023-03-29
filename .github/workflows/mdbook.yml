@@ -1,58 +1,41 @@
-# Sample workflow for building and deploying a mdBook site to GitHub Pages
-#
-# To get started with mdBook see: https://rust-lang.github.io/mdBook/index.html
-#
-name: Deploy mdBook site to Pages
-
+name: Setup mdBook wth plugins (version)
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ["documentation/readmes"]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
+    branches:
+      - "documentation/readmes"
 jobs:
-  # Build job
-  build:
+  run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Install mdBook and mdbook-katex.
-        run: |
-          curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf -y | sh
-          rustup update
-          cargo install mdbook mdbook-katex mdbook-admonish mdbook-toc
-      - name: Setup Pages
-        id: pages
-        uses: actions/configure-pages@v3
-      - name: Build with mdBook
-        run: mdbook build guide
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+      - uses: jontze/action-mdbook@v2
         with:
-          path: ./guide/book
-
-  # Deployment job
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v1
+          token: ${{secrets.GITHUB_TOKEN}}
+          # Optional Plugins have to be enabled with a version
+          mdbook-version: "~0.3.0" # Use a semver compatible string
+          use-linkcheck: true
+          linkcheck-version: "~0.7.0"
+          use-mermaid: true
+          mermaid-version: "~0.8.0"
+          use-toc: true
+          toc-version: "~0.7.0"
+          use-opengh: true
+          opengh-version: "~2.0.0"
+          use-admonish: true
+          admonish-version: "~1.8.0"
+          use-katex: true
+          admonish-version: "~0.2.17"
+      - name: Show mdbook version
+        run: mdbook --version
+      - name: Show linkchecker version
+        run: mdbook-linkcheck --version
+      - name: Show mermaid version
+        run: mdbook-mermaid --version
+      - name: Show toc version
+        run: mdbook-toc --version
+      - name: Show open-on-gh version
+        run: mdbook-open-on-gh --version
+      - name: Show admonish version
+        run: mdbook-admonish --version
+      - name: Show katex version
+        run: mdbook-katex --version
