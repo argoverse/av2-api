@@ -63,6 +63,9 @@ line-length = 120
 
 [tool.ruff]
 line-length = 120
+select = [
+    "D",
+]
 
 [tool.mypy]
 exclude = "build"
