@@ -48,15 +48,19 @@ def main(
         # Cuboids might not be available (e.g., using the "test" split).
         if sweep.cuboids is not None:
             # Annotations in (x,y,z,l,w,h,yaw) format.
-            sweep.cuboids.as_tensor()
+            cuboids = sweep.cuboids.as_tensor()
 
             # Annotations in (x,y,z,l,theta) format.
             # 1-DOF rotation.
-            sweep.cuboids.as_tensor()
+            xyzlwh_t = sweep.cuboids.as_tensor()
 
             # Access cuboid category.
+            category = sweep.cuboids.category
 
             # Access track uuid.
+            track_uuid = sweep.cuboids.track_uuid
+
+            print(cuboids, xyzlwh_t, category, track_uuid)
 
         if i >= max_iterations:
             logger.info(f"Reached max iterations of {max_iterations}!")
