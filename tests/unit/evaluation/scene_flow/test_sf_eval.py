@@ -193,8 +193,6 @@ def test_metrics() -> None:
     assert counted_points == valid_points
 
     tp: int = sum(metrics["TP"])
-    assert tp == 2
-    tn: int = sum(metrics["TN"])
     assert tp == 2  # The first TN is marked invalid
     fp: int = sum(metrics["FP"])
     assert fp == 3

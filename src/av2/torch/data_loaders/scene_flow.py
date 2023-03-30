@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
+class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):  # type: ignore
     """PyTorch data-loader for the sensor dataset.
 
     Args:
@@ -62,7 +62,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
 
     @cached_property
     def index_map(self) -> List[int]:
-        """Create a mapping between indicies in this dataloader and the underlying one."""
+        """Create a mapping between indices in this dataloader and the underlying one."""
         indices = []
         N = self._backend.__len__()
         for i in range(N):
@@ -80,8 +80,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
     def __getitem__(self, index: int) -> Tuple[Sweep, Sweep, Se3, Optional[Flow]]:
         """Get a pair of sweeps, ego motion, and flow if annotations are available."""
         backend_index = self.index_map[index]
-        log = self.file_index.loc[index, "log_id"]
-        log_dir_path = log_map_dirpath = self.data_dir / log
+        log = str(self.file_index.loc[index, "log_id"])
         log_map_dirpath = self.data_dir / log / "map"
         avm = ArgoverseStaticMap.from_map_dir(log_map_dirpath, build_raster=True)
 

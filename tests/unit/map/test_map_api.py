@@ -1,7 +1,6 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
 
-"""
-Tests for the Argoverse 2.0 map API.
+"""Tests for the Argoverse 2 map API.
 
 Uses a simplified map with 2 pedestrian crossings, and 3 lane segments.
 """

@@ -173,7 +173,7 @@ def test_from_matrix() -> None:
 
 
 def test_matrix_homogenous_transform() -> None:
-    """Ensure 3x3 matrix transforms homogenous points as expected."""
+    """Ensure 3x3 matrix transforms homogeneous points as expected."""
     expected_img_pts: NDArrayFloat = np.array([[6, 4], [4, 6], [0, 0], [1, 7]])
 
     world_pts: NDArrayFloat = np.array([[2, -1], [1, 0], [-1, -3], [-0.5, 0.5]])
@@ -228,7 +228,7 @@ def test_cannot_set_zero_scale() -> None:
     t: NDArrayFloat = np.arange(2, dtype=float)
     s = 0.0
 
-    with pytest.raises(ZeroDivisionError) as e_info:
+    with pytest.raises(ZeroDivisionError):
         Sim2(R, t, s)
 
 
@@ -288,7 +288,7 @@ def test_from_json_invalid_scale() -> None:
     """Ensure that classmethod raises an error with invalid JSON input."""
     json_fpath = _TEST_DATA_ROOT / "a_Sim2_b___invalid.json"
 
-    with pytest.raises(ZeroDivisionError) as e_info:
+    with pytest.raises(ZeroDivisionError):
         Sim2.from_json(json_fpath)
 
 

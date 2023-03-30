@@ -397,7 +397,7 @@ class ArgoverseStaticMap:
         return list(self.vector_drivable_areas.values())
 
     def get_lane_segment_successor_ids(self, lane_segment_id: int) -> Optional[List[int]]:
-        """Get lane id for the lane sucessor of the specified lane_segment_id.
+        """Get lane id for the lane successor of the specified lane_segment_id.
 
         Args:
             lane_segment_id: unique identifier for a lane segment within a log scenario map (within a single city).

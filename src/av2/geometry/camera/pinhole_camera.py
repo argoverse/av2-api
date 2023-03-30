@@ -323,7 +323,7 @@ class PinholeCamera:
             near_clip_dist: Distance of the near clipping plane from the origin.
 
         Returns:
-            (5, 4) matrix where each row corresponds to the coeffients of a plane.
+            (5, 4) matrix where each row corresponds to the coefficients of a plane.
         """
         left_plane = self.left_clipping_plane
         right_plane = self.right_clipping_plane

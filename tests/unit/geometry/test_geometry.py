@@ -47,7 +47,7 @@ def test_wrap_angles(yaw_1: float, yaw_2: float, expected_error_deg: float) -> N
 
 
 def test_cart_to_hom_2d() -> None:
-    """Convert 2d cartesian coordinates to homogenous, and back again."""
+    """Convert 2d cartesian coordinates to homogeneous, and back again."""
     cart: NDArrayFloat = np.arange(16 * 2).reshape(16, 2).astype(np.float64)
 
     hom = geometry_utils.cart_to_hom(cart=cart)
@@ -57,7 +57,7 @@ def test_cart_to_hom_2d() -> None:
 
 
 def test_cart_to_hom_3d() -> None:
-    """Convert 3d cartesian coordinates to homogenous, and back again."""
+    """Convert 3d cartesian coordinates to homogeneous, and back again."""
     cart: NDArrayFloat = np.arange(16 * 3).reshape(16, 3).astype(np.float64)
 
     hom = geometry_utils.cart_to_hom(cart=cart)
@@ -114,7 +114,7 @@ def test_quat_to_mat_3d(quat_wxyz: NDArrayFloat) -> None:
     # (Note: For comparison, Quaternion needs to be converted from scalar last to scalar first.)
     quat_to_quat: Callable[[NDArrayFloat], Any] = lambda quat_wxyz: Rotation.as_quat(
         Rotation.from_matrix(geometry_utils.quat_to_mat(quat_wxyz))
-    )[..., [3, 0, 1, 2]]
+    )[..., [3, 0, 1, 2]].astype(np.float64)
 
     assert np.allclose(quat_wxyz, quat_to_quat(quat_wxyz))
 
@@ -128,7 +128,7 @@ def test_quat_to_mat_3d(quat_wxyz: NDArrayFloat) -> None:
             np.array([[0.78539816, 0.61547971, 1.73205081], [1.10714872, 0.0, 2.23606798]]),
         ),
     ],
-    ids=[f"Cartesian to Spherical coodinates (Test Case: {idx + 1})" for idx in range(2)],
+    ids=[f"Cartesian to Spherical coordinates (Test Case: {idx + 1})" for idx in range(2)],
 )
 def test_cart_to_sph_3d(cart_xyz: NDArrayFloat, expected_sph_theta_phi_r: NDArrayFloat) -> None:
     """Test conversion of cartesian coordinates to spherical coordinates.

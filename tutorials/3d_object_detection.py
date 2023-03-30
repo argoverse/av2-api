@@ -60,6 +60,8 @@ def main(
             # Access track uuid.
             track_uuid = sweep.cuboids.track_uuid
 
+            print(lidar_xyz_city, cuboids, xyzlwh_t, category, track_uuid)
+
         if i >= max_iterations:
             logger.info(f"Reached max iterations of {max_iterations}!")
             break

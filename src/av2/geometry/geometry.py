@@ -170,7 +170,7 @@ def cart_to_sph(xyz: NDArrayFloat) -> NDArrayFloat:
 
 
 def cart_to_hom(cart: NDArrayFloat) -> NDArrayFloat:
-    """Convert Cartesian coordinates into Homogenous coordinates.
+    """Convert Cartesian coordinates into Homogeneous coordinates.
 
     This function converts a set of points in R^N to its homogeneous representation in R^(N+1).
 
@@ -187,7 +187,7 @@ def cart_to_hom(cart: NDArrayFloat) -> NDArrayFloat:
 
 
 def hom_to_cart(hom: NDArrayFloat) -> NDArrayFloat:
-    """Convert Homogenous coordinates into Cartesian coordinates.
+    """Convert Homogeneous coordinates into Cartesian coordinates.
 
     This function converts a set of points in R^(N+1) to its Cartesian representation in R^N.
 
@@ -266,7 +266,7 @@ def compute_interior_points_mask(points_xyz: NDArrayFloat, cuboid_vertices: NDAr
     Args:
         points_xyz: (N,3) Array representing a point cloud in Cartesian coordinates (x,y,z).
         cuboid_vertices: (8,3) Array representing 3D cuboid vertices, ordered as shown above. 
-   
+
     Returns:
         (N,) An array of boolean flags indicating whether the points are interior to the cuboid.
     """

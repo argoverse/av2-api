@@ -41,18 +41,12 @@ dynamic = [
 ]
 
 [project.optional-dependencies]
-test = [
+lint = [
     "black[jupyter]",
-    "flake8",
-    "flake8-annotations",
-    "flake8-black",
-    "flake8-bugbear",
-    "flake8-docstrings",
-    "flake8-import-order",
-    "darglint",
-    "isort",
     "mypy",
-    "types-pyyaml",
+    "ruff",
+]
+test = [
     "pytest",
     "pytest-benchmark",
     "pytest-cov",
@@ -71,14 +65,12 @@ line-length = 120
 
 [tool.ruff]
 line-length = 120
+select = [
+    "D",
+]
 
-[tool.isort]
-known_first_party = "av2"
-known_third_party = ""
-
-line_length = 120
-multi_line_output = 3
-profile = "black"
+[tool.ruff.pydocstyle]
+convention = "google"
 
 [tool.mypy]
 exclude = "build"
@@ -86,9 +78,6 @@ ignore_missing_imports = true
 disallow_untyped_decorators = false
 plugins = "numpy.typing.mypy_plugin"
 strict = true
-
-[tool.pylint]
-max-line-length = 120
 
 [tool.pyright]
 include = ["src"]

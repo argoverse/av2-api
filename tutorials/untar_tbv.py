@@ -13,7 +13,7 @@ NUM_TBV_SHARDS: Final[int] = 21
 
 
 def run_command(cmd: str, return_output: bool = False) -> Tuple[Optional[bytes], Optional[bytes]]:
-    """Excute a system call, and block until the system call completes.
+    """Execute a system call, and block until the system call completes.
 
     Args:
         cmd: string, representing shell command

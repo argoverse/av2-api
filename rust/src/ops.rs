@@ -57,10 +57,10 @@ pub fn voxelize(
     let mut values_buffer = Array2::<f32>::zeros([unique_indices.len(), num_features]);
     let mut counts = Array2::<f32>::zeros([unique_indices.len(), 1]);
 
-    azip!((idx in raveled_indices.rows(), coo in indices.rows(), val in features.rows()) {
+    azip!((idx in raveled_indices.rows(), index in indices.rows(), val in features.rows()) {
         let i = *unique_indices.get(&idx[0]).unwrap();
 
-        indices_buffer.slice_mut(s![i, ..]).assign(&coo);
+        indices_buffer.slice_mut(s![i, ..]).assign(&index);
         values_buffer.slice_mut(s![i, ..]).add_assign(&val);
         counts[[i, 0]] += 1.;
     });
