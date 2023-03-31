@@ -1,13 +1,11 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
-
 """Classes and utilities used to build submissions for the AV2 motion forecasting challenge."""
 
 from __future__ import annotations
 
-from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Final, List, Tuple
+from typing import Dict, Final, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -16,11 +14,12 @@ from av2.datasets.motion_forecasting.constants import AV2_SCENARIO_PRED_TIMESTEP
 from av2.utils.typing import NDArrayNumber
 
 # Define type aliases used for submission
-PredictedTrajectories = NDArrayNumber  # (K, AV2_SCENARIO_PRED_TIMESTEPS, 2)
-PredictionProbabilities = NDArrayNumber  # (K,)
-TrackPredictions = Tuple[PredictedTrajectories, PredictionProbabilities]
-ScenarioPredictions = Dict[str, TrackPredictions]  # Mapping from track ID to track predictions
-PredictionRow = Tuple[str, str, float, PredictedTrajectories, PredictionProbabilities]
+ScenarioProbabilities = NDArrayNumber  # (K,) per-scenario probabilities, one value for each predicted future.
+TrackTrajectories = NDArrayNumber  # (K, AV2_SCENARIO_PRED_TIMESTEPS, 2) per-track predicted trajectories.
+
+ScenarioTrajectories = Dict[str, TrackTrajectories]
+ScenarioPredictions = Tuple[ScenarioProbabilities, ScenarioTrajectories]
+PredictionRow = Tuple[str, str, float, TrackTrajectories, ScenarioProbabilities]
 
 SUBMISSION_COL_NAMES: Final[List[str]] = [
     "scenario_id",
@@ -47,34 +46,34 @@ class ChallengeSubmission:
 
         Raises:
             ValueError: If predictions for at least one track are not of shape (*, AV2_SCENARIO_PRED_TIMESTEPS, 2).
-            ValueError: If for any track, prediction probabilities doesn't match the number of predicted trajectories.
-            ValueError: If prediction probabilities for at least one track do not sum to 1.
+            ValueError: If for any track, number of probabilities doesn't match the number of predicted trajectories.
+            ValueError: If prediction probabilities for at least one scenario do not sum to 1.
         """
-        for scenario_id, scenario_predictions in self.predictions.items():
-            for track_id, (predicted_trajectories, prediction_probabilities) in scenario_predictions.items():
+        for scenario_id, (scenario_probabilities, scenario_trajectories) in self.predictions.items():
+            for track_id, track_trajectories in scenario_trajectories.items():
                 # Validate that predicted trajectories are of the correct shape
-                if predicted_trajectories[0].shape[-2:] != EXPECTED_PREDICTION_SHAPE:
+                if track_trajectories[0].shape[-2:] != EXPECTED_PREDICTION_SHAPE:
                     raise ValueError(
                         f"Prediction for track {track_id} in {scenario_id} found with invalid shape "
-                        f"{predicted_trajectories.shape}, expected (*, {AV2_SCENARIO_PRED_TIMESTEPS}, 2)."
+                        f"{track_trajectories.shape}, expected (*, {AV2_SCENARIO_PRED_TIMESTEPS}, 2)."
                     )
 
                 # Validate that the number of predicted trajectories and prediction probabilities matches
-                if len(predicted_trajectories) != len(prediction_probabilities):
+                if len(track_trajectories) != len(scenario_probabilities):
                     raise ValueError(
                         f"Prediction for track {track_id} in {scenario_id} has "
-                        f"{len(predicted_trajectories)} predicted trajectories, but "
-                        f"{len(prediction_probabilities)} probabilities."
+                        f"{len(track_trajectories)} predicted trajectories, but "
+                        f"{len(scenario_probabilities)} probabilities."
                     )
 
-                # Validate that prediction probabilities for each track are normalized
-                prediction_probability_sum = np.sum(prediction_probabilities)
-                probability_is_normalized = np.isclose(1, prediction_probability_sum)
-                if not probability_is_normalized:
-                    raise ValueError(
-                        f"Track probabilities must sum to 1, but probabilities for track {track_id} in {scenario_id} "
-                        f"sum up to {prediction_probability_sum}."
-                    )
+            # Validate that prediction probabilities for each scenario are normalized
+            prediction_probability_sum = np.sum(scenario_probabilities)
+            probability_is_normalized = np.isclose(1, prediction_probability_sum)
+            if not probability_is_normalized:
+                raise ValueError(
+                    f"Track probabilities must sum to 1, but probabilities for track {track_id} in {scenario_id} "
+                    f"sum up to {prediction_probability_sum}."
+                )
 
     @classmethod
     def from_parquet(cls, submission_file_path: Path) -> ChallengeSubmission:
@@ -91,14 +90,17 @@ class ChallengeSubmission:
         submission_df.sort_values(by="probability", inplace=True, ascending=False)
 
         # From serialized data, build scenario-track mapping for predictions
-        submission_dict: Dict[str, Any] = defaultdict(lambda: defaultdict(dict))
-        for (scenario_id, track_id), track_df in submission_df.groupby(["scenario_id", "track_id"]):
-            predicted_trajectories_x = np.stack(track_df.loc[:, "predicted_trajectory_x"].values.tolist())
-            predicted_trajectories_y = np.stack(track_df.loc[:, "predicted_trajectory_y"].values.tolist())
-            predicted_trajectories = np.stack((predicted_trajectories_x, predicted_trajectories_y), axis=-1)
-            prediction_probabilities = np.array(track_df.loc[:, "probability"].values.tolist())
+        submission_dict: Dict[str, ScenarioPredictions] = {}
+        for scenario_id, scenario_df in submission_df.groupby(["scenario_id"]):
+            scenario_trajectories: ScenarioTrajectories = {}
+            for track_id, track_df in scenario_df.groupby(["track_id"]):
+                predicted_trajectories_x = np.stack(track_df.loc[:, "predicted_trajectory_x"].values.tolist())
+                predicted_trajectories_y = np.stack(track_df.loc[:, "predicted_trajectory_y"].values.tolist())
+                predicted_trajectories = np.stack((predicted_trajectories_x, predicted_trajectories_y), axis=-1)
+                scenario_trajectories[track_id] = predicted_trajectories
 
-            submission_dict[scenario_id][track_id] = (predicted_trajectories, prediction_probabilities)
+            scenario_probabilities = np.array(track_df.loc[:, "probability"].values.tolist())
+            submission_dict[scenario_id] = (scenario_probabilities, scenario_trajectories)
 
         return cls(predictions=submission_dict)
 
@@ -111,16 +113,16 @@ class ChallengeSubmission:
         prediction_rows: List[PredictionRow] = []
 
         # Build list of rows for the submission dataframe
-        for scenario_id, scenario_predictions in self.predictions.items():
-            for track_id, (predicted_trajectories, prediction_probabilities) in scenario_predictions.items():
-                for prediction_idx in range(len(predicted_trajectories)):
+        for scenario_id, (scenario_probabilities, scenario_trajectories) in self.predictions.items():
+            for track_id, track_trajectories in scenario_trajectories.items():
+                for world_idx in range(len(track_trajectories)):
                     prediction_rows.append(
                         (
                             scenario_id,
                             track_id,
-                            prediction_probabilities[prediction_idx],
-                            predicted_trajectories[prediction_idx, :, 0],
-                            predicted_trajectories[prediction_idx, :, 1],
+                            scenario_probabilities[world_idx],
+                            track_trajectories[world_idx, :, 0],
+                            track_trajectories[world_idx, :, 1],
                         )
                     )
 

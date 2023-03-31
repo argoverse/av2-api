@@ -75,6 +75,7 @@ convention = "google"
 [tool.mypy]
 exclude = "build"
 ignore_missing_imports = true
+disallow_untyped_calls = false
 disallow_untyped_decorators = false
 plugins = "numpy.typing.mypy_plugin"
 strict = true
