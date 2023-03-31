@@ -15,13 +15,14 @@ from av2.datasets.motion_forecasting.eval.submission import (
     ChallengeSubmission,
     ScenarioPredictions,
     ScenarioProbabilities,
+    ScenarioTrajectories,
     TrackTrajectories,
 )
 
 # Build valid submission with predictions for a single track in a single scenario
 valid_track_trajectories: TrackTrajectories = np.zeros((2, AV2_SCENARIO_PRED_TIMESTEPS, 2))
 valid_scenario_probabilities: ScenarioProbabilities = np.array([0.6, 0.4])
-valid_scenario_trajectories: ScenarioPredictions = {"valid_track_id": valid_track_trajectories}
+valid_scenario_trajectories: ScenarioTrajectories = {"valid_track_id": valid_track_trajectories}
 valid_submission_predictions = {"valid_scenario_id": (valid_scenario_probabilities, valid_scenario_trajectories)}
 
 # Build invalid track submission with incorrect prediction length

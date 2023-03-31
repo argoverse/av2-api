@@ -1,9 +1,9 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
 """Utilities to evaluate motion forecasting predictions and compute metrics."""
 
-import numpy as np
-
 from typing import List
+
+import numpy as np
 
 from av2.utils.typing import NDArrayBool, NDArrayFloat
 

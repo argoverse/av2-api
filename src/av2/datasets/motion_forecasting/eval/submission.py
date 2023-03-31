@@ -92,7 +92,6 @@ class ChallengeSubmission:
         # From serialized data, build scenario-track mapping for predictions
         submission_dict: Dict[str, ScenarioPredictions] = {}
         for scenario_id, scenario_df in submission_df.groupby(["scenario_id"]):
-
             scenario_trajectories: ScenarioTrajectories = {}
             for track_id, track_df in scenario_df.groupby(["track_id"]):
                 predicted_trajectories_x = np.stack(track_df.loc[:, "predicted_trajectory_x"].values.tolist())
