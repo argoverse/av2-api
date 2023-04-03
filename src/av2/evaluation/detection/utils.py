@@ -31,6 +31,7 @@ from av2.evaluation.detection.constants import (
     DistanceType,
     FilterMetricType,
     InterpType,
+    NUM_ELEMS
 )
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat, wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
@@ -39,7 +40,7 @@ from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
 from av2.structures.cuboid import Cuboid, CuboidList
 from av2.utils.constants import EPS
 from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt, NDArrayObject
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +166,165 @@ def accumulate(
     dts_augmented = dts_augmented[inverse_permutation]
     return dts_augmented, gts_augmented
 
+def is_evaluated(
+    dts: NDArrayFloat,
+    gts: NDArrayFloat,
+    dts_cats: NDArrayObject,
+    gts_cats: NDArrayObject,
+    uuid : List[str], 
+    cfg: DetectionCfg,
+    avm: Optional[ArgoverseStaticMap] = None,
+    city_SE3_ego: Optional[SE3] = None,  
+) -> Tuple[NDArrayFloat, NDArrayFloat]:
+    N, M = len(dts), len(gts)
+    is_evaluated_dts: NDArrayBool = np.ones(N, dtype=bool)
+    is_evaluated_gts: NDArrayBool = np.ones(M, dtype=bool)
+    
+    if avm is not None and city_SE3_ego is not None:
+        is_evaluated_dts &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
+        is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
+
+    is_evaluated_dts &= compute_evaluated_dts_mask(dts[..., :3], cfg)
+    is_evaluated_gts &= compute_evaluated_gts_mask(gts[..., :3], gts[..., -1].astype(int), cfg)
+    
+    dts = dts[is_evaluated_dts]
+    gts = gts[is_evaluated_gts]
+   
+    dts_cats = dts_cats[is_evaluated_dts]
+    gts_cats = gts_cats[is_evaluated_gts] 
+    return dts, gts, dts_cats, gts_cats, uuid
+
+def calc_ap(precision, min_recall = 0, min_precision = 0):
+    """ Calculated average precision. """
+
+    assert 0 <= min_precision < 1
+    assert 0 <= min_recall <= 1
+
+    prec = np.copy(precision)
+    prec = prec[round(100 * min_recall) + 1:]  # Clip low recalls. +1 to exclude the min recall bin.
+    prec -= min_precision  # Clip low precision
+    prec[prec < 0] = 0
+    return float(np.mean(prec)) / (1.0 - min_precision)
+
+def filter_dont_care(gt : str, class_name : str) -> bool:
+    if gt == "ignore":
+        return True 
+    
+    if gt == class_name:
+        return True 
+    
+    else:
+        return False 
+        
+def accumulate_hierarchy(dts, gts, dts_cats, gts_cats, dts_uuids, gts_uuids, cat, lca_cat, lca, cfg):
+    keep_dts = np.array([True if cname == cat else False for cname in dts_cats])
+    keep_gts = np.array([True if cname in lca_cat else False for cname in gts_cats])
+    
+    dts = dts[keep_dts]
+    gts = gts[keep_gts]
+    dts_cats = dts_cats[keep_dts]
+    gts_cats = gts_cats[keep_gts]
+    dts_uuids = dts_uuids[keep_dts]
+    gts_uuids = gts_uuids[keep_gts]
+    
+    scores = dts[..., -1]
+    permutation = np.argsort(-scores).tolist()
+    dts = dts[permutation]
+    dts_cats = dts_cats[permutation]
+    dts_uuids = dts_uuids[permutation]
+    
+    dist_mat = -compute_affinity_matrix(dts[..., :3], gts[..., :3], cfg.affinity_type)
+    
+    npos = sum([True if cname == cat else False for cname in gts_cats])
+    
+    tp, fp, gt_name, pred_name, taken = {}, {}, {}, {}, {}
+    for i in range(len(cfg.affinity_thresholds_m)):
+        tp[i] = []
+        fp[i] = [] 
+        gt_name[i] = []
+        pred_name[i] = []
+        taken[i] = set()
+        
+    for pred_idx, pred in enumerate(zip(dts, dts_cats, dts_uuids)):
+        pred_box, pred_cat, pred_uuid = pred
+        min_dist = len(cfg.affinity_thresholds_m) * [np.inf] 
+        match_gt_idx = len(cfg.affinity_thresholds_m) * [None]   
+        
+        keep_sweep = gts_uuids == np.array([gts.shape[0] * [pred_uuid]]).squeeze()
+        gt_ind_sweep = np.arange(gts.shape[0])[keep_sweep]
+        gts_sweep = gts[keep_sweep]
+        gts_cats_sweep = gts_cats[keep_sweep]
+        gts_uuids_sweep = gts_uuids[keep_sweep]
+
+        for gt in zip(gt_ind_sweep, gts_sweep, gts_cats_sweep, gts_uuids_sweep):
+            gt_idx, gt_box, gt_cat, gt_uuid = gt
+            
+            # Find closest match among ground truth boxes
+            for i in range(len(cfg.affinity_thresholds_m)):
+                if gt_cat == cat and not (pred_uuid, gt_idx) in taken[i]:
+                    this_distance = dist_mat[pred_idx][gt_idx]
+                    if this_distance < min_dist[i]:
+                        min_dist[i] = this_distance
+                        match_gt_idx[i] = gt_idx
+                    
+        is_match = [min_dist[i] < dist_th for i, dist_th in enumerate(cfg.affinity_thresholds_m)] 
+
+        for gt in zip(gt_ind_sweep, gts_sweep, gts_cats_sweep, gts_uuids_sweep):
+            gt_idx, gt_box, gt_cat, gt_uuid = gt
+            # Find closest match among ground truth boxes
+            
+            for i in range(len(cfg.affinity_thresholds_m)):
+                if not is_match[i] and not (pred_uuid, gt_idx) in taken[i]:
+                    this_distance = dist_mat[pred_idx][gt_idx]
+                    if this_distance < min_dist[i]:
+                        min_dist[i] = this_distance
+                        match_gt_idx[i] = gt_idx
+        
+        is_dist = [min_dist[i] < dist_th for i, dist_th in enumerate(cfg.affinity_thresholds_m)]  
+        is_match = [True if is_dist[i] and gts_cats[match_gt_idx[i]] == cat else False for i in range(len(cfg.affinity_thresholds_m))]
+         
+        for i in range(len(cfg.affinity_thresholds_m)):
+            if is_match[i]:
+                taken[i].add((pred_uuid, gt_idx))
+                tp[i].append(1)
+                fp[i].append(0)
+
+                gt_name[i].append(gts_cats[match_gt_idx[i]])
+                pred_name[i].append(pred_cat)
+            else:
+                tp[i].append(0)
+                fp[i].append(1)
+
+                if is_dist[i]:
+                    gt_name[i].append(gts_cats[match_gt_idx[i]])
+                else:
+                    gt_name[i].append("ignore")
+
+                pred_name[i].append(pred_cat)
+
+    mAP = []
+    for i in range(len(cfg.affinity_thresholds_m)):
+        select = [filter_dont_care(gt, cat) for gt in gt_name[i]]
+
+        tp[i] = np.array(tp[i])[select]
+        fp[i] = np.array(fp[i])[select]
+
+        if len(tp[i]) == 0:
+            return 0.0, cat, lca
+            
+        tp[i] = np.cumsum(tp[i]).astype(float)
+        fp[i] = np.cumsum(fp[i]).astype(float)
+        
+        prec = tp[i] / (fp[i] + tp[i])
+        rec = tp[i] / float(npos)
+
+        rec_interp = np.linspace(0, 1, NUM_ELEMS)  # 101 steps, from 0% to 100% recall.
+        prec = np.interp(rec_interp, rec, prec, right=0)
+
+        ap = round(calc_ap(prec), 3)
+        mAP.append(ap)
+    
+    return np.mean(mAP), cat, lca
 
 def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDArrayFloat, NDArrayFloat]:
     """Attempt assignment of each detection to a ground truth label.

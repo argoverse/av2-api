@@ -59,7 +59,7 @@ from typing import Dict, Final, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames
+from av2.evaluation.detection.constants import NUM_DECIMALS, MetricNames, TruePositiveErrorNames, HIERARCHY, LCA
 from av2.evaluation.detection.utils import (
     DetectionCfg,
     accumulate,
@@ -180,6 +180,128 @@ def evaluate(
     metrics = metrics.round(NUM_DECIMALS)
     return dts, gts, metrics
 
+
+def evaluate_hierarchy(
+    dts: pd.DataFrame,
+    gts: pd.DataFrame,
+    cfg: DetectionCfg,
+    n_jobs: int = 8,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Evaluate a set of detections against the ground truth annotations.
+    Each sweep is processed independently, computing assignment between detections and ground truth annotations.
+    Args:
+        dts: (N,14) Table of detections.
+        gts: (M,15) Table of ground truth annotations.
+        cfg: Detection configuration.
+        n_jobs: Number of jobs running concurrently during evaluation.
+    Returns:
+        (C+1,K) Table of evaluation metrics where C is the number of classes. Plus a row for their means.
+        K refers to the number of evaluation metrics.
+    Raises:
+        RuntimeError: If accumulation fails.
+        ValueError: If ROI pruning is enabled but a dataset directory is not specified.
+    """
+    if cfg.eval_only_roi_instances and cfg.dataset_dir is None:
+        raise ValueError(
+            "ROI pruning has been enabled, but the dataset directory has not be specified. "
+            "Please set `dataset_directory` to the split root, e.g. av2/sensor/val."
+        )
+    
+    
+    # Sort both the detections and annotations by lexicographic order for grouping.
+    dts = dts.sort_values(list(UUID_COLUMN_NOCAT_NAMES))
+    gts = gts.sort_values(list(UUID_COLUMN_NOCAT_NAMES))
+    
+    dts_npy: NDArrayFloat = dts[list(DTS_COLUMN_NAMES)].to_numpy()
+    gts_npy: NDArrayFloat = gts[list(GTS_COLUMN_NAMES)].to_numpy()
+    dts_cats: List[str] = dts[list(UUID_CAT_NAMES)].to_numpy().tolist()
+    gts_cats: List[str] = gts[list(UUID_CAT_NAMES)].to_numpy().tolist()
+
+    dts_uuids: List[str] = dts[list(UUID_COLUMN_NOCAT_NAMES)].to_numpy().tolist()
+    gts_uuids: List[str] = gts[list(UUID_COLUMN_NOCAT_NAMES)].to_numpy().tolist()
+
+    # We merge the unique identifier -- the tuple of ("log_id", "timestamp_ns", "category")
+    # into a single string to optimize the subsequent grouping operation.
+    # `groupby_mapping` produces a mapping from the uuid to the group of detections / annotations
+    # which fall into that group.
+    uuid_to_dts = groupby([":".join(map(str, x)) for x in dts_uuids], dts_npy)
+    uuid_to_gts = groupby([":".join(map(str, x)) for x in gts_uuids], gts_npy)
+    uuid_to_dts_cats = groupby([":".join(map(str, x)) for x in dts_uuids], dts_cats)
+    uuid_to_gts_cats = groupby([":".join(map(str, x)) for x in gts_uuids], gts_cats)
+
+    log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
+    log_id_to_timestamped_poses: Optional[Dict[str, TimestampedCitySE3EgoPoses]] = None
+
+    # Load maps and egoposes if roi-pruning is enabled.
+    if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
+        logger.info("Loading maps and egoposes ...")
+        log_ids: List[str] = gts.loc[:, "log_id"].unique().tolist()
+        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
+
+    args_list: List[Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
+    uuids = sorted(uuid_to_dts.keys() | uuid_to_gts.keys())
+    for uuid in uuids:                
+        log_id, timestamp_ns = uuid.split(":")
+        args: Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]
+
+        sweep_dts: NDArrayFloat = np.zeros((0, 10))
+        sweep_gts: NDArrayFloat = np.zeros((0, 10))
+        if uuid in uuid_to_dts:
+            sweep_dts = uuid_to_dts[uuid]
+            sweep_dts_cats = uuid_to_dts_cats[uuid]
+
+        if uuid in uuid_to_gts:
+            sweep_gts = uuid_to_gts[uuid]
+            sweep_gts_cats = uuid_to_gts_cats[uuid]
+
+        args = sweep_dts, sweep_gts, sweep_dts_cats, sweep_gts_cats, uuid, cfg, None, None, 
+        if log_id_to_avm is not None and log_id_to_timestamped_poses is not None:
+            avm = log_id_to_avm[log_id]
+            city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
+            args = sweep_dts, sweep_gts, sweep_dts_cats, sweep_gts_cats, uuid, cfg, avm, city_SE3_ego, 
+        args_list.append(args)
+
+    logger.info("Starting evaluation ...")
+    with mp.get_context("spawn").Pool(processes=n_jobs) as p:
+        outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(is_evaluated, args_list)
+
+    dts, gts, dts_cats, gts_cats, dts_uuids, gts_uuids = [], [], [], [], [], []
+    for sweep_dts, sweep_gts, sweep_dts_cats, sweep_gts_cats, uuid, in outputs:
+        dts.append(sweep_dts)
+        gts.append(sweep_gts)
+        dts_cats.append(sweep_dts_cats)
+        gts_cats.append(sweep_gts_cats)
+        dts_uuids.append(sweep_dts.shape[0] * [uuid])
+        gts_uuids.append(sweep_gts.shape[0] * [uuid]) 
+    
+    dts = np.concatenate(dts)
+    gts = np.concatenate(gts)
+    dts_cats = np.concatenate(dts_cats).squeeze()
+    gts_cats = np.concatenate(gts_cats).squeeze()
+    dts_uuids = np.concatenate(dts_uuids)
+    gts_uuids = np.concatenate(gts_uuids)
+
+    args_list = []
+    for cat in cfg.categories:
+        ind = HIERARCHY["FINEGRAIN"].index(cat)
+        for lca in HIERARCHY.keys():
+            lca_cat = LCA[HIERARCHY[lca][ind]]
+            args  = dts, gts, dts_cats, gts_cats, dts_uuids, gts_uuids, cat, lca_cat, lca, cfg
+            args_list.append(args)
+    
+    logger.info("Starting evaluation ...")
+    with mp.get_context("spawn").Pool(processes=n_jobs) as p:
+        outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate_hierarchy, args_list)
+    
+    metrics = np.zeros((len(cfg.categories), len(HIERARCHY.keys())))
+    for ap, cat, lca in outputs:
+        cat_ind = cfg.categories.index(cat)
+        lca_ind = list(HIERARCHY.keys()).index(lca)
+        metrics[cat_ind][lca_ind] = round(ap, 3)
+
+    metrics = pd.DataFrame(metrics, columns = ["LCA=0", "LCA=1", "LCA=2"], index = cfg.categories)
+    
+    return dts, gts, metrics
 
 def summarize_metrics(
     dts: pd.DataFrame,
