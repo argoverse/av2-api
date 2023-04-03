@@ -1,0 +1,401 @@
+{
+    "static": {
+        "REGULAR_VEHICLE": {
+            "mAP_F": 0.688,
+            "ADE": 0.342,
+            "FDE": 0.426
+        },
+        "PEDESTRIAN": {
+            "mAP_F": 0.499,
+            "ADE": 0.496,
+            "FDE": 0.545
+        },
+        "BICYCLIST": {
+            "mAP_F": 0.1,
+            "ADE": 0.372,
+            "FDE": 0.454
+        },
+        "MOTORCYCLIST": {
+            "mAP_F": 0.227,
+            "ADE": 0.411,
+            "FDE": 0.476
+        },
+        "WHEELED_RIDER": {
+            "mAP_F": 0.005,
+            "ADE": 0.444,
+            "FDE": 0.606
+        },
+        "BOLLARD": {
+            "mAP_F": 0.619,
+            "ADE": 0.174,
+            "FDE": 0.185
+        },
+        "CONSTRUCTION_CONE": {
+            "mAP_F": 0.618,
+            "ADE": 0.127,
+            "FDE": 0.135
+        },
+        "SIGN": {
+            "mAP_F": 0.233,
+            "ADE": 0.243,
+            "FDE": 0.245
+        },
+        "CONSTRUCTION_BARREL": {
+            "mAP_F": 0.808,
+            "ADE": 0.162,
+            "FDE": 0.184
+        },
+        "STOP_SIGN": {
+            "mAP_F": 0.525,
+            "ADE": 0.084,
+            "FDE": 0.1
+        },
+        "MOBILE_PEDESTRIAN_CROSSING_SIGN": {
+            "mAP_F": 0.761,
+            "ADE": 0.061,
+            "FDE": 0.076
+        },
+        "LARGE_VEHICLE": {
+            "mAP_F": 0.092,
+            "ADE": 0.502,
+            "FDE": 0.591
+        },
+        "BUS": {
+            "mAP_F": 0.433,
+            "ADE": 0.403,
+            "FDE": 0.608
+        },
+        "BOX_TRUCK": {
+            "mAP_F": 0.481,
+            "ADE": 0.447,
+            "FDE": 0.551
+        },
+        "TRUCK": {
+            "mAP_F": 0.212,
+            "ADE": 0.529,
+            "FDE": 0.629
+        },
+        "VEHICULAR_TRAILER": {
+            "mAP_F": 0.365,
+            "ADE": 0.394,
+            "FDE": 0.411
+        },
+        "TRUCK_CAB": {
+            "mAP_F": 0.17,
+            "ADE": 0.555,
+            "FDE": 0.629
+        },
+        "SCHOOL_BUS": {
+            "mAP_F": 0.12,
+            "ADE": 0.65,
+            "FDE": 0.731
+        },
+        "ARTICULATED_BUS": {
+            "mAP_F": 0.154,
+            "ADE": 0.659,
+            "FDE": 0.701
+        },
+        "MESSAGE_BOARD_TRAILER": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "BICYCLE": {
+            "mAP_F": 0.523,
+            "ADE": 0.316,
+            "FDE": 0.329
+        },
+        "MOTORCYCLE": {
+            "mAP_F": 0.561,
+            "ADE": 0.228,
+            "FDE": 0.253
+        },
+        "WHEELED_DEVICE": {
+            "mAP_F": 0.408,
+            "ADE": 0.334,
+            "FDE": 0.337
+        },
+        "WHEELCHAIR": {
+            "mAP_F": 0.003,
+            "ADE": 0.532,
+            "FDE": 0.515
+        },
+        "STROLLER": {
+            "mAP_F": 0.011,
+            "ADE": 0.407,
+            "FDE": 0.419
+        },
+        "DOG": {
+            "mAP_F": 0.012,
+            "ADE": 0.57,
+            "FDE": 0.606
+        }
+    },
+    "linear": {
+        "REGULAR_VEHICLE": {
+            "mAP_F": 0.013,
+            "ADE": 12.636,
+            "FDE": 17.3
+        },
+        "PEDESTRIAN": {
+            "mAP_F": 0.247,
+            "ADE": 2.099,
+            "FDE": 2.913
+        },
+        "BICYCLIST": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "MOTORCYCLIST": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "WHEELED_RIDER": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "BOLLARD": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "CONSTRUCTION_CONE": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "SIGN": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "CONSTRUCTION_BARREL": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "STOP_SIGN": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "MOBILE_PEDESTRIAN_CROSSING_SIGN": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "LARGE_VEHICLE": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "BUS": {
+            "mAP_F": 0.016,
+            "ADE": 10.508,
+            "FDE": 14.703
+        },
+        "BOX_TRUCK": {
+            "mAP_F": 0.092,
+            "ADE": 10.97,
+            "FDE": 15.324
+        },
+        "TRUCK": {
+            "mAP_F": 0.019,
+            "ADE": 10.477,
+            "FDE": 15.037
+        },
+        "VEHICULAR_TRAILER": {
+            "mAP_F": 0.082,
+            "ADE": 5.855,
+            "FDE": 7.899
+        },
+        "TRUCK_CAB": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "SCHOOL_BUS": {
+            "mAP_F": 0.142,
+            "ADE": 8.827,
+            "FDE": 12.095
+        },
+        "ARTICULATED_BUS": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "MESSAGE_BOARD_TRAILER": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "BICYCLE": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "MOTORCYCLE": {
+            "mAP_F": 0.052,
+            "ADE": 8.942,
+            "FDE": 11.354
+        },
+        "WHEELED_DEVICE": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "WHEELCHAIR": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "STROLLER": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "DOG": {
+            "mAP_F": 0.27,
+            "ADE": 1.922,
+            "FDE": 2.334
+        }
+    },
+    "non-linear": {
+        "REGULAR_VEHICLE": {
+            "mAP_F": 0.004,
+            "ADE": 1844.558,
+            "FDE": 1848.883
+        },
+        "PEDESTRIAN": {
+            "mAP_F": 0.004,
+            "ADE": 2533.22,
+            "FDE": 2533.658
+        },
+        "BICYCLIST": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "MOTORCYCLIST": {
+            "mAP_F": 0.003,
+            "ADE": 1258.483,
+            "FDE": 1264.27
+        },
+        "WHEELED_RIDER": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "BOLLARD": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "CONSTRUCTION_CONE": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "SIGN": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "CONSTRUCTION_BARREL": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "STOP_SIGN": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "MOBILE_PEDESTRIAN_CROSSING_SIGN": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "LARGE_VEHICLE": {
+            "mAP_F": 0.005,
+            "ADE": 2255.299,
+            "FDE": 2257.404
+        },
+        "BUS": {
+            "mAP_F": 0.006,
+            "ADE": 643.219,
+            "FDE": 647.905
+        },
+        "BOX_TRUCK": {
+            "mAP_F": 0.003,
+            "ADE": 820.715,
+            "FDE": 826.542
+        },
+        "TRUCK": {
+            "mAP_F": 0.005,
+            "ADE": 1633.692,
+            "FDE": 1634.983
+        },
+        "VEHICULAR_TRAILER": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "TRUCK_CAB": {
+            "mAP_F": 0.007,
+            "ADE": 1159.795,
+            "FDE": 1163.685
+        },
+        "SCHOOL_BUS": {
+            "mAP_F": 0.054,
+            "ADE": 1633.292,
+            "FDE": 1637.072
+        },
+        "ARTICULATED_BUS": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "MESSAGE_BOARD_TRAILER": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "BICYCLE": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "MOTORCYCLE": {
+            "mAP_F": 0.001,
+            "ADE": 2055.2,
+            "FDE": 2058.878
+        },
+        "WHEELED_DEVICE": {
+            "mAP_F": 0.004,
+            "ADE": 2682.905,
+            "FDE": 2683.298
+        },
+        "WHEELCHAIR": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "STROLLER": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        },
+        "DOG": {
+            "mAP_F": NaN,
+            "ADE": NaN,
+            "FDE": NaN
+        }
+    },
+    "mean_mAP_F": 0.21459999999999996,
+    "mean_ADE": 413.37902222222226,
+    "mean_FDE": 414.8062
+}

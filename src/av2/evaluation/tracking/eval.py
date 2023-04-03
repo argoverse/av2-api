@@ -14,14 +14,15 @@ from copy import copy
 from functools import partial
 from itertools import chain
 from typing import Callable, Dict, Final, List, Tuple, Union, Any, Iterable, cast
-from av2.utils.typing import NDArrayFloat, NDArrayInt
-from .utils import Sequences
-from . import utils
-
+from utils import Sequences, NDArrayFloat, NDArrayInt
+import utils
+from scipy.spatial.transform import Rotation
 import numpy as np
 import trackeval
 from scipy.optimize import linear_sum_assignment
 from trackeval.datasets._base_dataset import _BaseDataset
+from pathlib import Path
+from av2.evaluation.detection.utils import load_mapped_avm_and_egoposes, compute_objects_in_roi_mask
 
 SUBMETRIC_TO_METRIC_CLASS_NAME: Final[Dict[str, str]] = {
     "MOTA": "CLEAR",
@@ -151,7 +152,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         return cast(NDArrayFloat, sim)
 
 
-def evaluate(
+def evaluate_tracking(
     labels: Sequences,
     track_predictions: Sequences,
     classes: List[str],
@@ -393,20 +394,124 @@ def _xy_center_similarity(centers1: NDArrayFloat, centers2: NDArrayFloat, zero_d
     sim = np.maximum(0, 1 - xy_dist / zero_distance)
     return cast(NDArrayFloat, sim)
 
+def filter_max_dist(tracks: Sequences, max_range_m : int) -> Sequences:
+    """ Remove all tracks that are beyond the max_dist 
+    Args:
+        tracks: Dict[seq_id: List[frame]] Dictionary of tracks
+        max_range_m: maximum distance from ego-vehicle
+    Returns:
+        tracks: Dict[seq_id: List[frame]] Dictionary of tracks
+    """
+    
+    frames = utils.ungroup_frames(tracks)
+    return utils.group_frames(
+        [
+            utils.index_array_values(
+                frame,
+                np.linalg.norm(
+                    frame["translation"][:, :2]
+                    - np.array(frame["ego_translation"])[:2],
+                    axis=1,
+                )
+                <= max_range_m,
+            )
+            for frame in frames
+        ]
+    )
 
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument("--predictions", default="sample/track_predictions.pkl")
-    argparser.add_argument("--ground_truth", default="sample/labels.pkl")
-    argparser.add_argument("--objective_metric", default="HOTA", choices=["HOTA", "MOTA"])
-    argparser.add_argument("--out", default="sample/output.pkl")
+def yaw_to_quaternion3d(yaw: float) -> np.ndarray:
+    """Convert a rotation angle in the xy plane (i.e. about the z axis) to a quaternion.
+    Args:
+        yaw: angle to rotate about the z-axis, representing an Euler angle, in radians
+    Returns:
+        array w/ quaternion coefficients (qw,qx,qy,qz) in scalar-first order, per Argoverse convention.
+    """
+    qx, qy, qz, qw = Rotation.from_euler(seq="z", angles=yaw, degrees=False).as_quat()
+    return np.array([qw, qx, qy, qz])
 
-    args = argparser.parse_args()
+def filter_drivable_area(tracks: Sequences, dataset_dir : str) -> Sequences:
+    """Convert the unified label format to a format that is easier to work with for forecasting evaluation.
+    Args:
+        tracks: Dict[seq_id: List[frame]] Dictionary of tracks
+        dataset_dir:str Dataset root directory
+    Returns:
+        tracks: Dict[seq_id: List[frame]] Dictionary of tracks
+    """
 
-    track_predictions = pickle.load(open(args.predictions, "rb"))
-    labels = pickle.load(open(args.ground_truth, "rb"))
+    if dataset_dir is None:
+        return tracks 
+
+    log_ids = list(tracks.keys())
+    log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, Path(dataset_dir))
+
+    for log_id in log_ids: 
+        avm = log_id_to_avm[log_id]
+
+        for frame in tracks[log_id]:
+            timestamp_ns = frame["timestamp_ns"]
+            city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
+            translation = frame["translation"] - frame["ego_translation"]
+            size = frame["size"]
+            quat = np.array([yaw_to_quaternion3d(yaw) for yaw in frame["yaw"]])
+            score = np.ones((translation.shape[0], 1))
+            boxes = np.concatenate([translation, size, quat, score], axis=1)
+
+            is_evaluated = compute_objects_in_roi_mask(boxes, city_SE3_ego, avm)
+
+            frame["translation"] = frame["translation"][is_evaluated]
+            frame["size"] = frame["size"][is_evaluated]
+            frame["yaw"] = frame["yaw"][is_evaluated]
+            frame["velocity"] = frame["velocity"][is_evaluated]
+            frame["label"] = frame["label"][is_evaluated]
+            frame["name"] = frame["name"][is_evaluated]
+            frame["track_id"] = frame["track_id"][is_evaluated]
+
+            if "score" in frame:
+                frame["score"] = frame["score"][is_evaluated]
+
+            if "detection_score" in frame:
+                frame["detection_score"] = frame["detection_score"][is_evaluated]
+
+            if "xy" in frame:
+                frame["xy"] = frame["xy"][is_evaluated]
+
+            if "xy_velocity" in frame:
+                frame["xy_velocity"] = frame["xy_velocity"][is_evaluated]
+
+            if "active" in frame:
+                frame["active"] = frame["active"][is_evaluated]
+
+            if "age" in frame:
+                frame["age"] = frame["age"][is_evaluated]
+
+    return tracks 
+
+def evaluate(track_predictions : Sequences, labels : Sequences, args : Any) -> Tuple[Dict[str, float], Dict[str, Any]]:
+    """Run evaluation
+    Args:
+        predictions: Dict[seq_id] List[frame]] Dictionary of tracks
+        ground_truth: Dict[seq_id] List[frame]] Dictionary of labels
+        objective_metric: str metric to optimize
+        dataset_dir: str dataset root directory
+        max_range: int maximum distance from ego-vehicle
+
+    Returns:
+        res: Dict Dictionary of per-class metrics
+    """
+
     objective_metric = args.objective_metric
     classes = utils.av2_classes
+    max_range_m = args.max_range_m
+    dataset_dir = args.dataset_dir 
+
+    labels = filter_max_dist(labels, max_range_m)
+    utils.annotate_frame_metadata(
+        utils.ungroup_frames(track_predictions), utils.ungroup_frames(labels), ["ego_translation"]
+    )
+    track_predictions = filter_max_dist(track_predictions, max_range_m)
+
+    labels = filter_drivable_area(labels, dataset_dir)
+    track_predictions = filter_drivable_area(track_predictions, dataset_dir)
 
     score_thresholds, tuned_metric_values, mean_metric_values = _tune_score_thresholds(
         labels,
@@ -417,13 +522,31 @@ if __name__ == "__main__":
         match_distance_threshold=2,
     )
     filtered_track_predictions = utils.filter_by_class_thresholds(track_predictions, score_thresholds)
-    res = evaluate(
+    res = evaluate_tracking(
         labels,
         filtered_track_predictions,
         classes,
         tracker_name="TRACKER",
         output_dir=".".join(args.out.split("/")[:-1]),
     )
+
+    return res, mean_metric_values
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("--predictions", default="sample/track_predictions.pkl")
+    argparser.add_argument("--ground_truth", default="sample/labels.pkl")
+    argparser.add_argument("--max_range_m", type=int, default=50)
+    argparser.add_argument("--dataset_dir", default=None)
+    argparser.add_argument("--objective_metric", default="HOTA", choices=["HOTA", "MOTA"])
+    argparser.add_argument("--out", default="sample/output.pkl")
+
+    args = argparser.parse_args()
+
+    track_predictions = pickle.load(open(args.predictions, "rb"))
+    labels = pickle.load(open(args.ground_truth, "rb"))
+    
+    res, mean_metric_values = evaluate(track_predictions, labels, args)
 
     print(mean_metric_values)
 
