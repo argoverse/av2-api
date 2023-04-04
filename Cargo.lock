@@ -1608,6 +1608,7 @@ dependencies = [
  "polars",
  "polars-core",
  "pyo3",
+ "serde",
  "thiserror",
 ]
 
