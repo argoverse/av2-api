@@ -28,7 +28,7 @@ polars = { version = "0.28.0", features = [
     "serde",
 ] }
 pyo3 = { version = "0.18.2", features = ["extension-module"] }
-pyo3-polars = "0.2.0"
+pyo3-polars = { git = "https://github.com/benjaminrwilson/pyo3-polars" }
 rayon = "1.6.1"
 serde = "1.0.155"
 
