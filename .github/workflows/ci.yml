@@ -4,15 +4,13 @@ on: [push, pull_request]
 
 jobs:
   test_and_build:
-    name: ${{ matrix.os }}_${{ matrix.venv_backend }}_py${{ matrix.python_version }}
+    name: ${{ matrix.os }}_py${{ matrix.python_version }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest]
         python_version:
           ["3.8", "3.9", "3.10"]
-        venv_backend:
-          ["mamba", "virtualenv"]
     defaults:
       run:
         shell: bash -l {0}
