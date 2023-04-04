@@ -262,8 +262,11 @@ def accumulate(
     tp_array = np.array(tp)[select]
     fp_array = np.array(fp)[select]
 
-    if sum(tp) == 0:
+    if len(tp) == 0:
         return np.nan, np.nan, np.nan, class_name, profile
+
+    if sum(tp) == 0:
+        return  0, np.inf, np.inf, class_name, profile
 
     tp_array = np.cumsum(tp_array).astype(float)
     fp_array = np.cumsum(fp_array).astype(float)
