@@ -2,6 +2,7 @@
 //!
 //! Special Euclidean Group 3.
 
+use glam::{Mat3, Quat, Vec3};
 use ndarray::{s, Array1, Array2, ArrayView2};
 
 /// Special Euclidean Group 3 (SE(3)).
@@ -55,4 +56,26 @@ impl SE3 {
                 .to_owned(),
         }
     }
+}
+
+pub fn interpolate_pose(
+    q1: Quat,
+    q2: Quat,
+    t_0: Vec3,
+    t_1: Vec3,
+    timestamp_ns_0: usize,
+    timestamp_ns_1: usize,
+    query_timestamp: usize,
+) -> (Mat3, Vec3) {
+    if query_timestamp < timestamp_ns_0 || query_timestamp > timestamp_ns_1 {
+        panic!("Query timestamp must be within the interval [t0,t1].")
+    }
+
+    let s = (query_timestamp - timestamp_ns_0) / (timestamp_ns_1 - timestamp_ns_0);
+    let slerp = q1.slerp(q2, s as f32);
+
+    // Interpolate the rotations at the given time:
+    let r_interp = Mat3::from_quat(slerp);
+    let t_interp = t_0.lerp(t_1, s as f32);
+    (r_interp, t_interp)
 }

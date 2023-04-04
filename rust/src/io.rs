@@ -2,9 +2,11 @@
 //!
 //! Reading and writing operations.
 
+use ndarray::par_azip;
 use ndarray::s;
 use ndarray::Array2;
 
+use glam::Vec3;
 use polars::lazy::dsl::lit;
 use polars::lazy::dsl::Expr;
 
@@ -18,12 +20,21 @@ use polars::{
 };
 use rayon::prelude::IntoParallelIterator;
 use rayon::prelude::ParallelIterator;
+use std::default;
 use std::fs::File;
+use std::ops::Add;
 use std::path::PathBuf;
 
 use crate::constants::POSE_COLUMNS;
+use crate::se3::interpolate_pose;
 use crate::se3::SE3;
 use crate::so3::quat_to_mat3;
+
+pub enum MotionCompensationType {
+    Unrolled,
+    Identity,
+    Aligned,
+}
 
 /// Read a feather file and load into a `polars` dataframe.
 pub fn read_feather_eager(path: &PathBuf, memory_mapped: bool) -> DataFrame {
@@ -64,6 +75,7 @@ pub fn read_accumulate_lidar(
     idx: usize,
     num_accumulated_sweeps: usize,
     memory_mapped: bool,
+    motion_compensation_type: MotionCompensationType,
 ) -> LazyFrame {
     let start_idx = i64::max(idx as i64 - num_accumulated_sweeps as i64 + 1, 0) as usize;
     let log_ids = file_index["log_id"].utf8().unwrap();
@@ -105,48 +117,91 @@ pub fn read_accumulate_lidar(
                 "timedelta_ns",
                 vec![(timestamp_ns - timestamp_ns_i) as f32 * 1e-9; xyz.shape()[0]],
             );
-            if timestamp_ns_i != timestamp_ns {
-                let pose_i = ndarray_filtered_from_frame(
-                    &poses,
-                    cols(POSE_COLUMNS),
-                    col("timestamp_ns").eq(timestamp_ns_i),
-                );
 
-                let translation_i = pose_i.slice(s![0, ..3]).as_standard_layout().to_owned();
-                let quat_wxyz = pose_i.slice(s![0, 3..]).as_standard_layout().to_owned();
-                let rotation_i = quat_to_mat3(&quat_wxyz.view());
-                let city_se3_ego_i = SE3 {
-                    rotation: rotation_i,
-                    translation: translation_i,
-                };
-                let ego_ref_se3_ego_i = ego_se3_city.compose(&city_se3_ego_i);
-                let xyz_ref = ego_ref_se3_ego_i.transform_from(&xyz.view());
-                let x_ref = Series::new(
-                    "x",
-                    xyz_ref
-                        .slice(s![.., 0])
-                        .as_standard_layout()
-                        .to_owned()
-                        .into_raw_vec(),
-                );
-                let y_ref = Series::new(
-                    "y",
-                    xyz_ref
-                        .slice(s![.., 1])
-                        .as_standard_layout()
-                        .to_owned()
-                        .into_raw_vec(),
-                );
-                let z_ref = Series::new(
-                    "z",
-                    xyz_ref
-                        .slice(s![.., 2])
-                        .as_standard_layout()
-                        .to_owned()
-                        .into_raw_vec(),
-                );
+            match motion_compensation_type {
+                MotionCompensationType::Aligned => {
+                    if timestamp_ns_i != timestamp_ns {
+                        let pose_i = ndarray_filtered_from_frame(
+                            &poses,
+                            cols(POSE_COLUMNS),
+                            col("timestamp_ns").eq(timestamp_ns_i),
+                        );
 
-                lidar = lidar.with_columns(vec![lit(x_ref), lit(y_ref), lit(z_ref)]);
+                        let translation_i =
+                            pose_i.slice(s![0, ..3]).as_standard_layout().to_owned();
+                        let quat_wxyz = pose_i.slice(s![0, 3..]).as_standard_layout().to_owned();
+                        let rotation_i = quat_to_mat3(&quat_wxyz.view());
+                        let city_se3_ego_i = SE3 {
+                            rotation: rotation_i,
+                            translation: translation_i,
+                        };
+                        let ego_ref_se3_ego_i = ego_se3_city.compose(&city_se3_ego_i);
+                        let xyz_ref = ego_ref_se3_ego_i.transform_from(&xyz.view());
+                        let x_ref = Series::new(
+                            "x",
+                            xyz_ref
+                                .slice(s![.., 0])
+                                .as_standard_layout()
+                                .to_owned()
+                                .into_raw_vec(),
+                        );
+                        let y_ref = Series::new(
+                            "y",
+                            xyz_ref
+                                .slice(s![.., 1])
+                                .as_standard_layout()
+                                .to_owned()
+                                .into_raw_vec(),
+                        );
+                        let z_ref = Series::new(
+                            "z",
+                            xyz_ref
+                                .slice(s![.., 2])
+                                .as_standard_layout()
+                                .to_owned()
+                                .into_raw_vec(),
+                        );
+
+                        lidar = lidar.with_columns(vec![lit(x_ref), lit(y_ref), lit(z_ref)]);
+                    }
+                }
+                MotionCompensationType::Unrolled => {
+                    let query_ns = lidar
+                        .select(col("offset_ns").add(timestamp_ns_i).alias("timestamp_ns"))
+                        .join(
+                            poses.clone().lazy(),
+                            col("timestamp_ns"),
+                            col("timestamp_ns"),
+                            JoinType::AsOf(AsOfOptions {
+                                strategy: AsofStrategy::Backward,
+                                ..default()
+                            }),
+                        )
+                        .join(
+                            poses.clone().lazy(),
+                            col("timestamp_ns"),
+                            col("timestamp_ns"),
+                            JoinType::AsOf(AsOfOptions {
+                                strategy: AsofStrategy::Forward,
+                                ..default()
+                            }),
+                        );
+
+                    // .collect()
+                    // .unwrap()
+                    // .to_ndarray::<UInt32Type>()
+                    // .unwrap()
+                    // .mapv(|x| (x + timestamp_ns_i) as usize);
+
+                    // par_azip!((point in xyz.rows(), offset in offset_ns.rows()) {
+                    //     let v = Vec3::new(point[0], point[1], point[2]);
+                    //     let query_ts = timestamp_ns_i + offset_ns;
+
+
+                    //     interpolate_pose()
+                    // });
+                }
+                MotionCompensationType::Identity => {}
             }
             lidar = lidar.with_column(lit(timedeltas));
             lidar
