@@ -339,7 +339,6 @@ def filter_max_dist(forecasts: Sequences, max_range_m: int) -> Sequences:
 
     Returns:
         forecasts: Dict[seq_id: List[frame]] Dictionary of tracks.
-
     """
     for seq_id in forecasts.keys():
         for timestamp in forecasts[seq_id].keys():

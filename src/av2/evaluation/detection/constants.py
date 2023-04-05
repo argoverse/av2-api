@@ -3,7 +3,7 @@
 """3D object detection evaluation constants."""
 
 from enum import Enum, unique
-from typing import Final
+from typing import Final, List, Dict
 
 from av2.utils.constants import PI
 
@@ -28,7 +28,7 @@ TRANSLATION_COLS: Final = ["tx_m", "ty_m", "tz_m"]
 DIMENSION_COLS: Final = ["length_m", "width_m", "height_m"]
 QUAT_WXYZ_COLS: Final = ["qw", "qx", "qy", "qz"]
 
-HIERARCHY: Final = {
+HIERARCHY: Final[Dict[str, List]] = {
     "FINEGRAIN": [
         "REGULAR_VEHICLE",
         "LARGE_VEHICLE",
@@ -118,7 +118,7 @@ HIERARCHY: Final = {
     ],
 }
 
-LCA: Final = {
+LCA: Final[Dict[str, List]] = {
     "ARTICULATED_BUS": ["ARTICULATED_BUS"],
     "BICYCLE": ["BICYCLE"],
     "BICYCLIST": ["BICYCLIST"],
