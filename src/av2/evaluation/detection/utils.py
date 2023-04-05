@@ -20,14 +20,19 @@ from joblib import Parallel, delayed
 from scipy.spatial.distance import cdist
 from upath import UPath
 
-from av2.evaluation.detection.constants import (MAX_NORMALIZED_ASE,
-                                                MAX_SCALE_ERROR,
-                                                MAX_YAW_RAD_ERROR, MIN_AP,
-                                                MIN_CDS, NUM_ELEMS,
-                                                AffinityType,
-                                                CompetitionCategories,
-                                                DistanceType, FilterMetricType,
-                                                InterpType)
+from av2.evaluation.detection.constants import (
+    MAX_NORMALIZED_ASE,
+    MAX_SCALE_ERROR,
+    MAX_YAW_RAD_ERROR,
+    MIN_AP,
+    MIN_CDS,
+    NUM_ELEMS,
+    AffinityType,
+    CompetitionCategories,
+    DistanceType,
+    FilterMetricType,
+    InterpType,
+)
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat, wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
 from av2.geometry.se3 import SE3
@@ -35,8 +40,7 @@ from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
 from av2.structures.cuboid import Cuboid, CuboidList
 from av2.utils.constants import EPS
 from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego
-from av2.utils.typing import (NDArrayBool, NDArrayFloat, NDArrayInt,
-                              NDArrayObject)
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt, NDArrayObject
 
 logger = logging.getLogger(__name__)
 

@@ -8,10 +8,7 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 
-from av2.datasets.motion_forecasting.data_schema import (ArgoverseScenario,
-                                                         ObjectState,
-                                                         ObjectType, Track,
-                                                         TrackCategory)
+from av2.datasets.motion_forecasting.data_schema import ArgoverseScenario, ObjectState, ObjectType, Track, TrackCategory
 
 
 def serialize_argoverse_scenario_parquet(save_path: Path, scenario: ArgoverseScenario) -> None:

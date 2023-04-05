@@ -6,8 +6,7 @@ import numpy as np
 import pandas as pd
 
 import av2.torch.data_loaders.scene_flow
-from av2.evaluation.scene_flow.utils import (compute_eval_point_mask,
-                                             get_eval_subset)
+from av2.evaluation.scene_flow.utils import compute_eval_point_mask, get_eval_subset
 from av2.torch.structures.flow import Flow
 from av2.torch.structures.sweep import Sweep
 from av2.utils.typing import NDArrayBool

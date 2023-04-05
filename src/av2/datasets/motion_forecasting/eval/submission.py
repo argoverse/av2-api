@@ -10,8 +10,7 @@ from typing import Dict, Final, List, Tuple
 import numpy as np
 import pandas as pd
 
-from av2.datasets.motion_forecasting.constants import \
-    AV2_SCENARIO_PRED_TIMESTEPS
+from av2.datasets.motion_forecasting.constants import AV2_SCENARIO_PRED_TIMESTEPS
 from av2.utils.typing import NDArrayNumber
 
 # Define type aliases used for submission

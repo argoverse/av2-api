@@ -20,8 +20,7 @@ from av2.geometry.se3 import SE3
 from av2.rendering.color import BLUE_BGR, TRAFFIC_YELLOW1_BGR
 from av2.rendering.vector import draw_line_frustum
 from av2.utils.io import read_feather
-from av2.utils.typing import (NDArrayBool, NDArrayByte, NDArrayFloat,
-                              NDArrayInt, NDArrayObject)
+from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt, NDArrayObject
 
 ORDERED_CUBOID_COL_NAMES: Final[List[str]] = [
     "tx_m",

@@ -17,8 +17,7 @@ from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 from utils import NDArrayFloat
 
-from av2.evaluation.detection.utils import (compute_objects_in_roi_mask,
-                                            load_mapped_avm_and_egoposes)
+from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
 
 Sequences = Dict[str, Dict[int, List[Dict[str, Any]]]]
 

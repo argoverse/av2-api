@@ -7,9 +7,7 @@ import numpy as np
 from kornia.geometry.linalg import transform_points
 from rich.progress import track
 
-from av2.evaluation.scene_flow.utils import (get_eval_point_mask,
-                                             get_eval_subset,
-                                             write_output_file)
+from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset, write_output_file
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 
 

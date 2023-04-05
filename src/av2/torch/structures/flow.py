@@ -9,8 +9,7 @@ import torch
 from kornia.geometry.linalg import transform_points
 from torch import BoolTensor, ByteTensor, FloatTensor
 
-from av2.evaluation.scene_flow.constants import (CATEGORY_TO_INDEX,
-                                                 SCENE_FLOW_DYNAMIC_THRESHOLD)
+from av2.evaluation.scene_flow.constants import CATEGORY_TO_INDEX, SCENE_FLOW_DYNAMIC_THRESHOLD
 from av2.structures.cuboid import Cuboid, CuboidList
 from av2.torch.structures.cuboids import Cuboids
 from av2.torch.structures.sweep import Sweep

@@ -14,8 +14,7 @@ from matplotlib.path import Path as MPath
 from av2.geometry.camera.pinhole_camera import PinholeCamera
 from av2.rendering.color import BLUE_BGR
 from av2.rendering.ops.draw import clip_line_frustum
-from av2.utils.typing import (NDArrayByte, NDArrayFloat, NDArrayInt,
-                              NDArrayNumber)
+from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayInt, NDArrayNumber
 
 
 def draw_polygon_mpl(

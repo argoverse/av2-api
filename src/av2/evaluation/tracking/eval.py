@@ -14,8 +14,7 @@ from copy import copy
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import (Any, Callable, Dict, Final, Iterable, List, Tuple, Union,
-                    cast)
+from typing import Any, Callable, Dict, Final, Iterable, List, Tuple, Union, cast
 
 import numpy as np
 import trackeval
@@ -25,8 +24,7 @@ from scipy.spatial.transform import Rotation
 from trackeval.datasets._base_dataset import _BaseDataset
 from utils import NDArrayFloat, NDArrayInt, Sequences
 
-from av2.evaluation.detection.utils import (compute_objects_in_roi_mask,
-                                            load_mapped_avm_and_egoposes)
+from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
 
 SUBMETRIC_TO_METRIC_CLASS_NAME: Final[Dict[str, str]] = {
     "MOTA": "CLEAR",

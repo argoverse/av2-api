@@ -59,12 +59,14 @@ from typing import Dict, Final, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from av2.evaluation.detection.constants import (HIERARCHY, LCA, NUM_DECIMALS,
-                                                MetricNames,
-                                                TruePositiveErrorNames)
-from av2.evaluation.detection.utils import (DetectionCfg, accumulate,
-                                            compute_average_precision, groupby,
-                                            load_mapped_avm_and_egoposes)
+from av2.evaluation.detection.constants import HIERARCHY, LCA, NUM_DECIMALS, MetricNames, TruePositiveErrorNames
+from av2.evaluation.detection.utils import (
+    DetectionCfg,
+    accumulate,
+    compute_average_precision,
+    groupby,
+    load_mapped_avm_and_egoposes,
+)
 from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap
 from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
