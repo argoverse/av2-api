@@ -13,7 +13,9 @@ from matplotlib.patches import Rectangle
 from PIL import Image as img
 from PIL.Image import Image
 
-from av2.datasets.motion_forecasting.data_schema import ArgoverseScenario, ObjectType, TrackCategory
+from av2.datasets.motion_forecasting.data_schema import (ArgoverseScenario,
+                                                         ObjectType,
+                                                         TrackCategory)
 from av2.map.map_api import ArgoverseStaticMap
 from av2.utils.typing import NDArrayFloat, NDArrayInt
 

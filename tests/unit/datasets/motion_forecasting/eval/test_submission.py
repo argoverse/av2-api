@@ -10,14 +10,11 @@ from typing import Dict
 import numpy as np
 import pytest
 
-from av2.datasets.motion_forecasting.constants import AV2_SCENARIO_PRED_TIMESTEPS
+from av2.datasets.motion_forecasting.constants import \
+    AV2_SCENARIO_PRED_TIMESTEPS
 from av2.datasets.motion_forecasting.eval.submission import (
-    ChallengeSubmission,
-    ScenarioPredictions,
-    ScenarioProbabilities,
-    ScenarioTrajectories,
-    TrackTrajectories,
-)
+    ChallengeSubmission, ScenarioPredictions, ScenarioProbabilities,
+    ScenarioTrajectories, TrackTrajectories)
 
 # Build valid submission with predictions for a single track in a single scenario
 valid_track_trajectories: TrackTrajectories = np.zeros((2, AV2_SCENARIO_PRED_TIMESTEPS, 2))

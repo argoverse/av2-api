@@ -11,7 +11,8 @@ from joblib import Parallel, delayed
 from rich.progress import track
 
 from av2.datasets.motion_forecasting import scenario_serialization
-from av2.datasets.motion_forecasting.viz.scenario_visualization import visualize_scenario
+from av2.datasets.motion_forecasting.viz.scenario_visualization import \
+    visualize_scenario
 from av2.map.map_api import ArgoverseStaticMap
 
 _DEFAULT_N_JOBS: Final[int] = -2  # Use all but one CPUs

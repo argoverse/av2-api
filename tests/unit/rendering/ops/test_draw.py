@@ -7,7 +7,8 @@ from typing import Any, Callable
 import cv2
 import numpy as np
 
-from av2.rendering.ops.draw import alpha_blend_kernel, draw_points_kernel, gaussian_kernel
+from av2.rendering.ops.draw import (alpha_blend_kernel, draw_points_kernel,
+                                    gaussian_kernel)
 from av2.utils.typing import NDArrayByte, NDArrayInt
 
 

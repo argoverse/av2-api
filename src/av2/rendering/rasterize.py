@@ -7,7 +7,8 @@ import numpy as np
 
 from av2.geometry.geometry import crop_points
 from av2.rendering.ops.draw import draw_points_kernel
-from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayInt, NDArrayNumber
+from av2.utils.typing import (NDArrayByte, NDArrayFloat, NDArrayInt,
+                              NDArrayNumber)
 
 GREEN_RGB: Final[NDArrayByte] = np.array([0, 255, 0], np.uint8)
 ELECTRIC_LIME_RGB: Final[NDArrayByte] = np.array([192, 255, 0], np.uint8)

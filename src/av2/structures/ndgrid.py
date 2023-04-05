@@ -13,7 +13,8 @@ import numpy as np
 from av2.geometry.geometry import crop_points
 from av2.rendering.color import GRAY_BGR
 from av2.rendering.rasterize import align_points_center, draw_points_xy_in_img
-from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayInt, NDArrayNumber
+from av2.utils.typing import (NDArrayByte, NDArrayFloat, NDArrayInt,
+                              NDArrayNumber)
 
 
 @dataclass(frozen=True)

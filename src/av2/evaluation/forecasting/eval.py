@@ -8,15 +8,17 @@ import argparse
 import json
 import pickle
 from collections import defaultdict
-from typing import Dict, List, Tuple, Any, cast
+from pathlib import Path
+from typing import Any, Dict, List, Tuple, cast
 
 import numpy as np
 import utils
-from tqdm import tqdm
-from pathlib import Path
-from av2.evaluation.detection.utils import load_mapped_avm_and_egoposes, compute_objects_in_roi_mask
 from scipy.spatial.transform import Rotation
+from tqdm import tqdm
 from utils import NDArrayFloat
+
+from av2.evaluation.detection.utils import (compute_objects_in_roi_mask,
+                                            load_mapped_avm_and_egoposes)
 
 Sequences = Dict[str, Dict[int, List[Dict[str, Any]]]]
 
@@ -56,8 +58,8 @@ def evaluate(predictions: Sequences, ground_truth: Sequences, args: Any) -> Dict
     class_names = utils.av2_classes
     class_velocity = utils.CATEGORY_TO_VELOCITY
     K = args.K
-    max_range_m = args.max_range_m 
-    dataset_dir = args.dataset_dir 
+    max_range_m = args.max_range_m
+    dataset_dir = args.dataset_dir
 
     ground_truth = convert_forecast_labels(ground_truth)
     ground_truth = filter_max_dist(ground_truth, max_range_m)
@@ -266,7 +268,7 @@ def accumulate(
         return np.nan, np.nan, np.nan, class_name, profile
 
     if sum(tp) == 0:
-        return  0, np.inf, np.inf, class_name, profile
+        return 0, np.inf, np.inf, class_name, profile
 
     tp_array = np.cumsum(tp_array).astype(float)
     fp_array = np.cumsum(fp_array).astype(float)
@@ -312,7 +314,7 @@ def convert_forecast_labels(labels: Dict[str, List[Dict[str, Any]]]) -> Sequence
                 forecast_instances.append(
                     {
                         "current_translation": instance["translation"][:2],
-                        "ego_translation" : instance["ego_translation"][:2],
+                        "ego_translation": instance["ego_translation"][:2],
                         "future_translation": future_translations,
                         "name": instance["name"],
                         "size": instance["size"],
@@ -328,24 +330,33 @@ def convert_forecast_labels(labels: Dict[str, List[Dict[str, Any]]]) -> Sequence
 
     return forecast_labels
 
-def filter_max_dist(forecasts: Sequences, max_range_m : int) -> Sequences:
-    """ Remove all tracks that are beyond the max_dist 
+
+def filter_max_dist(forecasts: Sequences, max_range_m: int) -> Sequences:
+    """Remove all tracks that are beyond the max_dist.
+
     Args:
         forecasts: Dict[seq_id: List[frame]] Dictionary of tracks
         max_range_m: maximum distance from ego-vehicle
+
     Returns:
-        forecasts: Dict[seq_id: List[frame]] Dictionary of tracks
+        forecasts: Dict[seq_id: List[frame]] Dictionary of tracks.
+
     """
-    
     for seq_id in forecasts.keys():
         for timestamp in forecasts[seq_id].keys():
-            keep_forecasts = [agent for agent in forecasts[seq_id][timestamp] if np.linalg.norm(agent["current_translation"] -  agent["ego_translation"]) < max_range_m]
+            keep_forecasts = [
+                agent
+                for agent in forecasts[seq_id][timestamp]
+                if np.linalg.norm(agent["current_translation"] - agent["ego_translation"]) < max_range_m
+            ]
             forecasts[seq_id][timestamp] = keep_forecasts
 
     return forecasts
 
+
 def yaw_to_quaternion3d(yaw: float) -> np.ndarray:
     """Convert a rotation angle in the xy plane (i.e. about the z axis) to a quaternion.
+
     Args:
         yaw: angle to rotate about the z-axis, representing an Euler angle, in radians
     Returns:
@@ -355,40 +366,41 @@ def yaw_to_quaternion3d(yaw: float) -> np.ndarray:
     return np.array([qw, qx, qy, qz])
 
 
-def filter_drivable_area(forecasts: Sequences, dataset_dir : str) -> Sequences:
+def filter_drivable_area(forecasts: Sequences, dataset_dir: str) -> Sequences:
     """Convert the unified label format to a format that is easier to work with for forecasting evaluation.
+
     Args:
         forecasts: Dict[seq_id: List[frame]] Dictionary of tracks
         dataset_dir:str Dataset root directory
     Returns:
-        forecasts: Dict[seq_id: List[frame]] Dictionary of tracks
+        forecasts: Dict[seq_id: List[frame]] Dictionary of tracks.
     """
     if dataset_dir is None:
-        return tracks 
+        return tracks
 
     log_ids = list(forecasts.keys())
     log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, Path(dataset_dir))
 
-    for log_id in log_ids: 
+    for log_id in log_ids:
         avm = log_id_to_avm[log_id]
 
         for timestamp in forecasts[log_id]:
             city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp)]
-            
+
             translation, size, quat = [], [], []
 
             for box in forecasts[log_id][timestamp]:
                 translation.append(box["current_translation"] - box["ego_translation"])
                 size.append(box["size"])
                 quat.append(yaw_to_quaternion3d(box["yaw"]))
-            
+
             score = np.ones((len(translation), 1))
             boxes = np.concatenate([np.array(translation), np.array(size), np.array(quat), np.array(score)], axis=1)
 
             is_evaluated = compute_objects_in_roi_mask(boxes, city_SE3_ego, avm)
             forecasts[log_id][timestamp] = list(np.array(forecasts[log_id][timestamp])[is_evaluated])
 
-    return forecasts 
+    return forecasts
 
 
 if __name__ == "__main__":

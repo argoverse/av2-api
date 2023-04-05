@@ -19,7 +19,8 @@ from av2.geometry.camera.pinhole_camera import PinholeCamera
 from av2.geometry.se3 import SE3
 from av2.map.lane_segment import LaneMarkType, LaneSegment
 from av2.map.map_api import ArgoverseStaticMap
-from av2.rendering.color import HANDICAP_BLUE_BGR, RED_BGR, TRAFFIC_YELLOW1_BGR, WHITE_BGR
+from av2.rendering.color import (HANDICAP_BLUE_BGR, RED_BGR,
+                                 TRAFFIC_YELLOW1_BGR, WHITE_BGR)
 from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt
 
 # apply uniform dashes. in reality, there is often a roughly 2:1 ratio between empty space and dashes.

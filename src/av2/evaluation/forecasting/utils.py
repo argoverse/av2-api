@@ -1,7 +1,8 @@
 """Forecasting evaluation utilities."""
-from typing import Final, Dict, Any, Iterable, List, Union, cast
-import numpy.typing as npt 
+from typing import Any, Dict, Final, Iterable, List, Union, cast
+
 import numpy as np
+import numpy.typing as npt
 
 NDArrayFloat = npt.NDArray[np.float64]
 NDArrayInt = npt.NDArray[np.int64]
@@ -164,6 +165,7 @@ def center_distance(pred_box: NDArrayFloat, gt_box: NDArrayFloat) -> float:
     """
     return cast(float, np.linalg.norm(pred_box - gt_box))
 
+
 def array_dict_iterator(array_dict: Frame, length: int) -> Iterable[Frame]:
     """Get an iterator over each index in array_dict.
 
@@ -175,6 +177,7 @@ def array_dict_iterator(array_dict: Frame, length: int) -> Iterable[Frame]:
         Iterator, each element is a dictionary of numpy arrays, indexed from 0 to (length-1)
     """
     return (index_array_values(array_dict, i) for i in range(length))
+
 
 def index_array_values(array_dict: Frame, index: Union[int, NDArrayInt]) -> Frame:
     """Index each numpy array in dictionary.
@@ -188,7 +191,8 @@ def index_array_values(array_dict: Frame, index: Union[int, NDArrayInt]) -> Fram
     """
     return {k: v[index] if isinstance(v, np.ndarray) else v for k, v in array_dict.items()}
 
-def annotate_frame_metadata(predictions : Sequences, ground_truth : Sequences, metadata_keys: List[str]) -> Sequences:
+
+def annotate_frame_metadata(predictions: Sequences, ground_truth: Sequences, metadata_keys: List[str]) -> Sequences:
     """Index each numpy array in dictionary.
 
     Args:
@@ -199,7 +203,6 @@ def annotate_frame_metadata(predictions : Sequences, ground_truth : Sequences, m
     Returns:
         predictions: Forecast predictions with new metadat key
     """
-    
     for seq_id in ground_truth.keys():
         for timestamp in ground_truth[seq_id].keys():
             copy_keys = {}

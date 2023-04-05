@@ -94,20 +94,20 @@ def load(path: str) -> Any:  # noqa
         return pickle.load(f)
 
 
-def annotate_frame_metadata(
-    prediction_frames: Frames, label_frames: Frames, metadata_keys: List[str]
-) -> None:
+def annotate_frame_metadata(prediction_frames: Frames, label_frames: Frames, metadata_keys: List[str]) -> None:
     """Copy annotations with provided keys from label to prediction frames.
+
     Args:
         prediction_frames: list of prediction frames
         label_frames: list of label frames
-        metadata_keys: keys of the annotations to be copied
+        metadata_keys: keys of the annotations to be copied.
     """
     assert len(prediction_frames) == len(label_frames)
     for prediction, label in zip(prediction_frames, label_frames):
         for key in metadata_keys:
             prediction[key] = label[key]
-            
+
+
 def group_frames(frames_list: Frames) -> Sequences:
     """Group list of frames into dictionary by sequence id.
 

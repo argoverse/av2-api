@@ -13,16 +13,20 @@ import pickle
 from copy import copy
 from functools import partial
 from itertools import chain
-from typing import Callable, Dict, Final, List, Tuple, Union, Any, Iterable, cast
-from utils import Sequences, NDArrayFloat, NDArrayInt
-import utils
-from scipy.spatial.transform import Rotation
+from pathlib import Path
+from typing import (Any, Callable, Dict, Final, Iterable, List, Tuple, Union,
+                    cast)
+
 import numpy as np
 import trackeval
+import utils
 from scipy.optimize import linear_sum_assignment
+from scipy.spatial.transform import Rotation
 from trackeval.datasets._base_dataset import _BaseDataset
-from pathlib import Path
-from av2.evaluation.detection.utils import load_mapped_avm_and_egoposes, compute_objects_in_roi_mask
+from utils import NDArrayFloat, NDArrayInt, Sequences
+
+from av2.evaluation.detection.utils import (compute_objects_in_roi_mask,
+                                            load_mapped_avm_and_egoposes)
 
 SUBMETRIC_TO_METRIC_CLASS_NAME: Final[Dict[str, str]] = {
     "MOTA": "CLEAR",
@@ -394,23 +398,24 @@ def _xy_center_similarity(centers1: NDArrayFloat, centers2: NDArrayFloat, zero_d
     sim = np.maximum(0, 1 - xy_dist / zero_distance)
     return cast(NDArrayFloat, sim)
 
-def filter_max_dist(tracks: Sequences, max_range_m : int) -> Sequences:
-    """ Remove all tracks that are beyond the max_dist 
+
+def filter_max_dist(tracks: Sequences, max_range_m: int) -> Sequences:
+    """Remove all tracks that are beyond the max_dist.
+
     Args:
         tracks: Dict[seq_id: List[frame]] Dictionary of tracks
         max_range_m: maximum distance from ego-vehicle
+
     Returns:
-        tracks: Dict[seq_id: List[frame]] Dictionary of tracks
+        tracks: Dict[seq_id: List[frame]] Dictionary of tracks.
     """
-    
     frames = utils.ungroup_frames(tracks)
     return utils.group_frames(
         [
             utils.index_array_values(
                 frame,
                 np.linalg.norm(
-                    frame["translation"][:, :2]
-                    - np.array(frame["ego_translation"])[:2],
+                    frame["translation"][:, :2] - np.array(frame["ego_translation"])[:2],
                     axis=1,
                 )
                 <= max_range_m,
@@ -419,8 +424,10 @@ def filter_max_dist(tracks: Sequences, max_range_m : int) -> Sequences:
         ]
     )
 
+
 def yaw_to_quaternion3d(yaw: float) -> np.ndarray:
     """Convert a rotation angle in the xy plane (i.e. about the z axis) to a quaternion.
+
     Args:
         yaw: angle to rotate about the z-axis, representing an Euler angle, in radians
     Returns:
@@ -429,22 +436,23 @@ def yaw_to_quaternion3d(yaw: float) -> np.ndarray:
     qx, qy, qz, qw = Rotation.from_euler(seq="z", angles=yaw, degrees=False).as_quat()
     return np.array([qw, qx, qy, qz])
 
-def filter_drivable_area(tracks: Sequences, dataset_dir : str) -> Sequences:
+
+def filter_drivable_area(tracks: Sequences, dataset_dir: str) -> Sequences:
     """Convert the unified label format to a format that is easier to work with for forecasting evaluation.
+
     Args:
         tracks: Dict[seq_id: List[frame]] Dictionary of tracks
         dataset_dir:str Dataset root directory
     Returns:
-        tracks: Dict[seq_id: List[frame]] Dictionary of tracks
+        tracks: Dict[seq_id: List[frame]] Dictionary of tracks.
     """
-
     if dataset_dir is None:
-        return tracks 
+        return tracks
 
     log_ids = list(tracks.keys())
     log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, Path(dataset_dir))
 
-    for log_id in log_ids: 
+    for log_id in log_ids:
         avm = log_id_to_avm[log_id]
 
         for frame in tracks[log_id]:
@@ -484,25 +492,26 @@ def filter_drivable_area(tracks: Sequences, dataset_dir : str) -> Sequences:
             if "age" in frame:
                 frame["age"] = frame["age"][is_evaluated]
 
-    return tracks 
+    return tracks
 
-def evaluate(track_predictions : Sequences, labels : Sequences, args : Any) -> Tuple[Dict[str, float], Dict[str, Any]]:
-    """Run evaluation
+
+def evaluate(track_predictions: Sequences, labels: Sequences, args: Any) -> Tuple[Dict[str, float], Dict[str, Any]]:
+    """Run evaluation.
+
     Args:
         predictions: Dict[seq_id] List[frame]] Dictionary of tracks
         ground_truth: Dict[seq_id] List[frame]] Dictionary of labels
         objective_metric: str metric to optimize
         dataset_dir: str dataset root directory
-        max_range: int maximum distance from ego-vehicle
+        max_range: int maximum distance from ego-vehicle.
 
     Returns:
         res: Dict Dictionary of per-class metrics
     """
-
     objective_metric = args.objective_metric
     classes = utils.av2_classes
     max_range_m = args.max_range_m
-    dataset_dir = args.dataset_dir 
+    dataset_dir = args.dataset_dir
 
     labels = filter_max_dist(labels, max_range_m)
     utils.annotate_frame_metadata(
@@ -513,7 +522,7 @@ def evaluate(track_predictions : Sequences, labels : Sequences, args : Any) -> T
     labels = filter_drivable_area(labels, dataset_dir)
     track_predictions = filter_drivable_area(track_predictions, dataset_dir)
 
-    score_thresholds, tuned_metric_values, mean_metric_values = _tune_score_thresholds(
+    score_thresholds, _, mean_metric_values = _tune_score_thresholds(
         labels,
         track_predictions,
         objective_metric,
@@ -532,6 +541,7 @@ def evaluate(track_predictions : Sequences, labels : Sequences, args : Any) -> T
 
     return res, mean_metric_values
 
+
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument("--predictions", default="sample/track_predictions.pkl")
@@ -545,7 +555,7 @@ if __name__ == "__main__":
 
     track_predictions = pickle.load(open(args.predictions, "rb"))
     labels = pickle.load(open(args.ground_truth, "rb"))
-    
+
     res, mean_metric_values = evaluate(track_predictions, labels, args)
 
     print(mean_metric_values)

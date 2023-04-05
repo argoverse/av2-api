@@ -16,17 +16,12 @@ from scipy.spatial.transform import Rotation
 
 from av2.evaluation.detection.constants import AffinityType, DistanceType
 from av2.evaluation.detection.eval import evaluate
-from av2.evaluation.detection.utils import (
-    DetectionCfg,
-    accumulate,
-    assign,
-    compute_affinity_matrix,
-    compute_evaluated_dts_mask,
-    compute_evaluated_gts_mask,
-    compute_objects_in_roi_mask,
-    distance,
-    interpolate_precision,
-)
+from av2.evaluation.detection.utils import (DetectionCfg, accumulate, assign,
+                                            compute_affinity_matrix,
+                                            compute_evaluated_dts_mask,
+                                            compute_evaluated_gts_mask,
+                                            compute_objects_in_roi_mask,
+                                            distance, interpolate_precision)
 from av2.geometry.geometry import wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
 from av2.map.map_api import ArgoverseStaticMap
