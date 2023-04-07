@@ -85,13 +85,8 @@ UUID_COLUMN_NAMES: Final[Tuple[str, ...]] = (
     "timestamp_ns",
     "category",
 )
-UUID_COLUMN_NOCAT_NAMES: Final[Tuple[str, ...]] = (
-    "log_id",
-    "timestamp_ns"
-)
-UUID_CAT_NAMES: Final[Tuple[str, ...]] = (
-    "category",
-)
+UUID_COLUMN_NOCAT_NAMES: Final[Tuple[str, ...]] = ("log_id", "timestamp_ns")
+UUID_CAT_NAMES: Final[Tuple[str, ...]] = ("category",)
 logger = logging.getLogger(__name__)
 
 
@@ -249,7 +244,18 @@ def evaluate_hierarchy(
         log_ids: List[str] = gts.loc[:, "log_id"].unique().tolist()
         log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
 
-    args_list: List[Tuple[NDArrayFloat, NDArrayFloat, NDArrayFloat, NDArrayFloat, str, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
+    args_list: List[
+        Tuple[
+            NDArrayFloat,
+            NDArrayFloat,
+            NDArrayFloat,
+            NDArrayFloat,
+            str,
+            DetectionCfg,
+            Optional[ArgoverseStaticMap],
+            Optional[SE3],
+        ]
+    ] = []
     uuids = sorted(uuid_to_dts.keys() | uuid_to_gts.keys())
     for uuid in uuids:
         log_id, timestamp_ns = uuid.split(":")

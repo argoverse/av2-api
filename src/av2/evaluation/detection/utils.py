@@ -239,7 +239,18 @@ def filter_dont_care(gt: NDArrayObject, class_name: str) -> bool:
         return False
 
 
-def accumulate_hierarchy(dts : NDArrayFloat, gts : NDArrayFloat, dts_cats : NDArrayObject, gts_cats : NDArrayObject, dts_uuids : NDArrayObject, gts_uuids : NDArrayObject, cat : str, lca_cat : str, lca : str, cfg : DetectionCfg) -> Tuple[float, str, str]:
+def accumulate_hierarchy(
+    dts: NDArrayFloat,
+    gts: NDArrayFloat,
+    dts_cats: NDArrayObject,
+    gts_cats: NDArrayObject,
+    dts_uuids: NDArrayObject,
+    gts_uuids: NDArrayObject,
+    cat: str,
+    lca_cat: str,
+    lca: str,
+    cfg: DetectionCfg,
+) -> Tuple[float, str, str]:
     """Computes hierarchical AP at LCA=lca for each the given class (cat).
 
     Args:
@@ -277,11 +288,11 @@ def accumulate_hierarchy(dts : NDArrayFloat, gts : NDArrayFloat, dts_cats : NDAr
 
     npos = sum([True if cname == cat else False for cname in gts_cats])
 
-    tp : Dict[int, Any] = {}
-    fp : Dict[int, Any] = {}
-    gt_name : Dict[int, List[Any]] = {}
-    pred_name : Dict[int, List[Any]] = {}
-    taken : Dict[int, set[Tuple[Any, Any]]] = {}
+    tp: Dict[int, Any] = {}
+    fp: Dict[int, Any] = {}
+    gt_name: Dict[int, List[Any]] = {}
+    pred_name: Dict[int, List[Any]] = {}
+    taken: Dict[int, set[Tuple[Any, Any]]] = {}
     for i in range(len(cfg.affinity_thresholds_m)):
         tp[i] = []
         fp[i] = []

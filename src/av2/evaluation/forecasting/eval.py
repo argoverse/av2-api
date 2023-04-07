@@ -298,7 +298,7 @@ def convert_forecast_labels(labels: Any) -> Any:
         for frame_idx, frame in enumerate(frames):
             forecast_instances = []
             for instance in utils.array_dict_iterator(frame, len(frame["translation"])):
-                future_translations : Any = []
+                future_translations: Any = []
                 for future_frame in frames[frame_idx + 1 : frame_idx + 1 + utils.NUM_TIMESTEPS]:
                     if instance["track_id"] not in future_frame["track_id"]:
                         break
