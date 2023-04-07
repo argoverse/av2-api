@@ -28,7 +28,7 @@ TRANSLATION_COLS: Final = ["tx_m", "ty_m", "tz_m"]
 DIMENSION_COLS: Final = ["length_m", "width_m", "height_m"]
 QUAT_WXYZ_COLS: Final = ["qw", "qx", "qy", "qz"]
 
-HIERARCHY: Final[Dict[str, List]] = {
+HIERARCHY: Final = {
     "FINEGRAIN": [
         "REGULAR_VEHICLE",
         "LARGE_VEHICLE",
@@ -118,7 +118,7 @@ HIERARCHY: Final[Dict[str, List]] = {
     ],
 }
 
-LCA: Final[Dict[str, List]] = {
+LCA: Final = {
     "ARTICULATED_BUS": ["ARTICULATED_BUS"],
     "BICYCLE": ["BICYCLE"],
     "BICYCLIST": ["BICYCLIST"],

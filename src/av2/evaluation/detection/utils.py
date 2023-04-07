@@ -177,6 +177,25 @@ def is_evaluated(
     avm: Optional[ArgoverseStaticMap] = None,
     city_SE3_ego: Optional[SE3] = None,
 ) -> Tuple[NDArrayFloat, NDArrayFloat]:
+    """Filters detections and ground truth boxes that are either not within the max_range_m or within the ROI.
+
+    Args:
+        dts: Detections array.
+        gts: Ground truth annotations array.
+        dts_cats: Categories associated with the detections array.
+        gts_cats: Categories associated with the ground truth annotations array.
+        uuid: List of unique identifiers (e.g. log_id:timestamp)
+        cfg: 3D object detection configuration.
+        avm: Argoverse static map for the log.
+        city_SE3_ego: Egovehicle pose in the city reference frame.
+
+    Returns:
+        dts: Detections array.
+        gts: Ground truth annotations array.
+        dts_cats: Categories associated with the detections array.
+        gts_cats: Categories associated with the ground truth annotations array.
+        uuid: List of unique identifiers (e.g. log_id:timestamp)
+    """
     N, M = len(dts), len(gts)
     is_evaluated_dts: NDArrayBool = np.ones(N, dtype=bool)
     is_evaluated_gts: NDArrayBool = np.ones(M, dtype=bool)
@@ -207,8 +226,8 @@ def calc_ap(precision: NDArrayFloat, min_recall: int = 0, min_precision: int = 0
     prec[prec < 0] = 0
     return float(np.mean(prec)) / (1.0 - min_precision)
 
-
 def filter_dont_care(gt: str, class_name: str) -> bool:
+    """Fitlers detections that are considered don't care under current LCA evaluation."""
     if gt == "ignore":
         return True
 
@@ -220,6 +239,23 @@ def filter_dont_care(gt: str, class_name: str) -> bool:
 
 
 def accumulate_hierarchy(dts, gts, dts_cats, gts_cats, dts_uuids, gts_uuids, cat, lca_cat, lca, cfg):
+    """Computes hierarchical AP at LCA=lca for each the given class (cat).
+
+    Args:
+        dts: Detections array.
+        gts: Ground truth annotations array.
+        dts_cats: Categories associated with the detections array.
+        gts_cats: Categories associated with the ground truth annotations array.
+        dts_uuids: List of unique identifiers (e.g. log_id:timestamp)
+        gts_uuids: List of unique identifiers (e.g. log_id:timestamp)
+        cat: Category
+        lca_cat: Superclass of cat
+        lca: Least Common Ancestor, LCA={0,1,2}
+        cfg: 3D object detection configuration.
+
+    Returns: 
+        Hierarchical AP, cat, lca
+    """
     keep_dts = np.array([True if cname == cat else False for cname in dts_cats])
     keep_gts = np.array([True if cname in lca_cat else False for cname in gts_cats])
 

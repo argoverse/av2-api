@@ -199,9 +199,7 @@ def evaluate_hierarchy(
 
 
     Returns:
-        (C+1,K) Table of evaluation metrics where C is the number of classes. Plus a row for their means.
-        K refers to the number of evaluation metrics.
-
+        metrics: Returns a C+1 x 3 Pandas DataFrame for the Hierarchical AP at LCA = 0, 1 , 2 for all classes. The last row reports the average over all classes.
 
     Raises:
         RuntimeError: If accumulation fails.
@@ -310,7 +308,7 @@ def evaluate_hierarchy(
     dts_uuids = np.concatenate(dts_uuids)
     gts_uuids = np.concatenate(gts_uuids)
 
-    args_list = []
+    args_list : List[Tuple[NDArrayFloat, NDArrayFloat, NDArrayObject, NDArrayObject, NDArrayObject, NDArrayObjct, str, str, str, DetectionCfg]] = []
     for cat in cfg.categories:
         ind = HIERARCHY["FINEGRAIN"].index(cat)
         for lca in HIERARCHY.keys():
@@ -330,7 +328,7 @@ def evaluate_hierarchy(
 
     metrics = pd.DataFrame(metrics, columns=["LCA=0", "LCA=1", "LCA=2"], index=cfg.categories)
 
-    return dts, gts, metrics
+    return metrics
 
 
 def summarize_metrics(

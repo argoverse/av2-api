@@ -5,8 +5,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any  # noqa
-from typing import Union
+from typing import Any, Union, Dict, List  # noqa
 
 import numpy as np
 import numpy.typing as npt
@@ -19,5 +18,9 @@ NDArrayFloat32 = npt.NDArray[np.float32]
 NDArrayByte = npt.NDArray[np.uint8]
 NDArrayInt = npt.NDArray[np.int64]
 NDArrayObject = npt.NDArray[np.object_]
+
+Frame = Dict[str, Any]
+Frames = List[Frame]
+Sequences = Dict[str, Frames]
 
 PathType = Union[Path, UPath]

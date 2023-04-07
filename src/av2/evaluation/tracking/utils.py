@@ -8,15 +8,9 @@ import pickle
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
+from av2.utils.typing import NDArrayInt, Frame, Frames, Sequences
 import numpy as np
-import numpy.typing as npt
 from tqdm import tqdm
-
-NDArrayFloat = npt.NDArray[np.float64]
-NDArrayInt = npt.NDArray[np.int64]
-Frame = Dict[str, Any]
-Frames = List[Frame]
-Sequences = Dict[str, Frames]
 
 av2_classes: List[str] = [
     "REGULAR_VEHICLE",

@@ -16,13 +16,14 @@ from itertools import chain
 from pathlib import Path
 from typing import Any, Callable, Dict, Final, Iterable, List, Tuple, Union, cast
 
+from pprint import pprtin 
 import numpy as np
 import trackeval
 import utils
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation
 from trackeval.datasets._base_dataset import _BaseDataset
-from utils import NDArrayFloat, NDArrayInt, Sequences
+from av2.utils.typing import NDArrayFloat, NDArrayInt, Sequences
 
 from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
 
@@ -428,6 +429,8 @@ def yaw_to_quaternion3d(yaw: float) -> np.ndarray:
 
     Args:
         yaw: angle to rotate about the z-axis, representing an Euler angle, in radians
+    
+
     Returns:
         array w/ quaternion coefficients (qw,qx,qy,qz) in scalar-first order, per Argoverse convention.
     """
@@ -497,15 +500,14 @@ def evaluate(track_predictions: Sequences, labels: Sequences, args: Any) -> Tupl
     """Run evaluation.
 
     Args:
-        predictions: Dict[seq_id] List[frame]] Dictionary of tracks
-        ground_truth: Dict[seq_id] List[frame]] Dictionary of labels
-        objective_metric: str metric to optimize
-        dataset_dir: str dataset root directory
-        max_range: int maximum distance from ego-vehicle.
+        track_predictions: Dict[seq_id] List[frame]] Dictionary of tracks
+        labels: Dict[seq_id] List[frame]] Dictionary of labels
+        args: Argparse arguments
 
     Returns:
         res: Dict Dictionary of per-class metrics
     """
+
     objective_metric = args.objective_metric
     classes = utils.av2_classes
     max_range_m = args.max_range_m
@@ -542,12 +544,12 @@ def evaluate(track_predictions: Sequences, labels: Sequences, args: Any) -> Tupl
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("--predictions", default="sample/track_predictions.pkl")
-    argparser.add_argument("--ground_truth", default="sample/labels.pkl")
+    argparser.add_argument("--predictions", required=True) #.pkl
+    argparser.add_argument("--ground_truth", required=True) #.pkl
     argparser.add_argument("--max_range_m", type=int, default=50)
     argparser.add_argument("--dataset_dir", default=None)
     argparser.add_argument("--objective_metric", default="HOTA", choices=["HOTA", "MOTA"])
-    argparser.add_argument("--out", default="sample/output.pkl")
+    argparser.add_argument("--out", required=True) #.pkl
 
     args = argparser.parse_args()
 
@@ -556,7 +558,7 @@ if __name__ == "__main__":
 
     res, mean_metric_values = evaluate(track_predictions, labels, args)
 
-    print(mean_metric_values)
+    pprint(mean_metric_values)
 
     with open(args.out, "w") as f:
         json.dump(mean_metric_values, f, indent=4)

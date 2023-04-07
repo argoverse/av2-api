@@ -17,9 +17,9 @@ from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 from utils import NDArrayFloat
 
+from pprint import pprint
 from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
-
-Sequences = Dict[str, Dict[int, List[Dict[str, Any]]]]
+from av2.utils.typing import Sequences
 
 
 def calc_ap(precision: NDArrayFloat, min_recall: float = 0, min_precision: float = 0) -> float:
@@ -49,7 +49,7 @@ def evaluate(predictions: Sequences, ground_truth: Sequences, args: Any) -> Dict
     Args:
         predictions: All predicted trajectories for each log_id and timestep.
         ground_truth: All ground truth trajectories for each log_id and timestep.
-        K: Number of future trajectories to consider when evaluating Forecastin AP, ADE and FDE (K=5 by default).
+        args: Argparse arguments.
 
     Returns:
         Dictionary of evaluation results.
@@ -243,10 +243,10 @@ def accumulate(
                         ade = curr_ade
                         fde = curr_fde
 
-                agent_ade.append(ade)
-                agent_fde.append(fde)
-                tp.append(forecast_match[-1])
-                fp.append(not forecast_match[-1])
+            agent_ade.append(ade)
+            agent_fde.append(fde)
+            tp.append(forecast_match[-1])
+            fp.append(not forecast_match[-1])
 
             gt_profiles.append(profile)
             pred_profiles.append("ignore")
@@ -374,7 +374,7 @@ def filter_drivable_area(forecasts: Sequences, dataset_dir: str) -> Sequences:
         forecasts: Dict[seq_id: List[frame]] Dictionary of tracks.
     """
     if dataset_dir is None:
-        return tracks
+        return forecasts
 
     log_ids = list(forecasts.keys())
     log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, Path(dataset_dir))
@@ -403,12 +403,12 @@ def filter_drivable_area(forecasts: Sequences, dataset_dir: str) -> Sequences:
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("--predictions", default="sample/linear_forecast_predictions.pkl")
-    argparser.add_argument("--ground_truth", default="sample/labels.pkl")
+    argparser.add_argument("--predictions", required=True) #.pkl
+    argparser.add_argument("--ground_truth", required=True) #.pkl
     argparser.add_argument("--max_range_m", type=int, default=50)
     argparser.add_argument("--dataset_dir", default=None)
     argparser.add_argument("--K", default=5)
-    argparser.add_argument("--out", default="sample/output.json")
+    argparser.add_argument("--out", required=True) #.json
 
     args = argparser.parse_args()
     predictions = pickle.load(open(args.predictions, "rb"))
@@ -422,7 +422,7 @@ if __name__ == "__main__":
     res["mean_mAP_F"] = mAP_F
     res["mean_ADE"] = ADE
     res["mean_FDE"] = FDE
-    print(res)
+    pprint(res)
 
     with open(args.out, "w") as f:
         json.dump(res, f, indent=4)

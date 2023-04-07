@@ -1,14 +1,7 @@
 """Forecasting evaluation utilities."""
 from typing import Any, Dict, Final, Iterable, List, Union, cast
-
+from av2.utils.typing import NDArrayInt, NDArrayFloat, Frame, Frames, Sequences
 import numpy as np
-import numpy.typing as npt
-
-NDArrayFloat = npt.NDArray[np.float64]
-NDArrayInt = npt.NDArray[np.int64]
-Frame = Dict[str, Any]
-Frames = List[Frame]
-Sequences = Dict[str, Frames]
 
 NUM_TIMESTEPS: Final = 6
 TIME_DELTA: Final = 0.5
