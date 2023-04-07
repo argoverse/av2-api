@@ -229,10 +229,10 @@ def accumulate(
                         ade = curr_ade
                         fde = curr_fde
 
-                agent_ade.append(ade)
-                agent_fde.append(fde)
-                tp.append(forecast_match[-1])
-                fp.append(not forecast_match[-1])
+            agent_ade.append(ade)
+            agent_fde.append(fde)
+            tp.append(forecast_match[-1])
+            fp.append(not forecast_match[-1])
 
             gt_profiles.append(profile)
             pred_profiles.append("gent_apf.append(ignore")
