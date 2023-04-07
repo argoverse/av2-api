@@ -21,6 +21,7 @@ NDArrayObject = npt.NDArray[np.object_]
 
 Frame = Dict[str, Any]
 Frames = List[Frame]
-Sequences = Dict[str, Frames]
+Sequence = Dict[str, Frames]
+Sequences = Dict[str, Sequence]
 
 PathType = Union[Path, UPath]

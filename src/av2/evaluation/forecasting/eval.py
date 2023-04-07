@@ -19,7 +19,7 @@ from utils import NDArrayFloat
 
 from pprint import pprint
 from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
-from av2.utils.typing import Sequences
+from av2.utils.typing import Sequence, Sequences
 
 
 def calc_ap(precision: NDArrayFloat, min_recall: float = 0, min_precision: float = 0) -> float:
@@ -283,7 +283,7 @@ def accumulate(
     return (apf, cast(float, np.mean(agent_ade)), cast(float, np.mean(agent_fde)), class_name, profile)
 
 
-def convert_forecast_labels(labels: Dict[str, List[Dict[str, Any]]]) -> Sequences:
+def convert_forecast_labels(labels: Any) -> Any:
     """Convert the unified label format to a format that is easier to work with for forecasting evaluation.
 
     Args:
@@ -298,7 +298,7 @@ def convert_forecast_labels(labels: Dict[str, List[Dict[str, Any]]]) -> Sequence
         for frame_idx, frame in enumerate(frames):
             forecast_instances = []
             for instance in utils.array_dict_iterator(frame, len(frame["translation"])):
-                future_translations = []
+                future_translations : Any = []
                 for future_frame in frames[frame_idx + 1 : frame_idx + 1 + utils.NUM_TIMESTEPS]:
                     if instance["track_id"] not in future_frame["track_id"]:
                         break
@@ -352,7 +352,7 @@ def filter_max_dist(forecasts: Sequences, max_range_m: int) -> Sequences:
     return forecasts
 
 
-def yaw_to_quaternion3d(yaw: float) -> np.ndarray:
+def yaw_to_quaternion3d(yaw: float) -> NDArrayFloat:
     """Convert a rotation angle in the xy plane (i.e. about the z axis) to a quaternion.
 
     Args:
@@ -403,12 +403,12 @@ def filter_drivable_area(forecasts: Sequences, dataset_dir: str) -> Sequences:
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("--predictions", required=True) #.pkl
-    argparser.add_argument("--ground_truth", required=True) #.pkl
+    argparser.add_argument("--predictions", required=True)  # .pkl
+    argparser.add_argument("--ground_truth", required=True)  # .pkl
     argparser.add_argument("--max_range_m", type=int, default=50)
     argparser.add_argument("--dataset_dir", default=None)
     argparser.add_argument("--K", default=5)
-    argparser.add_argument("--out", required=True) #.json
+    argparser.add_argument("--out", required=True)  # .json
 
     args = argparser.parse_args()
     predictions = pickle.load(open(args.predictions, "rb"))

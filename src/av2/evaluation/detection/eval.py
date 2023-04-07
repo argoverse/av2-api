@@ -54,7 +54,7 @@ Results:
 import logging
 import multiprocessing as mp
 import warnings
-from typing import Dict, Final, List, Optional, Tuple
+from typing import Any, Dict, Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -63,6 +63,8 @@ from av2.evaluation.detection.constants import HIERARCHY, LCA, NUM_DECIMALS, Met
 from av2.evaluation.detection.utils import (
     DetectionCfg,
     accumulate,
+    accumulate_hierarchy,
+    is_evaluated,
     compute_average_precision,
     groupby,
     load_mapped_avm_and_egoposes,
@@ -71,7 +73,7 @@ from av2.geometry.se3 import SE3
 from av2.map.map_api import ArgoverseStaticMap
 from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
 from av2.utils.io import TimestampedCitySE3EgoPoses
-from av2.utils.typing import NDArrayBool, NDArrayFloat
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayObject
 
 warnings.filterwarnings("ignore", module="google")
 
@@ -83,7 +85,13 @@ UUID_COLUMN_NAMES: Final[Tuple[str, ...]] = (
     "timestamp_ns",
     "category",
 )
-
+UUID_COLUMN_NOCAT_NAMES: Final[Tuple[str, ...]] = (
+    "log_id",
+    "timestamp_ns"
+)
+UUID_CAT_NAMES: Final[Tuple[str, ...]] = (
+    "category",
+)
 logger = logging.getLogger(__name__)
 
 
@@ -186,7 +194,7 @@ def evaluate_hierarchy(
     gts: pd.DataFrame,
     cfg: DetectionCfg,
     n_jobs: int = 8,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> pd.DataFrame:
     """Evaluate a set of detections against the ground truth annotations.
 
     Each sweep is processed independently, computing assignment between detections and ground truth annotations.
@@ -217,11 +225,11 @@ def evaluate_hierarchy(
 
     dts_npy: NDArrayFloat = dts[list(DTS_COLUMN_NAMES)].to_numpy()
     gts_npy: NDArrayFloat = gts[list(GTS_COLUMN_NAMES)].to_numpy()
-    dts_cats: List[str] = dts[list(UUID_CAT_NAMES)].to_numpy().tolist()
-    gts_cats: List[str] = gts[list(UUID_CAT_NAMES)].to_numpy().tolist()
+    dts_cats: Any = dts[list(UUID_CAT_NAMES)].to_numpy().tolist()
+    gts_cats: Any = gts[list(UUID_CAT_NAMES)].to_numpy().tolist()
 
-    dts_uuids: List[str] = dts[list(UUID_COLUMN_NOCAT_NAMES)].to_numpy().tolist()
-    gts_uuids: List[str] = gts[list(UUID_COLUMN_NOCAT_NAMES)].to_numpy().tolist()
+    dts_uuids: Any = dts[list(UUID_COLUMN_NOCAT_NAMES)].to_numpy().tolist()
+    gts_uuids: Any = gts[list(UUID_COLUMN_NOCAT_NAMES)].to_numpy().tolist()
 
     # We merge the unique identifier -- the tuple of ("log_id", "timestamp_ns", "category")
     # into a single string to optimize the subsequent grouping operation.
@@ -241,11 +249,11 @@ def evaluate_hierarchy(
         log_ids: List[str] = gts.loc[:, "log_id"].unique().tolist()
         log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
 
-    args_list: List[Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
+    args_list: List[Tuple[NDArrayFloat, NDArrayFloat, NDArrayFloat, NDArrayFloat, str, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
     uuids = sorted(uuid_to_dts.keys() | uuid_to_gts.keys())
     for uuid in uuids:
         log_id, timestamp_ns = uuid.split(":")
-        args: Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]
+        args: Any
 
         sweep_dts: NDArrayFloat = np.zeros((0, 10))
         sweep_gts: NDArrayFloat = np.zeros((0, 10))
@@ -284,7 +292,7 @@ def evaluate_hierarchy(
 
     logger.info("Starting evaluation ...")
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(is_evaluated, args_list)
+        outputs: Any = p.starmap(is_evaluated, args_list)
 
     dts, gts, dts_cats, gts_cats, dts_uuids, gts_uuids = [], [], [], [], [], []
     for (
@@ -308,20 +316,33 @@ def evaluate_hierarchy(
     dts_uuids = np.concatenate(dts_uuids)
     gts_uuids = np.concatenate(gts_uuids)
 
-    args_list : List[Tuple[NDArrayFloat, NDArrayFloat, NDArrayObject, NDArrayObject, NDArrayObject, NDArrayObjct, str, str, str, DetectionCfg]] = []
+    args_list2: List[
+        Tuple[
+            NDArrayFloat,
+            NDArrayFloat,
+            NDArrayObject,
+            NDArrayObject,
+            NDArrayObject,
+            NDArrayObject,
+            str,
+            str,
+            str,
+            DetectionCfg,
+        ]
+    ] = []
     for cat in cfg.categories:
         ind = HIERARCHY["FINEGRAIN"].index(cat)
         for lca in HIERARCHY.keys():
             lca_cat = LCA[HIERARCHY[lca][ind]]
             args = dts, gts, dts_cats, gts_cats, dts_uuids, gts_uuids, cat, lca_cat, lca, cfg
-            args_list.append(args)
+            args_list2.append(args)
 
     logger.info("Starting evaluation ...")
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs: Optional[List[Tuple[NDArrayFloat, NDArrayFloat]]] = p.starmap(accumulate_hierarchy, args_list)
+        outputs2: Any = p.starmap(accumulate_hierarchy, args_list2)
 
     metrics = np.zeros((len(cfg.categories), len(HIERARCHY.keys())))
-    for ap, cat, lca in outputs:
+    for ap, cat, lca in outputs2:
         cat_ind = cfg.categories.index(cat)
         lca_ind = list(HIERARCHY.keys()).index(lca)
         metrics[cat_ind][lca_ind] = round(ap, 3)

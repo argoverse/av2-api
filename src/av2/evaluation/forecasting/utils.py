@@ -206,3 +206,5 @@ def annotate_frame_metadata(predictions: Sequences, ground_truth: Sequences, met
             for i in range(len(predictions[seq_id][timestamp])):
                 for key in metadata_keys:
                     predictions[seq_id][timestamp][i][key] = copy_keys[key]
+
+    return predictions

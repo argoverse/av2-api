@@ -16,14 +16,14 @@ from itertools import chain
 from pathlib import Path
 from typing import Any, Callable, Dict, Final, Iterable, List, Tuple, Union, cast
 
-from pprint import pprtin 
+from pprint import pprint
 import numpy as np
 import trackeval
 import utils
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation
 from trackeval.datasets._base_dataset import _BaseDataset
-from av2.utils.typing import NDArrayFloat, NDArrayInt, Sequences
+from av2.utils.typing import NDArrayFloat, NDArrayInt, Sequence
 
 from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
 
@@ -156,8 +156,8 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
 
 
 def evaluate_tracking(
-    labels: Sequences,
-    track_predictions: Sequences,
+    labels: Sequence,
+    track_predictions: Sequence,
     classes: List[str],
     tracker_name: str,
     output_dir: str,
@@ -233,8 +233,8 @@ def evaluate_tracking(
 
 
 def _tune_score_thresholds(
-    labels: Sequences,
-    track_predictions: Sequences,
+    labels: Sequence,
+    track_predictions: Sequence,
     objective_metric: str,
     classes: List[str],
     num_thresholds: int = 10,
@@ -333,15 +333,15 @@ def _tune_score_thresholds(
     return optimal_score_threshold_by_class, optimal_metric_values_by_class, mean_metric_values_by_class
 
 
-def _filter_by_class(detections: Sequences, name: str) -> Sequences:
+def _filter_by_class(detections: Any, name: str) -> Any:
     return utils.group_frames(
         [utils.index_array_values(f, f["name"] == name) for f in utils.ungroup_frames(detections)]
     )
 
 
 def _calculate_score_thresholds(
-    labels: Sequences,
-    predictions: Sequences,
+    labels: Sequence,
+    predictions: Sequence,
     sim_func: Callable[[NDArrayFloat, NDArrayFloat], NDArrayFloat],
     num_thresholds: int = 40,
     min_recall: float = 0.1,
@@ -356,7 +356,7 @@ def _calculate_score_thresholds(
 
 
 def _calculate_matched_scores(
-    labels: Sequences, predictions: Sequences, sim_func: Callable[[NDArrayFloat, NDArrayFloat], NDArrayFloat]
+    labels: Sequence, predictions: Sequence, sim_func: Callable[[NDArrayFloat, NDArrayFloat], NDArrayFloat]
 ) -> Tuple[NDArrayFloat, int]:
     scores = []
     n_gt = 0
@@ -398,7 +398,7 @@ def _xy_center_similarity(centers1: NDArrayFloat, centers2: NDArrayFloat, zero_d
     return cast(NDArrayFloat, sim)
 
 
-def filter_max_dist(tracks: Sequences, max_range_m: int) -> Sequences:
+def filter_max_dist(tracks: Any, max_range_m: int) -> Any:
     """Remove all tracks that are beyond the max_dist.
 
     Args:
@@ -424,12 +424,12 @@ def filter_max_dist(tracks: Sequences, max_range_m: int) -> Sequences:
     )
 
 
-def yaw_to_quaternion3d(yaw: float) -> np.ndarray:
+def yaw_to_quaternion3d(yaw: float) -> NDArrayFloat:
     """Convert a rotation angle in the xy plane (i.e. about the z axis) to a quaternion.
 
     Args:
         yaw: angle to rotate about the z-axis, representing an Euler angle, in radians
-    
+
 
     Returns:
         array w/ quaternion coefficients (qw,qx,qy,qz) in scalar-first order, per Argoverse convention.
@@ -438,7 +438,7 @@ def yaw_to_quaternion3d(yaw: float) -> np.ndarray:
     return np.array([qw, qx, qy, qz])
 
 
-def filter_drivable_area(tracks: Sequences, dataset_dir: str) -> Sequences:
+def filter_drivable_area(tracks: Sequence, dataset_dir: str) -> Sequence:
     """Convert the unified label format to a format that is easier to work with for forecasting evaluation.
 
     Args:
@@ -496,7 +496,7 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: str) -> Sequences:
     return tracks
 
 
-def evaluate(track_predictions: Sequences, labels: Sequences, args: Any) -> Tuple[Dict[str, float], Dict[str, Any]]:
+def evaluate(track_predictions: Sequence, labels: Sequence, args: Any) -> Tuple[Dict[str, float], Dict[str, Any]]:
     """Run evaluation.
 
     Args:
@@ -507,7 +507,6 @@ def evaluate(track_predictions: Sequences, labels: Sequences, args: Any) -> Tupl
     Returns:
         res: Dict Dictionary of per-class metrics
     """
-
     objective_metric = args.objective_metric
     classes = utils.av2_classes
     max_range_m = args.max_range_m
@@ -544,12 +543,12 @@ def evaluate(track_predictions: Sequences, labels: Sequences, args: Any) -> Tupl
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("--predictions", required=True) #.pkl
-    argparser.add_argument("--ground_truth", required=True) #.pkl
+    argparser.add_argument("--predictions", required=True)  # .pkl
+    argparser.add_argument("--ground_truth", required=True)  # .pkl
     argparser.add_argument("--max_range_m", type=int, default=50)
     argparser.add_argument("--dataset_dir", default=None)
     argparser.add_argument("--objective_metric", default="HOTA", choices=["HOTA", "MOTA"])
-    argparser.add_argument("--out", required=True) #.pkl
+    argparser.add_argument("--out", required=True)  # .pkl
 
     args = argparser.parse_args()
 

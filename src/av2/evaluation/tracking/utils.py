@@ -127,7 +127,7 @@ def ungroup_frames(frames_by_seq_id: Sequences) -> Frames:
     Returns:
         List of frames
     """
-    ungrouped_frames = []
+    ungrouped_frames : List[Any] = []
     for frames in frames_by_seq_id.values():
         ungrouped_frames.extend(frames)
     return ungrouped_frames

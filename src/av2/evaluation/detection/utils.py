@@ -13,7 +13,7 @@ increased interpretability of the error modes in a set of detections.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -176,7 +176,7 @@ def is_evaluated(
     cfg: DetectionCfg,
     avm: Optional[ArgoverseStaticMap] = None,
     city_SE3_ego: Optional[SE3] = None,
-) -> Tuple[NDArrayFloat, NDArrayFloat]:
+) -> Tuple[NDArrayFloat, NDArrayFloat, NDArrayObject, NDArrayObject, List[str]]:
     """Filters detections and ground truth boxes that are either not within the max_range_m or within the ROI.
 
     Args:
@@ -226,7 +226,8 @@ def calc_ap(precision: NDArrayFloat, min_recall: int = 0, min_precision: int = 0
     prec[prec < 0] = 0
     return float(np.mean(prec)) / (1.0 - min_precision)
 
-def filter_dont_care(gt: str, class_name: str) -> bool:
+
+def filter_dont_care(gt: NDArrayObject, class_name: str) -> bool:
     """Fitlers detections that are considered don't care under current LCA evaluation."""
     if gt == "ignore":
         return True
@@ -238,7 +239,7 @@ def filter_dont_care(gt: str, class_name: str) -> bool:
         return False
 
 
-def accumulate_hierarchy(dts, gts, dts_cats, gts_cats, dts_uuids, gts_uuids, cat, lca_cat, lca, cfg):
+def accumulate_hierarchy(dts : NDArrayFloat, gts : NDArrayFloat, dts_cats : NDArrayObject, gts_cats : NDArrayObject, dts_uuids : NDArrayObject, gts_uuids : NDArrayObject, cat : str, lca_cat : str, lca : str, cfg : DetectionCfg) -> Tuple[float, str, str]:
     """Computes hierarchical AP at LCA=lca for each the given class (cat).
 
     Args:
@@ -253,7 +254,7 @@ def accumulate_hierarchy(dts, gts, dts_cats, gts_cats, dts_uuids, gts_uuids, cat
         lca: Least Common Ancestor, LCA={0,1,2}
         cfg: 3D object detection configuration.
 
-    Returns: 
+    Returns:
         Hierarchical AP, cat, lca
     """
     keep_dts = np.array([True if cname == cat else False for cname in dts_cats])
@@ -276,7 +277,11 @@ def accumulate_hierarchy(dts, gts, dts_cats, gts_cats, dts_uuids, gts_uuids, cat
 
     npos = sum([True if cname == cat else False for cname in gts_cats])
 
-    tp, fp, gt_name, pred_name, taken = {}, {}, {}, {}, {}
+    tp : Dict[int, Any] = {}
+    fp : Dict[int, Any] = {}
+    gt_name : Dict[int, List[Any]] = {}
+    pred_name : Dict[int, List[Any]] = {}
+    taken : Dict[int, set[Tuple[Any, Any]]] = {}
     for i in range(len(cfg.affinity_thresholds_m)):
         tp[i] = []
         fp[i] = []
@@ -366,7 +371,7 @@ def accumulate_hierarchy(dts, gts, dts_cats, gts_cats, dts_uuids, gts_uuids, cat
         ap = round(calc_ap(prec), 3)
         mAP.append(ap)
 
-    return np.mean(mAP), cat, lca
+    return float(np.mean(mAP)), cat, lca
 
 
 def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDArrayFloat, NDArrayFloat]:
