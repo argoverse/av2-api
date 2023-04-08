@@ -85,8 +85,8 @@ UUID_COLUMN_NAMES: Final[Tuple[str, ...]] = (
     "timestamp_ns",
     "category",
 )
-UUID_COLUMN_NOCAT_NAMES: Final[Tuple[str, ...]] = ("log_id", "timestamp_ns")
-UUID_CAT_NAMES: Final[Tuple[str, ...]] = ("category",)
+UUID_COLUMN_NOCAT_NAMES: Final = ("log_id", "timestamp_ns")
+UUID_CAT_NAMES: Final = ("category",)
 logger = logging.getLogger(__name__)
 
 
