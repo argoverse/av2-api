@@ -24,7 +24,10 @@ class TestLaneSegment(unittest.TestCase):
             ],
             "left_lane_mark_type": "SOLID_YELLOW",
             "left_neighbor_id": None,
-            "right_lane_boundary": [{"x": 874.01, "y": -105.15, "z": -19.58}, {"x": 890.58, "y": -104.26, "z": -19.58}],
+            "right_lane_boundary": [
+                {"x": 874.01, "y": -105.15, "z": -19.58},
+                {"x": 890.58, "y": -104.26, "z": -19.58},
+            ],
             "right_lane_mark_type": "SOLID_WHITE",
             "right_neighbor_id": 93269520,
             "predecessors": [],

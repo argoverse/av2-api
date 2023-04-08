@@ -63,7 +63,12 @@ class Cuboids:
         xyzlwh_qwxyz = tensor_from_frame(self._frame, list(XYZLWH_QWXYZ_COLUMNS))
         if cuboid_mode == CuboidMode.XYZLWH_T:
             quat_wxyz = xyzlwh_qwxyz[:, 6:10]
-            w, x, y, z = quat_wxyz[:, 0], quat_wxyz[:, 1], quat_wxyz[:, 2], quat_wxyz[:, 3]
+            w, x, y, z = (
+                quat_wxyz[:, 0],
+                quat_wxyz[:, 1],
+                quat_wxyz[:, 2],
+                quat_wxyz[:, 3],
+            )
             _, _, yaw = euler_from_quaternion(w, x, y, z)
             return torch.concat([xyzlwh_qwxyz[:, :6], yaw[:, None]], dim=-1)
         elif cuboid_mode == CuboidMode.XYZLWH_QWXYZ:

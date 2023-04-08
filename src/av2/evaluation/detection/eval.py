@@ -59,7 +59,13 @@ from typing import Any, Dict, Final, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from av2.evaluation.detection.constants import HIERARCHY, LCA, NUM_DECIMALS, MetricNames, TruePositiveErrorNames
+from av2.evaluation.detection.constants import (
+    HIERARCHY,
+    LCA,
+    NUM_DECIMALS,
+    MetricNames,
+    TruePositiveErrorNames,
+)
 from av2.evaluation.detection.utils import (
     DetectionCfg,
     accumulate,
@@ -145,11 +151,25 @@ def evaluate(
         log_ids: List[str] = gts.loc[:, "log_id"].unique().tolist()
         log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
 
-    args_list: List[Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]] = []
+    args_list: List[
+        Tuple[
+            NDArrayFloat,
+            NDArrayFloat,
+            DetectionCfg,
+            Optional[ArgoverseStaticMap],
+            Optional[SE3],
+        ]
+    ] = []
     uuids = sorted(uuid_to_dts.keys() | uuid_to_gts.keys())
     for uuid in uuids:
         log_id, timestamp_ns, _ = uuid.split(":")
-        args: Tuple[NDArrayFloat, NDArrayFloat, DetectionCfg, Optional[ArgoverseStaticMap], Optional[SE3]]
+        args: Tuple[
+            NDArrayFloat,
+            NDArrayFloat,
+            DetectionCfg,
+            Optional[ArgoverseStaticMap],
+            Optional[SE3],
+        ]
 
         sweep_dts: NDArrayFloat = np.zeros((0, 10))
         sweep_gts: NDArrayFloat = np.zeros((0, 10))
@@ -182,6 +202,93 @@ def evaluate(
     metrics.loc["AVERAGE_METRICS"] = metrics.mean()
     metrics = metrics.round(NUM_DECIMALS)
     return dts, gts, metrics
+
+
+def summarize_metrics(
+    dts: pd.DataFrame,
+    gts: pd.DataFrame,
+    cfg: DetectionCfg,
+) -> pd.DataFrame:
+    """Calculate and print the 3D object detection metrics.
+
+    Args:
+        dts: (N,14) Table of detections.
+        gts: (M,15) Table of ground truth annotations.
+        cfg: Detection configuration.
+
+    Returns:
+        The summary metrics.
+    """
+    # Sample recall values in the [0, 1] interval.
+    recall_interpolated: NDArrayFloat = np.linspace(0, 1, cfg.num_recall_samples, endpoint=True)
+
+    # Initialize the summary metrics.
+    summary = pd.DataFrame(
+        {s.value: cfg.metrics_defaults[i] for i, s in enumerate(tuple(MetricNames))},
+        index=cfg.categories,
+    )
+
+    average_precisions = pd.DataFrame({t: 0.0 for t in cfg.affinity_thresholds_m}, index=cfg.categories)
+    for category in cfg.categories:
+        # Find detections that have the current category.
+        is_category_dts = dts["category"] == category
+
+        # Only keep detections if they match the category and have NOT been filtered.
+        is_valid_dts = np.logical_and(is_category_dts, dts["is_evaluated"])
+
+        # Get valid detections and sort them in descending order.
+        category_dts = dts.loc[is_valid_dts].sort_values(by="score", ascending=False).reset_index(drop=True)
+
+        # Find annotations that have the current category.
+        is_category_gts = gts["category"] == category
+
+        # Compute number of ground truth annotations.
+        num_gts = gts.loc[is_category_gts, "is_evaluated"].sum()
+
+        # Cannot evaluate without ground truth information.
+        if num_gts == 0:
+            continue
+
+        for affinity_threshold_m in cfg.affinity_thresholds_m:
+            true_positives: NDArrayBool = category_dts[affinity_threshold_m].astype(bool).to_numpy()
+
+            # Continue if there aren't any true positives.
+            if len(true_positives) == 0:
+                continue
+
+            # Compute average precision for the current threshold.
+            threshold_average_precision, _ = compute_average_precision(true_positives, recall_interpolated, num_gts)
+
+            # Record the average precision.
+            average_precisions.loc[category, affinity_threshold_m] = threshold_average_precision
+
+        mean_average_precisions: NDArrayFloat = average_precisions.loc[category].to_numpy().mean()
+
+        # Select only the true positives for each instance.
+        middle_idx = len(cfg.affinity_thresholds_m) // 2
+        middle_threshold = cfg.affinity_thresholds_m[middle_idx]
+        is_tp_t = category_dts[middle_threshold].to_numpy().astype(bool)
+
+        # Initialize true positive metrics.
+        tp_errors: NDArrayFloat = np.array(cfg.tp_normalization_terms)
+
+        # Check whether any true positives exist under the current threshold.
+        has_true_positives = np.any(is_tp_t)
+
+        # If true positives exist, compute the metrics.
+        if has_true_positives:
+            tp_error_cols = [str(x.value) for x in TruePositiveErrorNames]
+            tp_errors = category_dts.loc[is_tp_t, tp_error_cols].to_numpy().mean(axis=0)
+
+        # Convert errors to scores.
+        tp_scores = 1 - np.divide(tp_errors, cfg.tp_normalization_terms)
+
+        # Compute Composite Detection Score (CDS).
+        cds = mean_average_precisions * np.mean(tp_scores)
+        summary.loc[category] = np.array([mean_average_precisions, *tp_errors, cds])
+
+    # Return the summary.
+    return summary
 
 
 def evaluate_hierarchy(
@@ -340,7 +447,18 @@ def evaluate_hierarchy(
         ind = HIERARCHY["FINEGRAIN"].index(cat)
         for lca in HIERARCHY.keys():
             lca_cat = LCA[HIERARCHY[lca][ind]]
-            args = dts, gts, dts_cats, gts_cats, dts_uuids, gts_uuids, cat, lca_cat, lca, cfg
+            args = (
+                dts,
+                gts,
+                dts_cats,
+                gts_cats,
+                dts_uuids,
+                gts_uuids,
+                cat,
+                lca_cat,
+                lca,
+                cfg,
+            )
             args_list2.append(args)
 
     logger.info("Starting evaluation ...")
@@ -356,89 +474,3 @@ def evaluate_hierarchy(
     metrics = pd.DataFrame(metrics, columns=["LCA=0", "LCA=1", "LCA=2"], index=cfg.categories)
 
     return metrics
-
-
-def summarize_metrics(
-    dts: pd.DataFrame,
-    gts: pd.DataFrame,
-    cfg: DetectionCfg,
-) -> pd.DataFrame:
-    """Calculate and print the 3D object detection metrics.
-
-    Args:
-        dts: (N,14) Table of detections.
-        gts: (M,15) Table of ground truth annotations.
-        cfg: Detection configuration.
-
-    Returns:
-        The summary metrics.
-    """
-    # Sample recall values in the [0, 1] interval.
-    recall_interpolated: NDArrayFloat = np.linspace(0, 1, cfg.num_recall_samples, endpoint=True)
-
-    # Initialize the summary metrics.
-    summary = pd.DataFrame(
-        {s.value: cfg.metrics_defaults[i] for i, s in enumerate(tuple(MetricNames))}, index=cfg.categories
-    )
-
-    average_precisions = pd.DataFrame({t: 0.0 for t in cfg.affinity_thresholds_m}, index=cfg.categories)
-    for category in cfg.categories:
-        # Find detections that have the current category.
-        is_category_dts = dts["category"] == category
-
-        # Only keep detections if they match the category and have NOT been filtered.
-        is_valid_dts = np.logical_and(is_category_dts, dts["is_evaluated"])
-
-        # Get valid detections and sort them in descending order.
-        category_dts = dts.loc[is_valid_dts].sort_values(by="score", ascending=False).reset_index(drop=True)
-
-        # Find annotations that have the current category.
-        is_category_gts = gts["category"] == category
-
-        # Compute number of ground truth annotations.
-        num_gts = gts.loc[is_category_gts, "is_evaluated"].sum()
-
-        # Cannot evaluate without ground truth information.
-        if num_gts == 0:
-            continue
-
-        for affinity_threshold_m in cfg.affinity_thresholds_m:
-            true_positives: NDArrayBool = category_dts[affinity_threshold_m].astype(bool).to_numpy()
-
-            # Continue if there aren't any true positives.
-            if len(true_positives) == 0:
-                continue
-
-            # Compute average precision for the current threshold.
-            threshold_average_precision, _ = compute_average_precision(true_positives, recall_interpolated, num_gts)
-
-            # Record the average precision.
-            average_precisions.loc[category, affinity_threshold_m] = threshold_average_precision
-
-        mean_average_precisions: NDArrayFloat = average_precisions.loc[category].to_numpy().mean()
-
-        # Select only the true positives for each instance.
-        middle_idx = len(cfg.affinity_thresholds_m) // 2
-        middle_threshold = cfg.affinity_thresholds_m[middle_idx]
-        is_tp_t = category_dts[middle_threshold].to_numpy().astype(bool)
-
-        # Initialize true positive metrics.
-        tp_errors: NDArrayFloat = np.array(cfg.tp_normalization_terms)
-
-        # Check whether any true positives exist under the current threshold.
-        has_true_positives = np.any(is_tp_t)
-
-        # If true positives exist, compute the metrics.
-        if has_true_positives:
-            tp_error_cols = [str(x.value) for x in TruePositiveErrorNames]
-            tp_errors = category_dts.loc[is_tp_t, tp_error_cols].to_numpy().mean(axis=0)
-
-        # Convert errors to scores.
-        tp_scores = 1 - np.divide(tp_errors, cfg.tp_normalization_terms)
-
-        # Compute Composite Detection Score (CDS).
-        cds = mean_average_precisions * np.mean(tp_scores)
-        summary.loc[category] = np.array([mean_average_precisions, *tp_errors, cds])
-
-    # Return the summary.
-    return summary

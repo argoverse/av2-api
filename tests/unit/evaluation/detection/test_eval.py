@@ -42,7 +42,18 @@ DIMS_COLS: Final[List[str]] = ["length_m", "width_m", "height_m"]
 QUAT_COLS: Final[List[str]] = ["qw", "qx", "qy", "qz"]
 ANNO_COLS: Final[List[str]] = ["timestamp_ns", "category"] + DIMS_COLS + QUAT_COLS + TRANSLATION_COLS
 
-CUBOID_COLS: Final[List[str]] = ["tx_m", "ty_m", "tz_m", "length_m", "width_m", "height_m", "qw", "qx", "qy", "qz"]
+CUBOID_COLS: Final[List[str]] = [
+    "tx_m",
+    "ty_m",
+    "tz_m",
+    "length_m",
+    "width_m",
+    "height_m",
+    "qw",
+    "qx",
+    "qy",
+    "qz",
+]
 
 
 def _get_summary_identity() -> pd.DataFrame:
@@ -129,8 +140,14 @@ def test_orientation_quarter_angles() -> None:
         quat_wxyz_dts = quat_xyzw_dts[..., [3, 0, 1, 2]]
         quat_wxyz_gts = quat_xyzw_gts[..., [3, 0, 1, 2]]
 
-        assert np.isclose(distance(quat_wxyz_dts, quat_wxyz_gts, DistanceType.ORIENTATION), expected_result)
-        assert np.isclose(distance(quat_wxyz_gts, quat_wxyz_dts, DistanceType.ORIENTATION), expected_result)
+        assert np.isclose(
+            distance(quat_wxyz_dts, quat_wxyz_gts, DistanceType.ORIENTATION),
+            expected_result,
+        )
+        assert np.isclose(
+            distance(quat_wxyz_gts, quat_wxyz_dts, DistanceType.ORIENTATION),
+            expected_result,
+        )
 
 
 def test_orientation_eighth_angles() -> None:
@@ -149,8 +166,14 @@ def test_orientation_eighth_angles() -> None:
         quat_wxyz_dts = quat_xyzw_dts[..., [3, 0, 1, 2]]
         quat_wxyz_gts = quat_xyzw_gts[..., [3, 0, 1, 2]]
 
-        assert np.isclose(distance(quat_wxyz_dts, quat_wxyz_gts, DistanceType.ORIENTATION), expected_result)
-        assert np.isclose(distance(quat_wxyz_gts, quat_wxyz_dts, DistanceType.ORIENTATION), expected_result)
+        assert np.isclose(
+            distance(quat_wxyz_dts, quat_wxyz_gts, DistanceType.ORIENTATION),
+            expected_result,
+        )
+        assert np.isclose(
+            distance(quat_wxyz_gts, quat_wxyz_dts, DistanceType.ORIENTATION),
+            expected_result,
+        )
 
 
 def test_wrap_angle() -> None:
@@ -166,7 +189,11 @@ def test_accumulate() -> None:
     gts: pd.DataFrame = pd.read_feather(TEST_DATA_DIR / "labels.feather")
 
     for _, group in gts.groupby(["log_id", "timestamp_ns"]):
-        job = (group.loc[:, CUBOID_COLS].to_numpy(), group.loc[:, CUBOID_COLS + ["num_interior_pts"]].to_numpy(), cfg)
+        job = (
+            group.loc[:, CUBOID_COLS].to_numpy(),
+            group.loc[:, CUBOID_COLS + ["num_interior_pts"]].to_numpy(),
+            cfg,
+        )
         dts, gts = accumulate(*job)
 
         # Check that there's a true positive under every threshold.
@@ -278,10 +305,54 @@ def test_compute_evaluated_dts_mask() -> None:
     """Unit test for computing valid detections cuboids."""
     dts: NDArrayFloat = np.array(
         [
-            [5.0, 5.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0],  # In bounds with at least 1 point.
-            [175, 175.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0],  # Out of bounds with at least 1 point.
-            [-175.0, -175.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0],  # Out of bounds with at least 1 point.
-            [1.0, 1.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0],  # In bounds with at least 1 point.
+            [
+                5.0,
+                5.0,
+                5.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                3.0,
+                4.0,
+                0.0,
+            ],  # In bounds with at least 1 point.
+            [
+                175,
+                175.0,
+                5.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                3.0,
+                4.0,
+                0.0,
+            ],  # Out of bounds with at least 1 point.
+            [
+                -175.0,
+                -175.0,
+                5.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                3.0,
+                4.0,
+                0.0,
+            ],  # Out of bounds with at least 1 point.
+            [
+                1.0,
+                1.0,
+                5.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                3.0,
+                4.0,
+                0.0,
+            ],  # In bounds with at least 1 point.
         ],
     )
     detection_cfg = DetectionCfg(categories=("REGULAR_VEHICLE",), eval_only_roi_instances=False)
@@ -305,10 +376,58 @@ def test_compute_evaluated_gts_mask() -> None:
     """Unit test for computing valid ground truth cuboids."""
     gts: NDArrayFloat = np.array(
         [
-            [5.0, 5.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0, 5],  # In bounds with at least 1 point.
-            [175, 175.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0, 5],  # Out of bounds with at least 1 point.
-            [-175.0, -175.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0, 5],  # Out of bounds with at least 1 point.
-            [1.0, 1.0, 5.0, 1.0, 0.0, 0.0, 0.0, 3.0, 4.0, 0.0, 0],  # In bounds with at least 1 point.
+            [
+                5.0,
+                5.0,
+                5.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                3.0,
+                4.0,
+                0.0,
+                5,
+            ],  # In bounds with at least 1 point.
+            [
+                175,
+                175.0,
+                5.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                3.0,
+                4.0,
+                0.0,
+                5,
+            ],  # Out of bounds with at least 1 point.
+            [
+                -175.0,
+                -175.0,
+                5.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                3.0,
+                4.0,
+                0.0,
+                5,
+            ],  # Out of bounds with at least 1 point.
+            [
+                1.0,
+                1.0,
+                5.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                3.0,
+                4.0,
+                0.0,
+                0,
+            ],  # In bounds with at least 1 point.
         ],
     )
     detection_cfg = DetectionCfg(categories=("REGULAR_VEHICLE",), eval_only_roi_instances=False)
@@ -342,12 +461,15 @@ def test_compute_objects_in_roi_mask() -> None:
     timestamped_city_SE3_egoposes = read_city_SE3_ego(TEST_DATA_DIR / "adcf7d18-0510-35b0-a2fa-b4cea13a6d76")
 
     selected_cuboids_mask = np.logical_and(
-        annotations.timestamp_ns == timestamp_ns, annotations["track_uuid"].isin(track_uuids)
+        annotations.timestamp_ns == timestamp_ns,
+        annotations["track_uuid"].isin(track_uuids),
     )
     sweep_annotations = annotations.loc[selected_cuboids_mask]
 
     mask = compute_objects_in_roi_mask(
-        sweep_annotations.loc[:, ORDERED_CUBOID_COL_NAMES].to_numpy(), timestamped_city_SE3_egoposes[timestamp_ns], avm
+        sweep_annotations.loc[:, ORDERED_CUBOID_COL_NAMES].to_numpy(),
+        timestamped_city_SE3_egoposes[timestamp_ns],
+        avm,
     )
     mask_: NDArrayBool = np.array([True, False, True])
     np.testing.assert_array_equal(mask, mask_)

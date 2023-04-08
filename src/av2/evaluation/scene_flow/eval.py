@@ -5,7 +5,18 @@ from __future__ import annotations
 import zipfile
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Callable, DefaultDict, Dict, Final, List, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    DefaultDict,
+    Dict,
+    Final,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 from zipfile import ZipFile
 
 import click
@@ -14,7 +25,10 @@ import pandas as pd
 from rich.progress import track
 
 import av2.evaluation.scene_flow.constants as constants
-from av2.evaluation.scene_flow.constants import SceneFlowMetricType, SegmentationMetricType
+from av2.evaluation.scene_flow.constants import (
+    SceneFlowMetricType,
+    SegmentationMetricType,
+)
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 ACCURACY_RELAX_DISTANCE_THRESHOLD: Final = 0.1

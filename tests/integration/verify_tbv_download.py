@@ -84,14 +84,32 @@ def verify_log_contents(data_root: Path, log_id: str, check_image_sizes: bool) -
     assert poses_fpath.exists()
     # poses file should be loadable.
     poses_df = io_utils.read_feather(poses_fpath)
-    assert list(poses_df.keys()) == ["timestamp_ns", "qw", "qx", "qy", "qz", "tx_m", "ty_m", "tz_m"]
+    assert list(poses_df.keys()) == [
+        "timestamp_ns",
+        "qw",
+        "qx",
+        "qy",
+        "qz",
+        "tx_m",
+        "ty_m",
+        "tz_m",
+    ]
 
     # every log should have an extrinsics calibration file.
     extrinsics_fpath = data_root / log_id / "calibration" / "egovehicle_SE3_sensor.feather"
     assert extrinsics_fpath.exists()
     # extrinsics should be loadable.
     extrinsics_df = io_utils.read_feather(extrinsics_fpath)
-    assert list(extrinsics_df.keys()) == ["sensor_name", "qw", "qx", "qy", "qz", "tx_m", "ty_m", "tz_m"]
+    assert list(extrinsics_df.keys()) == [
+        "sensor_name",
+        "qw",
+        "qx",
+        "qy",
+        "qz",
+        "tx_m",
+        "ty_m",
+        "tz_m",
+    ]
 
     # extrinsics should be provided for each camera.
     for camera_enum in list(RingCameras):
@@ -155,7 +173,11 @@ def verify_log_map(data_root: Path, log_id: str) -> None:
 
     # every vector map file should have only 3 keys -- "pedestrian_crossings", "lane_segments", "drivable_areas"
     vector_map_json_data = io_utils.read_json_file(vector_map_fpath)
-    assert list(vector_map_json_data.keys()) == ["pedestrian_crossings", "lane_segments", "drivable_areas"]
+    assert list(vector_map_json_data.keys()) == [
+        "pedestrian_crossings",
+        "lane_segments",
+        "drivable_areas",
+    ]
 
     for _, lane_segment_dict in vector_map_json_data["lane_segments"].items():
         assert tuple(lane_segment_dict.keys()) == EXPECTED_LANE_SEGMENT_ATTRIB_KEYS
@@ -230,7 +252,11 @@ def run_verify_all_tbv_logs(data_root: str, check_image_sizes: bool) -> None:
     for i in range(num_logs):
         log_id = log_ids[i]
         logger.info("Verifying log %d: %s", i, log_id)
-        verify_log_contents(data_root=Path(data_root), log_id=log_id, check_image_sizes=check_image_sizes)
+        verify_log_contents(
+            data_root=Path(data_root),
+            log_id=log_id,
+            check_image_sizes=check_image_sizes,
+        )
 
     verify_logs_using_dataloader(data_root=Path(data_root), log_ids=log_ids)
 

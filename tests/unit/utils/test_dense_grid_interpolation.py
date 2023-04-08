@@ -25,7 +25,12 @@ def test_interp_dense_grid_from_sparse_insufficient_points_simplex() -> None:
     grid_w = 10
 
     bev_img_interp = dense_grid_interpolation.interp_dense_grid_from_sparse(
-        grid_img=bev_img, points=points, values=rgb_values, grid_h=grid_h, grid_w=grid_w, interp_method="linear"
+        grid_img=bev_img,
+        points=points,
+        values=rgb_values,
+        grid_h=grid_h,
+        grid_w=grid_w,
+        interp_method="linear",
     )
     assert np.allclose(bev_img_interp, np.zeros((10, 10, 3), dtype=np.uint8))
 
@@ -49,7 +54,12 @@ def test_interp_dense_grid_from_sparse_byte() -> None:
     grid_w = 4
 
     bev_img_interp = dense_grid_interpolation.interp_dense_grid_from_sparse(
-        grid_img=bev_img, points=points, values=rgb_values, grid_h=grid_h, grid_w=grid_w, interp_method="linear"
+        grid_img=bev_img,
+        points=points,
+        values=rgb_values,
+        grid_h=grid_h,
+        grid_w=grid_w,
+        interp_method="linear",
     )
 
     assert bev_img_interp.dtype == np.dtype(np.uint8)
@@ -82,7 +92,12 @@ def test_interp_dense_grid_from_sparse_float() -> None:
     grid_w = 4
 
     bev_img_interp = dense_grid_interpolation.interp_dense_grid_from_sparse(
-        grid_img=bev_img, points=points, values=rgb_values, grid_h=grid_h, grid_w=grid_w, interp_method="linear"
+        grid_img=bev_img,
+        points=points,
+        values=rgb_values,
+        grid_h=grid_h,
+        grid_w=grid_w,
+        interp_method="linear",
     )
 
     assert bev_img_interp.dtype == np.dtype(np.float64)

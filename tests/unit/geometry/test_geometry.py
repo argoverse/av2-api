@@ -122,7 +122,10 @@ def test_quat_to_mat_3d(quat_wxyz: NDArrayFloat) -> None:
 @pytest.mark.parametrize(
     "cart_xyz, expected_sph_theta_phi_r",
     [
-        (np.array([1, 1, 1]).astype(np.float64), np.array([0.78539816, 0.61547971, 1.73205081])),
+        (
+            np.array([1, 1, 1]).astype(np.float64),
+            np.array([0.78539816, 0.61547971, 1.73205081]),
+        ),
         (
             np.array([[1, 1, 1], [1, 2, 0]]).astype(np.float64),
             np.array([[0.78539816, 0.61547971, 1.73205081], [1.10714872, 0.0, 2.23606798]]),
@@ -144,38 +147,83 @@ def test_cart_to_sph_3d(cart_xyz: NDArrayFloat, expected_sph_theta_phi_r: NDArra
     "points_xyz, lower_bound_inclusive, upper_bound_exclusive, expected_crop_points, expected_mask",
     [
         (
-            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]).astype(
-                np.int64
-            ),
+            np.array(
+                [
+                    [0, 0, 0],
+                    [1, 0, 0],
+                    [1, 1, 0],
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 1],
+                    [1, 0, 1],
+                    [1, 1, 1],
+                ]
+            ).astype(np.int64),
             (0, 0, 0),
             (1.5, 1.5, 1.5),
-            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]).astype(
-                np.int64
-            ),
+            np.array(
+                [
+                    [0, 0, 0],
+                    [1, 0, 0],
+                    [1, 1, 0],
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 1],
+                    [1, 0, 1],
+                    [1, 1, 1],
+                ]
+            ).astype(np.int64),
             np.array([True] * 8),
         ),
         (
-            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]).astype(
-                np.int64
-            ),
+            np.array(
+                [
+                    [0, 0, 0],
+                    [1, 0, 0],
+                    [1, 1, 0],
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 1],
+                    [1, 0, 1],
+                    [1, 1, 1],
+                ]
+            ).astype(np.int64),
             (0, 0, 0),
             (0.5, 0.5, 0.5),
             np.array([[0, 0, 0]]).astype(np.int64),
             np.array([True] + [False] * 7),
         ),
         (
-            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]).astype(
-                np.int64
-            ),
+            np.array(
+                [
+                    [0, 0, 0],
+                    [1, 0, 0],
+                    [1, 1, 0],
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 1],
+                    [1, 0, 1],
+                    [1, 1, 1],
+                ]
+            ).astype(np.int64),
             (0, 0, 0),
             (1.25, 1.25, 1.0),
             np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]).astype(np.int64),
             np.array([True] * 4 + [False] * 4),
         ),
         (
-            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]).astype(
-                np.int64
-            ),
+            np.array(
+                [
+                    [0, 0, 0],
+                    [1, 0, 0],
+                    [1, 1, 0],
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 1],
+                    [1, 0, 1],
+                    [1, 1, 1],
+                ]
+            ).astype(np.int64),
             (-1.0, -1.0, -1.0),
             (0.0, 1.0, 1.0),
             np.empty((0, 3)).astype(np.int64),
@@ -357,23 +405,29 @@ def test_benchmark_compute_interior_points_mask_slow(benchmark: Callable[..., An
         # point x lies within the box when the following
         # constraints are respected
         valid_u1 = np.logical_and(
-            u.dot(cuboid_vertices[2]) <= points_xyz.dot(u), points_xyz.dot(u) <= u.dot(cuboid_vertices[6])
+            u.dot(cuboid_vertices[2]) <= points_xyz.dot(u),
+            points_xyz.dot(u) <= u.dot(cuboid_vertices[6]),
         )
         valid_v1 = np.logical_and(
-            v.dot(cuboid_vertices[2]) <= points_xyz.dot(v), points_xyz.dot(v) <= v.dot(cuboid_vertices[3])
+            v.dot(cuboid_vertices[2]) <= points_xyz.dot(v),
+            points_xyz.dot(v) <= v.dot(cuboid_vertices[3]),
         )
         valid_w1 = np.logical_and(
-            w.dot(cuboid_vertices[2]) <= points_xyz.dot(w), points_xyz.dot(w) <= w.dot(cuboid_vertices[1])
+            w.dot(cuboid_vertices[2]) <= points_xyz.dot(w),
+            points_xyz.dot(w) <= w.dot(cuboid_vertices[1]),
         )
 
         valid_u2 = np.logical_and(
-            u.dot(cuboid_vertices[2]) >= points_xyz.dot(u), points_xyz.dot(u) >= u.dot(cuboid_vertices[6])
+            u.dot(cuboid_vertices[2]) >= points_xyz.dot(u),
+            points_xyz.dot(u) >= u.dot(cuboid_vertices[6]),
         )
         valid_v2 = np.logical_and(
-            v.dot(cuboid_vertices[2]) >= points_xyz.dot(v), points_xyz.dot(v) >= v.dot(cuboid_vertices[3])
+            v.dot(cuboid_vertices[2]) >= points_xyz.dot(v),
+            points_xyz.dot(v) >= v.dot(cuboid_vertices[3]),
         )
         valid_w2 = np.logical_and(
-            w.dot(cuboid_vertices[2]) >= points_xyz.dot(w), points_xyz.dot(w) >= w.dot(cuboid_vertices[1])
+            w.dot(cuboid_vertices[2]) >= points_xyz.dot(w),
+            points_xyz.dot(w) >= w.dot(cuboid_vertices[1]),
         )
 
         valid_u = np.logical_or(valid_u1, valid_u2)

@@ -108,7 +108,14 @@ def _get_dummy_cuboid_list_params(num_cuboids: int) -> List[Cuboid]:
     """Create a cuboid list of length `num_cuboids`."""
     cuboids: List[Cuboid] = []
     for i in range(num_cuboids):
-        ego_SE3_object, length_m, width_m, height_m, category, timestamp_ns = _get_dummy_cuboid_params()
+        (
+            ego_SE3_object,
+            length_m,
+            width_m,
+            height_m,
+            category,
+            timestamp_ns,
+        ) = _get_dummy_cuboid_params()
         cuboid = Cuboid(
             dst_SE3_object=ego_SE3_object,
             length_m=length_m + i,
@@ -123,7 +130,14 @@ def _get_dummy_cuboid_list_params(num_cuboids: int) -> List[Cuboid]:
 
 def test_cuboid_constructor() -> None:
     """Test initializing a single cuboid."""
-    ego_SE3_object, length_m, width_m, height_m, category, timestamp_ns = _get_dummy_cuboid_params()
+    (
+        ego_SE3_object,
+        length_m,
+        width_m,
+        height_m,
+        category,
+        timestamp_ns,
+    ) = _get_dummy_cuboid_params()
     cuboid = Cuboid(
         dst_SE3_object=ego_SE3_object,
         length_m=length_m,

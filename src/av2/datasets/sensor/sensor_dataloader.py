@@ -22,7 +22,12 @@ from av2.structures.cuboid import CuboidList
 from av2.structures.sweep import Sweep
 from av2.structures.timestamped_image import TimestampedImage
 from av2.utils.constants import HOME
-from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego, read_feather, read_img
+from av2.utils.io import (
+    TimestampedCitySE3EgoPoses,
+    read_city_SE3_ego,
+    read_feather,
+    read_img,
+)
 from av2.utils.metric_time import TimeUnit, to_metric_time
 
 logger = logging.Logger(__name__)

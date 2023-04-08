@@ -93,14 +93,26 @@ def test_compute_fde(forecasted_trajectories: NDArrayFloat, expected_fde: NDArra
     [
         (forecasted_trajectories_stationary_k1, 2.0, False),
         (forecasted_trajectories_stationary_k6, 2.0, False),
-        (forecasted_trajectories_straight_k1, expected_fde_straight_k1[0] + 0.01, False),
+        (
+            forecasted_trajectories_straight_k1,
+            expected_fde_straight_k1[0] + 0.01,
+            False,
+        ),
         (forecasted_trajectories_straight_k1, expected_fde_straight_k1[0] - 0.01, True),
         (forecasted_trajectories_diagonal_k1, 2.0, True),
     ],
-    ids=["stationary_k1", "stationary_k6", "straight_below_threshold", "straight_above_threshold", "diagonal"],
+    ids=[
+        "stationary_k1",
+        "stationary_k6",
+        "straight_below_threshold",
+        "straight_above_threshold",
+        "diagonal",
+    ],
 )
 def test_compute_is_missed_prediction(
-    forecasted_trajectories: NDArrayFloat, miss_threshold_m: float, expected_is_missed_label: bool
+    forecasted_trajectories: NDArrayFloat,
+    miss_threshold_m: float,
+    expected_is_missed_label: bool,
 ) -> None:
     """Test that compute_is_missed_prediction returns the correct output with valid inputs.
 
@@ -137,10 +149,30 @@ expected_bfde_confident_k6 = expected_fde_straight_k6 + np.square((1 - confident
 @pytest.mark.parametrize(
     "forecasted_trajectories, forecast_probabilities, normalize, expected_brier_ade",
     [
-        (forecasted_trajectories_stationary_k1, uniform_probabilities_k1, False, expected_bade_uniform_k1),
-        (forecasted_trajectories_straight_k6, uniform_probabilities_k6, False, expected_bade_uniform_k6),
-        (forecasted_trajectories_straight_k6, confident_probabilities_k6, False, expected_bade_confident_k6),
-        (forecasted_trajectories_straight_k6, non_normalized_probabilities_k6, True, expected_bade_confident_k6),
+        (
+            forecasted_trajectories_stationary_k1,
+            uniform_probabilities_k1,
+            False,
+            expected_bade_uniform_k1,
+        ),
+        (
+            forecasted_trajectories_straight_k6,
+            uniform_probabilities_k6,
+            False,
+            expected_bade_uniform_k6,
+        ),
+        (
+            forecasted_trajectories_straight_k6,
+            confident_probabilities_k6,
+            False,
+            expected_bade_confident_k6,
+        ),
+        (
+            forecasted_trajectories_straight_k6,
+            non_normalized_probabilities_k6,
+            True,
+            expected_bade_confident_k6,
+        ),
     ],
     ids=[
         "uniform_stationary_k1",
@@ -194,17 +226,40 @@ def test_compute_brier_ade_data_validation(
     """
     with expectation:
         metrics.compute_brier_ade(
-            forecasted_trajectories_straight_k6, _STATIONARY_GT_TRAJ, forecast_probabilities, normalize
+            forecasted_trajectories_straight_k6,
+            _STATIONARY_GT_TRAJ,
+            forecast_probabilities,
+            normalize,
         )
 
 
 @pytest.mark.parametrize(
     "forecasted_trajectories, forecast_probabilities, normalize, expected_brier_fde",
     [
-        (forecasted_trajectories_stationary_k1, uniform_probabilities_k1, False, expected_bfde_uniform_k1),
-        (forecasted_trajectories_straight_k6, uniform_probabilities_k6, False, expected_bfde_uniform_k6),
-        (forecasted_trajectories_straight_k6, confident_probabilities_k6, False, expected_bfde_confident_k6),
-        (forecasted_trajectories_straight_k6, non_normalized_probabilities_k6, True, expected_bfde_confident_k6),
+        (
+            forecasted_trajectories_stationary_k1,
+            uniform_probabilities_k1,
+            False,
+            expected_bfde_uniform_k1,
+        ),
+        (
+            forecasted_trajectories_straight_k6,
+            uniform_probabilities_k6,
+            False,
+            expected_bfde_uniform_k6,
+        ),
+        (
+            forecasted_trajectories_straight_k6,
+            confident_probabilities_k6,
+            False,
+            expected_bfde_confident_k6,
+        ),
+        (
+            forecasted_trajectories_straight_k6,
+            non_normalized_probabilities_k6,
+            True,
+            expected_bfde_confident_k6,
+        ),
     ],
     ids=[
         "uniform_stationary_k1",
@@ -258,5 +313,8 @@ def test_compute_brier_fde_data_validation(
     """
     with expectation:
         metrics.compute_brier_fde(
-            forecasted_trajectories_straight_k6, _STATIONARY_GT_TRAJ, forecast_probabilities, normalize
+            forecasted_trajectories_straight_k6,
+            _STATIONARY_GT_TRAJ,
+            forecast_probabilities,
+            normalize,
         )

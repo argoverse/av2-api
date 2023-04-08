@@ -12,7 +12,10 @@ import av2.evaluation.scene_flow.eval as eval
 from av2.evaluation.scene_flow.example_submission import example_submission
 from av2.evaluation.scene_flow.make_annotation_files import make_annotation_files
 from av2.evaluation.scene_flow.make_mask_files import make_mask_files
-from av2.evaluation.scene_flow.make_submission_archive import make_submission_archive, validate
+from av2.evaluation.scene_flow.make_submission_archive import (
+    make_submission_archive,
+    validate,
+)
 from av2.evaluation.scene_flow.utils import compute_eval_point_mask
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 
@@ -39,7 +42,13 @@ def test_submission() -> None:
         make_mask_files(str(mask_file), str(_TEST_DATA_ROOT), "test_data", "val")
 
         annotations_dir = test_dir / "annotations"
-        make_annotation_files(str(annotations_dir), str(mask_file), str(_TEST_DATA_ROOT), "test_data", "val")
+        make_annotation_files(
+            str(annotations_dir),
+            str(mask_file),
+            str(_TEST_DATA_ROOT),
+            "test_data",
+            "val",
+        )
 
         predictions_dir = test_dir / "output"
         example_submission(str(predictions_dir), str(mask_file), str(_TEST_DATA_ROOT), "test_data")

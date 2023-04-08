@@ -56,7 +56,10 @@ class TestPolyline:
 
     def test_from_list(self) -> None:
         """Ensure object is generated correctly from a list of dictionaries."""
-        points_dict_list = [{"x": 874.01, "y": -105.15, "z": -19.58}, {"x": 890.58, "y": -104.26, "z": -19.58}]
+        points_dict_list = [
+            {"x": 874.01, "y": -105.15, "z": -19.58},
+            {"x": 890.58, "y": -104.26, "z": -19.58},
+        ]
         polyline = Polyline.from_json_data(points_dict_list)
 
         assert isinstance(polyline, Polyline)
@@ -90,8 +93,14 @@ class TestPedestrianCrossing:
         """Ensure object is generated correctly from a dictionary."""
         json_data = {
             "id": 6310421,
-            "edge1": [{"x": 899.17, "y": -91.52, "z": -19.58}, {"x": 915.68, "y": -93.93, "z": -19.53}],
-            "edge2": [{"x": 899.44, "y": -95.37, "z": -19.48}, {"x": 918.25, "y": -98.05, "z": -19.4}],
+            "edge1": [
+                {"x": 899.17, "y": -91.52, "z": -19.58},
+                {"x": 915.68, "y": -93.93, "z": -19.53},
+            ],
+            "edge2": [
+                {"x": 899.44, "y": -95.37, "z": -19.48},
+                {"x": 918.25, "y": -98.05, "z": -19.4},
+            ],
         }
         pedestrian_crossing = PedestrianCrossing.from_dict(json_data)
 
@@ -293,8 +302,16 @@ class TestArgoverseStaticMap:
                 [770.6398, -105.8351, -19.4105],  # ego-vehicle pose at one timestamp
                 [943.5386, -49.6295, -19.3291],  # ego-vehicle pose at one timestamp
                 [918.0960, 82.5588, -20.5742],  # ego-vehicle pose at one timestamp
-                [9999999, 999999, 0],  # obviously out of bounds value for city coordinate system
-                [-999999, -999999, 0],  # obviously out of bounds value for city coordinate system
+                [
+                    9999999,
+                    999999,
+                    0,
+                ],  # obviously out of bounds value for city coordinate system
+                [
+                    -999999,
+                    -999999,
+                    0,
+                ],  # obviously out of bounds value for city coordinate system
             ]
         )
 
@@ -319,8 +336,16 @@ class TestArgoverseStaticMap:
                 [770.6398, -105.8351, -19.4105],  # ego-vehicle pose at one timestamp
                 [943.5386, -49.6295, -19.3291],  # ego-vehicle pose at one timestamp
                 [918.0960, 82.5588, -20.5742],  # ego-vehicle pose at one timestamp
-                [9999999, 999999, 0],  # obviously out of bounds value for city coordinate system
-                [-999999, -999999, 0],  # obviously out of bounds value for city coordinate system
+                [
+                    9999999,
+                    999999,
+                    0,
+                ],  # obviously out of bounds value for city coordinate system
+                [
+                    -999999,
+                    -999999,
+                    0,
+                ],  # obviously out of bounds value for city coordinate system
             ]
         )
 

@@ -39,7 +39,10 @@ def compute_allowed_noise_per_point(points_cam: NDArrayFloat) -> NDArrayFloat:
 
 
 def vis_depth_map(
-    img_rgb: NDArrayByte, depth_map: NDArrayFloat, interp_depth_map: bool, num_dilation_iters: int = 10
+    img_rgb: NDArrayByte,
+    depth_map: NDArrayFloat,
+    interp_depth_map: bool,
+    num_dilation_iters: int = 10,
 ) -> None:
     """Visualize a depth map using Matplotlib's `inferno` colormap side by side with an RGB image.
 

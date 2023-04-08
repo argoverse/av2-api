@@ -4,61 +4,49 @@ Evaluation Metrics:
     mAP: see https://arxiv.org/abs/2203.16297
 """
 
-import argparse
 import json
 import pickle
 from collections import defaultdict
 from pathlib import Path
+from pprint import pprint
 from typing import Any, Dict, List, Tuple, cast
 
+import click
+import constants
 import numpy as np
 import utils
+import constants
+from av2.evaluation.detection.utils import (
+    compute_objects_in_roi_mask,
+    load_mapped_avm_and_egoposes,
+)
+from av2.utils.typing import NDArrayFloat, Sequences
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
-from utils import NDArrayFloat
-
-from pprint import pprint
-from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
-from av2.utils.typing import Sequence, Sequences
 
 
-def calc_ap(precision: NDArrayFloat, min_recall: float = 0, min_precision: float = 0) -> float:
-    """Calculate average precision. This is taken directly from the nuScenes evaluation dev-kit.
-
-    Args:
-        precision: Precision at each recall threshold.
-        min_recall: Minimum recall to consider.
-        min_precision: Minimum precision to consider.
-
-    Returns:
-        Average Precision
-    """
-    assert 0 <= min_precision < 1
-    assert 0 <= min_recall <= 1
-
-    prec = np.copy(precision)
-    prec = prec[round(100 * min_recall) + 1 :]  # Clip low recalls. +1 to exclude the min recall bin.
-    prec -= min_precision  # Clip low precision
-    prec[prec < 0] = 0
-    return float(np.mean(prec)) / (1.0 - min_precision)
-
-
-def evaluate(predictions: Sequences, ground_truth: Sequences, args: Any) -> Dict[str, Any]:
+def evaluate(
+    predictions: Sequences,
+    ground_truth: Sequences,
+    top_k: int,
+    max_range_m: int,
+    dataset_dir: str,
+) -> Dict[str, Any]:
     """Compute Mean Forecasting AP, ADE, and FDE given predicted and ground truth forecasts.
 
     Args:
         predictions: All predicted trajectories for each log_id and timestep.
         ground_truth: All ground truth trajectories for each log_id and timestep.
-        args: Argparse arguments.
+        top_k: Top K evaluation (default: K=5)
+        max_range_m: Maximum evaluation range
+        dataset_dir: Path to dataset. Required for ROI pruning.
+
 
     Returns:
         Dictionary of evaluation results.
     """
-    class_names = utils.av2_classes
-    class_velocity = utils.CATEGORY_TO_VELOCITY
-    K = args.K
-    max_range_m = args.max_range_m
-    dataset_dir = args.dataset_dir
+    class_names = constants.av2_classes
+    class_velocity = constants.CATEGORY_TO_VELOCITY
 
     ground_truth = convert_forecast_labels(ground_truth)
     ground_truth = filter_max_dist(ground_truth, max_range_m)
@@ -70,7 +58,7 @@ def evaluate(predictions: Sequences, ground_truth: Sequences, args: Any) -> Dict
     predictions = filter_drivable_area(predictions, dataset_dir)
 
     res: Dict[str, Any] = {}
-    velocity_profile = utils.VELOCITY_PROFILE
+    velocity_profile = constants.VELOCITY_PROFILE
 
     for profile in velocity_profile:
         res[profile] = {}
@@ -111,23 +99,25 @@ def evaluate(predictions: Sequences, ground_truth: Sequences, args: Any) -> Dict
     for cname in class_names:
         cvel = class_velocity[cname]
         for profile in velocity_profile:
-            for th in utils.DISTANCE_THRESHOLDS_M:
-                args = pred_agents, gt_agents, K, cname, profile, cvel, th
+            for th in constants.DISTANCE_THRESHOLDS_M:
+                args = pred_agents, gt_agents, top_k, cname, profile, cvel, th
 
                 args_list.append(args)
 
     outputs = [accumulate(*args) for args in tqdm(args_list)]
 
-    for apf, ade, fde, cname, profile in outputs:
+    for apf, ade, fde, cname, profile, threshold in outputs:
         res[profile][cname]["mAP_F"].append(apf)
-        res[profile][cname]["ADE"].append(ade)
-        res[profile][cname]["FDE"].append(fde)
+
+        if threshold == constants.TP_THRESHOLD_M:
+            res[profile][cname]["ADE"].append(ade)
+            res[profile][cname]["FDE"].append(fde)
 
     for cname in class_names:
         for profile in velocity_profile:
-            res[profile][cname]["mAP_F"] = round(np.mean(res[profile][cname]["mAP_F"]), 3)
-            res[profile][cname]["ADE"] = round(np.mean(res[profile][cname]["ADE"]), 3)
-            res[profile][cname]["FDE"] = round(np.mean(res[profile][cname]["FDE"]), 3)
+            res[profile][cname]["mAP_F"] = round(np.mean(res[profile][cname]["mAP_F"]), constants.NUM_DECIMALS)
+            res[profile][cname]["ADE"] = round(np.mean(res[profile][cname]["ADE"]), constants.NUM_DECIMALS)
+            res[profile][cname]["FDE"] = round(np.mean(res[profile][cname]["FDE"]), constants.NUM_DECIMALS)
 
     return res
 
@@ -135,18 +125,18 @@ def evaluate(predictions: Sequences, ground_truth: Sequences, args: Any) -> Dict
 def accumulate(
     pred_agents: List[Dict[str, Any]],
     gt_agents: List[Dict[str, Any]],
-    K: int,
+    top_k: int,
     class_name: str,
     profile: str,
     velocity: float,
     threshold: float,
-) -> Tuple[float, float, float, str, str]:
+) -> Tuple[Any, Any, Any, str, str, float]:
     """Perform matching between predicted and ground truth trajectories.
 
     Args:
         pred_agents: List of predicted trajectories for a given log_id and timestamp.
         gt_agents: List of ground truth trajectories for a given log_id and timestamp.
-        K: Number of future trajectories to consider when evaluating Forecastin AP, ADE and FDE (K=5 by default).
+        top_k: Number of future trajectories to consider when evaluating Forecastin AP, ADE and FDE (K=5 by default).
         class_name: Match class name (e.g. car, pedestrian, bicycle) to determine if a trajectory is included
             in evaluation.
         profile: Match profile (e.g. static/linear/non-linear) to determine if a trajectory is included in evaluation.
@@ -210,12 +200,15 @@ def accumulate(
             gt_match_agent = gt_agents_in_frame[match_gt_idx]
 
             gt_len = gt_match_agent["future_translation"].shape[0]
-            forecast_match_th = [threshold + utils.FORECAST_SCALAR[i] * velocity for i in range(gt_len + 1)]
+            forecast_match_th = [threshold + constants.FORECAST_SCALAR[i] * velocity for i in range(gt_len + 1)]
 
-            if K == 1:
+            if top_k == 1:
                 ind = cast(int, np.argmax(pred_agent["score"]))
                 forecast_dist = [
-                    utils.center_distance(gt_match_agent["future_translation"][i], pred_agent["prediction"][ind][i])
+                    utils.center_distance(
+                        gt_match_agent["future_translation"][i],
+                        pred_agent["prediction"][ind][i],
+                    )
                     for i in range(gt_len)
                 ]
                 forecast_match = [dist < th for dist, th in zip(forecast_dist, forecast_match_th[1:])]
@@ -223,13 +216,16 @@ def accumulate(
                 ade = cast(float, np.mean(forecast_dist))
                 fde = forecast_dist[-1]
 
-            elif K == 5:
+            elif top_k == 5:
                 forecast_dist, forecast_match = None, [False]
                 ade, fde = np.inf, np.inf
 
-                for ind in range(K):
+                for ind in range(top_k):
                     curr_forecast_dist = [
-                        utils.center_distance(gt_match_agent["future_translation"][i], pred_agent["prediction"][ind][i])
+                        utils.center_distance(
+                            gt_match_agent["future_translation"][i],
+                            pred_agent["prediction"][ind][i],
+                        )
                         for i in range(gt_len)
                     ]
                     curr_forecast_match = [dist < th for dist, th in zip(curr_forecast_dist, forecast_match_th[1:])]
@@ -264,10 +260,17 @@ def accumulate(
     fp_array = np.array(fp)[select]
 
     if len(tp) == 0:
-        return np.nan, np.nan, np.nan, class_name, profile
+        return (np.nan, np.nan, np.nan, class_name, profile, threshold)
 
     if sum(tp) == 0:
-        return 0, np.inf, np.inf, class_name, profile
+        return (
+            cast(float, 0),
+            cast(float, constants.MAX_DISPLACEMENT),
+            cast(float, constants.MAX_DISPLACEMENT),
+            class_name,
+            profile,
+            threshold,
+        )
 
     tp_array = np.cumsum(tp_array).astype(float)
     fp_array = np.cumsum(fp_array).astype(float)
@@ -275,12 +278,17 @@ def accumulate(
     prec = tp_array / (fp_array + tp_array)
     rec = tp_array / float(npos)
 
-    rec_interp = np.linspace(0, 1, utils.NUM_ELEMS)  # 101 steps, from 0% to 100% recall.
-    prec = np.interp(rec_interp, rec, prec, right=0)
+    rec_interp = np.linspace(0, 1, constants.NUM_ELEMS)  # 101 steps, from 0% to 100% recall.
+    apf = np.mean(np.interp(rec_interp, rec, prec, right=0))
 
-    apf = calc_ap(prec)
-
-    return (apf, cast(float, np.mean(agent_ade)), cast(float, np.mean(agent_fde)), class_name, profile)
+    return (
+        cast(float, apf),
+        cast(float, min(np.mean(agent_ade), constants.MAX_DISPLACEMENT)),
+        cast(float, min(np.mean(agent_fde), constants.MAX_DISPLACEMENT)),
+        class_name,
+        profile,
+        threshold,
+    )
 
 
 def convert_forecast_labels(labels: Any) -> Any:
@@ -299,22 +307,21 @@ def convert_forecast_labels(labels: Any) -> Any:
             forecast_instances = []
             for instance in utils.array_dict_iterator(frame, len(frame["translation"])):
                 future_translations: Any = []
-                for future_frame in frames[frame_idx + 1 : frame_idx + 1 + utils.NUM_TIMESTEPS]:
+                for future_frame in frames[frame_idx + 1 : frame_idx + 1 + constants.NUM_TIMESTEPS]:
                     if instance["track_id"] not in future_frame["track_id"]:
                         break
                     future_translations.append(
                         future_frame["translation"][future_frame["track_id"] == instance["track_id"]][0]
                     )
+
                 if len(future_translations) == 0:
-                    future_translations = np.zeros((utils.NUM_TIMESTEPS, 2))
-                else:
-                    future_translations = np.array(future_translations)[:, :2]
+                    continue
 
                 forecast_instances.append(
                     {
                         "current_translation": instance["translation"][:2],
                         "ego_translation": instance["ego_translation"][:2],
-                        "future_translation": future_translations,
+                        "future_translation": np.array(future_translations)[:, :2],
                         "name": instance["name"],
                         "size": instance["size"],
                         "yaw": instance["yaw"],
@@ -345,7 +352,8 @@ def filter_max_dist(forecasts: Sequences, max_range_m: int) -> Sequences:
             keep_forecasts = [
                 agent
                 for agent in forecasts[seq_id][timestamp]
-                if np.linalg.norm(agent["current_translation"] - agent["ego_translation"]) < max_range_m
+                if "ego_translation" in agent
+                and np.linalg.norm(agent["current_translation"] - agent["ego_translation"]) < max_range_m
             ]
             forecasts[seq_id][timestamp] = keep_forecasts
 
@@ -387,13 +395,25 @@ def filter_drivable_area(forecasts: Sequences, dataset_dir: str) -> Sequences:
 
             translation, size, quat = [], [], []
 
+            if len(forecasts[log_id][timestamp]) == 0:
+                continue
+
             for box in forecasts[log_id][timestamp]:
                 translation.append(box["current_translation"] - box["ego_translation"])
                 size.append(box["size"])
-                quat.append(yaw_to_quaternion3d(box["yaw"]))
+                quat.append(yaw_to_quaternion3d(0))
+                # quat.append(yaw_to_quaternion3d(box["yaw"]))
 
             score = np.ones((len(translation), 1))
-            boxes = np.concatenate([np.array(translation), np.array(size), np.array(quat), np.array(score)], axis=1)
+            boxes = np.concatenate(
+                [
+                    np.array(translation),
+                    np.array(size),
+                    np.array(quat),
+                    np.array(score),
+                ],
+                axis=1,
+            )
 
             is_evaluated = compute_objects_in_roi_mask(boxes, city_SE3_ego, avm)
             forecasts[log_id][timestamp] = list(np.array(forecasts[log_id][timestamp])[is_evaluated])
@@ -401,20 +421,30 @@ def filter_drivable_area(forecasts: Sequences, dataset_dir: str) -> Sequences:
     return forecasts
 
 
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument("--predictions", required=True)  # .pkl
-    argparser.add_argument("--ground_truth", required=True)  # .pkl
-    argparser.add_argument("--max_range_m", type=int, default=50)
-    argparser.add_argument("--dataset_dir", default=None)
-    argparser.add_argument("--K", default=5)
-    argparser.add_argument("--out", required=True)  # .json
+@click.command()
+@click.option("--predictions", required=True, help="Predictions PKL file")
+@click.option("--ground_truth", required=True, help="Ground Truth PKL file")
+@click.option("--max_range_m", default=50, type=int, help="Max evaluation range")
+@click.option("--top_k", default=5, type=int, help="Top K evaluation metric")
+@click.option(
+    "--dataset_dir",
+    default=None,
+    help="Path to dataset split (e.g. /data/Sensor/val). Required for ROI pruning",
+)
+@click.option("--out", required=True, help="Output PKL file")
+def runner(
+    predictions: str,
+    ground_truth: str,
+    max_range_m: int,
+    dataset_dir: Any,
+    top_k: int,
+    out: str,
+) -> None:
+    """Standalone evaluation function."""
+    predictions2 = pickle.load(open(predictions, "rb"))
+    ground_truth2 = pickle.load(open(ground_truth, "rb"))
 
-    args = argparser.parse_args()
-    predictions = pickle.load(open(args.predictions, "rb"))
-    ground_truth = pickle.load(open(args.ground_truth, "rb"))
-
-    res = evaluate(predictions, ground_truth, args)
+    res = evaluate(predictions2, ground_truth2, top_k, max_range_m, dataset_dir)
 
     mAP_F = np.nanmean([metrics["mAP_F"] for traj_metrics in res.values() for metrics in traj_metrics.values()])
     ADE = np.nanmean([metrics["ADE"] for traj_metrics in res.values() for metrics in traj_metrics.values()])
@@ -424,5 +454,9 @@ if __name__ == "__main__":
     res["mean_FDE"] = FDE
     pprint(res)
 
-    with open(args.out, "w") as f:
+    with open(out, "w") as f:
         json.dump(res, f, indent=4)
+
+
+if __name__ == "__main__":
+    runner()

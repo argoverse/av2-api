@@ -27,12 +27,13 @@ from av2.evaluation.detection.constants import (
     MIN_AP,
     MIN_CDS,
     NUM_ELEMS,
+    NUM_DECIMALS,
     AffinityType,
-    CompetitionCategories,
     DistanceType,
     FilterMetricType,
     InterpType,
 )
+from av2.evaluation.common.constants import CompetitionCategories
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat, wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
 from av2.geometry.se3 import SE3
@@ -215,18 +216,6 @@ def is_evaluated(
     return dts, gts, dts_cats, gts_cats, uuid
 
 
-def calc_ap(precision: NDArrayFloat, min_recall: int = 0, min_precision: int = 0) -> float:
-    """Calculated average precision."""
-    assert 0 <= min_precision < 1
-    assert 0 <= min_recall <= 1
-
-    prec = np.copy(precision)
-    prec = prec[round(100 * min_recall) + 1 :]  # Clip low recalls. +1 to exclude the min recall bin.
-    prec -= min_precision  # Clip low precision
-    prec[prec < 0] = 0
-    return float(np.mean(prec)) / (1.0 - min_precision)
-
-
 def filter_dont_care(gt: NDArrayObject, class_name: str) -> bool:
     """Fitlers detections that are considered don't care under current LCA evaluation."""
     if gt == "ignore":
@@ -377,10 +366,9 @@ def accumulate_hierarchy(
         rec = tp[i] / float(npos)
 
         rec_interp = np.linspace(0, 1, NUM_ELEMS)  # 101 steps, from 0% to 100% recall.
-        prec = np.interp(rec_interp, rec, prec, right=0)
+        ap = np.mean(np.interp(rec_interp, rec, prec, right=0))
 
-        ap = round(calc_ap(prec), 3)
-        mAP.append(ap)
+        mAP.append(round(ap, NUM_DECIMALS))
 
     return float(np.mean(mAP)), cat, lca
 

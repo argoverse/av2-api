@@ -6,7 +6,6 @@ Evaluation Metrics:
     AMOTA: see https://arxiv.org/abs/2008.08063
 """
 
-import argparse
 import contextlib
 import json
 import pickle
@@ -14,23 +13,23 @@ from copy import copy
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import Any, Callable, Dict, Final, Iterable, List, Tuple, Union, cast
-
 from pprint import pprint
+from typing import Any, Callable, Dict, Iterable, List, Tuple, Union, cast
+
+import click
+import constants
 import numpy as np
 import trackeval
 import utils
+from av2.evaluation.detection.utils import (
+    compute_objects_in_roi_mask,
+    load_mapped_avm_and_egoposes,
+)
+from av2.evaluation.tracking.constants import SUBMETRIC_TO_METRIC_CLASS_NAME
+from av2.utils.typing import NDArrayFloat, NDArrayInt, Sequence
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation
 from trackeval.datasets._base_dataset import _BaseDataset
-from av2.utils.typing import NDArrayFloat, NDArrayInt, Sequence
-
-from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
-
-SUBMETRIC_TO_METRIC_CLASS_NAME: Final[Dict[str, str]] = {
-    "MOTA": "CLEAR",
-    "HOTA": "HOTA",
-}
 
 
 class TrackEvalDataset(_BaseDataset):  # type: ignore
@@ -330,7 +329,11 @@ def _tune_score_thresholds(
         optimal_score_threshold_by_class[name] = optimal_threshold
         optimal_metric_values_by_class[name] = max(0, np.max(metric_values))
         mean_metric_values_by_class[name] = np.nanmean(np.array(metric_values).clip(min=0))
-    return optimal_score_threshold_by_class, optimal_metric_values_by_class, mean_metric_values_by_class
+    return (
+        optimal_score_threshold_by_class,
+        optimal_metric_values_by_class,
+        mean_metric_values_by_class,
+    )
 
 
 def _filter_by_class(detections: Any, name: str) -> Any:
@@ -356,7 +359,9 @@ def _calculate_score_thresholds(
 
 
 def _calculate_matched_scores(
-    labels: Sequence, predictions: Sequence, sim_func: Callable[[NDArrayFloat, NDArrayFloat], NDArrayFloat]
+    labels: Sequence,
+    predictions: Sequence,
+    sim_func: Callable[[NDArrayFloat, NDArrayFloat], NDArrayFloat],
 ) -> Tuple[NDArrayFloat, int]:
     scores = []
     n_gt = 0
@@ -496,25 +501,34 @@ def filter_drivable_area(tracks: Sequence, dataset_dir: str) -> Sequence:
     return tracks
 
 
-def evaluate(track_predictions: Sequence, labels: Sequence, args: Any) -> Tuple[Dict[str, float], Dict[str, Any]]:
+def evaluate(
+    track_predictions: Sequence,
+    labels: Sequence,
+    objective_metric: str,
+    max_range_m: int,
+    dataset_dir: Any,
+    out: str,
+) -> Tuple[Dict[str, float], Dict[str, Any]]:
     """Run evaluation.
 
     Args:
         track_predictions: Dict[seq_id] List[frame]] Dictionary of tracks
         labels: Dict[seq_id] List[frame]] Dictionary of labels
-        args: Argparse arguments
+        objective_metric: Metric to optimize
+        max_range_m: Maximum evaluation range
+        dataset_dir: Path to dataset. Required for ROI pruning.
+        out: output path
 
     Returns:
         res: Dict Dictionary of per-class metrics
     """
-    objective_metric = args.objective_metric
-    classes = utils.av2_classes
-    max_range_m = args.max_range_m
-    dataset_dir = args.dataset_dir
+    classes = constants.av2_classes
 
     labels = filter_max_dist(labels, max_range_m)
     utils.annotate_frame_metadata(
-        utils.ungroup_frames(track_predictions), utils.ungroup_frames(labels), ["ego_translation"]
+        utils.ungroup_frames(track_predictions),
+        utils.ungroup_frames(labels),
+        ["ego_translation"],
     )
     track_predictions = filter_max_dist(track_predictions, max_range_m)
 
@@ -535,29 +549,42 @@ def evaluate(track_predictions: Sequence, labels: Sequence, args: Any) -> Tuple[
         filtered_track_predictions,
         classes,
         tracker_name="TRACKER",
-        output_dir=".".join(args.out.split("/")[:-1]),
+        output_dir=".".join(out.split("/")[:-1]),
     )
 
     return res, mean_metric_values
 
 
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument("--predictions", required=True)  # .pkl
-    argparser.add_argument("--ground_truth", required=True)  # .pkl
-    argparser.add_argument("--max_range_m", type=int, default=50)
-    argparser.add_argument("--dataset_dir", default=None)
-    argparser.add_argument("--objective_metric", default="HOTA", choices=["HOTA", "MOTA"])
-    argparser.add_argument("--out", required=True)  # .pkl
+@click.command()
+@click.option("--predictions", required=True, help="Predictions PKL file")
+@click.option("--ground_truth", required=True, help="Ground Truth PKL file")
+@click.option("--max_range_m", default=50, type=int, help="Predictions PKL file")
+@click.option(
+    "--dataset_dir",
+    default=None,
+    help="Path to dataset split (e.g. /data/Sensor/val). Required for ROI pruning",
+)
+@click.option("--objective_metric", default="HOTA", help="Choices: HOTA, MOTA")
+@click.option("--out", required=True, help="Output JSON file")
+def runner(
+    predictions: str,
+    ground_truth: str,
+    max_range_m: int,
+    dataset_dir: Any,
+    objective_metric: str,
+    out: str,
+) -> None:
+    """Standalone evaluation function."""
+    track_predictions = pickle.load(open(predictions, "rb"))
+    labels = pickle.load(open(ground_truth, "rb"))
 
-    args = argparser.parse_args()
-
-    track_predictions = pickle.load(open(args.predictions, "rb"))
-    labels = pickle.load(open(args.ground_truth, "rb"))
-
-    res, mean_metric_values = evaluate(track_predictions, labels, args)
+    res, mean_metric_values = evaluate(track_predictions, labels, objective_metric, max_range_m, dataset_dir, out)
 
     pprint(mean_metric_values)
 
-    with open(args.out, "w") as f:
+    with open(out, "w") as f:
         json.dump(mean_metric_values, f, indent=4)
+
+
+if __name__ == "__main__":
+    runner()

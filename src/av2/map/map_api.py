@@ -258,7 +258,9 @@ class RoiMapLayer(RasterMapLayer):
         return cls(array=roi_mask, array_Sim2_city=drivable_area_layer.array_Sim2_city)
 
 
-def compute_data_bounds(drivable_areas: List[DrivableArea]) -> Tuple[int, int, int, int]:
+def compute_data_bounds(
+    drivable_areas: List[DrivableArea],
+) -> Tuple[int, int, int, int]:
     """Find the minimum and maximum coordinates along the x and y axes for a set of drivable areas.
 
     Args:
@@ -610,7 +612,10 @@ class ArgoverseStaticMap:
             raise ValueError("Raster drivable area is not loaded!")
 
         raster_drivable_area_layer: NDArrayByte = self.raster_drivable_area_layer.array.astype(np.uint8)
-        return raster_drivable_area_layer, self.raster_drivable_area_layer.array_Sim2_city
+        return (
+            raster_drivable_area_layer,
+            self.raster_drivable_area_layer.array_Sim2_city,
+        )
 
     def get_rasterized_roi(self) -> Tuple[NDArrayByte, Sim2]:
         """Get the drivable area along with Sim(2) that maps matrix coordinates to city coordinates.

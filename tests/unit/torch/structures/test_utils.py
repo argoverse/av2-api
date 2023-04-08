@@ -33,7 +33,14 @@ def test_tensor_from_frame() -> None:
     tensor = tensor_from_frame(frame, columns=["qw", "qx", "qy", "qz"])
 
     tensor_expected = torch.as_tensor(
-        [[frame.loc[0, "qw"], frame.loc[0, "qx"], frame.loc[0, "qy"], frame.loc[0, "qz"]]]
+        [
+            [
+                frame.loc[0, "qw"],
+                frame.loc[0, "qx"],
+                frame.loc[0, "qy"],
+                frame.loc[0, "qz"],
+            ]
+        ]
     )
     assert_close(tensor, tensor_expected)
 

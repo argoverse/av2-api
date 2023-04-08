@@ -88,7 +88,9 @@ def get_double_polylines(polyline: NDArrayFloat, width_scaling_factor: float) ->
 
 
 def swap_left_and_right(
-    condition: NDArrayBool, left_centerline: NDArrayFloat, right_centerline: NDArrayFloat
+    condition: NDArrayBool,
+    left_centerline: NDArrayFloat,
+    right_centerline: NDArrayFloat,
 ) -> Tuple[NDArrayFloat, NDArrayFloat]:
     """Swap points in left and right centerline according to condition.
 

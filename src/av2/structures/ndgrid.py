@@ -121,7 +121,10 @@ class BEVGrid(NDGrid):
     """
 
     def points_to_bev_img(
-        self, points: NDArrayFloat, color: Tuple[int, int, int] = GRAY_BGR, diameter: int = 2
+        self,
+        points: NDArrayFloat,
+        color: Tuple[int, int, int] = GRAY_BGR,
+        diameter: int = 2,
     ) -> NDArrayByte:
         """Convert a set of points in Cartesian space to a bird's-eye-view image.
 
@@ -142,7 +145,11 @@ class BEVGrid(NDGrid):
 
         points_xy = points[..., :2].copy()  # Prevent modifying input.
         indices_int = self.transform_to_grid_coordinates(points_xy)
-        indices, _ = crop_points(indices_int, lower_bound_inclusive=(0.0, 0.0), upper_bound_exclusive=self.dims)
+        indices, _ = crop_points(
+            indices_int,
+            lower_bound_inclusive=(0.0, 0.0),
+            upper_bound_exclusive=self.dims,
+        )
 
         # Construct uv coordinates.
         H, W = (self.dims[0], self.dims[1])

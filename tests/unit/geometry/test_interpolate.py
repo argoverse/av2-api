@@ -558,14 +558,17 @@ def test_interpolate_pose() -> None:
 
     city_SE3_egot0 = SE3(rotation=np.eye(3), translation=np.array([5, 0, 0]))
     city_SE3_egot1 = SE3(
-        rotation=Rotation.from_euler("z", 90, degrees=True).as_matrix(), translation=np.array([0, 5, 0])
+        rotation=Rotation.from_euler("z", 90, degrees=True).as_matrix(),
+        translation=np.array([0, 5, 0]),
     )
 
     t0 = 0
     t1 = 10
     for query_timestamp in np.arange(11):
         pose = interp_utils.interpolate_pose(
-            key_timestamps=(t0, t1), key_poses=(city_SE3_egot0, city_SE3_egot1), query_timestamp=query_timestamp
+            key_timestamps=(t0, t1),
+            key_poses=(city_SE3_egot0, city_SE3_egot1),
+            query_timestamp=query_timestamp,
         )
         if visualize:
             _plot_pose(pose)

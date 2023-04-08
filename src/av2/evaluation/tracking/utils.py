@@ -8,38 +8,9 @@ import pickle
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
-from av2.utils.typing import NDArrayInt, Frame, Frames, Sequences
 import numpy as np
+from av2.utils.typing import Frame, Frames, NDArrayInt, Sequences
 from tqdm import tqdm
-
-av2_classes: List[str] = [
-    "REGULAR_VEHICLE",
-    "PEDESTRIAN",
-    "BICYCLIST",
-    "MOTORCYCLIST",
-    "WHEELED_RIDER",
-    "BOLLARD",
-    "CONSTRUCTION_CONE",
-    "SIGN",
-    "CONSTRUCTION_BARREL",
-    "STOP_SIGN",
-    "MOBILE_PEDESTRIAN_CROSSING_SIGN",
-    "LARGE_VEHICLE",
-    "BUS",
-    "BOX_TRUCK",
-    "TRUCK",
-    "VEHICULAR_TRAILER",
-    "TRUCK_CAB",
-    "SCHOOL_BUS",
-    "ARTICULATED_BUS",
-    "MESSAGE_BOARD_TRAILER",
-    "BICYCLE",
-    "MOTORCYCLE",
-    "WHEELED_DEVICE",
-    "WHEELCHAIR",
-    "STROLLER",
-    "DOG",
-]
 
 
 def progressbar(itr: Iterable[Any], desc: Optional[str] = None, **kwargs: Dict[str, Any]) -> tqdm:
