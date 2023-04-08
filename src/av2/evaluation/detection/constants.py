@@ -29,7 +29,7 @@ DIMENSION_COLS: Final = ["length_m", "width_m", "height_m"]
 QUAT_WXYZ_COLS: Final = ["qw", "qx", "qy", "qz"]
 
 HIERARCHY: Final = {
-    "FINEGRAIN": [
+    "FINEGRAIN": (
         "REGULAR_VEHICLE",
         "LARGE_VEHICLE",
         "BUS",
@@ -57,8 +57,8 @@ HIERARCHY: Final = {
         "STOP_SIGN",
         "MOBILE_PEDESTRIAN_CROSSING_SIGN",
         "MESSAGE_BOARD_TRAILER",
-    ],
-    "GROUP": [
+    ),
+    "GROUP": (
         "VEHICLE",
         "VEHICLE",
         "VEHICLE",
@@ -86,8 +86,8 @@ HIERARCHY: Final = {
         "MOVABLE",
         "MOVABLE",
         "MOVABLE",
-    ],
-    "OBJECT": [
+    ),
+    "OBJECT": (
         "OBJECT",
         "OBJECT",
         "OBJECT",
@@ -115,7 +115,7 @@ HIERARCHY: Final = {
         "OBJECT",
         "OBJECT",
         "OBJECT",
-    ],
+    ),
 }
 
 LCA: Final = {
