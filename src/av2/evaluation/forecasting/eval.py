@@ -401,8 +401,7 @@ def filter_drivable_area(forecasts: Sequences, dataset_dir: str) -> Sequences:
             for box in forecasts[log_id][timestamp]:
                 translation.append(box["current_translation"] - box["ego_translation"])
                 size.append(box["size"])
-                quat.append(yaw_to_quaternion3d(0))
-                # quat.append(yaw_to_quaternion3d(box["yaw"]))
+                quat.append(yaw_to_quaternion3d(box["yaw"]))
 
             score = np.ones((len(translation), 1))
             boxes = np.concatenate(
