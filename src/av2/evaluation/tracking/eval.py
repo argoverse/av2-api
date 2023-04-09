@@ -532,8 +532,9 @@ def evaluate(
     )
     track_predictions = filter_max_dist(track_predictions, max_range_m)
 
-    labels = filter_drivable_area(labels, dataset_dir)
-    track_predictions = filter_drivable_area(track_predictions, dataset_dir)
+    if dataset_dir is not None:
+        labels = filter_drivable_area(labels, dataset_dir)
+        track_predictions = filter_drivable_area(track_predictions, dataset_dir)
 
     score_thresholds, _, mean_metric_values = _tune_score_thresholds(
         labels,

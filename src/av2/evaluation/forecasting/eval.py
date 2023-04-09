@@ -11,6 +11,7 @@ from pathlib import Path
 from pprint import pprint
 from typing import Any, Dict, List, Tuple, cast
 
+import itertools
 import click
 import constants
 import numpy as np
@@ -54,8 +55,9 @@ def evaluate(
     utils.annotate_frame_metadata(predictions, ground_truth, ["ego_translation"])
     predictions = filter_max_dist(predictions, max_range_m)
 
-    ground_truth = filter_drivable_area(ground_truth, dataset_dir)
-    predictions = filter_drivable_area(predictions, dataset_dir)
+    if dataset_dir is not None:
+        ground_truth = filter_drivable_area(ground_truth, dataset_dir)
+        predictions = filter_drivable_area(predictions, dataset_dir)
 
     res: Dict[str, Any] = {}
     velocity_profile = constants.VELOCITY_PROFILE
@@ -95,16 +97,12 @@ def evaluate(
 
                 pred_agents.append(agent)
 
-    args_list = []
-    for cname in class_names:
+    outputs = []
+    for cname, profile, th in tqdm(
+        list(itertools.product(class_names, velocity_profile, constants.DISTANCE_THRESHOLDS_M))
+    ):
         cvel = class_velocity[cname]
-        for profile in velocity_profile:
-            for th in constants.DISTANCE_THRESHOLDS_M:
-                args = pred_agents, gt_agents, top_k, cname, profile, cvel, th
-
-                args_list.append(args)
-
-    outputs = [accumulate(*args) for args in tqdm(args_list)]
+        outputs.append(accumulate(pred_agents, gt_agents, top_k, cname, profile, cvel, th))
 
     for apf, ade, fde, cname, profile, threshold in outputs:
         res[profile][cname]["mAP_F"].append(apf)
@@ -259,10 +257,10 @@ def accumulate(
     tp_array = np.array(tp)[select]
     fp_array = np.array(fp)[select]
 
-    if len(tp) == 0:
+    if len(gt) == 0:
         return (np.nan, np.nan, np.nan, class_name, profile, threshold)
 
-    if sum(tp) == 0:
+    if len(pred) == 0:
         return (
             cast(float, 0),
             cast(float, constants.MAX_DISPLACEMENT),
@@ -381,9 +379,6 @@ def filter_drivable_area(forecasts: Sequences, dataset_dir: str) -> Sequences:
     Returns:
         forecasts: Dict[seq_id: List[frame]] Dictionary of tracks.
     """
-    if dataset_dir is None:
-        return forecasts
-
     log_ids = list(forecasts.keys())
     log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, Path(dataset_dir))
 
