@@ -313,7 +313,11 @@ class CuboidList:
         # Collapse first dimension to allow for vectorization.
         cuboids_vertices_ego = cuboids_vertices_ego.reshape(-1, D)
         if city_SE3_ego_cam_t is not None and city_SE3_ego_lidar_t is not None:
-            (_, cuboids_vertices_cam, _,) = cam_model.project_ego_to_img_motion_compensated(
+            (
+                _,
+                cuboids_vertices_cam,
+                _,
+            ) = cam_model.project_ego_to_img_motion_compensated(
                 cuboids_vertices_ego,
                 city_SE3_ego_cam_t=city_SE3_ego_cam_t,
                 city_SE3_ego_lidar_t=city_SE3_ego_lidar_t,
