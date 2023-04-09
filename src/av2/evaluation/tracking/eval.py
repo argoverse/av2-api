@@ -24,7 +24,7 @@ from av2.evaluation.detection.utils import (
     load_mapped_avm_and_egoposes,
 )
 from av2.evaluation.tracking.constants import SUBMETRIC_TO_METRIC_CLASS_NAME
-from av2.utils.typing import NDArrayFloat, NDArrayInt, Sequence
+from av2.utils.typing import NDArrayFloat, NDArrayInt, Sequences
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation
 from trackeval.datasets._base_dataset import _BaseDataset
@@ -59,7 +59,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         default_config = {
             "GT_TRACKS": None,  # tracker_name -> seq id -> frames
             "PREDICTED_TRACKS": None,  # tracker_name -> seq id -> frames
-            "SEQ_IDS_TO_EVAL": None,  # list of sequence ids to eval
+            "SEQ_IDS_TO_EVAL": None,  # list of sequences ids to eval
             "CLASSES_TO_EVAL": None,
             "TRACKERS_TO_EVAL": None,
             "OUTPUT_FOLDER": None,  # Where to save eval results (if None, same as TRACKERS_FOLDER)
@@ -155,8 +155,8 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
 
 
 def evaluate_tracking(
-    labels: Sequence,
-    track_predictions: Sequence,
+    labels: Sequences,
+    track_predictions: Sequences,
     classes: List[str],
     tracker_name: str,
     output_dir: str,
@@ -164,7 +164,7 @@ def evaluate_tracking(
 ) -> Dict[str, Any]:
     """Evaluate a set of tracks against ground truth annotations using the TrackEval evaluation suite.
 
-    Each sequence/log is evaluated separately.
+    Each sequences/log is evaluated separately.
 
     Args:
         labels: Dict[seq_id: List[frame]] Dictionary of ground truth annotations.
@@ -176,7 +176,7 @@ def evaluate_tracking(
 
     frame is a dictionary with the following format
         {
-            sequence_id: [
+            sequences_id: [
                 {
                     "timestamp_ns": int, # nano seconds
                     "track_id": np.ndarray[I],
@@ -200,7 +200,7 @@ def evaluate_tracking(
     predictions_id_ts = set(
         (frame["seq_id"], frame["timestamp_ns"]) for frame in utils.ungroup_frames(track_predictions)
     )
-    assert labels_id_ts == predictions_id_ts, "sequence ids and timestamp_ns in labels and predictions don't match"
+    assert labels_id_ts == predictions_id_ts, "sequences ids and timestamp_ns in labels and predictions don't match"
     metrics_config = {
         "METRICS": ["HOTA", "CLEAR"],
         "THRESHOLD": iou_threshold,
@@ -232,8 +232,8 @@ def evaluate_tracking(
 
 
 def _tune_score_thresholds(
-    labels: Sequence,
-    track_predictions: Sequence,
+    labels: Sequences,
+    track_predictions: Sequences,
     objective_metric: str,
     classes: List[str],
     num_thresholds: int = 10,
@@ -343,8 +343,8 @@ def _filter_by_class(detections: Any, name: str) -> Any:
 
 
 def _calculate_score_thresholds(
-    labels: Sequence,
-    predictions: Sequence,
+    labels: Sequences,
+    predictions: Sequences,
     sim_func: Callable[[NDArrayFloat, NDArrayFloat], NDArrayFloat],
     num_thresholds: int = 40,
     min_recall: float = 0.1,
@@ -359,8 +359,8 @@ def _calculate_score_thresholds(
 
 
 def _calculate_matched_scores(
-    labels: Sequence,
-    predictions: Sequence,
+    labels: Sequences,
+    predictions: Sequences,
     sim_func: Callable[[NDArrayFloat, NDArrayFloat], NDArrayFloat],
 ) -> Tuple[NDArrayFloat, int]:
     scores = []
@@ -443,7 +443,7 @@ def yaw_to_quaternion3d(yaw: float) -> NDArrayFloat:
     return np.array([qw, qx, qy, qz])
 
 
-def filter_drivable_area(tracks: Sequence, dataset_dir: str) -> Sequence:
+def filter_drivable_area(tracks: Sequences, dataset_dir: str) -> Sequences:
     """Convert the unified label format to a format that is easier to work with for forecasting evaluation.
 
     Args:
@@ -502,13 +502,13 @@ def filter_drivable_area(tracks: Sequence, dataset_dir: str) -> Sequence:
 
 
 def evaluate(
-    track_predictions: Sequence,
-    labels: Sequence,
+    track_predictions: Sequences,
+    labels: Sequences,
     objective_metric: str,
     max_range_m: int,
     dataset_dir: Any,
     out: str,
-) -> Tuple[Dict[str, float], Dict[str, Any]]:
+) -> Tuple[Dict[str, float], Dict[str, Any], Dict[str, Any]]:
     """Run evaluation.
 
     Args:
@@ -522,7 +522,7 @@ def evaluate(
     Returns:
         res: Dict Dictionary of per-class metrics
     """
-    classes = constants.av2_classes
+    classes = list(constants.av2_classes)
 
     labels = filter_max_dist(labels, max_range_m)
     utils.annotate_frame_metadata(
@@ -579,7 +579,7 @@ def runner(
     track_predictions = pickle.load(open(predictions, "rb"))
     labels = pickle.load(open(ground_truth, "rb"))
 
-    res, _, mean_metric_values = evaluate(track_predictions, labels, objective_metric, max_range_m, dataset_dir, out)
+    _, _, mean_metric_values = evaluate(track_predictions, labels, objective_metric, max_range_m, dataset_dir, out)
 
     pprint(mean_metric_values)
 

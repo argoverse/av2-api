@@ -13,7 +13,7 @@ increased interpretability of the error modes in a set of detections.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, Set
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -281,7 +281,7 @@ def accumulate_hierarchy(
     fp: Dict[int, Any] = {}
     gt_name: Dict[int, List[Any]] = {}
     pred_name: Dict[int, List[Any]] = {}
-    taken: Dict[int, set[Tuple[Any, Any]]] = {}
+    taken: Dict[int, Set[Tuple[Any, Any]]] = {}
     for i in range(len(cfg.affinity_thresholds_m)):
         tp[i] = []
         fp[i] = []

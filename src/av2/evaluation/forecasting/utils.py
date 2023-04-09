@@ -2,7 +2,7 @@
 from typing import Any, Dict, Final, Iterable, List, Union, cast
 
 import numpy as np
-from av2.utils.typing import Frame, NDArrayFloat, NDArrayInt, Sequences
+from av2.utils.typing import Frame, NDArrayFloat, NDArrayInt, ForecastSequences
 from av2.evaluation.forecasting import constants
 
 
@@ -125,7 +125,9 @@ def index_array_values(array_dict: Frame, index: Union[int, NDArrayInt]) -> Fram
     return {k: v[index] if isinstance(v, np.ndarray) else v for k, v in array_dict.items()}
 
 
-def annotate_frame_metadata(predictions: Sequences, ground_truth: Sequences, metadata_keys: List[str]) -> Sequences:
+def annotate_frame_metadata(
+    predictions: ForecastSequences, ground_truth: ForecastSequences, metadata_keys: List[str]
+) -> ForecastSequences:
     """Index each numpy array in dictionary.
 
     Args:

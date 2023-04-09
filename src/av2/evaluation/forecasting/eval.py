@@ -19,14 +19,14 @@ from av2.evaluation.detection.utils import (
     compute_objects_in_roi_mask,
     load_mapped_avm_and_egoposes,
 )
-from av2.utils.typing import NDArrayFloat, Sequences
+from av2.utils.typing import NDArrayFloat, Sequences, ForecastSequences
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 
 
 def evaluate(
-    predictions: Sequences,
-    ground_truth: Sequences,
+    predictions: ForecastSequences,
+    raw_ground_truth: Sequences,
     top_k: int,
     max_range_m: int,
     dataset_dir: str,
@@ -47,7 +47,7 @@ def evaluate(
     class_names = constants.av2_classes
     class_velocity = constants.CATEGORY_TO_VELOCITY
 
-    ground_truth = convert_forecast_labels(ground_truth)
+    ground_truth: ForecastSequences = convert_forecast_labels(raw_ground_truth)
     ground_truth = filter_max_dist(ground_truth, max_range_m)
 
     utils.annotate_frame_metadata(predictions, ground_truth, ["ego_translation"])
@@ -279,8 +279,8 @@ def accumulate(
 
     return (
         cast(float, apf),
-        cast(float, min(np.mean(agent_ade), constants.MAX_DISPLACEMENT)),
-        cast(float, min(np.mean(agent_fde), constants.MAX_DISPLACEMENT)),
+        min(cast(float, np.mean(agent_ade)), constants.MAX_DISPLACEMENT),
+        min(cast(float, np.mean(agent_fde)), constants.MAX_DISPLACEMENT),
         class_name,
         profile,
         threshold,
@@ -333,7 +333,7 @@ def convert_forecast_labels(labels: Any) -> Any:
     return forecast_labels
 
 
-def filter_max_dist(forecasts: Sequences, max_range_m: int) -> Sequences:
+def filter_max_dist(forecasts: ForecastSequences, max_range_m: int) -> ForecastSequences:
     """Remove all tracks that are beyond the max_dist.
 
     Args:
@@ -368,7 +368,7 @@ def yaw_to_quaternion3d(yaw: float) -> NDArrayFloat:
     return np.array([qw, qx, qy, qz])
 
 
-def filter_drivable_area(forecasts: Sequences, dataset_dir: str) -> Sequences:
+def filter_drivable_area(forecasts: ForecastSequences, dataset_dir: str) -> ForecastSequences:
     """Convert the unified label format to a format that is easier to work with for forecasting evaluation.
 
     Args:
