@@ -17,10 +17,8 @@ from pprint import pprint
 from typing import Any, Callable, Dict, Iterable, List, Tuple, Union, cast
 
 import click
-import constants
 import numpy as np
 import trackeval
-import utils
 from av2.evaluation.detection.utils import (
     compute_objects_in_roi_mask,
     load_mapped_avm_and_egoposes,
@@ -30,6 +28,8 @@ from av2.utils.typing import NDArrayFloat, NDArrayInt, Sequence
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation
 from trackeval.datasets._base_dataset import _BaseDataset
+
+from av2.evaluation.tracking import constants, utils
 
 
 class TrackEvalDataset(_BaseDataset):  # type: ignore
@@ -536,7 +536,7 @@ def evaluate(
         labels = filter_drivable_area(labels, dataset_dir)
         track_predictions = filter_drivable_area(track_predictions, dataset_dir)
 
-    score_thresholds, _, mean_metric_values = _tune_score_thresholds(
+    score_thresholds, tuned_metric_values, mean_metric_values = _tune_score_thresholds(
         labels,
         track_predictions,
         objective_metric,
@@ -553,7 +553,7 @@ def evaluate(
         output_dir=".".join(out.split("/")[:-1]),
     )
 
-    return res, mean_metric_values
+    return res, tuned_metric_values, mean_metric_values
 
 
 @click.command()
@@ -579,7 +579,7 @@ def runner(
     track_predictions = pickle.load(open(predictions, "rb"))
     labels = pickle.load(open(ground_truth, "rb"))
 
-    res, mean_metric_values = evaluate(track_predictions, labels, objective_metric, max_range_m, dataset_dir, out)
+    res, _, mean_metric_values = evaluate(track_predictions, labels, objective_metric, max_range_m, dataset_dir, out)
 
     pprint(mean_metric_values)
 

@@ -13,10 +13,8 @@ from typing import Any, Dict, List, Tuple, cast
 
 import itertools
 import click
-import constants
 import numpy as np
-import utils
-import constants
+from av2.evaluation.forecasting import constants, utils
 from av2.evaluation.detection.utils import (
     compute_objects_in_roi_mask,
     load_mapped_avm_and_egoposes,
@@ -260,7 +258,7 @@ def accumulate(
     if len(gt) == 0:
         return (np.nan, np.nan, np.nan, class_name, profile, threshold)
 
-    if len(pred) == 0:
+    if sum(tp_array) == 0:
         return (
             cast(float, 0),
             cast(float, constants.MAX_DISPLACEMENT),
