@@ -35,7 +35,7 @@ def evaluate(
 
     Args:
         predictions: All predicted trajectories for each log_id and timestep.
-        ground_truth: All ground truth trajectories for each log_id and timestep.
+        raw_ground_truth: All ground truth trajectories for each log_id and timestep.
         top_k: Top K evaluation (default: K=5)
         max_range_m: Maximum evaluation range
         dataset_dir: Path to dataset. Required for ROI pruning.
