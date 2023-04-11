@@ -92,15 +92,11 @@ def tile_cameras(
 
     if "ring_side_right" in named_sensors:
         ring_side_right = named_sensors["ring_side_right"]
-        tiled_im_bgr[
-            landscape_height : 2 * landscape_height,
-            landscape_width + landscape_height :,
-        ] = ring_side_right
+        tiled_im_bgr[landscape_height : 2 * landscape_height, landscape_width + landscape_height :] = ring_side_right
 
     if bev_img is not None:
         tiled_im_bgr[
-            landscape_width : 2 * landscape_width,
-            landscape_width : landscape_width + landscape_height,
+            landscape_width : 2 * landscape_width, landscape_width : landscape_width + landscape_height
         ] = bev_img
 
     if "ring_rear_left" in named_sensors:

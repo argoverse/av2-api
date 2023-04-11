@@ -62,13 +62,7 @@ def convert_gps_to_utm(latitude: float, longitude: float, city_name: CityName) -
         easting: corresponding UTM Easting.
         northing: corresponding UTM Northing.
     """
-    projector = Proj(
-        proj="utm",
-        zone=UTM_ZONE_MAP[city_name],
-        ellps="WGS84",
-        datum="WGS84",
-        units="m",
-    )
+    projector = Proj(proj="utm", zone=UTM_ZONE_MAP[city_name], ellps="WGS84", datum="WGS84", units="m")
 
     # convert to UTM.
     easting, northing = projector(longitude, latitude)
@@ -105,13 +99,7 @@ def convert_city_coords_to_wgs84(points_city: Union[NDArrayFloat, NDArrayInt], c
     """
     points_utm = convert_city_coords_to_utm(points_city, city_name)
 
-    projector = Proj(
-        proj="utm",
-        zone=UTM_ZONE_MAP[city_name],
-        ellps="WGS84",
-        datum="WGS84",
-        units="m",
-    )
+    projector = Proj(proj="utm", zone=UTM_ZONE_MAP[city_name], ellps="WGS84", datum="WGS84", units="m")
 
     points_wgs84 = []
     for easting, northing in points_utm:

@@ -78,9 +78,7 @@ def xyz_to_bev(
     # Crop point cloud to the region-of-interest.
     lower_bound_inclusive = (0.0, 0.0, 0.0)
     indices_cropped, grid_boundary_reduction = crop_points(
-        indices,
-        lower_bound_inclusive=lower_bound_inclusive,
-        upper_bound_exclusive=grid_size_m,
+        indices, lower_bound_inclusive=lower_bound_inclusive, upper_bound_exclusive=grid_size_m
     )
 
     # Filter the indices and intensity values.

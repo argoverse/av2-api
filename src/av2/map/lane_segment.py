@@ -122,10 +122,7 @@ class LaneSegment:
     def left_lane_marking(self) -> LocalLaneMarking:
         """Retrieve the left lane marking associated with this lane segment."""
         return LocalLaneMarking(
-            mark_type=self.left_mark_type,
-            src_lane_id=self.id,
-            bound_side="left",
-            polyline=self.left_lane_boundary.xyz,
+            mark_type=self.left_mark_type, src_lane_id=self.id, bound_side="left", polyline=self.left_lane_boundary.xyz
         )
 
     @property
@@ -164,12 +161,10 @@ class LaneSegment:
         """
         try:
             right_ln_bnd_interp = interp_utils.interp_arc(
-                t=WPT_INFINITY_NORM_INTERP_NUM,
-                points=self.right_lane_boundary.xyz[:, :2],
+                t=WPT_INFINITY_NORM_INTERP_NUM, points=self.right_lane_boundary.xyz[:, :2]
             )
             left_ln_bnd_interp = interp_utils.interp_arc(
-                t=WPT_INFINITY_NORM_INTERP_NUM,
-                points=self.left_lane_boundary.xyz[:, :2],
+                t=WPT_INFINITY_NORM_INTERP_NUM, points=self.left_lane_boundary.xyz[:, :2]
             )
         except Exception:
             logger.exception("Interpolation failed for lane segment %d", self.id)

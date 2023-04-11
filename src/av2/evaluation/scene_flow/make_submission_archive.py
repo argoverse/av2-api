@@ -89,12 +89,7 @@ def make_submission_archive(submission_dir: str, mask_file: str, output_filename
 @click.command()
 @click.argument("submission_dir", type=str)
 @click.argument("mask_file", type=str)
-@click.option(
-    "--output_filename",
-    type=str,
-    help="name of the output archive file",
-    default="submission.zip",
-)
+@click.option("--output_filename", type=str, help="name of the output archive file", default="submission.zip")
 def _make_submission_archive_entry(submission_dir: str, mask_file: str, output_filename: str) -> bool:
     return make_submission_archive(submission_dir, mask_file, output_filename)
 

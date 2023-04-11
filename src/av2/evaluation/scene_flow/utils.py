@@ -64,10 +64,7 @@ def compute_eval_point_mask(datum: Tuple[Sweep, Sweep, Se3, Optional[Flow]]) -> 
 
 
 def write_output_file(
-    flow: NDArrayFloat,
-    is_dynamic: NDArrayBool,
-    sweep_uuid: Tuple[str, int],
-    output_dir: Path,
+    flow: NDArrayFloat, is_dynamic: NDArrayBool, sweep_uuid: Tuple[str, int], output_dir: Path
 ) -> None:
     """Write an output predictions file in the correct format for submission.
 
@@ -83,11 +80,6 @@ def write_output_file(
     fy_m = flow[:, 1].astype(np.float16)
     fz_m = flow[:, 2].astype(np.float16)
     output = pd.DataFrame(
-        {
-            "flow_tx_m": fx_m,
-            "flow_ty_m": fy_m,
-            "flow_tz_m": fz_m,
-            "is_dynamic": is_dynamic.astype(bool),
-        }
+        {"flow_tx_m": fx_m, "flow_ty_m": fy_m, "flow_tz_m": fz_m, "is_dynamic": is_dynamic.astype(bool)}
     )
     output.to_feather(output_log_dir / f"{sweep_uuid[1]}.feather")

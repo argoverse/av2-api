@@ -176,9 +176,7 @@ def interp_arc(t: int, points: NDArrayFloat) -> NDArrayFloat:
 
 
 def linear_interpolation(
-    key_timestamps: Tuple[int, int],
-    key_translations: Tuple[NDArrayFloat, NDArrayFloat],
-    query_timestamp: int,
+    key_timestamps: Tuple[int, int], key_translations: Tuple[NDArrayFloat, NDArrayFloat], query_timestamp: int
 ) -> NDArrayFloat:
     """Given two 3d positions at specific timestamps, interpolate an intermediate position at a given timestamp.
 
@@ -238,10 +236,6 @@ def interpolate_pose(key_timestamps: Tuple[int, int], key_poses: Tuple[SE3, SE3]
     R_interp = slerp(query_timestamp).as_matrix()
 
     key_translations = (key_poses[0].translation, key_poses[1].translation)
-    t_interp = linear_interpolation(
-        key_timestamps,
-        key_translations=key_translations,
-        query_timestamp=query_timestamp,
-    )
+    t_interp = linear_interpolation(key_timestamps, key_translations=key_translations, query_timestamp=query_timestamp)
     pose_interp = SE3(rotation=R_interp, translation=t_interp)
     return pose_interp

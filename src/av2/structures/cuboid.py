@@ -20,13 +20,7 @@ from av2.geometry.se3 import SE3
 from av2.rendering.color import BLUE_BGR, TRAFFIC_YELLOW1_BGR
 from av2.rendering.vector import draw_line_frustum
 from av2.utils.io import read_feather
-from av2.utils.typing import (
-    NDArrayBool,
-    NDArrayByte,
-    NDArrayFloat,
-    NDArrayInt,
-    NDArrayObject,
-)
+from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt, NDArrayObject
 
 ORDERED_CUBOID_COL_NAMES: Final[List[str]] = [
     "tx_m",
@@ -154,10 +148,7 @@ class Cuboid:
 
     @classmethod
     def from_numpy(
-        cls,
-        params: NDArrayObject,
-        category: Optional[Enum] = None,
-        timestamp_ns: Optional[int] = None,
+        cls, params: NDArrayObject, category: Optional[Enum] = None, timestamp_ns: Optional[int] = None
     ) -> Cuboid:
         """Convert a set of cuboid parameters to a `Cuboid` object.
 
@@ -313,14 +304,8 @@ class CuboidList:
         # Collapse first dimension to allow for vectorization.
         cuboids_vertices_ego = cuboids_vertices_ego.reshape(-1, D)
         if city_SE3_ego_cam_t is not None and city_SE3_ego_lidar_t is not None:
-            (
-                _,
-                cuboids_vertices_cam,
-                _,
-            ) = cam_model.project_ego_to_img_motion_compensated(
-                cuboids_vertices_ego,
-                city_SE3_ego_cam_t=city_SE3_ego_cam_t,
-                city_SE3_ego_lidar_t=city_SE3_ego_lidar_t,
+            _, cuboids_vertices_cam, _ = cam_model.project_ego_to_img_motion_compensated(
+                cuboids_vertices_ego, city_SE3_ego_cam_t=city_SE3_ego_cam_t, city_SE3_ego_lidar_t=city_SE3_ego_lidar_t
             )
         else:
             _, cuboids_vertices_cam, _ = cam_model.project_ego_to_img(cuboids_vertices_ego)
