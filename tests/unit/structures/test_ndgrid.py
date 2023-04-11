@@ -52,10 +52,7 @@ def test_bev_grid() -> None:
 
     grid_coordinates_expected: NDArrayInt = np.array([61, 72], dtype=int)
     values_expected = GRAY_BGR
-    assert np.array_equal(
-        bev_img[grid_coordinates_expected[1], grid_coordinates_expected[0]],
-        values_expected,
-    )
+    assert np.array_equal(bev_img[grid_coordinates_expected[1], grid_coordinates_expected[0]], values_expected)
 
 
 def test_BEVGrid_non_integer_multiple() -> None:

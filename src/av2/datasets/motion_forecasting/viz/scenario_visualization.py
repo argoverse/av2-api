@@ -13,11 +13,7 @@ from matplotlib.patches import Rectangle
 from PIL import Image as img
 from PIL.Image import Image
 
-from av2.datasets.motion_forecasting.data_schema import (
-    ArgoverseScenario,
-    ObjectType,
-    TrackCategory,
-)
+from av2.datasets.motion_forecasting.data_schema import ArgoverseScenario, ObjectType, TrackCategory
 from av2.map.map_api import ArgoverseStaticMap
 from av2.utils.typing import NDArrayFloat, NDArrayInt
 
@@ -49,11 +45,7 @@ _STATIC_OBJECT_TYPES: Set[ObjectType] = {
 }
 
 
-def visualize_scenario(
-    scenario: ArgoverseScenario,
-    scenario_static_map: ArgoverseStaticMap,
-    save_path: Path,
-) -> None:
+def visualize_scenario(scenario: ArgoverseScenario, scenario_static_map: ArgoverseStaticMap, save_path: Path) -> None:
     """Build dynamic visualization for all tracks and the local map associated with an Argoverse scenario.
 
     Note: This function uses OpenCV to create a MP4 file using the MP4V codec.
@@ -77,14 +69,8 @@ def visualize_scenario(
             plot_bounds = cur_plot_bounds
 
         # Set map bounds to capture focal trajectory history (with fixed buffer in all directions)
-        plt.xlim(
-            plot_bounds[0] - _PLOT_BOUNDS_BUFFER_M,
-            plot_bounds[1] + _PLOT_BOUNDS_BUFFER_M,
-        )
-        plt.ylim(
-            plot_bounds[2] - _PLOT_BOUNDS_BUFFER_M,
-            plot_bounds[3] + _PLOT_BOUNDS_BUFFER_M,
-        )
+        plt.xlim(plot_bounds[0] - _PLOT_BOUNDS_BUFFER_M, plot_bounds[1] + _PLOT_BOUNDS_BUFFER_M)
+        plt.ylim(plot_bounds[2] - _PLOT_BOUNDS_BUFFER_M, plot_bounds[3] + _PLOT_BOUNDS_BUFFER_M)
         plt.gca().set_aspect("equal", adjustable="box")
 
         # Minimize plot margins and make axes invisible
@@ -137,11 +123,7 @@ def _plot_static_map_elements(static_map: ArgoverseStaticMap, show_ped_xings: bo
     # Plot pedestrian crossings
     if show_ped_xings:
         for ped_xing in static_map.vector_pedestrian_crossings.values():
-            _plot_polylines(
-                [ped_xing.edge1.xyz, ped_xing.edge2.xyz],
-                alpha=1.0,
-                color=_LANE_SEGMENT_COLOR,
-            )
+            _plot_polylines([ped_xing.edge1.xyz, ped_xing.edge2.xyz], alpha=1.0, color=_LANE_SEGMENT_COLOR)
 
 
 def _plot_actor_tracks(ax: plt.Axes, scenario: ArgoverseScenario, timestep: int) -> Optional[_PlotBounds]:
@@ -203,13 +185,7 @@ def _plot_actor_tracks(ax: plt.Axes, scenario: ArgoverseScenario, timestep: int)
                 (_ESTIMATED_CYCLIST_LENGTH_M, _ESTIMATED_CYCLIST_WIDTH_M),
             )
         else:
-            plt.plot(
-                actor_trajectory[-1, 0],
-                actor_trajectory[-1, 1],
-                "o",
-                color=track_color,
-                markersize=4,
-            )
+            plt.plot(actor_trajectory[-1, 0], actor_trajectory[-1, 1], "o", color=track_color, markersize=4)
 
     return track_bounds
 
@@ -232,14 +208,7 @@ def _plot_polylines(
         color: Desired color for the plotted lines.
     """
     for polyline in polylines:
-        plt.plot(
-            polyline[:, 0],
-            polyline[:, 1],
-            style,
-            linewidth=line_width,
-            color=color,
-            alpha=alpha,
-        )
+        plt.plot(polyline[:, 0], polyline[:, 1], style, linewidth=line_width, color=color, alpha=alpha)
 
 
 def _plot_polygons(polygons: Sequence[NDArrayFloat], *, alpha: float = 1.0, color: str = "r") -> None:
@@ -255,11 +224,7 @@ def _plot_polygons(polygons: Sequence[NDArrayFloat], *, alpha: float = 1.0, colo
 
 
 def _plot_actor_bounding_box(
-    ax: plt.Axes,
-    cur_location: NDArrayFloat,
-    heading: float,
-    color: str,
-    bbox_size: Tuple[float, float],
+    ax: plt.Axes, cur_location: NDArrayFloat, heading: float, color: str, bbox_size: Tuple[float, float]
 ) -> None:
     """Plot an actor bounding box centered on the actor's current location.
 
@@ -279,11 +244,6 @@ def _plot_actor_bounding_box(
     pivot_y = cur_location[1] - (d / 2) * math.sin(heading + theta_2)
 
     vehicle_bounding_box = Rectangle(
-        (pivot_x, pivot_y),
-        bbox_length,
-        bbox_width,
-        np.degrees(heading),
-        color=color,
-        zorder=_BOUNDING_BOX_ZORDER,
+        (pivot_x, pivot_y), bbox_length, bbox_width, np.degrees(heading), color=color, zorder=_BOUNDING_BOX_ZORDER
     )
     ax.add_patch(vehicle_bounding_box)

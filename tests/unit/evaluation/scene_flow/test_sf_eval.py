@@ -48,10 +48,7 @@ def test_end_point_error() -> None:
     epe_perfect = np.zeros(10)
     epe_very_close = (np.sqrt(0.01**2 * 3, dtype=np.float64) * np.ones(10)).astype(np.float64)
     epe_close = (np.sqrt(0.05**2 * 3, dtype=np.float64) * np.ones(10)).astype(np.float64)
-    epe_zero = np.array(
-        [0.0e00, 1.0e-3, 1.0e-3, 1.0e-3, 1.0e3, 1.0e3, 1.0e3, 1.0e00, 1.0e00, 1.0e00],
-        dtype=np.float64,
-    )
+    epe_zero = np.array([0.0e00, 1.0e-3, 1.0e-3, 1.0e-3, 1.0e3, 1.0e3, 1.0e3, 1.0e00, 1.0e00, 1.0e00], dtype=np.float64)
 
     assert np.allclose(eval.compute_end_point_error(dts_perfect, gts), epe_perfect)
     assert np.allclose(eval.compute_end_point_error(dts_very_close, gts), epe_very_close)
@@ -206,20 +203,16 @@ def test_metrics() -> None:
     assert nz_subsets == 5
 
     assert np.allclose(
-        sum([accr for accr, count in zip(metrics["ACCURACY_RELAX"], metrics["Count"]) if count > 0]) / nz_subsets,
-        1.0,
+        sum([accr for accr, count in zip(metrics["ACCURACY_RELAX"], metrics["Count"]) if count > 0]) / nz_subsets, 1.0
     )
     assert np.allclose(
-        sum([accs for accs, count in zip(metrics["ACCURACY_STRICT"], metrics["Count"]) if count > 0]) / nz_subsets,
-        1.0,
+        sum([accs for accs, count in zip(metrics["ACCURACY_STRICT"], metrics["Count"]) if count > 0]) / nz_subsets, 1.0
     )
     assert np.allclose(
-        sum([ae for ae, count in zip(metrics["ANGLE_ERROR"], metrics["Count"]) if count > 0]) / nz_subsets,
-        0.0,
+        sum([ae for ae, count in zip(metrics["ANGLE_ERROR"], metrics["Count"]) if count > 0]) / nz_subsets, 0.0
     )
     assert np.allclose(
-        sum([epe for epe, count in zip(metrics["EPE"], metrics["Count"]) if count > 0]) / nz_subsets,
-        0.0,
+        sum([epe for epe, count in zip(metrics["EPE"], metrics["Count"]) if count > 0]) / nz_subsets, 0.0
     )
 
 
@@ -239,34 +232,10 @@ def test_average_metrics() -> None:
         timestamp_ns_1 = 111111111111111111
         timestamp_ns_2 = 111111111111111112
 
-        write_annotation(
-            gts_classes,
-            gts_close,
-            gts_dynamic,
-            gts_valid,
-            gts,
-            ("log", timestamp_ns_1),
-            anno_dir,
-        )
-        write_annotation(
-            gts_classes,
-            gts_close,
-            gts_dynamic,
-            gts_valid,
-            gts,
-            ("log", timestamp_ns_2),
-            anno_dir,
-        )
+        write_annotation(gts_classes, gts_close, gts_dynamic, gts_valid, gts, ("log", timestamp_ns_1), anno_dir)
+        write_annotation(gts_classes, gts_close, gts_dynamic, gts_valid, gts, ("log", timestamp_ns_2), anno_dir)
 
-        write_annotation(
-            gts_classes,
-            gts_close,
-            gts_dynamic,
-            gts_valid,
-            gts,
-            ("log_missing", timestamp_ns_1),
-            anno_dir,
-        )
+        write_annotation(gts_classes, gts_close, gts_dynamic, gts_valid, gts, ("log_missing", timestamp_ns_1), anno_dir)
 
         write_output_file(dts_perfect, dts_dynamic, ("log", timestamp_ns_1), pred_dir)
         write_output_file(dts_perfect, dts_dynamic, ("log", timestamp_ns_2), pred_dir)

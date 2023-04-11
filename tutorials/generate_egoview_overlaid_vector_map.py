@@ -96,10 +96,7 @@ def generate_egoview_overlaid_map(
                 depth_map = None
 
             egoview_renderer = EgoViewMapRenderer(
-                depth_map=depth_map,
-                city_SE3_ego=city_SE3_ego,
-                pinhole_cam=pinhole_cam,
-                avm=avm,
+                depth_map=depth_map, city_SE3_ego=city_SE3_ego, pinhole_cam=pinhole_cam, avm=avm
             )
             frame_rgb = render_egoview(
                 output_dir=output_dir,
@@ -186,10 +183,7 @@ def render_egoview(
 
 
 def render_egoview_with_occlusion_checks(
-    img_canvas: NDArrayByte,
-    egoview_renderer: EgoViewMapRenderer,
-    max_range_m: float,
-    line_width_px: int = 10,
+    img_canvas: NDArrayByte, egoview_renderer: EgoViewMapRenderer, max_range_m: float, line_width_px: int = 10
 ) -> NDArrayByte:
     """Render pedestrian crossings and lane segments in the ego-view.
 

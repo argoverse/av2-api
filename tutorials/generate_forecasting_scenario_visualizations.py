@@ -11,9 +11,7 @@ from joblib import Parallel, delayed
 from rich.progress import track
 
 from av2.datasets.motion_forecasting import scenario_serialization
-from av2.datasets.motion_forecasting.viz.scenario_visualization import (
-    visualize_scenario,
-)
+from av2.datasets.motion_forecasting.viz.scenario_visualization import visualize_scenario
 from av2.map.map_api import ArgoverseStaticMap
 
 _DEFAULT_N_JOBS: Final[int] = -2  # Use all but one CPUs
@@ -106,18 +104,9 @@ def generate_scenario_visualizations(
     help="Controls how scenarios are selected for visualization - either the first available or at random.",
     type=click.Choice(["first", "random"], case_sensitive=False),
 )
-@click.option(
-    "--debug",
-    is_flag=True,
-    default=False,
-    help="Runs preprocessing in single-threaded mode when enabled.",
-)
+@click.option("--debug", is_flag=True, default=False, help="Runs preprocessing in single-threaded mode when enabled.")
 def run_generate_scenario_visualizations(
-    argoverse_scenario_dir: str,
-    viz_output_dir: str,
-    num_scenarios: int,
-    selection_criteria: str,
-    debug: bool,
+    argoverse_scenario_dir: str, viz_output_dir: str, num_scenarios: int, selection_criteria: str, debug: bool
 ) -> None:
     """Click entry point for generation of Argoverse scenario visualizations."""
     generate_scenario_visualizations(

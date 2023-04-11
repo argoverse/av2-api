@@ -8,13 +8,7 @@ from typing import List
 import numpy as np
 
 from av2.datasets.motion_forecasting import scenario_serialization
-from av2.datasets.motion_forecasting.data_schema import (
-    ArgoverseScenario,
-    ObjectState,
-    ObjectType,
-    Track,
-    TrackCategory,
-)
+from av2.datasets.motion_forecasting.data_schema import ArgoverseScenario, ObjectState, ObjectType, Track, TrackCategory
 
 # Build test ArgoverseScenario
 _TEST_OBJECT_STATES: List[ObjectState] = [

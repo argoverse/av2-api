@@ -27,11 +27,7 @@ SAVE_DIR = Path(__file__).resolve().parent.parent / "argoverse2_map_figures"
 
 # scaled to [0,1] for matplotlib.
 PURPLE_RGB: Final[Tuple[int, int, int]] = (201, 71, 245)
-PURPLE_RGB_MPL: Final[Tuple[float, float, float]] = (
-    PURPLE_RGB[0] / 255,
-    PURPLE_RGB[1] / 255,
-    PURPLE_RGB[2] / 255,
-)
+PURPLE_RGB_MPL: Final[Tuple[float, float, float]] = (PURPLE_RGB[0] / 255, PURPLE_RGB[1] / 255, PURPLE_RGB[2] / 255)
 
 DARK_GRAY_RGB: Final[Tuple[int, int, int]] = (40, 39, 38)
 DARK_GRAY_RGB_MPL: Final[Tuple[float, float, float]] = (
@@ -180,8 +176,7 @@ def overlaid_maps_all_logs_teaser(data_root: Path) -> None:
             pts_ego = city_SE3_egot0.inverse().transform_point_cloud(pts_city)
 
             for bound_type, bound_city in zip(
-                [ls.left_mark_type, ls.right_mark_type],
-                [ls.left_lane_boundary, ls.right_lane_boundary],
+                [ls.left_mark_type, ls.right_mark_type], [ls.left_lane_boundary, ls.right_lane_boundary]
             ):
                 if "YELLOW" in bound_type:
                     mark_color = "y"
@@ -210,11 +205,7 @@ def overlaid_maps_all_logs_teaser(data_root: Path) -> None:
                 )
 
             vector_plotting_utils.plot_polygon_patch_mpl(
-                polygon_pts=pts_ego,
-                ax=ax,
-                color=color,
-                alpha=OVERLAID_MAPS_ALPHA,
-                zorder=i,
+                polygon_pts=pts_ego, ax=ax, color=color, alpha=OVERLAID_MAPS_ALPHA, zorder=i
             )
 
     plt.axis("equal")
@@ -225,9 +216,7 @@ def overlaid_maps_all_logs_teaser(data_root: Path) -> None:
 
 
 def plot_lane_segments(
-    ax: Axes,
-    lane_segments: Sequence[LaneSegment],
-    lane_color: Tuple[float, float, float] = DARK_GRAY_RGB_MPL,
+    ax: Axes, lane_segments: Sequence[LaneSegment], lane_color: Tuple[float, float, float] = DARK_GRAY_RGB_MPL
 ) -> None:
     """Plot lane segments onto a Matplotlib canvas, according to their lane marking boundary type/color.
 
@@ -248,8 +237,7 @@ def plot_lane_segments(
         mark_color: str = ""
         linestyle: Union[str, Tuple[int, Tuple[int, int]]] = ""
         for bound_type, bound_city in zip(
-            [ls.left_mark_type, ls.right_mark_type],
-            [ls.left_lane_boundary, ls.right_lane_boundary],
+            [ls.left_mark_type, ls.right_mark_type], [ls.left_lane_boundary, ls.right_lane_boundary]
         ):
             if "YELLOW" in bound_type:
                 mark_color = "y"
@@ -271,22 +259,8 @@ def plot_lane_segments(
                 left, right = polyline_utils.get_double_polylines(
                     polyline=bound_city.xyz[:, :2], width_scaling_factor=0.1
                 )
-                ax.plot(
-                    left[:, 0],
-                    left[:, 1],
-                    color=mark_color,
-                    alpha=ALPHA,
-                    linestyle=linestyle,
-                    zorder=2,
-                )
-                ax.plot(
-                    right[:, 0],
-                    right[:, 1],
-                    color=mark_color,
-                    alpha=ALPHA,
-                    linestyle=linestyle,
-                    zorder=2,
-                )
+                ax.plot(left[:, 0], left[:, 1], color=mark_color, alpha=ALPHA, linestyle=linestyle, zorder=2)
+                ax.plot(right[:, 0], right[:, 1], color=mark_color, alpha=ALPHA, linestyle=linestyle, zorder=2)
             else:
                 ax.plot(
                     bound_city.xyz[:, 0],
@@ -344,15 +318,7 @@ def visualize_ego_pose_and_lane_markings(data_root: Path, log_id: str, save_figu
 
     # Plot nearly continuous line for ego-pose, and show the AV's pose @ 1 Hz w/ red unfilled circles.
     ax.plot(traj_ns[:, 0], traj_ns[:, 1], color="r", zorder=4, label="Ego-vehicle pose")
-    ax.scatter(
-        x=traj_1hz[:, 0],
-        y=traj_1hz[:, 1],
-        s=100,
-        marker="o",
-        facecolors="none",
-        edgecolors="r",
-        zorder=4,
-    )
+    ax.scatter(x=traj_1hz[:, 0], y=traj_1hz[:, 1], s=100, marker="o", facecolors="none", edgecolors="r", zorder=4)
 
     plt.axis("equal")
     plt.xlim(*xlims)

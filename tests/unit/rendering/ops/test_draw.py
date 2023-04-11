@@ -7,20 +7,12 @@ from typing import Any, Callable
 import cv2
 import numpy as np
 
-from av2.rendering.ops.draw import (
-    alpha_blend_kernel,
-    draw_points_kernel,
-    gaussian_kernel,
-)
+from av2.rendering.ops.draw import alpha_blend_kernel, draw_points_kernel, gaussian_kernel
 from av2.utils.typing import NDArrayByte, NDArrayInt
 
 
 def _draw_points_cv2(
-    img: NDArrayByte,
-    points_xy: NDArrayInt,
-    colors: NDArrayByte,
-    radius: int,
-    with_anti_alias: bool = True,
+    img: NDArrayByte, points_xy: NDArrayInt, colors: NDArrayByte, radius: int, with_anti_alias: bool = True
 ) -> NDArrayByte:
     """Draw points in an image using OpenCV functionality.
 
@@ -89,12 +81,7 @@ def test_draw_points_kernel_3x3_antialiased() -> None:
         dtype=np.uint8,
     )
     img = draw_points_kernel(
-        img=img,
-        points_uv=points_xy,
-        colors=colors,
-        diameter=diameter,
-        sigma=sigma,
-        with_anti_alias=True,
+        img=img, points_uv=points_xy, colors=colors, diameter=diameter, sigma=sigma, with_anti_alias=True
     )
     assert np.array_equal(img, expected_img)
 
@@ -118,12 +105,7 @@ def test_draw_points_kernel_9x9_aliased() -> None:
         dtype=np.uint8,
     )
     img = draw_points_kernel(
-        img=img,
-        points_uv=points_xy,
-        colors=colors,
-        diameter=diameter,
-        sigma=sigma,
-        with_anti_alias=False,
+        img=img, points_uv=points_xy, colors=colors, diameter=diameter, sigma=sigma, with_anti_alias=False
     )
     assert np.array_equal(img, expected_img)
 

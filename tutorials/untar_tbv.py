@@ -80,9 +80,7 @@ def untar_tbv_dataset(num_workers: int, shard_dirpath: Path, desired_tbv_dataroo
 def run_untar_tbv_dataset(num_workers: int, shard_dirpath: str, desired_tbv_dataroot: str) -> None:
     """Click entry point for TbV tar.gz file extraction."""
     untar_tbv_dataset(
-        num_workers=num_workers,
-        shard_dirpath=Path(shard_dirpath),
-        desired_tbv_dataroot=Path(desired_tbv_dataroot),
+        num_workers=num_workers, shard_dirpath=Path(shard_dirpath), desired_tbv_dataroot=Path(desired_tbv_dataroot)
     )
 
 

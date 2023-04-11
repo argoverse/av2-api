@@ -207,8 +207,4 @@ def test_benchmark_SE3_transform_point_cloud_unoptimized(benchmark: Callable[...
 
     dst_SE3_src = SE3(rotation=R.copy(), translation=t.copy())
 
-    benchmark(
-        benchmark_SE3_transform_point_cloud_unoptimized,
-        points_src,
-        dst_SE3_src.transform_matrix,
-    )
+    benchmark(benchmark_SE3_transform_point_cloud_unoptimized, points_src, dst_SE3_src.transform_matrix)
