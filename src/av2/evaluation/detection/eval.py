@@ -299,7 +299,7 @@ def evaluate_hierarchy(
         n_jobs: Number of jobs running concurrently during evaluation.
 
     Returns:
-        metrics: (C+1,3) Pandas DataFrame for the Hierarchical AP at LCA = 0, 1 , 2 for all classes. The last row reports the average over all classes.
+        (C+1,3) Pandas DataFrame for the Hierarchical AP at LCA = 0, 1, 2 for all classes. The last row reports the average over all classes.
 
     Raises:
         RuntimeError: If accumulation fails.
@@ -317,11 +317,10 @@ def evaluate_hierarchy(
 
     dts_npy: NDArrayFloat = dts[list(DTS_COLUMNS)].to_numpy()
     gts_npy: NDArrayFloat = gts[list(GTS_COLUMNS)].to_numpy()
-    dts_cats: Any = dts[list(CATEGORY_COLUMN)].to_numpy().tolist()
-    gts_cats: Any = gts[list(CATEGORY_COLUMN)].to_numpy().tolist()
-
-    dts_uuids: Any = dts[list(UUID_COLUMNS)].to_numpy().tolist()
-    gts_uuids: Any = gts[list(UUID_COLUMNS)].to_numpy().tolist()
+    dts_categories: List[str] = dts[list(CATEGORY_COLUMN)].to_numpy().tolist()
+    gts_categories: List[str] = gts[list(CATEGORY_COLUMN)].to_numpy().tolist()
+    dts_uuids: List[Tuple[str, str]] = dts[list(UUID_COLUMNS)].to_numpy().tolist()
+    gts_uuids: List[Tuple[str, str]] = gts[list(UUID_COLUMNS)].to_numpy().tolist()
 
     # We merge the unique identifier -- the tuple of ("log_id", "timestamp_ns", "category")
     # into a single string to optimize the subsequent grouping operation.
@@ -329,8 +328,8 @@ def evaluate_hierarchy(
     # which fall into that group.
     uuid_to_dts = groupby([":".join(map(str, x)) for x in dts_uuids], dts_npy)
     uuid_to_gts = groupby([":".join(map(str, x)) for x in gts_uuids], gts_npy)
-    uuid_to_dts_cats = groupby([":".join(map(str, x)) for x in dts_uuids], dts_cats)
-    uuid_to_gts_cats = groupby([":".join(map(str, x)) for x in gts_uuids], gts_cats)
+    uuid_to_dts_cats = groupby([":".join(map(str, x)) for x in dts_uuids], dts_categories)
+    uuid_to_gts_cats = groupby([":".join(map(str, x)) for x in gts_uuids], gts_categories)
 
     log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
     log_id_to_timestamped_poses: Optional[Dict[str, TimestampedCitySE3EgoPoses]] = None
@@ -361,17 +360,17 @@ def evaluate_hierarchy(
 
         if uuid in uuid_to_dts:
             sweep_dts = uuid_to_dts[uuid]
-            sweep_dts_cats = uuid_to_dts_cats[uuid]
+            sweep_dts_categories = uuid_to_dts_cats[uuid]
 
         if uuid in uuid_to_gts:
             sweep_gts = uuid_to_gts[uuid]
-            sweep_gts_cats = uuid_to_gts_cats[uuid]
+            sweep_gts_categories = uuid_to_gts_cats[uuid]
 
         args = (
             sweep_dts,
             sweep_gts,
-            sweep_dts_cats,
-            sweep_gts_cats,
+            sweep_dts_categories,
+            sweep_gts_categories,
             uuid,
             cfg,
             None,
@@ -383,8 +382,8 @@ def evaluate_hierarchy(
             args = (
                 sweep_dts,
                 sweep_gts,
-                sweep_dts_cats,
-                sweep_gts_cats,
+                sweep_dts_categories,
+                sweep_gts_categories,
                 uuid,
                 cfg,
                 avm,
@@ -398,27 +397,30 @@ def evaluate_hierarchy(
 
     dts_list: List[NDArrayFloat] = []
     gts_list: List[NDArrayFloat] = []
-    dts_cats, gts_cats, dts_uuids, gts_uuids = [], [], [], []
+    dts_categories_list, gts_categories_list, dts_uuids_list, gts_uuids_list = [], [], [], []
     for (
         sweep_dts,
         sweep_gts,
-        sweep_dts_cats,
-        sweep_gts_cats,
+        sweep_dts_categories,
+        sweep_gts_categories,
         uuid,
     ) in outputs:
         dts_list.append(sweep_dts)
         gts_list.append(sweep_gts)
-        dts_cats.append(sweep_dts_cats)
-        gts_cats.append(sweep_gts_cats)
-        dts_uuids.append(sweep_dts.shape[0] * [uuid])
-        gts_uuids.append(sweep_gts.shape[0] * [uuid])
+        dts_categories_list.append(sweep_dts_categories)
+        gts_categories_list.append(sweep_gts_categories)
+
+        num_dts = len(sweep_dts)
+        num_gts = len(sweep_dts)
+        dts_uuids_list.append(num_dts * [uuid])
+        gts_uuids_list.append(num_gts * [uuid])
 
     dts_npy = np.concatenate(dts)
     gts_npy = np.concatenate(gts)
-    dts_cats = np.concatenate(dts_cats).squeeze()
-    gts_cats = np.concatenate(gts_cats).squeeze()
-    dts_uuids = np.concatenate(dts_uuids)
-    gts_uuids = np.concatenate(gts_uuids)
+    dts_categories_npy = np.concatenate(dts_categories).squeeze()
+    gts_categories_npy = np.concatenate(gts_categories).squeeze()
+    dts_uuids_npy = np.concatenate(dts_uuids_list)
+    gts_uuids_npy = np.concatenate(gts_uuids_list)
 
     accumulate_hierarchy_args_list: List[
         Tuple[
@@ -434,33 +436,34 @@ def evaluate_hierarchy(
             DetectionCfg,
         ]
     ] = []
-    for cat in cfg.categories:
-        ind = HIERARCHY["FINEGRAIN"].index(cat)
-        for lca in HIERARCHY.keys():
-            lca_cat = LCA[HIERARCHY[lca][ind]]
+    for category in cfg.categories:
+        index = HIERARCHY["FINEGRAIN"].index(category)
+        for super_category, categories in HIERARCHY.items():
+            lca_category = LCA[categories[index]]
             args = (
                 dts_npy,
                 gts_npy,
-                dts_cats,
-                gts_cats,
-                dts_uuids,
-                gts_uuids,
-                cat,
-                lca_cat,
-                lca,
+                dts_categories_npy,
+                gts_categories_npy,
+                dts_uuids_npy,
+                gts_uuids_npy,
+                category,
+                lca_category,
+                super_category,
                 cfg,
             )
             accumulate_hierarchy_args_list.append(args)
 
     logger.info("Starting evaluation ...")
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs2: Any = p.starmap(accumulate_hierarchy, accumulate_hierarchy_args_list)
+        accumulate_outputs: Any = p.starmap(accumulate_hierarchy, accumulate_hierarchy_args_list)
 
+    super_categories = list(HIERARCHY.keys())
     metrics = np.zeros((len(cfg.categories), len(HIERARCHY.keys())))
-    for ap, cat, lca in outputs2:
-        cat_ind = cfg.categories.index(cat)
-        lca_ind = list(HIERARCHY.keys()).index(lca)
-        metrics[cat_ind][lca_ind] = round(ap, NUM_DECIMALS)
+    for ap, category, super_category in accumulate_outputs:
+        category_index = cfg.categories.index(category)
+        super_category_index = super_categories.index(super_category)
+        metrics[category_index][super_category_index] = round(ap, NUM_DECIMALS)
 
     metrics = pd.DataFrame(metrics, columns=["LCA=0", "LCA=1", "LCA=2"], index=cfg.categories)
     return metrics
