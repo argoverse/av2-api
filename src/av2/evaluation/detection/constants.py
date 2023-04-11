@@ -24,9 +24,22 @@ MAX_NUM_BOXES: Final = 500
 
 NUM_DECIMALS: Final = 3
 
-TRANSLATION_COLS: Final = ["tx_m", "ty_m", "tz_m"]
-DIMENSION_COLS: Final = ["length_m", "width_m", "height_m"]
-QUAT_WXYZ_COLS: Final = ["qw", "qx", "qy", "qz"]
+TRANSLATION_COLS: Final = (
+    "tx_m",
+    "ty_m",
+    "tz_m",
+)
+DIMENSION_COLS: Final = (
+    "length_m",
+    "width_m",
+    "height_m",
+)
+QUAT_WXYZ_COLS: Final = (
+    "qw",
+    "qx",
+    "qy",
+    "qz",
+)
 
 HIERARCHY: Final = {
     "FINEGRAIN": (
@@ -119,33 +132,33 @@ HIERARCHY: Final = {
 }
 
 LCA: Final = {
-    "ARTICULATED_BUS": ["ARTICULATED_BUS"],
-    "BICYCLE": ["BICYCLE"],
-    "BICYCLIST": ["BICYCLIST"],
-    "BOLLARD": ["BOLLARD"],
-    "BOX_TRUCK": ["BOX_TRUCK"],
-    "BUS": ["BUS"],
-    "CONSTRUCTION_BARREL": ["CONSTRUCTION_BARREL"],
-    "CONSTRUCTION_CONE": ["CONSTRUCTION_CONE"],
-    "DOG": ["DOG"],
-    "LARGE_VEHICLE": ["LARGE_VEHICLE"],
-    "MESSAGE_BOARD_TRAILER": ["MESSAGE_BOARD_TRAILER"],
-    "MOBILE_PEDESTRIAN_CROSSING_SIGN": ["MOBILE_PEDESTRIAN_CROSSING_SIGN"],
-    "MOTORCYCLE": ["MOTORCYCLE"],
-    "MOTORCYCLIST": ["MOTORCYCLIST"],
-    "PEDESTRIAN": ["PEDESTRIAN"],
-    "REGULAR_VEHICLE": ["REGULAR_VEHICLE"],
-    "SCHOOL_BUS": ["SCHOOL_BUS"],
-    "SIGN": ["SIGN"],
-    "STOP_SIGN": ["STOP_SIGN"],
-    "STROLLER": ["STROLLER"],
-    "TRUCK": ["TRUCK"],
-    "TRUCK_CAB": ["TRUCK_CAB"],
-    "VEHICULAR_TRAILER": ["VEHICULAR_TRAILER"],
-    "WHEELCHAIR": ["WHEELCHAIR"],
-    "WHEELED_DEVICE": ["WHEELED_DEVICE"],
-    "WHEELED_RIDER": ["WHEELED_RIDER"],
-    "VEHICLE": [
+    "ARTICULATED_BUS": ("ARTICULATED_BUS",),
+    "BICYCLE": ("BICYCLE",),
+    "BICYCLIST": ("BICYCLIST",),
+    "BOLLARD": ("BOLLARD",),
+    "BOX_TRUCK": ("BOX_TRUCK",),
+    "BUS": ("BUS",),
+    "CONSTRUCTION_BARREL": ("CONSTRUCTION_BARREL",),
+    "CONSTRUCTION_CONE": ("CONSTRUCTION_CONE",),
+    "DOG": ("DOG",),
+    "LARGE_VEHICLE": ("LARGE_VEHICLE",),
+    "MESSAGE_BOARD_TRAILER": ("MESSAGE_BOARD_TRAILER",),
+    "MOBILE_PEDESTRIAN_CROSSING_SIGN": ("MOBILE_PEDESTRIAN_CROSSING_SIGN",),
+    "MOTORCYCLE": ("MOTORCYCLE",),
+    "MOTORCYCLIST": ("MOTORCYCLIST",),
+    "PEDESTRIAN": ("PEDESTRIAN",),
+    "REGULAR_VEHICLE": ("REGULAR_VEHICLE",),
+    "SCHOOL_BUS": ("SCHOOL_BUS",),
+    "SIGN": ("SIGN",),
+    "STOP_SIGN": ("STOP_SIGN",),
+    "STROLLER": ("STROLLER",),
+    "TRUCK": ("TRUCK",),
+    "TRUCK_CAB": ("TRUCK_CAB",),
+    "VEHICULAR_TRAILER": ("VEHICULAR_TRAILER",),
+    "WHEELCHAIR": ("WHEELCHAIR",),
+    "WHEELED_DEVICE": ("WHEELED_DEVICE",),
+    "WHEELED_RIDER": ("WHEELED_RIDER",),
+    "VEHICLE": (
         "REGULAR_VEHICLE",
         "LARGE_VEHICLE",
         "BUS",
@@ -155,8 +168,8 @@ LCA: Final = {
         "TRUCK_CAB",
         "SCHOOL_BUS",
         "ARTICULATED_BUS",
-    ],
-    "VULNERABLE": [
+    ),
+    "VULNERABLE": (
         "PEDESTRIAN",
         "WHEELED_RIDER",
         "BICYCLE",
@@ -168,8 +181,8 @@ LCA: Final = {
         "WHEELCHAIR",
         "STROLLER",
         "DOG",
-    ],
-    "MOVABLE": [
+    ),
+    "MOVABLE": (
         "BOLLARD",
         "CONSTRUCTION_CONE",
         "SIGN",
@@ -177,8 +190,8 @@ LCA: Final = {
         "STOP_SIGN",
         "MOBILE_PEDESTRIAN_CROSSING_SIGN",
         "MESSAGE_BOARD_TRAILER",
-    ],
-    "OBJECT": [
+    ),
+    "OBJECT": (
         "REGULAR_VEHICLE",
         "LARGE_VEHICLE",
         "BUS",
@@ -206,10 +219,10 @@ LCA: Final = {
         "STOP_SIGN",
         "MOBILE_PEDESTRIAN_CROSSING_SIGN",
         "MESSAGE_BOARD_TRAILER",
-    ],
+    ),
 }
 
-NUM_ELEMS: Final = 101
+NUM_RECALL_SAMPLES: Final = 101
 
 
 @unique

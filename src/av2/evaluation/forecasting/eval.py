@@ -19,7 +19,7 @@ from av2.evaluation.forecasting import constants, utils
 from av2.utils.typing import NDArrayFloat
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
-from .typing import ForecastSequences, Sequences
+from ..typing import ForecastSequences, Sequences
 
 
 def evaluate(

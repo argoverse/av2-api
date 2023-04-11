@@ -24,7 +24,7 @@ from av2.evaluation.detection.constants import (
     MIN_AP,
     MIN_CDS,
     NUM_DECIMALS,
-    NUM_ELEMS,
+    NUM_RECALL_SAMPLES,
     AffinityType,
     DistanceType,
     FilterMetricType,
@@ -364,7 +364,7 @@ def accumulate_hierarchy(
         prec = tp[i] / (fp[i] + tp[i])
         rec = tp[i] / float(npos)
 
-        rec_interp = np.linspace(0, 1, NUM_ELEMS)  # 101 steps, from 0% to 100% recall.
+        rec_interp = np.linspace(0, 1, NUM_RECALL_SAMPLES)  # 101 steps, from 0% to 100% recall.
         ap = np.mean(np.interp(rec_interp, rec, prec, right=0))
 
         mAP.append(round(ap, NUM_DECIMALS))
