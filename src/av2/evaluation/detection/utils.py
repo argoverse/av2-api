@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
-from av2.evaluation import SensorCompetitionCategories
+from av2.evaluation import NUM_RECALL_SAMPLES, SensorCompetitionCategories
 from av2.evaluation.detection.constants import (
     MAX_NORMALIZED_ASE,
     MAX_SCALE_ERROR,
@@ -24,7 +24,6 @@ from av2.evaluation.detection.constants import (
     MIN_AP,
     MIN_CDS,
     NUM_DECIMALS,
-    NUM_RECALL_SAMPLES,
     AffinityType,
     DistanceType,
     FilterMetricType,
@@ -70,7 +69,7 @@ class DetectionCfg:
     filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN
     max_num_dts_per_category: int = 100
     max_range_m: float = 150.0
-    num_recall_samples: int = 100
+    num_recall_samples: int = NUM_RECALL_SAMPLES
     tp_threshold_m: float = 2.0
 
     @property

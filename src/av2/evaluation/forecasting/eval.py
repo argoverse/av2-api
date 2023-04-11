@@ -14,9 +14,15 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 
 import click
 import numpy as np
+from av2.evaluation import NUM_RECALL_SAMPLES
 from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
 from av2.evaluation.forecasting import constants, utils
-from av2.evaluation.forecasting.constants import AV2_CATEGORIES, CATEGORY_TO_VELOCITY
+from av2.evaluation.forecasting.constants import (
+    AV2_CATEGORIES,
+    CATEGORY_TO_VELOCITY,
+    VELOCITY_TYPES,
+    MAX_DISPLACEMENT_M,
+)
 from av2.utils.typing import NDArrayFloat
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
@@ -53,9 +59,7 @@ def evaluate(
         predictions = filter_drivable_area(predictions, dataset_dir)
 
     res: Dict[str, Any] = {}
-    velocity_profile = constants.VELOCITY_PROFILE
-
-    for profile in velocity_profile:
+    for profile in VELOCITY_TYPES:
         res[profile] = {}
         for cname in AV2_CATEGORIES:
             res[profile][cname] = {"mAP_F": [], "ADE": [], "FDE": []}
@@ -92,7 +96,7 @@ def evaluate(
 
     outputs = []
     for cname, profile, th in tqdm(
-        list(itertools.product(AV2_CATEGORIES, velocity_profile, constants.DISTANCE_THRESHOLDS_M))
+        list(itertools.product(AV2_CATEGORIES, VELOCITY_TYPES, constants.DISTANCE_THRESHOLDS_M))
     ):
         cvel = CATEGORY_TO_VELOCITY[cname]
         outputs.append(accumulate(pred_agents, gt_agents, top_k, cname, profile, cvel, th))
@@ -105,7 +109,7 @@ def evaluate(
             res[profile][cname]["FDE"].append(fde)
 
     for cname in AV2_CATEGORIES:
-        for profile in velocity_profile:
+        for profile in VELOCITY_TYPES:
             res[profile][cname]["mAP_F"] = round(np.mean(res[profile][cname]["mAP_F"]), constants.NUM_DECIMALS)
             res[profile][cname]["ADE"] = round(np.mean(res[profile][cname]["ADE"]), constants.NUM_DECIMALS)
             res[profile][cname]["FDE"] = round(np.mean(res[profile][cname]["FDE"]), constants.NUM_DECIMALS)
@@ -256,8 +260,8 @@ def accumulate(
     if sum(tp_array) == 0:
         return (
             cast(float, 0),
-            cast(float, constants.MAX_DISPLACEMENT),
-            cast(float, constants.MAX_DISPLACEMENT),
+            cast(float, MAX_DISPLACEMENT_M),
+            cast(float, MAX_DISPLACEMENT_M),
             class_name,
             profile,
             threshold,
@@ -269,13 +273,13 @@ def accumulate(
     prec = tp_array / (fp_array + tp_array)
     rec = tp_array / float(npos)
 
-    rec_interp = np.linspace(0, 1, constants.NUM_ELEMS)  # 101 steps, from 0% to 100% recall.
+    rec_interp = np.linspace(0, 1, NUM_RECALL_SAMPLES)  # 101 steps, from 0% to 100% recall.
     apf = np.mean(np.interp(rec_interp, rec, prec, right=0))
 
     return (
         cast(float, apf),
-        min(cast(float, np.mean(agent_ade)), constants.MAX_DISPLACEMENT),
-        min(cast(float, np.mean(agent_fde)), constants.MAX_DISPLACEMENT),
+        min(cast(float, np.mean(agent_ade)), MAX_DISPLACEMENT_M),
+        min(cast(float, np.mean(agent_fde)), MAX_DISPLACEMENT_M),
         class_name,
         profile,
         threshold,

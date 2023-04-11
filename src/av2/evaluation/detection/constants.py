@@ -222,8 +222,6 @@ LCA: Final = {
     ),
 }
 
-NUM_RECALL_SAMPLES: Final = 101
-
 
 @unique
 class TruePositiveErrorNames(str, Enum):
