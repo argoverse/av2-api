@@ -1,4 +1,4 @@
-"""Constants for forecasting challenge."""
+"""Constants for the forecasting challenge."""
 
 from typing import Final
 
@@ -11,7 +11,7 @@ NUM_ELEMS: Final = 101
 NUM_JOBS: Final = 8
 NUM_DECIMALS: Final = 3
 
-av2_classes: Final = tuple(x.value for x in SensorCompetitionCategories)
+AV2_CATEGORIES: Final = tuple(x.value for x in SensorCompetitionCategories)
 
 CATEGORY_TO_VELOCITY: Final = {
     "REGULAR_VEHICLE": 2.36,

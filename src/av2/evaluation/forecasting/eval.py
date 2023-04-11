@@ -16,6 +16,7 @@ import click
 import numpy as np
 from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
 from av2.evaluation.forecasting import constants, utils
+from av2.evaluation.forecasting.constants import AV2_CATEGORIES, CATEGORY_TO_VELOCITY
 from av2.utils.typing import NDArrayFloat
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
@@ -34,16 +35,13 @@ def evaluate(
     Args:
         predictions: All predicted trajectories for each log_id and timestep.
         raw_ground_truth: All ground truth trajectories for each log_id and timestep.
-        top_k: Top K evaluation (default: K=5)
-        max_range_m: Maximum evaluation range
+        top_k: Top K evaluation.
+        max_range_m: Maximum evaluation range.
         dataset_dir: Path to dataset. Required for ROI pruning.
 
     Returns:
         Dictionary of evaluation results.
     """
-    class_names = constants.av2_classes
-    class_velocity = constants.CATEGORY_TO_VELOCITY
-
     ground_truth: ForecastSequences = convert_forecast_labels(raw_ground_truth)
     ground_truth = filter_max_dist(ground_truth, max_range_m)
 
@@ -59,7 +57,7 @@ def evaluate(
 
     for profile in velocity_profile:
         res[profile] = {}
-        for cname in class_names:
+        for cname in AV2_CATEGORIES:
             res[profile][cname] = {"mAP_F": [], "ADE": [], "FDE": []}
 
     gt_agents = []
@@ -80,7 +78,7 @@ def evaluate(
                 agent["seq_id"] = seq_id
                 agent["timestamp"] = timestamp
                 agent["velocity"] = utils.agent_velocity(agent)
-                agent["trajectory_type"] = utils.trajectory_type(agent, class_velocity)
+                agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY)
 
                 gt_agents.append(agent)
 
@@ -88,15 +86,15 @@ def evaluate(
                 agent["seq_id"] = seq_id
                 agent["timestamp"] = timestamp
                 agent["velocity"] = utils.agent_velocity(agent)
-                agent["trajectory_type"] = utils.trajectory_type(agent, class_velocity)
+                agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY)
 
                 pred_agents.append(agent)
 
     outputs = []
     for cname, profile, th in tqdm(
-        list(itertools.product(class_names, velocity_profile, constants.DISTANCE_THRESHOLDS_M))
+        list(itertools.product(AV2_CATEGORIES, velocity_profile, constants.DISTANCE_THRESHOLDS_M))
     ):
-        cvel = class_velocity[cname]
+        cvel = CATEGORY_TO_VELOCITY[cname]
         outputs.append(accumulate(pred_agents, gt_agents, top_k, cname, profile, cvel, th))
 
     for apf, ade, fde, cname, profile, threshold in outputs:
@@ -106,7 +104,7 @@ def evaluate(
             res[profile][cname]["ADE"].append(ade)
             res[profile][cname]["FDE"].append(fde)
 
-    for cname in class_names:
+    for cname in AV2_CATEGORIES:
         for profile in velocity_profile:
             res[profile][cname]["mAP_F"] = round(np.mean(res[profile][cname]["mAP_F"]), constants.NUM_DECIMALS)
             res[profile][cname]["ADE"] = round(np.mean(res[profile][cname]["ADE"]), constants.NUM_DECIMALS)
@@ -331,14 +329,14 @@ def convert_forecast_labels(labels: Any) -> Any:
 
 
 def filter_max_dist(forecasts: ForecastSequences, max_range_m: int) -> ForecastSequences:
-    """Remove all tracks that are beyond the max_dist.
+    """Remove all tracks that are beyond `max_range_m`.
 
     Args:
-        forecasts: Dict[seq_id: List[frame]] Dictionary of tracks
-        max_range_m: maximum distance from ego-vehicle
+        forecasts: Dictionary of tracks.
+        max_range_m: maximum distance from ego-vehicle.
 
     Returns:
-        forecasts: Dict[seq_id: List[frame]] Dictionary of tracks.
+        Dictionary of tracks.
     """
     for seq_id in forecasts.keys():
         for timestamp in forecasts[seq_id].keys():
@@ -369,10 +367,11 @@ def filter_drivable_area(forecasts: ForecastSequences, dataset_dir: str) -> Fore
     """Convert the unified label format to a format that is easier to work with for forecasting evaluation.
 
     Args:
-        forecasts: Dict[seq_id: List[frame]] Dictionary of tracks
-        dataset_dir:str Dataset root directory
+        forecasts: Dictionary of tracks.
+        dataset_dir: Dataset root directory.
+
     Returns:
-        forecasts: Dict[seq_id: List[frame]] Dictionary of tracks.
+        forecasts: Dictionary of tracks.
     """
     log_ids = list(forecasts.keys())
     log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, Path(dataset_dir))

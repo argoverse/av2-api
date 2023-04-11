@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Union  # noqa
+from typing import Any, Union  # noqa
 
 import numpy as np
 import numpy.typing as npt
