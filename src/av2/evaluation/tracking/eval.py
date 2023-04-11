@@ -14,7 +14,7 @@ from functools import partial
 from itertools import chain
 from pathlib import Path
 from pprint import pprint
-from typing import Any, Callable, Dict, Iterable, List, Tuple, Union, cast
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, cast
 
 import click
 import numpy as np
@@ -124,7 +124,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
 
             data["similarity_scores"][t] = data["similarity_scores"][t][:, tracker_to_keep_mask][gt_to_keep_mask]
 
-        # map ids to 0 - n
+        # Map ids to 0 - n.
         unique_gt_ids = set(chain.from_iterable(data["gt_ids"]))
         unique_tracker_ids = set(chain.from_iterable(data["tracker_ids"]))
         data["gt_ids"] = self._map_ids(data["gt_ids"], unique_gt_ids)
@@ -137,7 +137,6 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
 
         # Ensure again that ids are unique per timestep after preproc.
         self._check_unique_ids(data, after_preproc=True)
-
         return data
 
     def _map_ids(self, ids: List[Any], unique_ids: Iterable[Any]) -> List[NDArrayInt]:
@@ -192,7 +191,7 @@ def evaluate_tracking(
     where I is the number of objects in the frame.
 
     Returns:
-        dictionary of metric values.
+        Dictionary of metric values.
     """
     labels_id_ts = set((frame["seq_id"], frame["timestamp_ns"]) for frame in utils.ungroup_frames(labels))
     predictions_id_ts = set(
@@ -221,7 +220,7 @@ def evaluate_tracking(
             "TIME_PROGRESS": False,
         }
     )
-    full_result, eval_msg = evaluator.evaluate(
+    full_result, _ = evaluator.evaluate(
         [TrackEvalDataset(dataset_config)],
         metrics_list,
     )
@@ -243,13 +242,13 @@ def _tune_score_thresholds(
     Each class is processed independently.
 
     Args:
-        labels: Dict[seq_id: List[frame]] Dictionary of ground truth annotations
-        track_predictions: Dict[seq_id: List[frame]] Dictionary of tracks
+        labels: Dictionary of ground truth annotations
+        track_predictions: Dictionary of tracks
         objective_metric: Name of the metric to optimize, one of HOTA or MOTA
         classes: List of classes to evaluate
-        num_thresholds: number of score thresholds to try
+        num_thresholds: Number of score thresholds to try
         iou_threshold: IoU threshold for a True Positive match between a detection to a ground truth bounding box
-        match_distance_threshold: maximum euclidean distance threshold for a match
+        match_distance_threshold: Maximum euclidean distance threshold for a match
 
     Returns:
         optimal_score_threshold_by_class: Dictionary of class name to optimal score threshold
@@ -433,7 +432,6 @@ def yaw_to_quaternion3d(yaw: float) -> NDArrayFloat:
     Args:
         yaw: angle to rotate about the z-axis, representing an Euler angle, in radians
 
-
     Returns:
         array w/ quaternion coefficients (qw,qx,qy,qz) in scalar-first order, per Argoverse convention.
     """
@@ -441,14 +439,15 @@ def yaw_to_quaternion3d(yaw: float) -> NDArrayFloat:
     return np.array([qw, qx, qy, qz])
 
 
-def filter_drivable_area(tracks: Sequences, dataset_dir: str) -> Sequences:
+def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Sequences:
     """Convert the unified label format to a format that is easier to work with for forecasting evaluation.
 
     Args:
-        tracks: Dict[seq_id: List[frame]] Dictionary of tracks
-        dataset_dir:str Dataset root directory
+        tracks: Dictionary of tracks
+        dataset_dir: Dataset root directory
+
     Returns:
-        tracks: Dict[seq_id: List[frame]] Dictionary of tracks.
+        tracks: Dictionary of tracks.
     """
     if dataset_dir is None:
         return tracks
@@ -510,15 +509,15 @@ def evaluate(
     """Run evaluation.
 
     Args:
-        track_predictions: Dict[seq_id] List[frame]] Dictionary of tracks
-        labels: Dict[seq_id] List[frame]] Dictionary of labels
-        objective_metric: Metric to optimize
-        max_range_m: Maximum evaluation range
+        track_predictions: Dictionary of tracks.
+        labels: Dictionary of labels.
+        objective_metric: Metric to optimize.
+        max_range_m: Maximum evaluation range.
         dataset_dir: Path to dataset. Required for ROI pruning.
-        out: output path
+        out: Output path.
 
     Returns:
-        res: Dict Dictionary of per-class metrics
+        Dictionary of per-category metrics.
     """
     classes = list(constants.AV2_CATEGORIES)
 

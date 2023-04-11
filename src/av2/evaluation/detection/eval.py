@@ -300,7 +300,6 @@ def evaluate_hierarchy(
         cfg: Detection configuration.
         n_jobs: Number of jobs running concurrently during evaluation.
 
-
     Returns:
         metrics: Returns a C+1 x 3 Pandas DataFrame for the Hierarchical AP at LCA = 0, 1 , 2 for all classes. The last row reports the average over all classes.
 
