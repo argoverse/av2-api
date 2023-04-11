@@ -248,7 +248,7 @@ def _tune_score_thresholds(
         classes: List of classes to evaluate
         num_thresholds: Number of score thresholds to try
         iou_threshold: IoU threshold for a True Positive match between a detection to a ground truth bounding box
-        match_distance_threshold: Maximum euclidean distance threshold for a match
+        match_distance_m: Maximum euclidean distance threshold for a match
 
     Returns:
         optimal_score_threshold_by_class: Dictionary of class name to optimal score threshold

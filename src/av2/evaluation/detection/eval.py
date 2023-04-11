@@ -76,16 +76,14 @@ from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayObject
 
 warnings.filterwarnings("ignore", module="google")
 
-TP_ERROR_COLUMNS: Final[Tuple[str, ...]] = tuple(x.value for x in TruePositiveErrorNames)
-DTS_COLUMN_NAMES: Final[Tuple[str, ...]] = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)
-GTS_COLUMN_NAMES: Final[Tuple[str, ...]] = tuple(ORDERED_CUBOID_COL_NAMES) + ("num_interior_pts",)
-UUID_COLUMN_NAMES: Final[Tuple[str, ...]] = (
-    "log_id",
-    "timestamp_ns",
-    "category",
-)
-UUID_COLUMN_NOCAT_NAMES: Final = ("log_id", "timestamp_ns")
-UUID_CAT_NAMES: Final = ("category",)
+TP_ERROR_COLUMNS: Final = tuple(x.value for x in TruePositiveErrorNames)
+DTS_COLUMNS: Final = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)
+GTS_COLUMNS: Final = tuple(ORDERED_CUBOID_COL_NAMES) + ("num_interior_pts",)
+
+UUID_COLUMNS: Final = ("log_id", "timestamp_ns")
+CATEGORY_COLUMN: Final = ("category",)
+DETECTION_UUID_COLUMNS: Final = UUID_COLUMNS + CATEGORY_COLUMN
+
 logger = logging.getLogger(__name__)
 
 
@@ -119,14 +117,14 @@ def evaluate(
         )
 
     # Sort both the detections and annotations by lexicographic order for grouping.
-    dts = dts.sort_values(list(UUID_COLUMN_NAMES))
-    gts = gts.sort_values(list(UUID_COLUMN_NAMES))
+    dts = dts.sort_values(list(DETECTION_UUID_COLUMNS))
+    gts = gts.sort_values(list(DETECTION_UUID_COLUMNS))
 
-    dts_npy: NDArrayFloat = dts[list(DTS_COLUMN_NAMES)].to_numpy()
-    gts_npy: NDArrayFloat = gts[list(GTS_COLUMN_NAMES)].to_numpy()
+    dts_npy: NDArrayFloat = dts[list(DTS_COLUMNS)].to_numpy()
+    gts_npy: NDArrayFloat = gts[list(GTS_COLUMNS)].to_numpy()
 
-    dts_uuids: List[str] = dts[list(UUID_COLUMN_NAMES)].to_numpy().tolist()
-    gts_uuids: List[str] = gts[list(UUID_COLUMN_NAMES)].to_numpy().tolist()
+    dts_uuids: List[str] = dts[list(DETECTION_UUID_COLUMNS)].to_numpy().tolist()
+    gts_uuids: List[str] = gts[list(DETECTION_UUID_COLUMNS)].to_numpy().tolist()
 
     # We merge the unique identifier -- the tuple of ("log_id", "timestamp_ns", "category")
     # into a single string to optimize the subsequent grouping operation.
@@ -301,7 +299,7 @@ def evaluate_hierarchy(
         n_jobs: Number of jobs running concurrently during evaluation.
 
     Returns:
-        metrics: Returns a C+1 x 3 Pandas DataFrame for the Hierarchical AP at LCA = 0, 1 , 2 for all classes. The last row reports the average over all classes.
+        metrics: (C+1,3) Pandas DataFrame for the Hierarchical AP at LCA = 0, 1 , 2 for all classes. The last row reports the average over all classes.
 
     Raises:
         RuntimeError: If accumulation fails.
@@ -314,16 +312,16 @@ def evaluate_hierarchy(
         )
 
     # Sort both the detections and annotations by lexicographic order for grouping.
-    dts = dts.sort_values(list(UUID_COLUMN_NOCAT_NAMES))
-    gts = gts.sort_values(list(UUID_COLUMN_NOCAT_NAMES))
+    dts = dts.sort_values(list(UUID_COLUMNS))
+    gts = gts.sort_values(list(UUID_COLUMNS))
 
-    dts_npy: NDArrayFloat = dts[list(DTS_COLUMN_NAMES)].to_numpy()
-    gts_npy: NDArrayFloat = gts[list(GTS_COLUMN_NAMES)].to_numpy()
-    dts_cats: Any = dts[list(UUID_CAT_NAMES)].to_numpy().tolist()
-    gts_cats: Any = gts[list(UUID_CAT_NAMES)].to_numpy().tolist()
+    dts_npy: NDArrayFloat = dts[list(DTS_COLUMNS)].to_numpy()
+    gts_npy: NDArrayFloat = gts[list(GTS_COLUMNS)].to_numpy()
+    dts_cats: Any = dts[list(CATEGORY_COLUMN)].to_numpy().tolist()
+    gts_cats: Any = gts[list(CATEGORY_COLUMN)].to_numpy().tolist()
 
-    dts_uuids: Any = dts[list(UUID_COLUMN_NOCAT_NAMES)].to_numpy().tolist()
-    gts_uuids: Any = gts[list(UUID_COLUMN_NOCAT_NAMES)].to_numpy().tolist()
+    dts_uuids: Any = dts[list(UUID_COLUMNS)].to_numpy().tolist()
+    gts_uuids: Any = gts[list(UUID_COLUMNS)].to_numpy().tolist()
 
     # We merge the unique identifier -- the tuple of ("log_id", "timestamp_ns", "category")
     # into a single string to optimize the subsequent grouping operation.
@@ -399,7 +397,9 @@ def evaluate_hierarchy(
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
         outputs: Any = p.starmap(is_evaluated, args_list)
 
-    dts, gts, dts_cats, gts_cats, dts_uuids, gts_uuids = [], [], [], [], [], []
+    dts_list: List[NDArrayFloat] = []
+    gts_list: List[NDArrayFloat] = []
+    dts_cats, gts_cats, dts_uuids, gts_uuids = [], [], [], []
     for (
         sweep_dts,
         sweep_gts,
@@ -407,15 +407,15 @@ def evaluate_hierarchy(
         sweep_gts_cats,
         uuid,
     ) in outputs:
-        dts.append(sweep_dts)
-        gts.append(sweep_gts)
+        dts_list.append(sweep_dts)
+        gts_list.append(sweep_gts)
         dts_cats.append(sweep_dts_cats)
         gts_cats.append(sweep_gts_cats)
         dts_uuids.append(sweep_dts.shape[0] * [uuid])
         gts_uuids.append(sweep_gts.shape[0] * [uuid])
 
-    dts = np.concatenate(dts)
-    gts = np.concatenate(gts)
+    dts_npy = np.concatenate(dts)
+    gts_npy = np.concatenate(gts)
     dts_cats = np.concatenate(dts_cats).squeeze()
     gts_cats = np.concatenate(gts_cats).squeeze()
     dts_uuids = np.concatenate(dts_uuids)
@@ -440,8 +440,8 @@ def evaluate_hierarchy(
         for lca in HIERARCHY.keys():
             lca_cat = LCA[HIERARCHY[lca][ind]]
             args = (
-                dts,
-                gts,
+                dts_npy,
+                gts_npy,
                 dts_cats,
                 gts_cats,
                 dts_uuids,
@@ -461,8 +461,7 @@ def evaluate_hierarchy(
     for ap, cat, lca in outputs2:
         cat_ind = cfg.categories.index(cat)
         lca_ind = list(HIERARCHY.keys()).index(lca)
-        metrics[cat_ind][lca_ind] = round(ap, 3)
+        metrics[cat_ind][lca_ind] = round(ap, NUM_DECIMALS)
 
     metrics = pd.DataFrame(metrics, columns=["LCA=0", "LCA=1", "LCA=2"], index=cfg.categories)
-
     return metrics
