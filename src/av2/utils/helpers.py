@@ -8,8 +8,7 @@ from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt
 
 
 def assert_np_array_shape(
-    array: Union[NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt],
-    target_shape: Sequence[Optional[int]],
+    array: Union[NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt], target_shape: Sequence[Optional[int]]
 ) -> None:
     """Check for shape correctness.
 

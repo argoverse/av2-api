@@ -26,11 +26,6 @@ def to_metric_time(ts: Union[int, float], src: TimeUnit, dst: TimeUnit) -> float
     Returns:
         timestamp expressed now in `dst` units of metric time
     """
-    units_per_sec = {
-        TimeUnit.Second: 1,
-        TimeUnit.Millisecond: 1e3,
-        TimeUnit.Microsecond: 1e6,
-        TimeUnit.Nanosecond: 1e9,
-    }
+    units_per_sec = {TimeUnit.Second: 1, TimeUnit.Millisecond: 1e3, TimeUnit.Microsecond: 1e6, TimeUnit.Nanosecond: 1e9}
     # ts is in units of `src`, which will cancel with the denominator
     return ts * (units_per_sec[dst] / units_per_sec[src])

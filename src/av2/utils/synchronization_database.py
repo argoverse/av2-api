@@ -163,11 +163,7 @@ class SynchronizationDB:
             logger.warning(
                 "No corresponding LiDAR sweep: %s > %s ms",
                 to_metric_time(ts=timestamp_diff, src=Nanosecond, dst=Millisecond),
-                to_metric_time(
-                    ts=self.MAX_LIDAR_ANYCAM_TIMESTAMP_DIFF,
-                    src=Nanosecond,
-                    dst=Millisecond,
-                ),
+                to_metric_time(ts=self.MAX_LIDAR_ANYCAM_TIMESTAMP_DIFF, src=Nanosecond, dst=Millisecond),
             )
             return None
         return closest_lidar_timestamp
@@ -200,11 +196,7 @@ class SynchronizationDB:
                 "No corresponding ring image at %s: %.1f > %s ms",
                 lidar_timestamp,
                 to_metric_time(ts=timestamp_diff, src=Nanosecond, dst=Millisecond),
-                to_metric_time(
-                    ts=self.MAX_LIDAR_RING_CAM_TIMESTAMP_DIFF,
-                    src=Nanosecond,
-                    dst=Millisecond,
-                ),
+                to_metric_time(ts=self.MAX_LIDAR_RING_CAM_TIMESTAMP_DIFF, src=Nanosecond, dst=Millisecond),
             )
             return None
         elif timestamp_diff > self.MAX_LIDAR_STEREO_CAM_TIMESTAMP_DIFF and cam_name in list(StereoCameras):
@@ -213,11 +205,7 @@ class SynchronizationDB:
                 "No corresponding stereo image at %s: %.1f > %s ms",
                 lidar_timestamp,
                 to_metric_time(ts=timestamp_diff, src=Nanosecond, dst=Millisecond),
-                to_metric_time(
-                    ts=self.MAX_LIDAR_STEREO_CAM_TIMESTAMP_DIFF,
-                    src=Nanosecond,
-                    dst=Millisecond,
-                ),
+                to_metric_time(ts=self.MAX_LIDAR_STEREO_CAM_TIMESTAMP_DIFF, src=Nanosecond, dst=Millisecond),
             )
             return None
         return closest_cam_ch_timestamp
