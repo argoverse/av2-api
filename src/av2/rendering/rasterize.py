@@ -102,8 +102,10 @@ def xyz_to_bev(
         img[u, v, :3] = cmap[i]
         img[u, v, 3:4] += intensity[i]
 
-    # Normalize the intensity.
-    img[..., -1] = img[..., -1] / img[..., -1].max()
+    normalization = img[..., -1].max()
+    if normalization != 0:
+        # Normalize the intensity.
+        img[..., -1] = img[..., -1] / normalization
 
     # Gamma correction.
     img[..., -1] = np.power(img[..., -1], 0.05)
