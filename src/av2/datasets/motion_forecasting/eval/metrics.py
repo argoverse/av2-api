@@ -189,9 +189,7 @@ def compute_world_ade(forecasted_world_trajectories: NDArrayFloat, gt_world_traj
 
 
 def compute_world_misses(
-    forecasted_world_trajectories: NDArrayFloat,
-    gt_world_trajectories: NDArrayFloat,
-    miss_threshold_m: float = 2.0,
+    forecasted_world_trajectories: NDArrayFloat, gt_world_trajectories: NDArrayFloat, miss_threshold_m: float = 2.0
 ) -> NDArrayBool:
     """For each world, compute whether predictions for each actor misssed by more than a distance threshold.
 
@@ -225,19 +223,14 @@ def compute_world_brier_fde(
     Args:
         forecasted_world_trajectories: (M, K, N, 2) K predicted trajectories of length N, for each of M actors.
         gt_world_trajectories: (M, N, 2) ground truth trajectories of length N, for each of M actors.
-        forecasted_world_probabilities: (M,) normalized probabilities associated with each world.
+        forecasted_world_probabilities: (K,) normalized probabilities associated with each world.
         normalize: Normalizes `forecasted_world_probabilities` to sum to 1 when set to True.
 
     Returns:
         (K,) Mean probability-weighted final displacement error for each of the predicted worlds.
     """
     actor_brier_fdes = [
-        compute_brier_fde(
-            forecasted_actor_trajectories,
-            gt_actor_trajectory,
-            forecasted_world_probabilities,
-            normalize,
-        )
+        compute_brier_fde(forecasted_actor_trajectories, gt_actor_trajectory, forecasted_world_probabilities, normalize)
         for forecasted_actor_trajectories, gt_actor_trajectory in zip(
             forecasted_world_trajectories, gt_world_trajectories
         )
