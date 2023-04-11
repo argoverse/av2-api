@@ -142,7 +142,7 @@ def evaluate(
         log_ids: List[str] = gts.loc[:, "log_id"].unique().tolist()
         log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
 
-    args_list: List[
+    accumulate_args_list: List[
         Tuple[
             NDArrayFloat,
             NDArrayFloat,
@@ -174,11 +174,11 @@ def evaluate(
             avm = log_id_to_avm[log_id]
             city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
             args = sweep_dts, sweep_gts, cfg, avm, city_SE3_ego
-        args_list.append(args)
+        accumulate_args_list.append(args)
 
     logger.info("Starting evaluation ...")
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = p.starmap(accumulate, args_list)
+        outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = p.starmap(accumulate, accumulate_args_list)
 
     dts_list, gts_list = zip(*outputs)
 
@@ -341,7 +341,7 @@ def evaluate_hierarchy(
         log_ids: List[str] = gts.loc[:, "log_id"].unique().tolist()
         log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
 
-    args_list: List[
+    is_evaluated_args_list: List[
         Tuple[
             NDArrayFloat,
             NDArrayFloat,
@@ -356,10 +356,9 @@ def evaluate_hierarchy(
     uuids = sorted(uuid_to_dts.keys() | uuid_to_gts.keys())
     for uuid in uuids:
         log_id, timestamp_ns = uuid.split(":")
-        args: Any
-
         sweep_dts: NDArrayFloat = np.zeros((0, 10))
         sweep_gts: NDArrayFloat = np.zeros((0, 10))
+
         if uuid in uuid_to_dts:
             sweep_dts = uuid_to_dts[uuid]
             sweep_dts_cats = uuid_to_dts_cats[uuid]
@@ -391,11 +390,11 @@ def evaluate_hierarchy(
                 avm,
                 city_SE3_ego,
             )
-        args_list.append(args)
+        is_evaluated_args_list.append(args)
 
     logger.info("Starting evaluation ...")
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs: Any = p.starmap(is_evaluated, args_list)
+        outputs: Any = p.starmap(is_evaluated, is_evaluated_args_list)
 
     dts_list: List[NDArrayFloat] = []
     gts_list: List[NDArrayFloat] = []
@@ -421,7 +420,7 @@ def evaluate_hierarchy(
     dts_uuids = np.concatenate(dts_uuids)
     gts_uuids = np.concatenate(gts_uuids)
 
-    args_list2: List[
+    accumulate_hierarchy_args_list: List[
         Tuple[
             NDArrayFloat,
             NDArrayFloat,
@@ -451,11 +450,11 @@ def evaluate_hierarchy(
                 lca,
                 cfg,
             )
-            args_list2.append(args)
+            accumulate_hierarchy_args_list.append(args)
 
     logger.info("Starting evaluation ...")
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs2: Any = p.starmap(accumulate_hierarchy, args_list2)
+        outputs2: Any = p.starmap(accumulate_hierarchy, accumulate_hierarchy_args_list)
 
     metrics = np.zeros((len(cfg.categories), len(HIERARCHY.keys())))
     for ap, cat, lca in outputs2:
