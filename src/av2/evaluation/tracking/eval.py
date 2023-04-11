@@ -235,7 +235,7 @@ def _tune_score_thresholds(
     classes: List[str],
     num_thresholds: int = 10,
     iou_threshold: float = 0.5,
-    match_distance_threshold: int = 2,
+    match_distance_m: int = 2,
 ) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, float]]:
     """Find the optimal score thresholds to optimize the objective metric.
 
@@ -287,7 +287,7 @@ def _tune_score_thresholds(
     )
 
     score_thresholds_by_class = {}
-    sim_func = partial(_xy_center_similarity, zero_distance=match_distance_threshold)
+    sim_func = partial(_xy_center_similarity, zero_distance=match_distance_m)
     for name in classes:
         single_cls_labels = _filter_by_class(labels, name)
         single_cls_predictions = _filter_by_class(track_predictions, name)
@@ -539,7 +539,7 @@ def evaluate(
         objective_metric,
         classes,
         num_thresholds=10,
-        match_distance_threshold=2,
+        match_distance_m=2,
     )
     filtered_track_predictions = utils.filter_by_class_thresholds(track_predictions, score_thresholds)
     res = evaluate_tracking(
