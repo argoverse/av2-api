@@ -13,27 +13,27 @@ increased interpretability of the error modes in a set of detections.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, Set
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 from joblib import Parallel, delayed
 from scipy.spatial.distance import cdist
 from upath import UPath
 
+from av2.evaluation.common.constants import CompetitionCategories
 from av2.evaluation.detection.constants import (
     MAX_NORMALIZED_ASE,
     MAX_SCALE_ERROR,
     MAX_YAW_RAD_ERROR,
     MIN_AP,
     MIN_CDS,
-    NUM_ELEMS,
     NUM_DECIMALS,
+    NUM_ELEMS,
     AffinityType,
     DistanceType,
     FilterMetricType,
     InterpType,
 )
-from av2.evaluation.common.constants import CompetitionCategories
 from av2.geometry.geometry import mat_to_xyz, quat_to_mat, wrap_angles
 from av2.geometry.iou import iou_3d_axis_aligned
 from av2.geometry.se3 import SE3

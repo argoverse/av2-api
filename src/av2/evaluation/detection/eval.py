@@ -59,20 +59,14 @@ from typing import Any, Dict, Final, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from av2.evaluation.detection.constants import (
-    HIERARCHY,
-    LCA,
-    NUM_DECIMALS,
-    MetricNames,
-    TruePositiveErrorNames,
-)
+from av2.evaluation.detection.constants import HIERARCHY, LCA, NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import (
     DetectionCfg,
     accumulate,
     accumulate_hierarchy,
-    is_evaluated,
     compute_average_precision,
     groupby,
+    is_evaluated,
     load_mapped_avm_and_egoposes,
 )
 from av2.geometry.se3 import SE3

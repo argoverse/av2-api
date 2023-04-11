@@ -1,8 +1,10 @@
 """Constants for forecasting challenge."""
 
-from typing import Final, Dict, List
-from av2.evaluation.common.constants import CompetitionCategories
+from typing import Final
+
 import numpy as np
+
+from av2.evaluation.common.constants import CompetitionCategories
 
 NUM_TIMESTEPS: Final = 6
 TIME_DELTA: Final = 0.5

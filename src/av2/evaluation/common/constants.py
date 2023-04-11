@@ -1,6 +1,6 @@
 """Constants shared between detection, tracking, and forecasting challenges."""
 
-from enum import Enum, unique
+from enum import Enum
 
 
 class CompetitionCategories(str, Enum):

@@ -1,9 +1,10 @@
 """Forecasting evaluation utilities."""
-from typing import Any, Dict, Final, Iterable, List, Union, cast
+from typing import Any, Dict, Iterable, List, Union, cast
 
 import numpy as np
-from av2.utils.typing import Frame, NDArrayFloat, NDArrayInt, ForecastSequences
+
 from av2.evaluation.forecasting import constants
+from av2.utils.typing import ForecastSequences, Frame, NDArrayFloat, NDArrayInt
 
 
 def agent_velocity(agent: Dict[str, Any]) -> NDArrayFloat:

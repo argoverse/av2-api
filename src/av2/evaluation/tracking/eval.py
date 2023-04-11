@@ -19,17 +19,15 @@ from typing import Any, Callable, Dict, Iterable, List, Tuple, Union, cast
 import click
 import numpy as np
 import trackeval
-from av2.evaluation.detection.utils import (
-    compute_objects_in_roi_mask,
-    load_mapped_avm_and_egoposes,
-)
-from av2.evaluation.tracking.constants import SUBMETRIC_TO_METRIC_CLASS_NAME
-from av2.utils.typing import NDArrayFloat, NDArrayInt, Sequences
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation
+from tqdm import tqdm
 from trackeval.datasets._base_dataset import _BaseDataset
 
+from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
 from av2.evaluation.tracking import constants, utils
+from av2.evaluation.tracking.constants import SUBMETRIC_TO_METRIC_CLASS_NAME
+from av2.utils.typing import NDArrayFloat, NDArrayInt, Sequences
 
 
 class TrackEvalDataset(_BaseDataset):  # type: ignore
@@ -302,7 +300,7 @@ def _tune_score_thresholds(
         )
 
     metric_results = []
-    for threshold_i in utils.progressbar(range(num_thresholds), "calculating optimal track score thresholds"):
+    for threshold_i in tqdm(range(num_thresholds), "calculating optimal track score thresholds"):
         score_threshold_by_class = {n: score_thresholds_by_class[n][threshold_i] for n in classes}
         filtered_predictions = utils.filter_by_class_thresholds(track_predictions, score_threshold_by_class)
         with contextlib.redirect_stdout(None):  # silence print statements from TrackEval

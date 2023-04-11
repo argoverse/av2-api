@@ -4,24 +4,22 @@ Evaluation Metrics:
     mAP: see https://arxiv.org/abs/2203.16297
 """
 
+import itertools
 import json
 import pickle
 from collections import defaultdict
 from pathlib import Path
 from pprint import pprint
-from typing import Any, Dict, List, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
-import itertools
 import click
 import numpy as np
-from av2.evaluation.forecasting import constants, utils
-from av2.evaluation.detection.utils import (
-    compute_objects_in_roi_mask,
-    load_mapped_avm_and_egoposes,
-)
-from av2.utils.typing import NDArrayFloat, Sequences, ForecastSequences
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
+
+from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
+from av2.evaluation.forecasting import constants, utils
+from av2.utils.typing import ForecastSequences, NDArrayFloat, Sequences
 
 
 def evaluate(
@@ -29,7 +27,7 @@ def evaluate(
     raw_ground_truth: Sequences,
     top_k: int,
     max_range_m: int,
-    dataset_dir: str,
+    dataset_dir: Optional[str],
 ) -> Dict[str, Any]:
     """Compute Mean Forecasting AP, ADE, and FDE given predicted and ground truth forecasts.
 
@@ -39,7 +37,6 @@ def evaluate(
         top_k: Top K evaluation (default: K=5)
         max_range_m: Maximum evaluation range
         dataset_dir: Path to dataset. Required for ROI pruning.
-
 
     Returns:
         Dictionary of evaluation results.

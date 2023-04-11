@@ -1,6 +1,7 @@
 """Constants for tracking challenge."""
 
-from typing import Final, Dict, List
+from typing import Dict, Final
+
 from av2.evaluation.common.constants import CompetitionCategories
 
 SUBMETRIC_TO_METRIC_CLASS_NAME: Final[Dict[str, str]] = {
