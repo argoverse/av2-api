@@ -68,7 +68,7 @@ def trajectory_type(agent: Dict[str, Any], class_velocity: Dict[str, float]) -> 
             return "non-linear"
 
     else:  # predictions
-        res = []
+        res: List[str] = []
         time = agent["prediction"].shape[1] * constants.TIME_DELTA_S
 
         threshold = 1 + constants.FORECAST_SCALAR[len(agent["prediction"])] * class_velocity.get(agent["name"], 0)

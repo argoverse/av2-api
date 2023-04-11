@@ -20,6 +20,7 @@ from av2.evaluation.forecasting import constants, utils
 from av2.evaluation.forecasting.constants import (
     AV2_CATEGORIES,
     CATEGORY_TO_VELOCITY,
+    DISTANCE_THRESHOLDS_M,
     VELOCITY_TYPES,
     MAX_DISPLACEMENT_M,
 )
@@ -58,20 +59,20 @@ def evaluate(
         ground_truth = filter_drivable_area(ground_truth, dataset_dir)
         predictions = filter_drivable_area(predictions, dataset_dir)
 
-    res: Dict[str, Any] = {}
-    for profile in VELOCITY_TYPES:
-        res[profile] = {}
-        for cname in AV2_CATEGORIES:
-            res[profile][cname] = {"mAP_F": [], "ADE": [], "FDE": []}
+    results: Dict[str, Any] = {}
+    for velocity_type in VELOCITY_TYPES:
+        results[velocity_type] = {}
+        for category in AV2_CATEGORIES:
+            results[velocity_type][category] = {"mAP_F": [], "ADE": [], "FDE": []}
 
     gt_agents = []
     pred_agents = []
     for seq_id in tqdm(ground_truth.keys()):
-        for timestamp in ground_truth[seq_id].keys():
-            gt = [agent for agent in ground_truth[seq_id][timestamp]]
+        for timestamp_ns in ground_truth[seq_id].keys():
+            gt = [agent for agent in ground_truth[seq_id][timestamp_ns]]
 
-            if seq_id in predictions and timestamp in predictions[seq_id]:
-                pred = [agent for agent in predictions[seq_id][timestamp]]
+            if seq_id in predictions and timestamp_ns in predictions[seq_id]:
+                pred = [agent for agent in predictions[seq_id][timestamp_ns]]
             else:
                 pred = []
 
@@ -80,7 +81,7 @@ def evaluate(
                     continue
 
                 agent["seq_id"] = seq_id
-                agent["timestamp"] = timestamp
+                agent["timestamp"] = timestamp_ns
                 agent["velocity"] = utils.agent_velocity(agent)
                 agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY)
 
@@ -88,33 +89,41 @@ def evaluate(
 
             for agent in pred:
                 agent["seq_id"] = seq_id
-                agent["timestamp"] = timestamp
+                agent["timestamp"] = timestamp_ns
                 agent["velocity"] = utils.agent_velocity(agent)
                 agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY)
 
                 pred_agents.append(agent)
 
     outputs = []
-    for cname, profile, th in tqdm(
-        list(itertools.product(AV2_CATEGORIES, VELOCITY_TYPES, constants.DISTANCE_THRESHOLDS_M))
+    for category, velocity_type, th in tqdm(
+        list(itertools.product(AV2_CATEGORIES, VELOCITY_TYPES, DISTANCE_THRESHOLDS_M))
     ):
-        cvel = CATEGORY_TO_VELOCITY[cname]
-        outputs.append(accumulate(pred_agents, gt_agents, top_k, cname, profile, cvel, th))
+        category_velocity_m_per_s = CATEGORY_TO_VELOCITY[category]
+        outputs.append(
+            accumulate(pred_agents, gt_agents, top_k, category, velocity_type, category_velocity_m_per_s, th)
+        )
 
-    for apf, ade, fde, cname, profile, threshold in outputs:
-        res[profile][cname]["mAP_F"].append(apf)
+    for apf, ade, fde, category, velocity_type, threshold in outputs:
+        results[velocity_type][category]["mAP_F"].append(apf)
 
         if threshold == constants.TP_THRESHOLD_M:
-            res[profile][cname]["ADE"].append(ade)
-            res[profile][cname]["FDE"].append(fde)
+            results[velocity_type][category]["ADE"].append(ade)
+            results[velocity_type][category]["FDE"].append(fde)
 
-    for cname in AV2_CATEGORIES:
-        for profile in VELOCITY_TYPES:
-            res[profile][cname]["mAP_F"] = round(np.mean(res[profile][cname]["mAP_F"]), constants.NUM_DECIMALS)
-            res[profile][cname]["ADE"] = round(np.mean(res[profile][cname]["ADE"]), constants.NUM_DECIMALS)
-            res[profile][cname]["FDE"] = round(np.mean(res[profile][cname]["FDE"]), constants.NUM_DECIMALS)
+    for category in AV2_CATEGORIES:
+        for velocity_type in VELOCITY_TYPES:
+            results[velocity_type][category]["mAP_F"] = round(
+                np.mean(results[velocity_type][category]["mAP_F"]), constants.NUM_DECIMALS
+            )
+            results[velocity_type][category]["ADE"] = round(
+                np.mean(results[velocity_type][category]["ADE"]), constants.NUM_DECIMALS
+            )
+            results[velocity_type][category]["FDE"] = round(
+                np.mean(results[velocity_type][category]["FDE"]), constants.NUM_DECIMALS
+            )
 
-    return res
+    return results
 
 
 def accumulate(
@@ -148,13 +157,7 @@ def accumulate(
     """
 
     def match(gt: str, pred: str, profile: str) -> bool:
-        if gt == profile:
-            return True
-
-        if gt == "ignore" and pred == profile:
-            return True
-
-        return False
+        return gt == profile or gt == "ignore" and pred == profile
 
     pred = [agent for agent in pred_agents if agent["name"] == class_name]
     gt = [agent for agent in gt_agents if agent["name"] == class_name and agent["trajectory_type"] == profile]
@@ -293,7 +296,7 @@ def convert_forecast_labels(labels: Any) -> Any:
         labels: Dictionary of labels.
 
     Returns:
-        forecast_labels, dictionary of labels in the forecasting format
+        forecast_labels, dictionary of labels in the forecasting format.
     """
     forecast_labels = {}
     for seq_id, frames in labels.items():
