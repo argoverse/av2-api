@@ -14,12 +14,12 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 
 import click
 import numpy as np
-from scipy.spatial.transform import Rotation
-from tqdm import tqdm
-
 from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
 from av2.evaluation.forecasting import constants, utils
-from av2.utils.typing import ForecastSequences, NDArrayFloat, Sequences
+from av2.utils.typing import NDArrayFloat
+from scipy.spatial.transform import Rotation
+from tqdm import tqdm
+from .typing import ForecastSequences, Sequences
 
 
 def evaluate(

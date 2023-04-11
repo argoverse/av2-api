@@ -1,4 +1,4 @@
-"""Argoverse Tracking evaluation.
+"""Argoverse 2 Tracking evaluation.
 
 Evaluation Metrics:
     HOTA: see https://arxiv.org/abs/2009.07736
@@ -19,15 +19,15 @@ from typing import Any, Callable, Dict, Iterable, List, Tuple, Union, cast
 import click
 import numpy as np
 import trackeval
+from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
+from av2.evaluation.tracking import constants, utils
+from av2.evaluation.tracking.constants import SUBMETRIC_TO_METRIC_CLASS_NAME
+from av2.utils.typing import NDArrayFloat, NDArrayInt
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 from trackeval.datasets._base_dataset import _BaseDataset
-
-from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
-from av2.evaluation.tracking import constants, utils
-from av2.evaluation.tracking.constants import SUBMETRIC_TO_METRIC_CLASS_NAME
-from av2.utils.typing import NDArrayFloat, NDArrayInt, Sequences
+from ..typing import Sequences
 
 
 class TrackEvalDataset(_BaseDataset):  # type: ignore
@@ -520,7 +520,7 @@ def evaluate(
     Returns:
         res: Dict Dictionary of per-class metrics
     """
-    classes = list(constants.av2_classes)
+    classes = list(constants.AV2_CATEGORIES)
 
     labels = filter_max_dist(labels, max_range_m)
     utils.annotate_frame_metadata(

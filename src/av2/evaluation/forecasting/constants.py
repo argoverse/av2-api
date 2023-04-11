@@ -3,8 +3,7 @@
 from typing import Final
 
 import numpy as np
-
-from av2.evaluation.common.constants import CompetitionCategories
+from av2.evaluation import SensorCompetitionCategories
 
 NUM_TIMESTEPS: Final = 6
 TIME_DELTA: Final = 0.5
@@ -12,8 +11,7 @@ NUM_ELEMS: Final = 101
 NUM_JOBS: Final = 8
 NUM_DECIMALS: Final = 3
 
-
-av2_classes: Final = tuple(x.value for x in CompetitionCategories)
+av2_classes: Final = tuple(x.value for x in SensorCompetitionCategories)
 
 CATEGORY_TO_VELOCITY: Final = {
     "REGULAR_VEHICLE": 2.36,

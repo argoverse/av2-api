@@ -11,8 +11,8 @@ from itertools import chain
 from typing import Any, Dict, Iterable, List, Union, cast
 
 import numpy as np
-
-from av2.utils.typing import Frame, Frames, NDArrayInt, Sequences
+from av2.utils.typing import NDArrayInt
+from ..typing import Sequences, Frame, Frames
 
 
 def save(obj: Any, path: str) -> None:  # noqa

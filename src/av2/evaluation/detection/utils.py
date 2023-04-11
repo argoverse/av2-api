@@ -16,11 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
-from joblib import Parallel, delayed
-from scipy.spatial.distance import cdist
-from upath import UPath
-
-from av2.evaluation.common.constants import CompetitionCategories
+from av2.evaluation import SensorCompetitionCategories
 from av2.evaluation.detection.constants import (
     MAX_NORMALIZED_ASE,
     MAX_SCALE_ERROR,
@@ -42,6 +38,9 @@ from av2.structures.cuboid import Cuboid, CuboidList
 from av2.utils.constants import EPS
 from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt, NDArrayObject
+from joblib import Parallel, delayed
+from scipy.spatial.distance import cdist
+from upath import UPath
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +64,7 @@ class DetectionCfg:
 
     affinity_thresholds_m: Tuple[float, ...] = (0.5, 1.0, 2.0, 4.0)
     affinity_type: AffinityType = AffinityType.CENTER
-    categories: Tuple[str, ...] = tuple(x.value for x in CompetitionCategories)
+    categories: Tuple[str, ...] = tuple(x.value for x in SensorCompetitionCategories)
     dataset_dir: Optional[Union[Path, UPath]] = None
     eval_only_roi_instances: bool = True
     filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN

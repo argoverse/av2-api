@@ -7,13 +7,12 @@ from zipfile import ZipFile
 import numpy as np
 import pandas as pd
 import torch
-from kornia.geometry.liegroup import Se3
-from torch import BoolTensor
-
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 from av2.torch.structures.flow import Flow
 from av2.torch.structures.sweep import Sweep
 from av2.utils.typing import NDArrayBool, NDArrayFloat
+from kornia.geometry.liegroup import Se3
+from torch import BoolTensor
 
 _EVAL_ROOT: Final = Path(__file__).resolve().parent
 

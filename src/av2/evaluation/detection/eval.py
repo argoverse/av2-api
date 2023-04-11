@@ -58,7 +58,6 @@ from typing import Any, Dict, Final, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-
 from av2.evaluation.detection.constants import HIERARCHY, LCA, NUM_DECIMALS, MetricNames, TruePositiveErrorNames
 from av2.evaluation.detection.utils import (
     DetectionCfg,

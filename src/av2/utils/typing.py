@@ -19,9 +19,4 @@ NDArrayByte = npt.NDArray[np.uint8]
 NDArrayInt = npt.NDArray[np.int64]
 NDArrayObject = npt.NDArray[np.object_]
 
-Frame = Dict[str, Any]
-Frames = List[Frame]
-Sequences = Dict[str, Frames]
-ForecastSequences = Dict[str, Dict[int, List[Frame]]]
-
 PathType = Union[Path, UPath]
