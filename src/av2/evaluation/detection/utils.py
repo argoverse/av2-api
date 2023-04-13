@@ -171,11 +171,11 @@ def is_evaluated(
     gts: NDArrayFloat,
     dts_cats: NDArrayObject,
     gts_cats: NDArrayObject,
-    uuid: List[str],
+    uuid: Tuple[str, int],
     cfg: DetectionCfg,
     avm: Optional[ArgoverseStaticMap] = None,
     city_SE3_ego: Optional[SE3] = None,
-) -> Tuple[NDArrayFloat, NDArrayFloat, NDArrayObject, NDArrayObject, List[str]]:
+) -> Tuple[NDArrayFloat, NDArrayFloat, NDArrayObject, NDArrayObject, Tuple[str, int]]:
     """Filters detections and ground truth boxes that are either not within the max_range_m or within the ROI.
 
     Args:
@@ -234,7 +234,7 @@ def accumulate_hierarchy(
     dts_uuids: NDArrayObject,
     gts_uuids: NDArrayObject,
     cat: str,
-    lca_cat: str,
+    lca_cat: Tuple[str, ...],
     lca: str,
     cfg: DetectionCfg,
 ) -> Tuple[float, str, str]:
