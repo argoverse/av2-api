@@ -58,7 +58,14 @@ from typing import Any, Dict, Final, List, Optional, Tuple, cast
 
 import numpy as np
 import pandas as pd
-from av2.evaluation.detection.constants import HIERARCHY, LCA, NUM_DECIMALS, MetricNames, TruePositiveErrorNames
+from av2.evaluation.detection.constants import (
+    HIERARCHY,
+    LCA,
+    LCA_COLUMNS,
+    NUM_DECIMALS,
+    MetricNames,
+    TruePositiveErrorNames,
+)
 from av2.evaluation.detection.utils import (
     DetectionCfg,
     accumulate,
@@ -490,5 +497,5 @@ def evaluate_hierarchy(
         super_category_index = super_categories.index(super_category)
         metrics[category_index][super_category_index] = round(ap, NUM_DECIMALS)
 
-    metrics = pd.DataFrame(metrics, columns=["LCA=0", "LCA=1", "LCA=2"], index=cfg.categories)
+    metrics = pd.DataFrame(metrics, columns=LCA_COLUMNS, index=cfg.categories)
     return metrics

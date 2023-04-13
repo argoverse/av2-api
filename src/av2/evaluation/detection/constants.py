@@ -222,6 +222,8 @@ LCA: Final[Dict[str, Tuple[str, ...]]] = {
     ),
 }
 
+LCA_COLUMNS: Final = ("LCA=0", "LCA=1", "LCA=2")
+
 
 @unique
 class TruePositiveErrorNames(str, Enum):
