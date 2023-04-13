@@ -8,7 +8,7 @@ from av2.evaluation import SensorCompetitionCategories
 NUM_TIMESTEPS: Final = 6
 
 AV2_CATEGORIES: Final = tuple(x.value for x in SensorCompetitionCategories)
-CATEGORY_TO_VELOCITY: Final = {
+CATEGORY_TO_VELOCITY_M_PER_S: Final = {
     "ARTICULATED_BUS": 4.58,
     "BICYCLE": 0.97,
     "BICYCLIST": 3.61,

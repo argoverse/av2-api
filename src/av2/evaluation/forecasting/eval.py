@@ -19,7 +19,7 @@ from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_map
 from av2.evaluation.forecasting import constants, utils
 from av2.evaluation.forecasting.constants import (
     AV2_CATEGORIES,
-    CATEGORY_TO_VELOCITY,
+    CATEGORY_TO_VELOCITY_M_PER_S,
     DISTANCE_THRESHOLDS_M,
     VELOCITY_TYPES,
     MAX_DISPLACEMENT_M,
@@ -83,7 +83,7 @@ def evaluate(
                 agent["seq_id"] = seq_id
                 agent["timestamp"] = timestamp_ns
                 agent["velocity"] = utils.agent_velocity(agent)
-                agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY)
+                agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY_M_PER_S)
 
                 gt_agents.append(agent)
 
@@ -91,7 +91,7 @@ def evaluate(
                 agent["seq_id"] = seq_id
                 agent["timestamp"] = timestamp_ns
                 agent["velocity"] = utils.agent_velocity(agent)
-                agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY)
+                agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY_M_PER_S)
 
                 pred_agents.append(agent)
 
@@ -99,7 +99,7 @@ def evaluate(
     for category, velocity_type, th in tqdm(
         list(itertools.product(AV2_CATEGORIES, VELOCITY_TYPES, DISTANCE_THRESHOLDS_M))
     ):
-        category_velocity_m_per_s = CATEGORY_TO_VELOCITY[category]
+        category_velocity_m_per_s = CATEGORY_TO_VELOCITY_M_PER_S[category]
         outputs.append(
             accumulate(pred_agents, gt_agents, top_k, category, velocity_type, category_velocity_m_per_s, th)
         )
