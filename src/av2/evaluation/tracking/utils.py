@@ -67,8 +67,11 @@ def group_frames(frames_list: Frames) -> Sequences:
     Returns:
         Dictionary of frames indexed by sequence id.
     """
+    frames_by_seq_id = defaultdict(list)
     sorted_frames_list = sorted(frames_list, key=lambda f: cast(int, f["timestamp_ns"]))
-    return dict([x["seq_id"] for x in sorted_frames_list])
+    for frame in sorted_frames_list:
+        frames_by_seq_id[frame["seq_id"]].append(frame)
+    return dict(frames_by_seq_id)
 
 
 def ungroup_frames(frames_by_seq_id: Sequences) -> Frames:
