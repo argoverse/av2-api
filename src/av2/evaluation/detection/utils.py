@@ -666,20 +666,3 @@ def load_mapped_avm_and_egoposes(
         raise RuntimeError("Map and egopose loading has failed!")
     log_id_to_avm = {log_ids[i]: avm for i, avm in enumerate(avms)}
     return log_id_to_avm, log_id_to_timestamped_poses
-
-
-def groupby(names: List[str], values: NDArrayFloat) -> Dict[str, NDArrayFloat]:
-    """Group a set of values by their corresponding names.
-
-    Args:
-        names: String which maps data to a "bin".
-        values: Data which will be grouped by their names.
-
-    Returns:
-        Dictionary mapping the group name to the corresponding group.
-    """
-    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(names, return_index=True)
-    unique_items, unique_items_indices = outputs
-    dts_groups: List[NDArrayFloat] = np.split(values, unique_items_indices[1:])
-    uuid_to_groups = {unique_items[i]: x for i, x in enumerate(dts_groups)}
-    return uuid_to_groups

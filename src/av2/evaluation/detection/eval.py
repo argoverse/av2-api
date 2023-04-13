@@ -64,7 +64,6 @@ from av2.evaluation.detection.utils import (
     accumulate,
     accumulate_hierarchy,
     compute_average_precision,
-    groupby,
     is_evaluated,
     load_mapped_avm_and_egoposes,
 )
@@ -121,13 +120,16 @@ def evaluate(
     dts = dts.sort_values(list(DETECTION_UUID_COLUMNS))
     gts = gts.sort_values(list(DETECTION_UUID_COLUMNS))
 
+    dts_pl = pl.from_pandas(dts)
+    gts_pl = pl.from_pandas(gts)
+
     uuid_to_dts = {
         k: v[list(DTS_COLUMNS)].to_numpy().astype(float)
-        for k, v in pl.from_pandas(dts).partition_by(DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True).items()
+        for k, v in dts_pl.partition_by(DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True).items()
     }
     uuid_to_gts = {
         k: v[list(GTS_COLUMNS)].to_numpy().astype(float)
-        for k, v in pl.from_pandas(gts).partition_by(DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True).items()
+        for k, v in gts_pl.partition_by(DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True).items()
     }
 
     log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
@@ -315,23 +317,26 @@ def evaluate_hierarchy(
     dts_categories = dts[list(CATEGORY_COLUMN)].to_numpy().astype(str)
     gts_categories = gts[list(CATEGORY_COLUMN)].to_numpy().astype(str)
 
+    dts_pl = pl.from_pandas(dts)
+    gts_pl = pl.from_pandas(gts)
+
     uuid_to_dts = {
         cast(Tuple[str, int], k): v[list(DTS_COLUMNS)].to_numpy().astype(np.float64)
-        for k, v in pl.from_pandas(dts).partition_by(UUID_COLUMNS, maintain_order=True, as_dict=True).items()
+        for k, v in dts_pl.partition_by(UUID_COLUMNS, maintain_order=True, as_dict=True).items()
     }
     uuid_to_gts = {
         cast(Tuple[str, int], k): v[list(GTS_COLUMNS)].to_numpy().astype(np.float64)
-        for k, v in pl.from_pandas(gts).partition_by(UUID_COLUMNS, maintain_order=True, as_dict=True).items()
+        for k, v in gts_pl.partition_by(UUID_COLUMNS, maintain_order=True, as_dict=True).items()
     }
 
     uuid_to_dts_cats = {
         cast(Tuple[str, int], k): v[list(CATEGORY_COLUMN)].to_numpy().astype(np.object_)
-        for k, v in pl.from_pandas(dts).partition_by(UUID_COLUMNS, maintain_order=True, as_dict=True).items()
+        for k, v in dts_pl.partition_by(UUID_COLUMNS, maintain_order=True, as_dict=True).items()
     }
 
     uuid_to_gts_cats = {
         cast(Tuple[str, int], k): v[list(CATEGORY_COLUMN)].to_numpy().astype(np.object_)
-        for k, v in pl.from_pandas(gts).partition_by(UUID_COLUMNS, maintain_order=True, as_dict=True).items()
+        for k, v in gts_pl.partition_by(UUID_COLUMNS, maintain_order=True, as_dict=True).items()
     }
 
     log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
