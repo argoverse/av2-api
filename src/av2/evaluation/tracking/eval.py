@@ -1,4 +1,4 @@
-"""Argoverse Tracking evaluation.
+"""Argoverse 2 Tracking evaluation.
 
 Evaluation Metrics:
     HOTA: see https://arxiv.org/abs/2009.07736
@@ -6,27 +6,28 @@ Evaluation Metrics:
     AMOTA: see https://arxiv.org/abs/2008.08063
 """
 
-import argparse
 import contextlib
 import json
 import pickle
 from copy import copy
 from functools import partial
 from itertools import chain
-from typing import Callable, Dict, Final, List, Tuple, Union, Any, Iterable, cast
-from av2.utils.typing import NDArrayFloat, NDArrayInt
-from .utils import Sequences
-from . import utils
+from pathlib import Path
+from pprint import pprint
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, cast
 
+import click
 import numpy as np
 import trackeval
+from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
+from av2.evaluation.tracking import constants, utils
+from av2.evaluation.tracking.constants import SUBMETRIC_TO_METRIC_CLASS_NAME
+from av2.utils.typing import NDArrayFloat, NDArrayInt
 from scipy.optimize import linear_sum_assignment
+from scipy.spatial.transform import Rotation
+from tqdm import tqdm
 from trackeval.datasets._base_dataset import _BaseDataset
-
-SUBMETRIC_TO_METRIC_CLASS_NAME: Final[Dict[str, str]] = {
-    "MOTA": "CLEAR",
-    "HOTA": "HOTA",
-}
+from ..typing import Sequences
 
 
 class TrackEvalDataset(_BaseDataset):  # type: ignore
@@ -56,7 +57,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         default_config = {
             "GT_TRACKS": None,  # tracker_name -> seq id -> frames
             "PREDICTED_TRACKS": None,  # tracker_name -> seq id -> frames
-            "SEQ_IDS_TO_EVAL": None,  # list of sequence ids to eval
+            "SEQ_IDS_TO_EVAL": None,  # list of sequences ids to eval
             "CLASSES_TO_EVAL": None,
             "TRACKERS_TO_EVAL": None,
             "OUTPUT_FOLDER": None,  # Where to save eval results (if None, same as TRACKERS_FOLDER)
@@ -123,7 +124,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
 
             data["similarity_scores"][t] = data["similarity_scores"][t][:, tracker_to_keep_mask][gt_to_keep_mask]
 
-        # map ids to 0 - n
+        # Map ids to 0 - n.
         unique_gt_ids = set(chain.from_iterable(data["gt_ids"]))
         unique_tracker_ids = set(chain.from_iterable(data["tracker_ids"]))
         data["gt_ids"] = self._map_ids(data["gt_ids"], unique_gt_ids)
@@ -136,7 +137,6 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
 
         # Ensure again that ids are unique per timestep after preproc.
         self._check_unique_ids(data, after_preproc=True)
-
         return data
 
     def _map_ids(self, ids: List[Any], unique_ids: Iterable[Any]) -> List[NDArrayInt]:
@@ -151,7 +151,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         return cast(NDArrayFloat, sim)
 
 
-def evaluate(
+def evaluate_tracking(
     labels: Sequences,
     track_predictions: Sequences,
     classes: List[str],
@@ -161,7 +161,7 @@ def evaluate(
 ) -> Dict[str, Any]:
     """Evaluate a set of tracks against ground truth annotations using the TrackEval evaluation suite.
 
-    Each sequence/log is evaluated separately.
+    Each sequences/log is evaluated separately.
 
     Args:
         labels: Dict[seq_id: List[frame]] Dictionary of ground truth annotations.
@@ -173,7 +173,7 @@ def evaluate(
 
     frame is a dictionary with the following format
         {
-            sequence_id: [
+            sequences_id: [
                 {
                     "timestamp_ns": int, # nano seconds
                     "track_id": np.ndarray[I],
@@ -191,13 +191,13 @@ def evaluate(
     where I is the number of objects in the frame.
 
     Returns:
-        dictionary of metric values.
+        Dictionary of metric values.
     """
     labels_id_ts = set((frame["seq_id"], frame["timestamp_ns"]) for frame in utils.ungroup_frames(labels))
     predictions_id_ts = set(
         (frame["seq_id"], frame["timestamp_ns"]) for frame in utils.ungroup_frames(track_predictions)
     )
-    assert labels_id_ts == predictions_id_ts, "sequence ids and timestamp_ns in labels and predictions don't match"
+    assert labels_id_ts == predictions_id_ts, "sequences ids and timestamp_ns in labels and predictions don't match"
     metrics_config = {
         "METRICS": ["HOTA", "CLEAR"],
         "THRESHOLD": iou_threshold,
@@ -220,7 +220,7 @@ def evaluate(
             "TIME_PROGRESS": False,
         }
     )
-    full_result, eval_msg = evaluator.evaluate(
+    full_result, _ = evaluator.evaluate(
         [TrackEvalDataset(dataset_config)],
         metrics_list,
     )
@@ -235,20 +235,20 @@ def _tune_score_thresholds(
     classes: List[str],
     num_thresholds: int = 10,
     iou_threshold: float = 0.5,
-    match_distance_threshold: int = 2,
+    match_distance_m: int = 2,
 ) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, float]]:
     """Find the optimal score thresholds to optimize the objective metric.
 
     Each class is processed independently.
 
     Args:
-        labels: Dict[seq_id: List[frame]] Dictionary of ground truth annotations
-        track_predictions: Dict[seq_id: List[frame]] Dictionary of tracks
+        labels: Dictionary of ground truth annotations
+        track_predictions: Dictionary of tracks
         objective_metric: Name of the metric to optimize, one of HOTA or MOTA
         classes: List of classes to evaluate
-        num_thresholds: number of score thresholds to try
+        num_thresholds: Number of score thresholds to try
         iou_threshold: IoU threshold for a True Positive match between a detection to a ground truth bounding box
-        match_distance_threshold: maximum euclidean distance threshold for a match
+        match_distance_m: Maximum euclidean distance threshold for a match
 
     Returns:
         optimal_score_threshold_by_class: Dictionary of class name to optimal score threshold
@@ -287,7 +287,7 @@ def _tune_score_thresholds(
     )
 
     score_thresholds_by_class = {}
-    sim_func = partial(_xy_center_similarity, zero_distance=match_distance_threshold)
+    sim_func = partial(_xy_center_similarity, zero_distance=match_distance_m)
     for name in classes:
         single_cls_labels = _filter_by_class(labels, name)
         single_cls_predictions = _filter_by_class(track_predictions, name)
@@ -299,7 +299,7 @@ def _tune_score_thresholds(
         )
 
     metric_results = []
-    for threshold_i in utils.progressbar(range(num_thresholds), "calculating optimal track score thresholds"):
+    for threshold_i in tqdm(range(num_thresholds), "calculating optimal track score thresholds"):
         score_threshold_by_class = {n: score_thresholds_by_class[n][threshold_i] for n in classes}
         filtered_predictions = utils.filter_by_class_thresholds(track_predictions, score_threshold_by_class)
         with contextlib.redirect_stdout(None):  # silence print statements from TrackEval
@@ -326,10 +326,14 @@ def _tune_score_thresholds(
         optimal_score_threshold_by_class[name] = optimal_threshold
         optimal_metric_values_by_class[name] = max(0, np.max(metric_values))
         mean_metric_values_by_class[name] = np.nanmean(np.array(metric_values).clip(min=0))
-    return optimal_score_threshold_by_class, optimal_metric_values_by_class, mean_metric_values_by_class
+    return (
+        optimal_score_threshold_by_class,
+        optimal_metric_values_by_class,
+        mean_metric_values_by_class,
+    )
 
 
-def _filter_by_class(detections: Sequences, name: str) -> Sequences:
+def _filter_by_class(detections: Any, name: str) -> Any:
     return utils.group_frames(
         [utils.index_array_values(f, f["name"] == name) for f in utils.ungroup_frames(detections)]
     )
@@ -352,7 +356,9 @@ def _calculate_score_thresholds(
 
 
 def _calculate_matched_scores(
-    labels: Sequences, predictions: Sequences, sim_func: Callable[[NDArrayFloat, NDArrayFloat], NDArrayFloat]
+    labels: Sequences,
+    predictions: Sequences,
+    sim_func: Callable[[NDArrayFloat, NDArrayFloat], NDArrayFloat],
 ) -> Tuple[NDArrayFloat, int]:
     scores = []
     n_gt = 0
@@ -394,19 +400,138 @@ def _xy_center_similarity(centers1: NDArrayFloat, centers2: NDArrayFloat, zero_d
     return cast(NDArrayFloat, sim)
 
 
-if __name__ == "__main__":
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument("--predictions", default="sample/track_predictions.pkl")
-    argparser.add_argument("--ground_truth", default="sample/labels.pkl")
-    argparser.add_argument("--objective_metric", default="HOTA", choices=["HOTA", "MOTA"])
-    argparser.add_argument("--out", default="sample/output.pkl")
+def filter_max_dist(tracks: Any, max_range_m: int) -> Any:
+    """Remove all tracks that are beyond the max_dist.
 
-    args = argparser.parse_args()
+    Args:
+        tracks: Dict[seq_id: List[frame]] Dictionary of tracks
+        max_range_m: maximum distance from ego-vehicle
 
-    track_predictions = pickle.load(open(args.predictions, "rb"))
-    labels = pickle.load(open(args.ground_truth, "rb"))
-    objective_metric = args.objective_metric
-    classes = utils.av2_classes
+    Returns:
+        tracks: Dict[seq_id: List[frame]] Dictionary of tracks.
+    """
+    frames = utils.ungroup_frames(tracks)
+    return utils.group_frames(
+        [
+            utils.index_array_values(
+                frame,
+                np.linalg.norm(
+                    frame["translation"][:, :2] - np.array(frame["ego_translation"])[:2],
+                    axis=1,
+                )
+                <= max_range_m,
+            )
+            for frame in frames
+        ]
+    )
+
+
+def yaw_to_quaternion3d(yaw: float) -> NDArrayFloat:
+    """Convert a rotation angle in the xy plane (i.e. about the z axis) to a quaternion.
+
+    Args:
+        yaw: angle to rotate about the z-axis, representing an Euler angle, in radians
+
+    Returns:
+        array w/ quaternion coefficients (qw,qx,qy,qz) in scalar-first order, per Argoverse convention.
+    """
+    qx, qy, qz, qw = Rotation.from_euler(seq="z", angles=yaw, degrees=False).as_quat()
+    return np.array([qw, qx, qy, qz])
+
+
+def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Sequences:
+    """Convert the unified label format to a format that is easier to work with for forecasting evaluation.
+
+    Args:
+        tracks: Dictionary of tracks
+        dataset_dir: Dataset root directory
+
+    Returns:
+        tracks: Dictionary of tracks.
+    """
+    if dataset_dir is None:
+        return tracks
+
+    log_ids = list(tracks.keys())
+    log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, Path(dataset_dir))
+
+    for log_id in log_ids:
+        avm = log_id_to_avm[log_id]
+
+        for frame in tracks[log_id]:
+            timestamp_ns = frame["timestamp_ns"]
+            city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
+            translation = frame["translation"] - frame["ego_translation"]
+            size = frame["size"]
+            quat = np.array([yaw_to_quaternion3d(yaw) for yaw in frame["yaw"]])
+            score = np.ones((translation.shape[0], 1))
+            boxes = np.concatenate([translation, size, quat, score], axis=1)
+
+            is_evaluated = compute_objects_in_roi_mask(boxes, city_SE3_ego, avm)
+
+            frame["translation"] = frame["translation"][is_evaluated]
+            frame["size"] = frame["size"][is_evaluated]
+            frame["yaw"] = frame["yaw"][is_evaluated]
+            frame["velocity"] = frame["velocity"][is_evaluated]
+            frame["label"] = frame["label"][is_evaluated]
+            frame["name"] = frame["name"][is_evaluated]
+            frame["track_id"] = frame["track_id"][is_evaluated]
+
+            if "score" in frame:
+                frame["score"] = frame["score"][is_evaluated]
+
+            if "detection_score" in frame:
+                frame["detection_score"] = frame["detection_score"][is_evaluated]
+
+            if "xy" in frame:
+                frame["xy"] = frame["xy"][is_evaluated]
+
+            if "xy_velocity" in frame:
+                frame["xy_velocity"] = frame["xy_velocity"][is_evaluated]
+
+            if "active" in frame:
+                frame["active"] = frame["active"][is_evaluated]
+
+            if "age" in frame:
+                frame["age"] = frame["age"][is_evaluated]
+
+    return tracks
+
+
+def evaluate(
+    track_predictions: Sequences,
+    labels: Sequences,
+    objective_metric: str,
+    max_range_m: int,
+    dataset_dir: Any,
+    out: str,
+) -> Tuple[Dict[str, float], Dict[str, Any], Dict[str, Any]]:
+    """Run evaluation.
+
+    Args:
+        track_predictions: Dictionary of tracks.
+        labels: Dictionary of labels.
+        objective_metric: Metric to optimize.
+        max_range_m: Maximum evaluation range.
+        dataset_dir: Path to dataset. Required for ROI pruning.
+        out: Output path.
+
+    Returns:
+        Dictionary of per-category metrics.
+    """
+    classes = list(constants.AV2_CATEGORIES)
+
+    labels = filter_max_dist(labels, max_range_m)
+    utils.annotate_frame_metadata(
+        utils.ungroup_frames(track_predictions),
+        utils.ungroup_frames(labels),
+        ["ego_translation"],
+    )
+    track_predictions = filter_max_dist(track_predictions, max_range_m)
+
+    if dataset_dir is not None:
+        labels = filter_drivable_area(labels, dataset_dir)
+        track_predictions = filter_drivable_area(track_predictions, dataset_dir)
 
     score_thresholds, tuned_metric_values, mean_metric_values = _tune_score_thresholds(
         labels,
@@ -414,18 +539,50 @@ if __name__ == "__main__":
         objective_metric,
         classes,
         num_thresholds=10,
-        match_distance_threshold=2,
+        match_distance_m=2,
     )
     filtered_track_predictions = utils.filter_by_class_thresholds(track_predictions, score_thresholds)
-    res = evaluate(
+    res = evaluate_tracking(
         labels,
         filtered_track_predictions,
         classes,
         tracker_name="TRACKER",
-        output_dir=".".join(args.out.split("/")[:-1]),
+        output_dir=".".join(out.split("/")[:-1]),
     )
 
-    print(mean_metric_values)
+    return res, tuned_metric_values, mean_metric_values
 
-    with open(args.out, "w") as f:
+
+@click.command()
+@click.option("--predictions", required=True, help="Predictions PKL file")
+@click.option("--ground_truth", required=True, help="Ground Truth PKL file")
+@click.option("--max_range_m", default=50, type=int, help="Predictions PKL file")
+@click.option(
+    "--dataset_dir",
+    default=None,
+    help="Path to dataset split (e.g. /data/Sensor/val). Required for ROI pruning",
+)
+@click.option("--objective_metric", default="HOTA", help="Choices: HOTA, MOTA")
+@click.option("--out", required=True, help="Output JSON file")
+def runner(
+    predictions: str,
+    ground_truth: str,
+    max_range_m: int,
+    dataset_dir: Any,
+    objective_metric: str,
+    out: str,
+) -> None:
+    """Standalone evaluation function."""
+    track_predictions = pickle.load(open(predictions, "rb"))
+    labels = pickle.load(open(ground_truth, "rb"))
+
+    _, _, mean_metric_values = evaluate(track_predictions, labels, objective_metric, max_range_m, dataset_dir, out)
+
+    pprint(mean_metric_values)
+
+    with open(out, "w") as f:
         json.dump(mean_metric_values, f, indent=4)
+
+
+if __name__ == "__main__":
+    runner()

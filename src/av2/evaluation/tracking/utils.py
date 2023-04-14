@@ -3,65 +3,16 @@
 Detection and track data in a single frame are kept as a dictionary of names to numpy arrays.
 This module provides helper functions for manipulating this data format.
 """
+
 import os
 import pickle
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Union, cast
+from itertools import chain
+from typing import Any, Dict, Iterable, List, Union, cast
 
 import numpy as np
-from tqdm import tqdm
-
 from av2.utils.typing import NDArrayInt
-
-Frame = Dict[str, Any]
-Frames = List[Frame]
-Sequences = Dict[str, Frames]
-
-av2_classes: List[str] = [
-    "REGULAR_VEHICLE",
-    "PEDESTRIAN",
-    "BICYCLIST",
-    "MOTORCYCLIST",
-    "WHEELED_RIDER",
-    "BOLLARD",
-    "CONSTRUCTION_CONE",
-    "SIGN",
-    "CONSTRUCTION_BARREL",
-    "STOP_SIGN",
-    "MOBILE_PEDESTRIAN_CROSSING_SIGN",
-    "LARGE_VEHICLE",
-    "BUS",
-    "BOX_TRUCK",
-    "TRUCK",
-    "VEHICULAR_TRAILER",
-    "TRUCK_CAB",
-    "SCHOOL_BUS",
-    "ARTICULATED_BUS",
-    "MESSAGE_BOARD_TRAILER",
-    "BICYCLE",
-    "MOTORCYCLE",
-    "WHEELED_DEVICE",
-    "WHEELCHAIR",
-    "STROLLER",
-    "DOG",
-]
-
-
-def progressbar(itr: Iterable[Any], desc: Optional[str] = None, **kwargs: Dict[str, Any]) -> tqdm:
-    """Create and return a tqdm progress bar object for the given iterable.
-
-    Args:
-        itr: The iterable object to be looped over.
-        desc: A short description of the progress bar. Defaults to None.
-        kwargs: Optional arguments to be passed to the tqdm constructor.
-
-    Returns:
-        tqdm progress bar
-    """
-    pbar = tqdm(itr, **kwargs)
-    if desc:
-        pbar.set_description(desc)
-    return pbar
+from ..typing import Sequences, Frame, Frames
 
 
 def save(obj: Any, path: str) -> None:  # noqa
@@ -82,10 +33,10 @@ def load(path: str) -> Any:  # noqa
     """Load an object from file using pickle module.
 
     Args:
-        path: File path
+        path: File path.
 
     Returns:
-        Object or None if the file does not exist
+        Object or None if the file does not exist.
     """
     if not os.path.exists(path):
         return None
@@ -93,18 +44,32 @@ def load(path: str) -> Any:  # noqa
         return pickle.load(f)
 
 
+def annotate_frame_metadata(prediction_frames: Frames, label_frames: Frames, metadata_keys: List[str]) -> None:
+    """Copy annotations with provided keys from label to prediction frames.
+
+    Args:
+        prediction_frames: list of prediction frames
+        label_frames: list of label frames
+        metadata_keys: keys of the annotations to be copied.
+    """
+    assert len(prediction_frames) == len(label_frames)
+    for prediction, label in zip(prediction_frames, label_frames):
+        for key in metadata_keys:
+            prediction[key] = label[key]
+
+
 def group_frames(frames_list: Frames) -> Sequences:
     """Group list of frames into dictionary by sequence id.
 
     Args:
-        frames_list: List of frames, each containing a detections snapshot for a timestamp
+        frames_list: List of frames, each containing a detections snapshot for a timestamp.
 
     Returns:
-        Dictionary of frames indexed by sequence id
+        Dictionary of frames indexed by sequence id.
     """
     frames_by_seq_id = defaultdict(list)
-    frames_list = sorted(frames_list, key=lambda f: cast(int, f["timestamp_ns"]))
-    for frame in frames_list:
+    sorted_frames_list = sorted(frames_list, key=lambda f: cast(int, f["timestamp_ns"]))
+    for frame in sorted_frames_list:
         frames_by_seq_id[frame["seq_id"]].append(frame)
     return dict(frames_by_seq_id)
 
@@ -118,10 +83,7 @@ def ungroup_frames(frames_by_seq_id: Sequences) -> Frames:
     Returns:
         List of frames
     """
-    ungrouped_frames = []
-    for frames in frames_by_seq_id.values():
-        ungrouped_frames.extend(frames)
-    return ungrouped_frames
+    return list(chain.from_iterable(frames_by_seq_id.values()))
 
 
 def index_array_values(array_dict: Frame, index: Union[int, NDArrayInt]) -> Frame:

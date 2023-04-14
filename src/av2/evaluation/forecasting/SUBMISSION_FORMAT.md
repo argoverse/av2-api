@@ -15,6 +15,7 @@ The evaluation expects a dictionary of dictionaries of lists of dictionaries
          "label": <label>,
          "name": <name>,
          "size": <size>,
+         "yaw" : <yaw>
       }, ...
     ], ...
   }, ...
@@ -31,6 +32,7 @@ The evaluation expects a dictionary of dictionaries of lists of dictionaries
 - `label`: Integer index of the object class.
 - `name`: Object class name.
 - `size`: Object extent along the x,y,z axes in meters.
+- `yaw` : Object rotation in radians
 
 An example looks like this:
 
@@ -45,6 +47,7 @@ print(forecasts)
       'current_translation': array([6759.4230302 , 1596.38016309]),
       'detection_score': 0.54183,
       'size': array([4.4779487, 1.7388916, 1.6963532], dtype=float32),
+      'yaw' : 0.832,
       'label': 0,
       'name': 'REGULAR_VEHICLE',
       'prediction': array([[[6759.4230302 , 1596.38016309],

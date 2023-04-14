@@ -37,12 +37,12 @@ from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 TEST_DATA_DIR: Final[Path] = Path(__file__).parent.resolve() / "data"
 
-TRANSLATION_COLS: Final[List[str]] = ["tx_m", "ty_m", "tz_m"]
-DIMS_COLS: Final[List[str]] = ["length_m", "width_m", "height_m"]
-QUAT_COLS: Final[List[str]] = ["qw", "qx", "qy", "qz"]
-ANNO_COLS: Final[List[str]] = ["timestamp_ns", "category"] + DIMS_COLS + QUAT_COLS + TRANSLATION_COLS
+TRANSLATION_COLS: Final = ["tx_m", "ty_m", "tz_m"]
+DIMS_COLS: Final = ["length_m", "width_m", "height_m"]
+QUAT_COLS: Final = ["qw", "qx", "qy", "qz"]
+ANNO_COLS: Final = ["timestamp_ns", "category"] + DIMS_COLS + QUAT_COLS + TRANSLATION_COLS
 
-CUBOID_COLS: Final[List[str]] = ["tx_m", "ty_m", "tz_m", "length_m", "width_m", "height_m", "qw", "qx", "qy", "qz"]
+CUBOID_COLS: Final = ["tx_m", "ty_m", "tz_m", "length_m", "width_m", "height_m", "qw", "qx", "qy", "qz"]
 
 
 def _get_summary_identity() -> pd.DataFrame:

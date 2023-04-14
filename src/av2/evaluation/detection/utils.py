@@ -13,21 +13,18 @@ increased interpretability of the error modes in a set of detections.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
-from joblib import Parallel, delayed
-from scipy.spatial.distance import cdist
-from upath import UPath
-
+from av2.evaluation import NUM_RECALL_SAMPLES, SensorCompetitionCategories
 from av2.evaluation.detection.constants import (
     MAX_NORMALIZED_ASE,
     MAX_SCALE_ERROR,
     MAX_YAW_RAD_ERROR,
     MIN_AP,
     MIN_CDS,
+    NUM_DECIMALS,
     AffinityType,
-    CompetitionCategories,
     DistanceType,
     FilterMetricType,
     InterpType,
@@ -39,7 +36,10 @@ from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
 from av2.structures.cuboid import Cuboid, CuboidList
 from av2.utils.constants import EPS
 from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt, NDArrayObject
+from joblib import Parallel, delayed
+from scipy.spatial.distance import cdist
+from upath import UPath
 
 logger = logging.getLogger(__name__)
 
@@ -63,13 +63,13 @@ class DetectionCfg:
 
     affinity_thresholds_m: Tuple[float, ...] = (0.5, 1.0, 2.0, 4.0)
     affinity_type: AffinityType = AffinityType.CENTER
-    categories: Tuple[str, ...] = tuple(x.value for x in CompetitionCategories)
+    categories: Tuple[str, ...] = tuple(x.value for x in SensorCompetitionCategories)
     dataset_dir: Optional[Union[Path, UPath]] = None
     eval_only_roi_instances: bool = True
     filter_metric: FilterMetricType = FilterMetricType.EUCLIDEAN
     max_num_dts_per_category: int = 100
     max_range_m: float = 150.0
-    num_recall_samples: int = 100
+    num_recall_samples: int = NUM_RECALL_SAMPLES
     tp_threshold_m: float = 2.0
 
     @property
@@ -164,6 +164,211 @@ def accumulate(
     _, inverse_permutation = outputs
     dts_augmented = dts_augmented[inverse_permutation]
     return dts_augmented, gts_augmented
+
+
+def is_evaluated(
+    dts: NDArrayFloat,
+    gts: NDArrayFloat,
+    dts_cats: NDArrayObject,
+    gts_cats: NDArrayObject,
+    uuid: Tuple[str, int],
+    cfg: DetectionCfg,
+    avm: Optional[ArgoverseStaticMap] = None,
+    city_SE3_ego: Optional[SE3] = None,
+) -> Tuple[NDArrayFloat, NDArrayFloat, NDArrayObject, NDArrayObject, Tuple[str, int]]:
+    """Filters detections and ground truth boxes that are either not within the max_range_m or within the ROI.
+
+    Args:
+        dts: Detections array.
+        gts: Ground truth annotations array.
+        dts_cats: Categories associated with the detections array.
+        gts_cats: Categories associated with the ground truth annotations array.
+        uuid: List of unique identifiers (e.g. log_id:timestamp)
+        cfg: 3D object detection configuration.
+        avm: Argoverse static map for the log.
+        city_SE3_ego: Egovehicle pose in the city reference frame.
+
+    Returns:
+        dts: Detections array.
+        gts: Ground truth annotations array.
+        dts_cats: Categories associated with the detections array.
+        gts_cats: Categories associated with the ground truth annotations array.
+        uuid: List of unique identifiers (e.g. log_id:timestamp)
+    """
+    N, M = len(dts), len(gts)
+    is_evaluated_dts: NDArrayBool = np.ones(N, dtype=bool)
+    is_evaluated_gts: NDArrayBool = np.ones(M, dtype=bool)
+
+    if avm is not None and city_SE3_ego is not None:
+        is_evaluated_dts &= compute_objects_in_roi_mask(dts, city_SE3_ego, avm)
+        is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
+
+    is_evaluated_dts &= compute_evaluated_dts_mask(dts[..., :3], cfg)
+    is_evaluated_gts &= compute_evaluated_gts_mask(gts[..., :3], gts[..., -1].astype(int), cfg)
+
+    dts = dts[is_evaluated_dts]
+    gts = gts[is_evaluated_gts]
+
+    dts_cats = dts_cats[is_evaluated_dts]
+    gts_cats = gts_cats[is_evaluated_gts]
+    return dts, gts, dts_cats, gts_cats, uuid
+
+
+def filter_dont_care(gt: NDArrayObject, class_name: str) -> bool:
+    """Fitlers detections that are considered don't care under current LCA evaluation."""
+    if gt == "ignore":
+        return True
+
+    if gt == class_name:
+        return True
+
+    else:
+        return False
+
+
+def accumulate_hierarchy(
+    dts: NDArrayFloat,
+    gts: NDArrayFloat,
+    dts_cats: NDArrayObject,
+    gts_cats: NDArrayObject,
+    dts_uuids: NDArrayObject,
+    gts_uuids: NDArrayObject,
+    cat: str,
+    lca_cat: Tuple[str, ...],
+    lca: str,
+    cfg: DetectionCfg,
+) -> Tuple[float, str, str]:
+    """Computes hierarchical AP at LCA=lca for each the given class (cat).
+
+    Args:
+        dts: Detections array.
+        gts: Ground truth annotations array.
+        dts_cats: Categories associated with the detections array.
+        gts_cats: Categories associated with the ground truth annotations array.
+        dts_uuids: List of unique identifiers (e.g. log_id:timestamp)
+        gts_uuids: List of unique identifiers (e.g. log_id:timestamp)
+        cat: Category
+        lca_cat: Superclass of cat
+        lca: Least Common Ancestor, LCA={0,1,2}
+        cfg: 3D object detection configuration.
+
+    Returns:
+        Hierarchical AP, cat, lca
+    """
+    keep_dts = np.array([True if cname == cat else False for cname in dts_cats])
+    keep_gts = np.array([True if cname in lca_cat else False for cname in gts_cats])
+
+    dts = dts[keep_dts]
+    gts = gts[keep_gts]
+    dts_cats = dts_cats[keep_dts]
+    gts_cats = gts_cats[keep_gts]
+    dts_uuids = dts_uuids[keep_dts]
+    gts_uuids = gts_uuids[keep_gts]
+
+    scores = dts[..., -1]
+    permutation = np.argsort(-scores).tolist()
+    dts = dts[permutation]
+    dts_cats = dts_cats[permutation]
+    dts_uuids = dts_uuids[permutation]
+
+    dist_mat = -compute_affinity_matrix(dts[..., :3], gts[..., :3], cfg.affinity_type)
+
+    npos = sum([True if cname == cat else False for cname in gts_cats])
+
+    tp: Dict[int, Any] = {}
+    fp: Dict[int, Any] = {}
+    gt_name: Dict[int, List[Any]] = {}
+    pred_name: Dict[int, List[Any]] = {}
+    taken: Dict[int, Set[Tuple[Any, Any]]] = {}
+    for i in range(len(cfg.affinity_thresholds_m)):
+        tp[i] = []
+        fp[i] = []
+        gt_name[i] = []
+        pred_name[i] = []
+        taken[i] = set()
+
+    for pred_idx, pred in enumerate(zip(dts, dts_cats, dts_uuids)):
+        pred_box, pred_cat, pred_uuid = pred
+        min_dist = len(cfg.affinity_thresholds_m) * [np.inf]
+        match_gt_idx = len(cfg.affinity_thresholds_m) * [None]
+
+        keep_sweep = gts_uuids == np.array([gts.shape[0] * [pred_uuid]]).squeeze()
+        gt_ind_sweep = np.arange(gts.shape[0])[keep_sweep]
+        gts_sweep = gts[keep_sweep]
+        gts_cats_sweep = gts_cats[keep_sweep]
+        gts_uuids_sweep = gts_uuids[keep_sweep]
+
+        for gt in zip(gt_ind_sweep, gts_sweep, gts_cats_sweep, gts_uuids_sweep):
+            gt_idx, gt_box, gt_cat, gt_uuid = gt
+
+            # Find closest match among ground truth boxes
+            for i in range(len(cfg.affinity_thresholds_m)):
+                if gt_cat == cat and not (pred_uuid, gt_idx) in taken[i]:
+                    this_distance = dist_mat[pred_idx][gt_idx]
+                    if this_distance < min_dist[i]:
+                        min_dist[i] = this_distance
+                        match_gt_idx[i] = gt_idx
+
+        is_match = [min_dist[i] < dist_th for i, dist_th in enumerate(cfg.affinity_thresholds_m)]
+
+        for gt in zip(gt_ind_sweep, gts_sweep, gts_cats_sweep, gts_uuids_sweep):
+            gt_idx, gt_box, gt_cat, gt_uuid = gt
+            # Find closest match among ground truth boxes
+
+            for i in range(len(cfg.affinity_thresholds_m)):
+                if not is_match[i] and not (pred_uuid, gt_idx) in taken[i]:
+                    this_distance = dist_mat[pred_idx][gt_idx]
+                    if this_distance < min_dist[i]:
+                        min_dist[i] = this_distance
+                        match_gt_idx[i] = gt_idx
+
+        is_dist = [min_dist[i] < dist_th for i, dist_th in enumerate(cfg.affinity_thresholds_m)]
+        is_match = [
+            True if is_dist[i] and gts_cats[match_gt_idx[i]] == cat else False
+            for i in range(len(cfg.affinity_thresholds_m))
+        ]
+
+        for i in range(len(cfg.affinity_thresholds_m)):
+            if is_match[i]:
+                taken[i].add((pred_uuid, gt_idx))
+                tp[i].append(1)
+                fp[i].append(0)
+
+                gt_name[i].append(gts_cats[match_gt_idx[i]])
+                pred_name[i].append(pred_cat)
+            else:
+                tp[i].append(0)
+                fp[i].append(1)
+
+                if is_dist[i]:
+                    gt_name[i].append(gts_cats[match_gt_idx[i]])
+                else:
+                    gt_name[i].append("ignore")
+
+                pred_name[i].append(pred_cat)
+
+    mAP = []
+    for i in range(len(cfg.affinity_thresholds_m)):
+        select = [filter_dont_care(gt, cat) for gt in gt_name[i]]
+
+        tp[i] = np.array(tp[i])[select]
+        fp[i] = np.array(fp[i])[select]
+
+        if len(tp[i]) == 0:
+            return 0.0, cat, lca
+
+        tp[i] = np.cumsum(tp[i]).astype(float)
+        fp[i] = np.cumsum(fp[i]).astype(float)
+
+        prec = tp[i] / (fp[i] + tp[i])
+        rec = tp[i] / float(npos)
+
+        rec_interp = np.linspace(0, 1, NUM_RECALL_SAMPLES)  # 101 steps, from 0% to 100% recall.
+        ap = np.mean(np.interp(rec_interp, rec, prec, right=0))
+
+        mAP.append(round(ap, NUM_DECIMALS))
+
+    return float(np.mean(mAP)), cat, lca
 
 
 def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDArrayFloat, NDArrayFloat]:
@@ -461,20 +666,3 @@ def load_mapped_avm_and_egoposes(
         raise RuntimeError("Map and egopose loading has failed!")
     log_id_to_avm = {log_ids[i]: avm for i, avm in enumerate(avms)}
     return log_id_to_avm, log_id_to_timestamped_poses
-
-
-def groupby(names: List[str], values: NDArrayFloat) -> Dict[str, NDArrayFloat]:
-    """Group a set of values by their corresponding names.
-
-    Args:
-        names: String which maps data to a "bin".
-        values: Data which will be grouped by their names.
-
-    Returns:
-        Dictionary mapping the group name to the corresponding group.
-    """
-    outputs: Tuple[NDArrayInt, NDArrayInt] = np.unique(names, return_index=True)
-    unique_items, unique_items_indices = outputs
-    dts_groups: List[NDArrayFloat] = np.split(values, unique_items_indices[1:])
-    uuid_to_groups = {unique_items[i]: x for i, x in enumerate(dts_groups)}
-    return uuid_to_groups

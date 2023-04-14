@@ -8,14 +8,13 @@ from pathlib import Path
 from typing import Any, Callable, DefaultDict, Dict, Final, List, Optional, Tuple, Union, cast
 from zipfile import ZipFile
 
+import av2.evaluation.scene_flow.constants as constants
 import click
 import numpy as np
 import pandas as pd
-from rich.progress import track
-
-import av2.evaluation.scene_flow.constants as constants
 from av2.evaluation.scene_flow.constants import SceneFlowMetricType, SegmentationMetricType
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
+from rich.progress import track
 
 ACCURACY_RELAX_DISTANCE_THRESHOLD: Final = 0.1
 ACCURACY_STRICT_DISTANCE_THRESHOLD: Final = 0.05
