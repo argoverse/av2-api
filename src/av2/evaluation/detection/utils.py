@@ -292,7 +292,7 @@ def accumulate_hierarchy(
         min_dist = len(cfg.affinity_thresholds_m) * [np.inf]
         match_gt_idx = len(cfg.affinity_thresholds_m) * [None]
 
-        keep_sweep = gts_uuids == np.array([gts.shape[0] * [pred_uuid]]).squeeze()
+        keep_sweep = np.all(gts_uuids == np.array([gts.shape[0] * [pred_uuid]]).squeeze(), axis=1)
         gt_ind_sweep = np.arange(gts.shape[0])[keep_sweep]
         gts_sweep = gts[keep_sweep]
         gts_cats_sweep = gts_cats[keep_sweep]
@@ -303,7 +303,7 @@ def accumulate_hierarchy(
 
             # Find closest match among ground truth boxes
             for i in range(len(cfg.affinity_thresholds_m)):
-                if gt_cat == cat and not (pred_uuid, gt_idx) in taken[i]:
+                if gt_cat == cat and not (pred_uuid[0], pred_uuid[1], gt_idx) in taken[i]:
                     this_distance = dist_mat[pred_idx][gt_idx]
                     if this_distance < min_dist[i]:
                         min_dist[i] = this_distance
@@ -316,7 +316,7 @@ def accumulate_hierarchy(
             # Find closest match among ground truth boxes
 
             for i in range(len(cfg.affinity_thresholds_m)):
-                if not is_match[i] and not (pred_uuid, gt_idx) in taken[i]:
+                if not is_match[i] and not (pred_uuid[0], pred_uuid[1], gt_idx) in taken[i]:
                     this_distance = dist_mat[pred_idx][gt_idx]
                     if this_distance < min_dist[i]:
                         min_dist[i] = this_distance
@@ -330,7 +330,7 @@ def accumulate_hierarchy(
 
         for i in range(len(cfg.affinity_thresholds_m)):
             if is_match[i]:
-                taken[i].add((pred_uuid, gt_idx))
+                taken[i].add((pred_uuid[0], pred_uuid[1], gt_idx))
                 tp[i].append(1)
                 fp[i].append(0)
 

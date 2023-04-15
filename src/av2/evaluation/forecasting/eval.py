@@ -52,7 +52,7 @@ def evaluate(
     ground_truth: ForecastSequences = convert_forecast_labels(raw_ground_truth)
     ground_truth = filter_max_dist(ground_truth, max_range_m)
 
-    utils.annotate_frame_metadata(predictions, ground_truth, ["ego_translation"])
+    utils.annotate_frame_metadata(predictions, ground_truth, ["ego_translation_m"])
     predictions = filter_max_dist(predictions, max_range_m)
 
     if dataset_dir is not None:
@@ -77,7 +77,7 @@ def evaluate(
                 pred = []
 
             for agent in gt:
-                if agent["future_translation"].shape[0] < 1:
+                if agent["future_translation_m"].shape[0] < 1:
                     continue
 
                 agent["seq_id"] = seq_id
@@ -184,7 +184,7 @@ def accumulate(
             if not (pred_agent["seq_id"], pred_agent["timestamp"], gt_idx) in taken:
                 # Find closest match among ground truth boxes
                 this_distance = utils.center_distance(
-                    gt_agent["current_translation"], pred_agent["current_translation"]
+                    gt_agent["current_translation_m"], pred_agent["current_translation_m"]
                 )
                 if this_distance < min_dist:
                     min_dist = this_distance
@@ -197,15 +197,15 @@ def accumulate(
             taken.add((pred_agent["seq_id"], pred_agent["timestamp"], match_gt_idx))
             gt_match_agent = gt_agents_in_frame[match_gt_idx]
 
-            gt_len = gt_match_agent["future_translation"].shape[0]
+            gt_len = gt_match_agent["future_translation_m"].shape[0]
             forecast_match_th = [threshold + constants.FORECAST_SCALAR[i] * velocity for i in range(gt_len + 1)]
 
             if top_k == 1:
                 ind = cast(int, np.argmax(pred_agent["score"]))
                 forecast_dist = [
                     utils.center_distance(
-                        gt_match_agent["future_translation"][i],
-                        pred_agent["prediction"][ind][i],
+                        gt_match_agent["future_translation_m"][i],
+                        pred_agent["prediction_m"][ind][i],
                     )
                     for i in range(gt_len)
                 ]
@@ -221,8 +221,8 @@ def accumulate(
                 for ind in range(top_k):
                     curr_forecast_dist = [
                         utils.center_distance(
-                            gt_match_agent["future_translation"][i],
-                            pred_agent["prediction"][ind][i],
+                            gt_match_agent["future_translation_m"][i],
+                            pred_agent["prediction_m"][ind][i],
                         )
                         for i in range(gt_len)
                     ]
@@ -303,13 +303,13 @@ def convert_forecast_labels(labels: Any) -> Any:
         frame_dict = {}
         for frame_idx, frame in enumerate(frames):
             forecast_instances = []
-            for instance in utils.array_dict_iterator(frame, len(frame["translation"])):
+            for instance in utils.array_dict_iterator(frame, len(frame["translation_m"])):
                 future_translations: Any = []
                 for future_frame in frames[frame_idx + 1 : frame_idx + 1 + constants.NUM_TIMESTEPS]:
                     if instance["track_id"] not in future_frame["track_id"]:
                         break
                     future_translations.append(
-                        future_frame["translation"][future_frame["track_id"] == instance["track_id"]][0]
+                        future_frame["translation_m"][future_frame["track_id"] == instance["track_id"]][0]
                     )
 
                 if len(future_translations) == 0:
@@ -317,9 +317,9 @@ def convert_forecast_labels(labels: Any) -> Any:
 
                 forecast_instances.append(
                     {
-                        "current_translation": instance["translation"][:2],
-                        "ego_translation": instance["ego_translation"][:2],
-                        "future_translation": np.array(future_translations)[:, :2],
+                        "current_translation_m": instance["translation_m"][:2],
+                        "ego_translation_m": instance["ego_translation_m"][:2],
+                        "future_translation_m": np.array(future_translations)[:, :2],
                         "name": instance["name"],
                         "size": instance["size"],
                         "yaw": instance["yaw"],
@@ -350,8 +350,8 @@ def filter_max_dist(forecasts: ForecastSequences, max_range_m: int) -> ForecastS
             keep_forecasts = [
                 agent
                 for agent in forecasts[seq_id][timestamp]
-                if "ego_translation" in agent
-                and np.linalg.norm(agent["current_translation"] - agent["ego_translation"]) < max_range_m
+                if "ego_translation_m" in agent
+                and np.linalg.norm(agent["current_translation_m"] - agent["ego_translation_m"]) < max_range_m
             ]
             forecasts[seq_id][timestamp] = keep_forecasts
 
@@ -395,7 +395,7 @@ def filter_drivable_area(forecasts: ForecastSequences, dataset_dir: str) -> Fore
                 continue
 
             for box in forecasts[log_id][timestamp]:
-                translation.append(box["current_translation"] - box["ego_translation"])
+                translation.append(box["current_translation_m"] - box["ego_translation_m"])
                 size.append(box["size"])
                 quat.append(yaw_to_quaternion3d(box["yaw"]))
 

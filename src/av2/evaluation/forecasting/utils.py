@@ -18,18 +18,18 @@ def agent_velocity(agent: Dict[str, Any]) -> NDArrayFloat:
 
     Returns:
         Ground truth velocity for label agents or
-        List of velocities corresponding to each movement prediction for predicted agents
+        List of velocities corresponding to each movement prediction_m for predicted agents
     """
-    if "future_translation" in agent:  # ground_truth
+    if "future_translation_m" in agent:  # ground_truth
         return cast(
             NDArrayFloat,
-            (agent["future_translation"][0][:2] - agent["current_translation"][:2]) / constants.TIME_DELTA_S,
+            (agent["future_translation_m"][0][:2] - agent["current_translation_m"][:2]) / constants.TIME_DELTA_S,
         )
 
     else:  # predictions
         res = []
-        for i in range(agent["prediction"].shape[0]):
-            res.append((agent["prediction"][i][0][:2] - agent["current_translation"][:2]) / constants.TIME_DELTA_S)
+        for i in range(agent["prediction_m"].shape[0]):
+            res.append((agent["prediction_m"][i][0][:2] - agent["current_translation_m"][:2]) / constants.TIME_DELTA_S)
 
         return np.stack(res)
 
@@ -50,14 +50,14 @@ def trajectory_type(agent: Dict[str, Any], class_velocity: Dict[str, float]) -> 
         String corresponding to the trajectory type for agents in the ground-truth annotations or
         List of strings, one trajectory for each movement prediction for predicted agents
     """
-    if "future_translation" in agent:  # ground_truth
-        time = agent["future_translation"].shape[0] * constants.TIME_DELTA_S
-        static_target = agent["current_translation"][:2]
-        linear_target = agent["current_translation"][:2] + time * agent["velocity"][:2]
+    if "future_translation_m" in agent:  # ground_truth
+        time = agent["future_translation_m"].shape[0] * constants.TIME_DELTA_S
+        static_target = agent["current_translation_m"][:2]
+        linear_target = agent["current_translation_m"][:2] + time * agent["velocity"][:2]
 
-        final_position = agent["future_translation"][-1][:2]
+        final_position = agent["future_translation_m"][-1][:2]
 
-        threshold = 1 + constants.FORECAST_SCALAR[len(agent["future_translation"])] * class_velocity.get(
+        threshold = 1 + constants.FORECAST_SCALAR[len(agent["future_translation_m"])] * class_velocity.get(
             agent["name"], 0
         )
         if np.linalg.norm(final_position - static_target) < threshold:
@@ -69,14 +69,14 @@ def trajectory_type(agent: Dict[str, Any], class_velocity: Dict[str, float]) -> 
 
     else:  # predictions
         res: List[str] = []
-        time = agent["prediction"].shape[1] * constants.TIME_DELTA_S
+        time = agent["prediction_m"].shape[1] * constants.TIME_DELTA_S
 
-        threshold = 1 + constants.FORECAST_SCALAR[len(agent["prediction"])] * class_velocity.get(agent["name"], 0)
-        for i in range(agent["prediction"].shape[0]):
-            static_target = agent["current_translation"][:2]
-            linear_target = agent["current_translation"][:2] + time * agent["velocity"][i][:2]
+        threshold = 1 + constants.FORECAST_SCALAR[len(agent["prediction_m"])] * class_velocity.get(agent["name"], 0)
+        for i in range(agent["prediction_m"].shape[0]):
+            static_target = agent["current_translation_m"][:2]
+            linear_target = agent["current_translation_m"][:2] + time * agent["velocity"][i][:2]
 
-            final_position = agent["prediction"][i][-1][:2]
+            final_position = agent["prediction_m"][i][-1][:2]
 
             if np.linalg.norm(final_position - static_target) < threshold:
                 res.append("static")
