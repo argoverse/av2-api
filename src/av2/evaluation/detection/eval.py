@@ -58,6 +58,7 @@ from typing import Any, Dict, Final, List, Optional, Tuple, cast
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from av2.evaluation.detection.constants import (
     HIERARCHY,
     LCA,
@@ -487,10 +488,10 @@ def evaluate_hierarchy(
                 )
             )
 
-    accumulate_hierarchy(*accumulate_hierarchy_args_list[0])
     logger.info("Starting evaluation ...")
-    with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        accumulate_outputs: Any = p.starmap(accumulate_hierarchy, accumulate_hierarchy_args_list)
+    accumulate_outputs = []
+    for accumulate_args in tqdm(accumulate_hierarchy_args_list):
+        accumulate_outputs.append(accumulate_hierarchy(*accumulate_args))
 
     super_categories = list(HIERARCHY.keys())
     metrics = np.zeros((len(cfg.categories), len(HIERARCHY.keys())))
