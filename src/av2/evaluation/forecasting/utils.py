@@ -28,8 +28,8 @@ def agent_velocity_m_per_s(agent: Dict[str, Any]) -> NDArrayFloat:
 
     else:  # predictions
         res = []
-        for i in range(agent["prediction"].shape[0]):
-            res.append((agent["prediction"][i][0][:2] - agent["current_translation_m"][:2]) / constants.TIME_DELTA_S)
+        for i in range(agent["prediction_m"].shape[0]):
+            res.append((agent["prediction_m"][i][0][:2] - agent["current_translation_m"][:2]) / constants.TIME_DELTA_S)
 
         return np.stack(res)
 
@@ -69,16 +69,16 @@ def trajectory_type(agent: Dict[str, Any], category_velocity_m_per_s: Dict[str, 
 
     else:  # predictions
         res: List[str] = []
-        time = agent["prediction"].shape[1] * constants.TIME_DELTA_S
+        time = agent["prediction_m"].shape[1] * constants.TIME_DELTA_S
 
-        threshold = 1 + constants.FORECAST_SCALAR[len(agent["prediction"])] * category_velocity_m_per_s.get(
+        threshold = 1 + constants.FORECAST_SCALAR[len(agent["prediction_m"])] * category_velocity_m_per_s.get(
             agent["name"], 0
         )
-        for i in range(agent["prediction"].shape[0]):
+        for i in range(agent["prediction_m"].shape[0]):
             static_target = agent["current_translation_m"][:2]
             linear_target = agent["current_translation_m"][:2] + time * agent["velocity_m_per_s"][i][:2]
 
-            final_position = agent["prediction"][i][-1][:2]
+            final_position = agent["prediction_m"][i][-1][:2]
 
             if np.linalg.norm(final_position - static_target) < threshold:
                 res.append("static")

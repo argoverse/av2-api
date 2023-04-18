@@ -82,7 +82,7 @@ def evaluate(
 
                 agent["seq_id"] = seq_id
                 agent["timestamp_ns"] = timestamp_ns
-                agent["velocity_m_per_s"] = utils.agent_velocity(agent)
+                agent["velocity_m_per_s"] = utils.agent_velocity_m_per_s(agent)
                 agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY_M_PER_S)
 
                 gt_agents.append(agent)
@@ -90,7 +90,7 @@ def evaluate(
             for agent in pred:
                 agent["seq_id"] = seq_id
                 agent["timestamp_ns"] = timestamp_ns
-                agent["velocity_m_per_s"] = utils.agent_velocity(agent)
+                agent["velocity_m_per_s"] = utils.agent_velocity_m_per_s(agent)
                 agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY_M_PER_S)
 
                 pred_agents.append(agent)
