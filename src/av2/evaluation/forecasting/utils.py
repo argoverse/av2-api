@@ -71,7 +71,9 @@ def trajectory_type(agent: Dict[str, Any], category_velocity_m_per_s: Dict[str, 
         res: List[str] = []
         time = agent["prediction"].shape[1] * constants.TIME_DELTA_S
 
-        threshold = 1 + constants.FORECAST_SCALAR[len(agent["prediction"])] * category_velocity_m_per_s.get(agent["name"], 0)
+        threshold = 1 + constants.FORECAST_SCALAR[len(agent["prediction"])] * category_velocity_m_per_s.get(
+            agent["name"], 0
+        )
         for i in range(agent["prediction"].shape[0]):
             static_target = agent["current_translation_m"][:2]
             linear_target = agent["current_translation_m"][:2] + time * agent["velocity_m_per_s"][i][:2]
