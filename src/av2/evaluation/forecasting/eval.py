@@ -77,7 +77,7 @@ def evaluate(
                 pred = []
 
             for agent in gt:
-                if agent["future_translation"].shape[0] < 1:
+                if agent["future_translation_m"].shape[0] < 1:
                     continue
 
                 agent["seq_id"] = seq_id
@@ -197,14 +197,14 @@ def accumulate(
             taken.add((pred_agent["seq_id"], pred_agent["timestamp_ns"], match_gt_idx))
             gt_match_agent = gt_agents_in_frame[match_gt_idx]
 
-            gt_len = gt_match_agent["future_translation"].shape[0]
+            gt_len = gt_match_agent["future_translation_m"].shape[0]
             forecast_match_th = [threshold + constants.FORECAST_SCALAR[i] * velocity for i in range(gt_len + 1)]
 
             if top_k == 1:
                 ind = cast(int, np.argmax(pred_agent["score"]))
                 forecast_dist = [
                     utils.center_distance(
-                        gt_match_agent["future_translation"][i],
+                        gt_match_agent["future_translation_m"][i],
                         pred_agent["prediction"][ind][i],
                     )
                     for i in range(gt_len)
@@ -221,7 +221,7 @@ def accumulate(
                 for ind in range(top_k):
                     curr_forecast_dist = [
                         utils.center_distance(
-                            gt_match_agent["future_translation"][i],
+                            gt_match_agent["future_translation_m"][i],
                             pred_agent["prediction"][ind][i],
                         )
                         for i in range(gt_len)
@@ -319,7 +319,7 @@ def convert_forecast_labels(labels: Any) -> Any:
                     {
                         "current_translation_m": instance["translation_m"][:2],
                         "ego_translation_m": instance["ego_translation_m"][:2],
-                        "future_translation": np.array(future_translations)[:, :2],
+                        "future_translation_m": np.array(future_translations)[:, :2],
                         "name": instance["name"],
                         "size": instance["size"],
                         "yaw": instance["yaw"],
