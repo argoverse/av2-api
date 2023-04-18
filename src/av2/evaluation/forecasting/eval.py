@@ -81,7 +81,7 @@ def evaluate(
                     continue
 
                 agent["seq_id"] = seq_id
-                agent["timestamp"] = timestamp_ns
+                agent["timestamp_ns"] = timestamp_ns
                 agent["velocity"] = utils.agent_velocity(agent)
                 agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY_M_PER_S)
 
@@ -89,7 +89,7 @@ def evaluate(
 
             for agent in pred:
                 agent["seq_id"] = seq_id
-                agent["timestamp"] = timestamp_ns
+                agent["timestamp_ns"] = timestamp_ns
                 agent["velocity"] = utils.agent_velocity(agent)
                 agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY_M_PER_S)
 
@@ -138,8 +138,8 @@ def accumulate(
     """Perform matching between predicted and ground truth trajectories.
 
     Args:
-        pred_agents: List of predicted trajectories for a given log_id and timestamp.
-        gt_agents: List of ground truth trajectories for a given log_id and timestamp.
+        pred_agents: List of predicted trajectories for a given log_id and timestamp_ns.
+        gt_agents: List of ground truth trajectories for a given log_id and timestamp_ns.
         top_k: Number of future trajectories to consider when evaluating Forecastin AP, ADE and FDE (K=5 by default).
         class_name: Match class name (e.g. car, pedestrian, bicycle) to determine if a trajectory is included
             in evaluation.
@@ -165,7 +165,7 @@ def accumulate(
     sortind = [i for (v, i) in sorted((v, i) for (i, v) in enumerate(conf))][::-1]
     gt_agents_by_frame = defaultdict(list)
     for agent in gt:
-        gt_agents_by_frame[(agent["seq_id"], agent["timestamp"])].append(agent)
+        gt_agents_by_frame[(agent["seq_id"], agent["timestamp_ns"])].append(agent)
 
     npos = len(gt)
     # ---------------------------------------------
@@ -179,9 +179,9 @@ def accumulate(
         min_dist = np.inf
         match_gt_idx = None
 
-        gt_agents_in_frame = gt_agents_by_frame[(pred_agent["seq_id"], pred_agent["timestamp"])]
+        gt_agents_in_frame = gt_agents_by_frame[(pred_agent["seq_id"], pred_agent["timestamp_ns"])]
         for gt_idx, gt_agent in enumerate(gt_agents_in_frame):
-            if not (pred_agent["seq_id"], pred_agent["timestamp"], gt_idx) in taken:
+            if not (pred_agent["seq_id"], pred_agent["timestamp_ns"], gt_idx) in taken:
                 # Find closest match among ground truth boxes
                 this_distance = utils.center_distance(
                     gt_agent["current_translation"], pred_agent["current_translation"]
@@ -194,7 +194,7 @@ def accumulate(
         is_match = min_dist < threshold
 
         if is_match and match_gt_idx is not None:
-            taken.add((pred_agent["seq_id"], pred_agent["timestamp"], match_gt_idx))
+            taken.add((pred_agent["seq_id"], pred_agent["timestamp_ns"], match_gt_idx))
             gt_match_agent = gt_agents_in_frame[match_gt_idx]
 
             gt_len = gt_match_agent["future_translation"].shape[0]
@@ -346,14 +346,14 @@ def filter_max_dist(forecasts: ForecastSequences, max_range_m: int) -> ForecastS
         Dictionary of tracks.
     """
     for seq_id in forecasts.keys():
-        for timestamp in forecasts[seq_id].keys():
+        for timestamp_ns in forecasts[seq_id].keys():
             keep_forecasts = [
                 agent
-                for agent in forecasts[seq_id][timestamp]
+                for agent in forecasts[seq_id][timestamp_ns]
                 if "ego_translation" in agent
                 and np.linalg.norm(agent["current_translation"] - agent["ego_translation"]) < max_range_m
             ]
-            forecasts[seq_id][timestamp] = keep_forecasts
+            forecasts[seq_id][timestamp_ns] = keep_forecasts
 
     return forecasts
 
@@ -386,15 +386,15 @@ def filter_drivable_area(forecasts: ForecastSequences, dataset_dir: str) -> Fore
     for log_id in log_ids:
         avm = log_id_to_avm[log_id]
 
-        for timestamp in forecasts[log_id]:
-            city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp)]
+        for timestamp_ns in forecasts[log_id]:
+            city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
 
             translation, size, quat = [], [], []
 
-            if len(forecasts[log_id][timestamp]) == 0:
+            if len(forecasts[log_id][timestamp_ns]) == 0:
                 continue
 
-            for box in forecasts[log_id][timestamp]:
+            for box in forecasts[log_id][timestamp_ns]:
                 translation.append(box["current_translation"] - box["ego_translation"])
                 size.append(box["size"])
                 quat.append(yaw_to_quaternion3d(box["yaw"]))
@@ -411,7 +411,7 @@ def filter_drivable_area(forecasts: ForecastSequences, dataset_dir: str) -> Fore
             )
 
             is_evaluated = compute_objects_in_roi_mask(boxes, city_SE3_ego, avm)
-            forecasts[log_id][timestamp] = list(np.array(forecasts[log_id][timestamp])[is_evaluated])
+            forecasts[log_id][timestamp_ns] = list(np.array(forecasts[log_id][timestamp_ns])[is_evaluated])
 
     return forecasts
 

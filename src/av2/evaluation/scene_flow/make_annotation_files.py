@@ -31,7 +31,7 @@ def write_annotation(
         is_dynamic: Dynamic labels.
         is_valid: Valid flow labels.
         flow: Flow labels.
-        sweep_uuid: Log and timestamp of the sweep.
+        sweep_uuid: Log id and timestamp_ns of the sweep.
         output_dir: Top level directory to store the output in.
     """
     output = pd.DataFrame(

@@ -70,7 +70,7 @@ def write_output_file(
     Args:
         flow: (N,3) Flow predictions.
         is_dynamic: (N,) Dynamic segmentation prediction.
-        sweep_uuid: Identifier of the sweep being predicted (log_id, timestamp).
+        sweep_uuid: Identifier of the sweep being predicted (log_id, timestamp_ns).
         output_dir: Top level directory containing all predictions.
     """
     output_log_dir = output_dir / sweep_uuid[0]

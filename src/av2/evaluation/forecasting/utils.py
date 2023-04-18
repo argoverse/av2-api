@@ -141,14 +141,14 @@ def annotate_frame_metadata(
         predictions: Forecast predictions with new metadat key
     """
     for seq_id in ground_truth.keys():
-        for timestamp in ground_truth[seq_id].keys():
+        for timestamp_ns in ground_truth[seq_id].keys():
             copy_keys = {}
 
             for key in metadata_keys:
-                copy_keys[key] = ground_truth[seq_id][timestamp][0][key]
+                copy_keys[key] = ground_truth[seq_id][timestamp_ns][0][key]
 
-            for i in range(len(predictions[seq_id][timestamp])):
+            for i in range(len(predictions[seq_id][timestamp_ns])):
                 for key in metadata_keys:
-                    predictions[seq_id][timestamp][i][key] = copy_keys[key]
+                    predictions[seq_id][timestamp_ns][i][key] = copy_keys[key]
 
     return predictions
