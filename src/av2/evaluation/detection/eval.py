@@ -167,14 +167,6 @@ def evaluate(
             Optional[ArgoverseStaticMap],
             Optional[SE3],
         ]
-        log_id, timestamp_ns, _ = uuid
-        args: Tuple[
-            NDArrayFloat,
-            NDArrayFloat,
-            DetectionCfg,
-            Optional[ArgoverseStaticMap],
-            Optional[SE3],
-        ]
 
         sweep_dts: NDArrayFloat = np.zeros((0, 10))
         sweep_gts: NDArrayFloat = np.zeros((0, 10))
@@ -189,11 +181,9 @@ def evaluate(
             city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
             args = sweep_dts, sweep_gts, cfg, avm, city_SE3_ego
         accumulate_args_list.append(args)
-        accumulate_args_list.append(args)
 
     logger.info("Starting evaluation ...")
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = p.starmap(accumulate, accumulate_args_list)
         outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = p.starmap(accumulate, accumulate_args_list)
 
     dts_list, gts_list = zip(*outputs)
