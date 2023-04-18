@@ -27,10 +27,10 @@ polars = { version = "0.28.0", features = [
     "ipc",
     "serde",
 ] }
-pyo3 = { version = "0.18.2", features = ["extension-module"] }
-pyo3-polars = { git = "https://github.com/benjaminrwilson/pyo3-polars", features = ["serde"] }
-rayon = "1.6.1"
-serde = "1.0.155"
+pyo3 = { version = "0.18.3", features = ["extension-module"] }
+pyo3-polars = { git = "https://github.com/benjaminrwilson/pyo3-polars", rev = "993d22a6bf54ceb8f93c5ed9082621330b186a52", features = ["serde"] }
+rayon = "1.7.0"
+serde = "1.0.160"
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }

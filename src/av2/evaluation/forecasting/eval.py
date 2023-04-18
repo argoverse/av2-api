@@ -5,15 +5,30 @@ Evaluation Metrics:
 """
 
 import itertools
+import itertools
 import json
 import pickle
 from collections import defaultdict
 from pathlib import Path
 from pprint import pprint
 from typing import Any, Dict, List, Optional, Tuple, cast
+from pathlib import Path
+from pprint import pprint
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import click
+import click
 import numpy as np
+from av2.evaluation import NUM_RECALL_SAMPLES
+from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
+from av2.evaluation.forecasting import constants, utils
+from av2.evaluation.forecasting.constants import (
+    AV2_CATEGORIES,
+    CATEGORY_TO_VELOCITY_M_PER_S,
+    DISTANCE_THRESHOLDS_M,
+    VELOCITY_TYPES,
+    MAX_DISPLACEMENT_M,
+)
 from av2.evaluation import NUM_RECALL_SAMPLES
 from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
 from av2.evaluation.forecasting import constants, utils
@@ -28,8 +43,18 @@ from av2.utils.typing import NDArrayFloat
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 from ..typing import ForecastSequences, Sequences
+from scipy.spatial.transform import Rotation
+from tqdm import tqdm
+from ..typing import ForecastSequences, Sequences
 
 
+def evaluate(
+    predictions: ForecastSequences,
+    raw_ground_truth: Sequences,
+    top_k: int,
+    max_range_m: int,
+    dataset_dir: Optional[str],
+) -> Dict[str, Any]:
 def evaluate(
     predictions: ForecastSequences,
     raw_ground_truth: Sequences,
@@ -58,7 +83,15 @@ def evaluate(
     if dataset_dir is not None:
         ground_truth = filter_drivable_area(ground_truth, dataset_dir)
         predictions = filter_drivable_area(predictions, dataset_dir)
+    if dataset_dir is not None:
+        ground_truth = filter_drivable_area(ground_truth, dataset_dir)
+        predictions = filter_drivable_area(predictions, dataset_dir)
 
+    results: Dict[str, Any] = {}
+    for velocity_type in VELOCITY_TYPES:
+        results[velocity_type] = {}
+        for category in AV2_CATEGORIES:
+            results[velocity_type][category] = {"mAP_F": [], "ADE": [], "FDE": []}
     results: Dict[str, Any] = {}
     for velocity_type in VELOCITY_TYPES:
         results[velocity_type] = {}
@@ -70,7 +103,11 @@ def evaluate(
     for seq_id in tqdm(ground_truth.keys()):
         for timestamp_ns in ground_truth[seq_id].keys():
             gt = [agent for agent in ground_truth[seq_id][timestamp_ns]]
+        for timestamp_ns in ground_truth[seq_id].keys():
+            gt = [agent for agent in ground_truth[seq_id][timestamp_ns]]
 
+            if seq_id in predictions and timestamp_ns in predictions[seq_id]:
+                pred = [agent for agent in predictions[seq_id][timestamp_ns]]
             if seq_id in predictions and timestamp_ns in predictions[seq_id]:
                 pred = [agent for agent in predictions[seq_id][timestamp_ns]]
             else:
@@ -82,7 +119,9 @@ def evaluate(
 
                 agent["seq_id"] = seq_id
                 agent["timestamp"] = timestamp_ns
+                agent["timestamp"] = timestamp_ns
                 agent["velocity"] = utils.agent_velocity(agent)
+                agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY_M_PER_S)
                 agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY_M_PER_S)
 
                 gt_agents.append(agent)
@@ -90,7 +129,9 @@ def evaluate(
             for agent in pred:
                 agent["seq_id"] = seq_id
                 agent["timestamp"] = timestamp_ns
+                agent["timestamp"] = timestamp_ns
                 agent["velocity"] = utils.agent_velocity(agent)
+                agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY_M_PER_S)
                 agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY_M_PER_S)
 
                 pred_agents.append(agent)
@@ -103,14 +144,38 @@ def evaluate(
         outputs.append(
             accumulate(pred_agents, gt_agents, top_k, category, velocity_type, category_velocity_m_per_s, th)
         )
+    outputs = []
+    for category, velocity_type, th in tqdm(
+        list(itertools.product(AV2_CATEGORIES, VELOCITY_TYPES, DISTANCE_THRESHOLDS_M))
+    ):
+        category_velocity_m_per_s = CATEGORY_TO_VELOCITY_M_PER_S[category]
+        outputs.append(
+            accumulate(pred_agents, gt_agents, top_k, category, velocity_type, category_velocity_m_per_s, th)
+        )
 
+    for apf, ade, fde, category, velocity_type, threshold in outputs:
+        results[velocity_type][category]["mAP_F"].append(apf)
     for apf, ade, fde, category, velocity_type, threshold in outputs:
         results[velocity_type][category]["mAP_F"].append(apf)
 
         if threshold == constants.TP_THRESHOLD_M:
             results[velocity_type][category]["ADE"].append(ade)
             results[velocity_type][category]["FDE"].append(fde)
+        if threshold == constants.TP_THRESHOLD_M:
+            results[velocity_type][category]["ADE"].append(ade)
+            results[velocity_type][category]["FDE"].append(fde)
 
+    for category in AV2_CATEGORIES:
+        for velocity_type in VELOCITY_TYPES:
+            results[velocity_type][category]["mAP_F"] = round(
+                np.mean(results[velocity_type][category]["mAP_F"]), constants.NUM_DECIMALS
+            )
+            results[velocity_type][category]["ADE"] = round(
+                np.mean(results[velocity_type][category]["ADE"]), constants.NUM_DECIMALS
+            )
+            results[velocity_type][category]["FDE"] = round(
+                np.mean(results[velocity_type][category]["FDE"]), constants.NUM_DECIMALS
+            )
     for category in AV2_CATEGORIES:
         for velocity_type in VELOCITY_TYPES:
             results[velocity_type][category]["mAP_F"] = round(

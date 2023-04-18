@@ -55,6 +55,7 @@ import logging
 import multiprocessing as mp
 import warnings
 from typing import Any, Dict, Final, List, Optional, Tuple, cast
+from typing import Any, Dict, Final, List, Optional, Tuple, cast
 
 import numpy as np
 import pandas as pd
@@ -81,9 +82,18 @@ from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
 from av2.utils.io import TimestampedCitySE3EgoPoses
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayObject
 import polars as pl
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayObject
+import polars as pl
 
 warnings.filterwarnings("ignore", module="google")
 
+TP_ERROR_COLUMNS: Final = tuple(x.value for x in TruePositiveErrorNames)
+DTS_COLUMNS: Final = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)
+GTS_COLUMNS: Final = tuple(ORDERED_CUBOID_COL_NAMES) + ("num_interior_pts",)
+
+UUID_COLUMNS: Final = ("log_id", "timestamp_ns")
+CATEGORY_COLUMN: Final = ("category",)
+DETECTION_UUID_COLUMNS: Final = UUID_COLUMNS + CATEGORY_COLUMN
 TP_ERROR_COLUMNS: Final = tuple(x.value for x in TruePositiveErrorNames)
 DTS_COLUMNS: Final = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)
 GTS_COLUMNS: Final = tuple(ORDERED_CUBOID_COL_NAMES) + ("num_interior_pts",)
@@ -168,6 +178,14 @@ def evaluate(
             Optional[ArgoverseStaticMap],
             Optional[SE3],
         ]
+        log_id, timestamp_ns, _ = uuid
+        args: Tuple[
+            NDArrayFloat,
+            NDArrayFloat,
+            DetectionCfg,
+            Optional[ArgoverseStaticMap],
+            Optional[SE3],
+        ]
 
         sweep_dts: NDArrayFloat = np.zeros((0, 10))
         sweep_gts: NDArrayFloat = np.zeros((0, 10))
@@ -182,9 +200,11 @@ def evaluate(
             city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
             args = sweep_dts, sweep_gts, cfg, avm, city_SE3_ego
         accumulate_args_list.append(args)
+        accumulate_args_list.append(args)
 
     logger.info("Starting evaluation ...")
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
+        outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = p.starmap(accumulate, accumulate_args_list)
         outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = p.starmap(accumulate, accumulate_args_list)
 
     dts_list, gts_list = zip(*outputs)
