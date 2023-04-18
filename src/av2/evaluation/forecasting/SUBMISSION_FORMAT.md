@@ -24,11 +24,11 @@ The evaluation expects a dictionary of dictionaries of lists of dictionaries
 
 - `log_id`: Log id associated with the forecast, also called `seq_id`.
 - `timestamp_ns`: Timestamp associated with the detections.
-- `prediction_m`: K translation forecasts 3 seconds into the future.
+- `prediction_m`: K translation_m forecasts 3 seconds into the future.
 - `score`: Forecast confidence.
 - `detection_score`: Detection confidence.
 - `instance_id`: Unique id assigned to each object.
-- `current_translation_m`: xyz-components of the object translation in the city reference frame at the current timestamp_ns, in meters.
+- `current_translation_m`: xyz-components of the object translation_m in the city reference frame at the current timestamp_ns, in meters.
 - `label`: Integer index of the object class.
 - `name`: Object class name.
 - `size`: Object extent along the x,y,z axes in meters.

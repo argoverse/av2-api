@@ -11,7 +11,7 @@ The evaluation expects a dictionary of lists of dictionaries
                   "score": <score>,
                   "label": <label>,
                   "name": <name>,
-                  "translation": <translation>,
+                  "translation_m": <translation_m>,
                   "size": <size>,
                   "yaw": <yaw>,
                   "velocity": <velocity>,
@@ -26,7 +26,7 @@ The evaluation expects a dictionary of lists of dictionaries
 - `score`: Track confidence.
 - `label`: Integer index of the object class.
 - `name`: Object class name.
-- `translation`: xyz-components of the object translation in the city reference frame, in meters.
+- `translation_m`: xyz-components of the object translation in the city reference frame, in meters.
 - `size`: Object extent along the x,y,z axes in meters.
 - `yaw`: Object heading rotation along the z axis.
 - `velocity`: Object veloicty along the x,y,z axes.
@@ -41,7 +41,7 @@ print(tracks)
   '02678d04-cc9f-3148-9f95-1ba66347dff9': [
     {
        'timestamp_ns': 315969904359876000,
-       'translation': array([[6759.51786422, 1596.42662849,   57.90987307],
+       'translation_m': array([[6759.51786422, 1596.42662849,   57.90987307],
              [6757.01580393, 1601.80434654,   58.06088218],
              [6761.8232099 , 1591.6432147 ,   57.66341136],
              ...,

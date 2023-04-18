@@ -77,7 +77,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         raw_data = {
             f"{source}_ids": [frame["track_id"] for frame in tracks],
             f"{source}_classes": [frame["label"] for frame in tracks],
-            f"{source}_dets": [np.concatenate((frame["translation"], frame["size"]), axis=-1) for frame in tracks],
+            f"{source}_dets": [np.concatenate((frame["translation_m"], frame["size"]), axis=-1) for frame in tracks],
             "num_timesteps": len(tracks),
             "seq": seq_id,
         }
@@ -144,7 +144,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         return [np.array([id_map[id] for id in id_array], dtype=int) for id_array in ids]
 
     def _calculate_similarities(self, gt_dets_t: NDArrayFloat, tracker_dets_t: NDArrayFloat) -> NDArrayFloat:
-        """Euclidean distance of the x, y translation coordinates."""
+        """Euclidean distance of the x, y translation_m coordinates."""
         gt_xy = gt_dets_t[:, :2]
         tracker_xy = tracker_dets_t[:, :2]
         sim = self._calculate_euclidean_similarity(gt_xy, tracker_xy, zero_distance=self.zero_distance)
@@ -177,7 +177,7 @@ def evaluate_tracking(
                 {
                     "timestamp_ns": int, # nano seconds
                     "track_id": np.ndarray[I],
-                    "translation": np.ndarray[I, 3],
+                    "translation_m": np.ndarray[I, 3],
                     "size": np.ndarray[I, 3],
                     "yaw": np.ndarray[I],
                     "velocity": np.ndarray[I, 3],
@@ -365,10 +365,10 @@ def _calculate_matched_scores(
     num_tp = 0
     for seq_id in labels:
         for label_frame, prediction_frame in zip(labels[seq_id], predictions[seq_id]):
-            sim = sim_func(label_frame["translation"], prediction_frame["translation"])
+            sim = sim_func(label_frame["translation_m"], prediction_frame["translation_m"])
             match_rows, match_cols = linear_sum_assignment(-sim)
             scores.append(prediction_frame["score"][match_cols])
-            n_gt += len(label_frame["translation"])
+            n_gt += len(label_frame["translation_m"])
             num_tp += len(match_cols)
 
     scores_array = np.concatenate(scores)
@@ -416,7 +416,7 @@ def filter_max_dist(tracks: Any, max_range_m: int) -> Any:
             utils.index_array_values(
                 frame,
                 np.linalg.norm(
-                    frame["translation"][:, :2] - np.array(frame["ego_translation"])[:2],
+                    frame["translation_m"][:, :2] - np.array(frame["ego_translation_m"])[:2],
                     axis=1,
                 )
                 <= max_range_m,
@@ -461,15 +461,15 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
         for frame in tracks[log_id]:
             timestamp_ns = frame["timestamp_ns"]
             city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
-            translation = frame["translation"] - frame["ego_translation"]
+            translation_m = frame["translation_m"] - frame["ego_translation_m"]
             size = frame["size"]
             quat = np.array([yaw_to_quaternion3d(yaw) for yaw in frame["yaw"]])
-            score = np.ones((translation.shape[0], 1))
-            boxes = np.concatenate([translation, size, quat, score], axis=1)
+            score = np.ones((translation_m.shape[0], 1))
+            boxes = np.concatenate([translation_m, size, quat, score], axis=1)
 
             is_evaluated = compute_objects_in_roi_mask(boxes, city_SE3_ego, avm)
 
-            frame["translation"] = frame["translation"][is_evaluated]
+            frame["translation_m"] = frame["translation_m"][is_evaluated]
             frame["size"] = frame["size"][is_evaluated]
             frame["yaw"] = frame["yaw"][is_evaluated]
             frame["velocity"] = frame["velocity"][is_evaluated]
@@ -525,7 +525,7 @@ def evaluate(
     utils.annotate_frame_metadata(
         utils.ungroup_frames(track_predictions),
         utils.ungroup_frames(labels),
-        ["ego_translation"],
+        ["ego_translation_m"],
     )
     track_predictions = filter_max_dist(track_predictions, max_range_m)
 

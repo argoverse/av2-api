@@ -52,7 +52,7 @@ def evaluate(
     ground_truth: ForecastSequences = convert_forecast_labels(raw_ground_truth)
     ground_truth = filter_max_dist(ground_truth, max_range_m)
 
-    utils.annotate_frame_metadata(predictions, ground_truth, ["ego_translation"])
+    utils.annotate_frame_metadata(predictions, ground_truth, ["ego_translation_m"])
     predictions = filter_max_dist(predictions, max_range_m)
 
     if dataset_dir is not None:
@@ -303,13 +303,13 @@ def convert_forecast_labels(labels: Any) -> Any:
         frame_dict = {}
         for frame_idx, frame in enumerate(frames):
             forecast_instances = []
-            for instance in utils.array_dict_iterator(frame, len(frame["translation"])):
+            for instance in utils.array_dict_iterator(frame, len(frame["translation_m"])):
                 future_translations: Any = []
                 for future_frame in frames[frame_idx + 1 : frame_idx + 1 + constants.NUM_TIMESTEPS]:
                     if instance["track_id"] not in future_frame["track_id"]:
                         break
                     future_translations.append(
-                        future_frame["translation"][future_frame["track_id"] == instance["track_id"]][0]
+                        future_frame["translation_m"][future_frame["track_id"] == instance["track_id"]][0]
                     )
 
                 if len(future_translations) == 0:
@@ -317,8 +317,8 @@ def convert_forecast_labels(labels: Any) -> Any:
 
                 forecast_instances.append(
                     {
-                        "current_translation": instance["translation"][:2],
-                        "ego_translation": instance["ego_translation"][:2],
+                        "current_translation": instance["translation_m"][:2],
+                        "ego_translation_m": instance["ego_translation_m"][:2],
                         "future_translation": np.array(future_translations)[:, :2],
                         "name": instance["name"],
                         "size": instance["size"],
@@ -350,8 +350,8 @@ def filter_max_dist(forecasts: ForecastSequences, max_range_m: int) -> ForecastS
             keep_forecasts = [
                 agent
                 for agent in forecasts[seq_id][timestamp_ns]
-                if "ego_translation" in agent
-                and np.linalg.norm(agent["current_translation"] - agent["ego_translation"]) < max_range_m
+                if "ego_translation_m" in agent
+                and np.linalg.norm(agent["current_translation"] - agent["ego_translation_m"]) < max_range_m
             ]
             forecasts[seq_id][timestamp_ns] = keep_forecasts
 
@@ -389,20 +389,20 @@ def filter_drivable_area(forecasts: ForecastSequences, dataset_dir: str) -> Fore
         for timestamp_ns in forecasts[log_id]:
             city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
 
-            translation, size, quat = [], [], []
+            translation_m, size, quat = [], [], []
 
             if len(forecasts[log_id][timestamp_ns]) == 0:
                 continue
 
             for box in forecasts[log_id][timestamp_ns]:
-                translation.append(box["current_translation"] - box["ego_translation"])
+                translation_m.append(box["current_translation"] - box["ego_translation_m"])
                 size.append(box["size"])
                 quat.append(yaw_to_quaternion3d(box["yaw"]))
 
-            score = np.ones((len(translation), 1))
+            score = np.ones((len(translation_m), 1))
             boxes = np.concatenate(
                 [
-                    np.array(translation),
+                    np.array(translation_m),
                     np.array(size),
                     np.array(quat),
                     np.array(score),

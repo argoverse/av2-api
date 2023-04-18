@@ -11,7 +11,7 @@ from ..typing import ForecastSequences, Frame
 def agent_velocity(agent: Dict[str, Any]) -> NDArrayFloat:
     """Get the agent velocity.
 
-    Velocity calculated as the delta between the current translation and the translation in the next timestep.
+    Velocity calculated as the delta between the current translation_m and the translation_m in the next timestep.
 
     Args:
         agent: Dictionary containing the agent's translations
