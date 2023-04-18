@@ -144,7 +144,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         return [np.array([id_map[id] for id in id_array], dtype=int) for id_array in ids]
 
     def _calculate_similarities(self, gt_dets_t: NDArrayFloat, tracker_dets_t: NDArrayFloat) -> NDArrayFloat:
-        """Euclidean distance of the x, y translation_m coordinates."""
+        """Euclidean distance of the x, y translation coordinates."""
         gt_xy = gt_dets_t[:, :2]
         tracker_xy = tracker_dets_t[:, :2]
         sim = self._calculate_euclidean_similarity(gt_xy, tracker_xy, zero_distance=self.zero_distance)

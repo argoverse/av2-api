@@ -184,7 +184,7 @@ def accumulate(
             if not (pred_agent["seq_id"], pred_agent["timestamp_ns"], gt_idx) in taken:
                 # Find closest match among ground truth boxes
                 this_distance = utils.center_distance(
-                    gt_agent["current_translation"], pred_agent["current_translation"]
+                    gt_agent["current_translation_m"], pred_agent["current_translation_m"]
                 )
                 if this_distance < min_dist:
                     min_dist = this_distance
@@ -317,7 +317,7 @@ def convert_forecast_labels(labels: Any) -> Any:
 
                 forecast_instances.append(
                     {
-                        "current_translation": instance["translation_m"][:2],
+                        "current_translation_m": instance["translation_m"][:2],
                         "ego_translation_m": instance["ego_translation_m"][:2],
                         "future_translation": np.array(future_translations)[:, :2],
                         "name": instance["name"],
@@ -351,7 +351,7 @@ def filter_max_dist(forecasts: ForecastSequences, max_range_m: int) -> ForecastS
                 agent
                 for agent in forecasts[seq_id][timestamp_ns]
                 if "ego_translation_m" in agent
-                and np.linalg.norm(agent["current_translation"] - agent["ego_translation_m"]) < max_range_m
+                and np.linalg.norm(agent["current_translation_m"] - agent["ego_translation_m"]) < max_range_m
             ]
             forecasts[seq_id][timestamp_ns] = keep_forecasts
 
@@ -395,7 +395,7 @@ def filter_drivable_area(forecasts: ForecastSequences, dataset_dir: str) -> Fore
                 continue
 
             for box in forecasts[log_id][timestamp_ns]:
-                translation_m.append(box["current_translation"] - box["ego_translation_m"])
+                translation_m.append(box["current_translation_m"] - box["ego_translation_m"])
                 size.append(box["size"])
                 quat.append(yaw_to_quaternion3d(box["yaw"]))
 
