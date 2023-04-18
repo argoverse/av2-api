@@ -5,30 +5,15 @@ Evaluation Metrics:
 """
 
 import itertools
-import itertools
 import json
 import pickle
 from collections import defaultdict
 from pathlib import Path
 from pprint import pprint
 from typing import Any, Dict, List, Optional, Tuple, cast
-from pathlib import Path
-from pprint import pprint
-from typing import Any, Dict, List, Optional, Tuple, cast
 
 import click
-import click
 import numpy as np
-from av2.evaluation import NUM_RECALL_SAMPLES
-from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
-from av2.evaluation.forecasting import constants, utils
-from av2.evaluation.forecasting.constants import (
-    AV2_CATEGORIES,
-    CATEGORY_TO_VELOCITY_M_PER_S,
-    DISTANCE_THRESHOLDS_M,
-    VELOCITY_TYPES,
-    MAX_DISPLACEMENT_M,
-)
 from av2.evaluation import NUM_RECALL_SAMPLES
 from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
 from av2.evaluation.forecasting import constants, utils
@@ -43,18 +28,8 @@ from av2.utils.typing import NDArrayFloat
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 from ..typing import ForecastSequences, Sequences
-from scipy.spatial.transform import Rotation
-from tqdm import tqdm
-from ..typing import ForecastSequences, Sequences
 
 
-def evaluate(
-    predictions: ForecastSequences,
-    raw_ground_truth: Sequences,
-    top_k: int,
-    max_range_m: int,
-    dataset_dir: Optional[str],
-) -> Dict[str, Any]:
 def evaluate(
     predictions: ForecastSequences,
     raw_ground_truth: Sequences,

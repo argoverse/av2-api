@@ -55,11 +55,9 @@ import logging
 import multiprocessing as mp
 import warnings
 from typing import Any, Dict, Final, List, Optional, Tuple, cast
-from typing import Any, Dict, Final, List, Optional, Tuple, cast
 
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 from av2.evaluation.detection.constants import (
     HIERARCHY,
     LCA,
@@ -82,18 +80,9 @@ from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
 from av2.utils.io import TimestampedCitySE3EgoPoses
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayObject
 import polars as pl
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayObject
-import polars as pl
 
 warnings.filterwarnings("ignore", module="google")
 
-TP_ERROR_COLUMNS: Final = tuple(x.value for x in TruePositiveErrorNames)
-DTS_COLUMNS: Final = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)
-GTS_COLUMNS: Final = tuple(ORDERED_CUBOID_COL_NAMES) + ("num_interior_pts",)
-
-UUID_COLUMNS: Final = ("log_id", "timestamp_ns")
-CATEGORY_COLUMN: Final = ("category",)
-DETECTION_UUID_COLUMNS: Final = UUID_COLUMNS + CATEGORY_COLUMN
 TP_ERROR_COLUMNS: Final = tuple(x.value for x in TruePositiveErrorNames)
 DTS_COLUMNS: Final = tuple(ORDERED_CUBOID_COL_NAMES) + ("score",)
 GTS_COLUMNS: Final = tuple(ORDERED_CUBOID_COL_NAMES) + ("num_interior_pts",)
@@ -504,7 +493,7 @@ def evaluate_hierarchy(
                     category,
                     lca_category,
                     super_category,
-                    cfg
+                    cfg,
                 )
             )
 
