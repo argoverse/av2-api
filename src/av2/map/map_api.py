@@ -1,6 +1,6 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
 
-"""API for loading and Argoverse 2.0 maps.
+"""API for loading and Argoverse 2 maps.
 
 These include left and right lane boundaries, instead of only lane centerlines,
 as was the case in Argoverse 1.0 and 1.1.
@@ -351,8 +351,8 @@ class ArgoverseStaticMap:
     def from_map_dir(cls, log_map_dirpath: Union[Path, UPath], build_raster: bool = False) -> ArgoverseStaticMap:
         """Instantiate an Argoverse map object from data stored within a map data directory.
 
-        Note: the ground height surface file and associated coordinate mapping is not provided for the
-        2.0 Motion Forecasting dataset, so `build_raster` defaults to False. If raster functionality is
+        Note: The ground height surface file and associated coordinate mapping is not provided for the
+        2 Motion Forecasting dataset, so `build_raster` defaults to False. If raster functionality is
         desired, users should pass `build_raster` to True (e.g. for the Sensor Datasets and Map Change Datasets).
 
         Args:
