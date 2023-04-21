@@ -7,7 +7,7 @@
 > _Official_ GitHub repository for the [Argoverse 2](https://www.argoverse.org) family of datasets.
 
 <p align="center">
-  <img src="https://argoverse.github.io/user-guide/assets/157802162-e40098c1-8677-4c16-ac60-e9bbded6badf.avif" height="300">
+  <img src="https://argoverse.github.io/user-guide/assets/157802162-e40098c1-8677-4c16-ac60-e9bbded6badf.avif">
 </p>
 
 ## Getting Started

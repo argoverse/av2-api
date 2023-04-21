@@ -1,5 +1,6 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
-"""Implements a dataloader for the Argoverse 2.0 Sensor and TbV Datasets."""
+
+"""Implements a dataloader for the Argoverse 2 Sensor and TbV Datasets."""
 
 import logging
 from pathlib import Path
@@ -33,8 +34,8 @@ class AV2SensorDataLoader:
         """Create the Sensor dataloader from a data directory and labels directory.
 
         Args:
-            data_dir: Path to raw Argoverse 2.0 data
-            labels_dir: Path to Argoverse 2.0 data labels (e.g. labels or estimated detections/tracks)
+            data_dir: Path to raw Argoverse 2 data
+            labels_dir: Path to Argoverse 2 data labels (e.g. labels or estimated detections/tracks)
 
         Raises:
             ValueError: if input arguments are not Path objects.
