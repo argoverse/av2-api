@@ -58,6 +58,7 @@ from typing import Any, Dict, Final, List, Optional, Tuple, cast
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from av2.evaluation.detection.constants import (
     HIERARCHY,
     LCA,
@@ -448,8 +449,8 @@ def evaluate_hierarchy(
 
     dts_npy = np.concatenate(dts_list).astype(np.float64)
     gts_npy = np.concatenate(gts_list).astype(np.float64)
-    dts_categories_npy = np.concatenate(dts_categories_list).astype(np.object_).squeeze()
-    gts_categories_npy = np.concatenate(gts_categories_list).astype(np.object_).squeeze()
+    dts_categories_npy = np.concatenate(dts_categories_list).astype(np.object_)
+    gts_categories_npy = np.concatenate(gts_categories_list).astype(np.object_)
     dts_uuids_npy = np.array(dts_uuids_list)
     gts_uuids_npy = np.array(gts_uuids_list)
 
@@ -467,7 +468,6 @@ def evaluate_hierarchy(
             DetectionCfg,
         ]
     ] = []
-
     for category in cfg.categories:
         index = HIERARCHY["FINEGRAIN"].index(category)
         for super_category, categories in HIERARCHY.items():

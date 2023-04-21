@@ -180,7 +180,7 @@ def evaluate_tracking(
                     "translation_m": np.ndarray[I, 3],
                     "size": np.ndarray[I, 3],
                     "yaw": np.ndarray[I],
-                    "velocity": np.ndarray[I, 3],
+                    "velocity_m_per_s": np.ndarray[I, 3],
                     "label": np.ndarray[I],
                     "score": np.ndarray[I],
                     "name": np.ndarray[I],
@@ -461,18 +461,18 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
         for frame in tracks[log_id]:
             timestamp_ns = frame["timestamp_ns"]
             city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
-            translation = frame["translation_m"] - frame["ego_translation_m"]
+            translation_m = frame["translation_m"] - frame["ego_translation_m"]
             size = frame["size"]
             quat = np.array([yaw_to_quaternion3d(yaw) for yaw in frame["yaw"]])
-            score = np.ones((translation.shape[0], 1))
-            boxes = np.concatenate([translation, size, quat, score], axis=1)
+            score = np.ones((translation_m.shape[0], 1))
+            boxes = np.concatenate([translation_m, size, quat, score], axis=1)
 
             is_evaluated = compute_objects_in_roi_mask(boxes, city_SE3_ego, avm)
 
             frame["translation_m"] = frame["translation_m"][is_evaluated]
             frame["size"] = frame["size"][is_evaluated]
             frame["yaw"] = frame["yaw"][is_evaluated]
-            frame["velocity"] = frame["velocity"][is_evaluated]
+            frame["velocity_m_per_s"] = frame["velocity_m_per_s"][is_evaluated]
             frame["label"] = frame["label"][is_evaluated]
             frame["name"] = frame["name"][is_evaluated]
             frame["track_id"] = frame["track_id"][is_evaluated]
