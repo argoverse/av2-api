@@ -296,7 +296,7 @@ def accumulate_hierarchy(
             keep_sweep = np.all(gts_uuids == np.array([gts.shape[0] * [pred_uuid]]).squeeze(), axis=1)
         else:
             keep_sweep = []
-        
+
         gt_ind_sweep = np.arange(gts.shape[0])[keep_sweep]
         gts_sweep = gts[keep_sweep]
         gts_cats_sweep = gts_cats[keep_sweep]
