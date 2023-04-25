@@ -188,6 +188,8 @@ dependencies = [
  "pyo3-polars",
  "rayon",
  "serde",
+ "strum",
+ "strum_macros",
 ]
 
 [[package]]
@@ -1602,7 +1604,7 @@ dependencies = [
 [[package]]
 name = "pyo3-polars"
 version = "0.2.0"
-source = "git+https://github.com/benjaminrwilson/pyo3-polars#993d22a6bf54ceb8f93c5ed9082621330b186a52"
+source = "git+https://github.com/benjaminrwilson/pyo3-polars?rev=993d22a6bf54ceb8f93c5ed9082621330b186a52#993d22a6bf54ceb8f93c5ed9082621330b186a52"
 dependencies = [
  "arrow2",
  "polars",
