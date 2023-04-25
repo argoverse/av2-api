@@ -62,7 +62,7 @@ def group_frames(frames_list: Frames) -> Sequences:
     """Group list of frames into dictionary by sequence id.
 
     Args:
-        frames_list: List of frames, each containing a detections snapshot for a timestamp.
+        frames_list: List of frames, each containing a detections snapshot at timestamp_ns.
 
     Returns:
         Dictionary of frames indexed by sequence id.

@@ -58,6 +58,7 @@ from typing import Any, Dict, Final, List, Optional, Tuple, cast
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from av2.evaluation.detection.constants import (
     HIERARCHY,
     LCA,
@@ -442,14 +443,14 @@ def evaluate_hierarchy(
         gts_categories_list.append(sweep_gts_categories)
 
         num_dts = len(sweep_dts)
-        num_gts = len(sweep_dts)
+        num_gts = len(sweep_gts)
         dts_uuids_list.extend(num_dts * [uuid])
         gts_uuids_list.extend(num_gts * [uuid])
 
-    dts_npy = np.concatenate(dts).astype(np.float64)
-    gts_npy = np.concatenate(gts).astype(np.float64)
-    dts_categories_npy = np.concatenate(dts_categories).astype(np.object_)
-    gts_categories_npy = np.concatenate(gts_categories).astype(np.object_)
+    dts_npy = np.concatenate(dts_list).astype(np.float64)
+    gts_npy = np.concatenate(gts_list).astype(np.float64)
+    dts_categories_npy = np.concatenate(dts_categories_list).astype(np.object_)
+    gts_categories_npy = np.concatenate(gts_categories_list).astype(np.object_)
     dts_uuids_npy = np.array(dts_uuids_list)
     gts_uuids_npy = np.array(gts_uuids_list)
 
@@ -487,8 +488,9 @@ def evaluate_hierarchy(
             )
 
     logger.info("Starting evaluation ...")
-    with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        accumulate_outputs: Any = p.starmap(accumulate_hierarchy, accumulate_hierarchy_args_list)
+    accumulate_outputs = []
+    for accumulate_args in tqdm(accumulate_hierarchy_args_list):
+        accumulate_outputs.append(accumulate_hierarchy(*accumulate_args))
 
     super_categories = list(HIERARCHY.keys())
     metrics = np.zeros((len(cfg.categories), len(HIERARCHY.keys())))
