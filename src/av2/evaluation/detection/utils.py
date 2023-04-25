@@ -279,7 +279,7 @@ def accumulate_hierarchy(
     fp: Dict[int, Any] = {}
     gt_name: Dict[int, List[Any]] = {}
     pred_name: Dict[int, List[Any]] = {}
-    taken: Dict[int, Set[Tuple[Any, Any]]] = {}
+    taken: Dict[int, Set[Tuple[Any, Any, Any]]] = {}
     for i in range(len(cfg.affinity_thresholds_m)):
         tp[i] = []
         fp[i] = []
