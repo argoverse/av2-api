@@ -328,6 +328,7 @@ impl DataLoader {
                             let height = 1550;
                             Array3::<u8>::zeros([4, height, width])
                         }
+                    }
                 }
             })
             .collect();
@@ -354,10 +355,6 @@ fn build_file_index(
     split_name: &str,
 ) -> DataFrame {
     let split_dir = root_dir.join(format!("{dataset_name}/{dataset_type}/{split_name}"));
-    let mut entry_set: Vec<_> = walk_dir(&split_dir)
-        .unwrap_or_else(|_| panic!("Cannot walk the following directory: {split_dir:?}"));
-    entry_set.par_sort();
-
     let mut reference_frame = build_lidar_metadata(split_dir.clone(), "lidar");
     reference_frame = reference_frame
         .clone()
