@@ -4,7 +4,9 @@
 
 use ndarray::s;
 use ndarray::Array2;
+use ndarray::Array3;
 
+use nshare::ToNdarray3;
 use polars::lazy::dsl::lit;
 use polars::lazy::dsl::Expr;
 
@@ -23,6 +25,8 @@ use std::path::PathBuf;
 
 use crate::constants::POSE_COLUMNS;
 use crate::se3::SE3;
+use image::io::Reader as ImageReader;
+
 use crate::so3::quat_to_mat3;
 
 /// Read a feather file and load into a `polars` dataframe.
@@ -168,6 +172,16 @@ pub fn read_timestamped_feather(
         .lazy()
         .filter(col("timestamp_ns").eq(*timestamp_ns))
         .select(&[cols(columns)])
+}
+
+/// Read an image into an RGBA image.
+pub fn read_image(path: &PathBuf) -> Array3<u8> {
+    let image = ImageReader::open(path)
+        .unwrap()
+        .decode()
+        .unwrap()
+        .to_rgba8();
+    image.into_ndarray3()
 }
 
 /// Build the lidar file path.
