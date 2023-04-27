@@ -6,6 +6,7 @@ use ndarray::{s, Array1, Array2, ArrayView2};
 
 /// Special Euclidean Group 3 (SE(3)).
 /// Rigid transformation parameterized by a rotation and translation in $R^3$.
+#[derive(Clone)]
 pub struct SE3 {
     /// (3,3) Orthonormal rotation matrix.
     pub rotation: Array2<f32>,

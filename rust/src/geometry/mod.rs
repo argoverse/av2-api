@@ -4,3 +4,4 @@
 
 /// Camera models.
 pub mod camera;
+pub mod utils;

@@ -24,7 +24,9 @@ use pyo3::types::PyBytes;
 
 use crate::{
     constants::{self, CameraNames},
+    geometry::camera::pinhole_camera::PinholeCamera,
     io::{self, read_image},
+    structures::timestamped_image::TimeStampedImage,
 };
 use rayon::iter::IndexedParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -299,7 +301,7 @@ impl DataLoader {
     }
 
     /// Get the sweep at `index`.
-    pub fn get_synchronized_images(&self, index: usize) -> Vec<Array3<u8>> {
+    pub fn get_synchronized_images(&self, index: usize) -> Vec<TimeStampedImage> {
         let row = self.file_index.0.get_row(index).unwrap().0;
         let (log_id, _) = (
             row.get(0).unwrap().get_str().unwrap(),
@@ -320,18 +322,31 @@ impl DataLoader {
                             camera_name.to_string().as_str(),
                             timestamp_ns_camera,
                         );
-                        read_image(&camera_path)
+                        let image = TimeStampedImage {
+                            image: read_image(&camera_path),
+                            camera_model: PinholeCamera::from_feather(
+                                &self.log_dir(log_id),
+                                camera_name.to_string().as_str(),
+                            ),
+                            timestamp_ns: timestamp_ns_camera as usize,
+                        };
+                        image
                     }
                     _ => {
                         let camera_name = camera_name.to_string();
-                        if camera_name == "ring_front_center" {
-                            let width = 1550;
-                            let height = 2048;
-                            Array3::<u8>::zeros([4, height, width])
+                        let (width, height) = if camera_name == "ring_front_center" {
+                            (1550, 2048)
                         } else {
-                            let width = 2048;
-                            let height = 1550;
-                            Array3::<u8>::zeros([4, height, width])
+                            (2048, 1550)
+                        };
+
+                        TimeStampedImage {
+                            image: Array3::<u8>::zeros([4, height, width]),
+                            camera_model: PinholeCamera::from_feather(
+                                &self.log_dir(log_id),
+                                camera_name.as_str(),
+                            ),
+                            timestamp_ns: usize::MAX,
                         }
                     }
                 }
