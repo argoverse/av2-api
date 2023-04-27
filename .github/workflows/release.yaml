@@ -1,14 +1,5 @@
 name: "[av2] Release"
 
-# on:
-#   push:
-#     branches:
-#       - main
-#     tags:
-#       - '*'
-#   pull_request:
-#   workflow_dispatch:
-
 on: [push, pull_request]
 
 permissions:
