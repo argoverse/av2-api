@@ -7,6 +7,7 @@
 
 pub mod constants;
 pub mod data_loader;
+pub mod geometry;
 pub mod io;
 pub mod ops;
 pub mod path;

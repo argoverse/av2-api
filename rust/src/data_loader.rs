@@ -99,6 +99,7 @@ pub struct DataLoader {
     pub current_index: usize,
 }
 
+/// Pythod bound methods are found here.
 #[pymethods]
 impl DataLoader {
     /// Initialize the data-loader and build the file index.
@@ -135,97 +136,16 @@ impl DataLoader {
         }
     }
 
-    fn split_dir(&self) -> PathBuf {
-        self.root_dir
-            .join(&self.dataset_name)
-            .join(&self.dataset_type)
-            .join(&self.split_name)
+    fn read_city_pose_py(&self, log_id: &str, timestamp_ns: u64) -> PyDataFrame {
+        PyDataFrame(self.read_city_pose(log_id, timestamp_ns))
     }
 
-    fn log_dir(&self, log_id: &str) -> PathBuf {
-        self.split_dir().join(log_id)
+    fn read_lidar_py(&self, log_id: &str, timestamp_ns: u64, index: usize) -> PyDataFrame {
+        PyDataFrame(self.read_lidar(log_id, timestamp_ns, index))
     }
 
-    fn lidar_path(&self, log_id: &str, timestamp_ns: u64) -> PathBuf {
-        let file_name = format!("{timestamp_ns}.feather");
-        let lidar_path = [
-            self.log_dir(log_id),
-            "sensors".to_string().into(),
-            "lidar".to_string().into(),
-            file_name.into(),
-        ]
-        .iter()
-        .collect();
-        lidar_path
-    }
-
-    fn camera_path(&self, log_id: &str, camera_name: &str, timestamp_ns: u64) -> PathBuf {
-        let file_name = format!("{timestamp_ns}.jpg");
-        let sensor_path = [
-            self.log_dir(log_id),
-            "sensors".to_string().into(),
-            "cameras".to_string().into(),
-            camera_name.to_string().into(),
-            file_name.into(),
-        ]
-        .iter()
-        .collect();
-        sensor_path
-    }
-
-    fn annotations_path(&self, log_id: &str) -> PathBuf {
-        self.log_dir(log_id).join("annotations.feather")
-    }
-
-    fn city_pose_path(&self, log_id: &str) -> PathBuf {
-        self.log_dir(log_id).join("city_SE3_egovehicle.feather")
-    }
-
-    fn map_dir(&self, log_id: &str) -> PathBuf {
-        self.log_dir(log_id).join("map")
-    }
-
-    fn read_city_pose(&self, log_id: &str, timestamp_ns: u64) -> PyDataFrame {
-        PyDataFrame(
-            read_timestamped_feather(
-                &self.city_pose_path(log_id),
-                &POSE_COLUMNS.to_vec(),
-                &timestamp_ns,
-                self.memory_mapped,
-            )
-            .collect()
-            .unwrap(),
-        )
-    }
-
-    fn read_lidar(&self, log_id: &str, timestamp_ns: u64, index: usize) -> PyDataFrame {
-        PyDataFrame(
-            read_accumulate_lidar(
-                self.log_dir(log_id),
-                &self.file_index.0,
-                log_id,
-                timestamp_ns,
-                index,
-                self.num_accumulated_sweeps,
-                self.memory_mapped,
-            )
-            .collect()
-            .unwrap(),
-        )
-    }
-
-    fn read_annotations(&self, log_id: &str, timestamp_ns: u64) -> PyDataFrame {
-        PyDataFrame(
-            read_timestamped_feather(
-                &self.annotations_path(log_id),
-                &ANNOTATION_COLUMNS.to_vec(),
-                &timestamp_ns,
-                self.memory_mapped,
-            )
-            .filter(col("num_interior_pts").gt_eq(MIN_NUM_LIDAR_PTS))
-            .collect()
-            .unwrap(),
-        )
+    fn read_annotations_py(&self, log_id: &str, timestamp_ns: u64) -> PyDataFrame {
+        PyDataFrame(self.read_annotations(log_id, timestamp_ns))
     }
 
     /// Get the sweep at `index`.
@@ -239,11 +159,11 @@ impl DataLoader {
         // Annotations aren't available for the test set.
         let cuboids = match self.split_name.as_str() {
             "test" => None,
-            _ => Some(self.read_annotations(log_id, timestamp_ns)),
+            _ => Some(self.read_annotations_py(log_id, timestamp_ns)),
         };
 
-        let city_pose = self.read_city_pose(log_id, timestamp_ns);
-        let lidar = self.read_lidar(log_id, timestamp_ns, index);
+        let city_pose = self.read_city_pose_py(log_id, timestamp_ns);
+        let lidar = self.read_lidar_py(log_id, timestamp_ns, index);
         let sweep_uuid = (log_id.to_string(), timestamp_ns);
 
         Sweep {
@@ -291,6 +211,93 @@ impl DataLoader {
 
 /// Rust methods.
 impl DataLoader {
+    /// Log split directory.
+    /// E.g., ~/data/datasets/av2/sensor/<split_name>.
+    pub fn split_dir(&self) -> PathBuf {
+        self.root_dir
+            .join(&self.dataset_name)
+            .join(&self.dataset_type)
+            .join(&self.split_name)
+    }
+
+    /// Log split directory.
+    /// E.g., <split_dir>/<log_id>.
+    pub fn log_dir(&self, log_id: &str) -> PathBuf {
+        self.split_dir().join(log_id)
+    }
+
+    /// Camera path for the specified `camera_name` in `log_id` captured at `timestamp_ns`.
+    /// `<log_dir>/<camera_name>/<timestamp_ns>.jpg`.
+    pub fn camera_path(&self, log_id: &str, camera_name: &str, timestamp_ns: u64) -> PathBuf {
+        let file_name = format!("{timestamp_ns}.jpg");
+        let sensor_path = [
+            self.log_dir(log_id),
+            "sensors".to_string().into(),
+            "cameras".to_string().into(),
+            camera_name.to_string().into(),
+            file_name.into(),
+        ]
+        .iter()
+        .collect();
+        sensor_path
+    }
+
+    /// Annotations path associated with `log_id`.
+    /// This includes annotations for _every_ sweep in the log.
+    /// You will need to filter these at `timestamp_ns`.
+    /// E.g., `<log_dir>/annotations.feather`.
+    pub fn annotations_path(&self, log_id: &str) -> PathBuf {
+        self.log_dir(log_id).join("annotations.feather")
+    }
+
+    /// City path associated with `log_id`.
+    /// This includes city egovehicle pose for _every_ sweep in the log.
+    /// You will need to filter these at `timestamp_ns`.
+    /// E.g., `<log_dir>/city_SE3_egovehicle.feather`.
+    pub fn city_pose_path(&self, log_id: &str) -> PathBuf {
+        self.log_dir(log_id).join("city_SE3_egovehicle.feather")
+    }
+
+    /// Read the annotations occuring in `log_id` between `[timestamp_ns + timestamp_ns + ~0.1 s]`.
+    pub fn read_annotations(&self, log_id: &str, timestamp_ns: u64) -> DataFrame {
+        read_timestamped_feather(
+            &self.annotations_path(log_id),
+            &ANNOTATION_COLUMNS.to_vec(),
+            &timestamp_ns,
+            self.memory_mapped,
+        )
+        .filter(col("num_interior_pts").gt_eq(MIN_NUM_LIDAR_PTS))
+        .collect()
+        .unwrap()
+    }
+
+    /// Read city egovehicle pose occuring at `timestamp_ns`.
+    pub fn read_city_pose(&self, log_id: &str, timestamp_ns: u64) -> DataFrame {
+        read_timestamped_feather(
+            &self.city_pose_path(log_id),
+            &POSE_COLUMNS.to_vec(),
+            &timestamp_ns,
+            self.memory_mapped,
+        )
+        .collect()
+        .unwrap()
+    }
+
+    /// Read the lidar occuring in `log_id` between `[timestamp_ns + timestamp_ns + ~0.1 s]`.
+    pub fn read_lidar(&self, log_id: &str, timestamp_ns: u64, index: usize) -> DataFrame {
+        read_accumulate_lidar(
+            self.log_dir(log_id),
+            &self.file_index.0,
+            log_id,
+            timestamp_ns,
+            index,
+            self.num_accumulated_sweeps,
+            self.memory_mapped,
+        )
+        .collect()
+        .unwrap()
+    }
+
     /// Get the sweep at `index`.
     pub fn get_synchronized_images(&self, index: usize) -> Vec<Array3<u8>> {
         let row = self.file_index.0.get_row(index).unwrap().0;
