@@ -100,7 +100,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v3
         with:
-          name: dist
+          name: wheels
       - name: Publish distribution 📦 to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
