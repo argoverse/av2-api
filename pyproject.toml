@@ -29,7 +29,7 @@ dependencies = [
     "torch",
     "tqdm",
     "universal_pathlib",
-    "trackeval @ git+https://github.com/JonathonLuiten/TrackEval.git"
+    "trackeval @ git+ssh://github.com/JonathonLuiten/TrackEval.git"
 ]
 
 dynamic = [
