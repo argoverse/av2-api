@@ -53,7 +53,7 @@ test = [
 ]
 
 [project.urls]
-homepage = "argoverse.org"
+homepage = "https://argoverse.org"
 repository = "https://github.com/argoverse/av2-api"
 
 [tool.maturin]
