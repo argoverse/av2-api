@@ -11,28 +11,17 @@ pub fn quat_to_mat3(quat_wxyz: &ArrayView1<f32>) -> Array2<f32> {
     let y = quat_wxyz[2];
     let z = quat_wxyz[3];
 
-    let tx = 2. * x;
-    let ty = 2. * y;
-    let tz = 2. * z;
-    let twx = tx * w;
-    let twy = ty * w;
-    let twz = tz * w;
-    let txx = tx * x;
-    let txy = ty * x;
-    let txz = tz * x;
-    let tyy = ty * y;
-    let tyz = tz * y;
-    let tzz = tz * z;
+    let e_00 = 1. - 2. * y.powi(2) - 2. * z.powi(2);
+    let e_01: f32 = 2. * x * y - 2. * z * w;
+    let e_02: f32 = 2. * x * z + 2. * y * w;
 
-    let e_00 = 1. - (tyy + tzz);
-    let e_01 = txy - twz;
-    let e_02 = txy + twy;
-    let e_10 = txy + twz;
-    let e_11 = 1. - (txx + tzz);
-    let e_12 = tyz - twx;
-    let e_20 = txz - twy;
-    let e_21 = tyz + twx;
-    let e_22 = 1. - (txx + tyy);
+    let e_10 = 2. * x * y + 2. * z * w;
+    let e_11 = 1. - 2. * x.powi(2) - 2. * z.powi(2);
+    let e_12 = 2. * y * z - 2. * x * w;
+
+    let e_20 = 2. * x * z - 2. * y * w;
+    let e_21 = 2. * y * z + 2. * x * w;
+    let e_22 = 1. - 2. * x.powi(2) - 2. * y.powi(2);
 
     // Safety: We will always have nine elements.
     unsafe {
