@@ -14,11 +14,13 @@ pub mod se3;
 pub mod so3;
 
 use data_loader::{DataLoader, Sweep};
-use ndarray::Dim;
+use ndarray::{Dim, Ix1, Ix2};
+use numpy::PyReadonlyArray;
 use numpy::{IntoPyArray, PyArray};
 use pyo3::prelude::*;
 
 use numpy::PyReadonlyArray2;
+use so3::quat_to_mat3;
 
 use crate::ops::voxelize;
 
@@ -51,11 +53,22 @@ fn py_voxelize<'py>(
     )
 }
 
+#[pyfunction]
+#[pyo3(name = "quat_to_mat3")]
+#[allow(clippy::type_complexity)]
+fn py_quat_to_mat3<'py>(
+    py: Python<'py>,
+    quat_wxyz: PyReadonlyArray<f32, Ix1>,
+) -> &'py PyArray<f32, Ix2> {
+    quat_to_mat3(&quat_wxyz.as_array().view()).into_pyarray(py)
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _r(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<DataLoader>()?;
     m.add_class::<Sweep>()?;
+    m.add_function(wrap_pyfunction!(py_quat_to_mat3, m)?)?;
     m.add_function(wrap_pyfunction!(py_voxelize, m)?)?;
     Ok(())
 }
