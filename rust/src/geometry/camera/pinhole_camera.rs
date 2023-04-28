@@ -174,7 +174,7 @@ impl PinholeCamera {
         points_ego: Array<f32, Ix2>,
     ) -> (Array<f32, Ix2>, Array<f32, Ix2>, Array<bool, Ix2>) {
         // Convert cartesian to homogeneous coordinates.
-        let points_hom_ego = cart_to_hom(points_ego.clone());
+        let points_hom_ego = cart_to_hom(points_ego);
         let points_hom_cam = points_hom_ego.dot(&self.extrinsics().t());
 
         let uvz = points_hom_cam
@@ -200,7 +200,7 @@ impl PinholeCamera {
             .compose(&city_se3_ego_lidar_t);
 
         let points_ego = ego_cam_t_se3_ego_lidar_t.transform_from(&points_ego.view());
-        let points_hom_ego = cart_to_hom(points_ego.clone());
+        let points_hom_ego = cart_to_hom(points_ego);
         let points_hom_cam = points_hom_ego.dot(&self.extrinsics().t());
 
         let uvz = points_hom_cam
