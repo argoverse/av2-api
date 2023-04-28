@@ -39,7 +39,7 @@ pub fn read_feather_eager(path: &PathBuf, memory_mapped: bool) -> DataFrame {
     polars::io::ipc::IpcReader::new(file)
         .memory_mapped(memory_mapped)
         .finish()
-        .unwrap_or_else(|_| panic!("The IPC file, {:?}, is malformed.", path))
+        .unwrap()
 }
 
 /// Read a feather file and load into a `polars` dataframe.
@@ -131,6 +131,7 @@ pub fn read_accumulate_lidar(
                     .select(&[cols(POSE_COLUMNS)])
                     .collect()
                     .unwrap();
+
                 let city_se3_ego_i = data_frame_to_se3(pose_i);
                 let ego_ref_se3_ego_i = ego_se3_city.compose(&city_se3_ego_i);
                 let xyz_ref = ego_ref_se3_ego_i.transform_from(&xyz.view());
@@ -222,14 +223,15 @@ pub fn ndarray_filtered_from_frame(
         .to_owned()
 }
 
+/// Convert a data_frame with pose columns into an `se3` object.
 pub fn data_frame_to_se3(data_frame: DataFrame) -> SE3 {
-    let qw = extract_f32_from_frame(&data_frame, "qw");
-    let qx = extract_f32_from_frame(&data_frame, "qx");
-    let qy = extract_f32_from_frame(&data_frame, "qy");
-    let qz = extract_f32_from_frame(&data_frame, "qz");
-    let tx_m = extract_f32_from_frame(&data_frame, "tx_m");
-    let ty_m = extract_f32_from_frame(&data_frame, "ty_m");
-    let tz_m = extract_f32_from_frame(&data_frame, "tz_m");
+    let qw = extract_f32_from_data_frame(&data_frame, "qw");
+    let qx = extract_f32_from_data_frame(&data_frame, "qx");
+    let qy = extract_f32_from_data_frame(&data_frame, "qy");
+    let qz = extract_f32_from_data_frame(&data_frame, "qz");
+    let tx_m = extract_f32_from_data_frame(&data_frame, "tx_m");
+    let ty_m = extract_f32_from_data_frame(&data_frame, "ty_m");
+    let tz_m = extract_f32_from_data_frame(&data_frame, "tz_m");
     let quat_wxyz = Array::<f32, Ix1>::from_vec(vec![qw, qx, qy, qz]);
     let rotation = quat_to_mat3(&quat_wxyz.view());
     let translation = Array::<f32, Ix1>::from_vec(vec![tx_m, ty_m, tz_m]);
@@ -239,8 +241,9 @@ pub fn data_frame_to_se3(data_frame: DataFrame) -> SE3 {
     }
 }
 
-pub fn extract_f32_from_frame(series: &DataFrame, column: &str) -> f32 {
-    series
+/// Extract an f32 field from a single row data frame.
+pub fn extract_f32_from_data_frame(data_frame: &DataFrame, column: &str) -> f32 {
+    data_frame
         .column(column)
         .unwrap()
         .get(0)
@@ -249,8 +252,9 @@ pub fn extract_f32_from_frame(series: &DataFrame, column: &str) -> f32 {
         .unwrap()
 }
 
-pub fn extract_usize_from_frame(series: &DataFrame, column: &str) -> usize {
-    series[column]
+/// Extract a usize field from a single row data frame.
+pub fn extract_usize_from_data_frame(data_frame: &DataFrame, column: &str) -> usize {
+    data_frame[column]
         .get(0)
         .unwrap()
         .try_extract::<usize>()

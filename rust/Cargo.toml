@@ -30,6 +30,7 @@ once_cell = "1.17.1"
 polars = { version = "0.28.0", features = [
     "asof_join",
     "dtype-u8",
+    "dtype-u16",
     "lazy",
     "ndarray",
     "parquet",

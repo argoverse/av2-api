@@ -6,7 +6,7 @@ use constants::{ANNOTATION_COLUMNS, POSE_COLUMNS};
 
 use io::{read_accumulate_lidar, read_timestamped_feather};
 use itertools::Itertools;
-use ndarray::{Array, Array3, Ix3};
+use ndarray::{Array3, Ix3};
 use numpy::IntoPyArray;
 use numpy::PyArray;
 use pyo3::prelude::*;

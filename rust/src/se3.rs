@@ -3,7 +3,6 @@
 //! Special Euclidean Group 3.
 
 use ndarray::{s, Array1, Array2, ArrayView2};
-use polars::prelude::DataFrame;
 
 /// Special Euclidean Group 3 (SE(3)).
 /// Rigid transformation parameterized by a rotation and translation in $R^3$.
