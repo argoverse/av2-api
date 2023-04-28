@@ -3,10 +3,11 @@
 //! Special Euclidean Group 3.
 
 use ndarray::{s, Array1, Array2, ArrayView2};
+use polars::prelude::DataFrame;
 
 /// Special Euclidean Group 3 (SE(3)).
 /// Rigid transformation parameterized by a rotation and translation in $R^3$.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SE3 {
     /// (3,3) Orthonormal rotation matrix.
     pub rotation: Array2<f32>,
@@ -36,7 +37,7 @@ impl SE3 {
     pub fn inverse(&self) -> SE3 {
         let rotation = self.rotation.t().as_standard_layout().to_owned();
         let translation = rotation.dot(&(-&self.translation));
-        SE3 {
+        Self {
             rotation,
             translation,
         }

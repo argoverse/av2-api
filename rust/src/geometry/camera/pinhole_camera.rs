@@ -9,7 +9,7 @@ use polars::{
 use crate::{geometry::utils::cart_to_hom, io::read_feather_eager, se3::SE3, so3::quat_to_mat3};
 
 /// Pinhole camera intrinsics.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Intrinsics {
     /// Horizontal focal length in pixels.
     pub fx_px: f32,
@@ -41,14 +41,14 @@ impl Intrinsics {
             fy_px,
             cx_px,
             cy_px,
-            height_px,
             width_px,
+            height_px,
         }
     }
 
     /// Camera intrinsic matrix.
     pub fn k(&self) -> Array<f32, Ix2> {
-        let mut k = Array::<f32, Ix2>::eye(2);
+        let mut k = Array::<f32, Ix2>::eye(3);
         k[[0, 0]] = self.fx_px;
         k[[1, 1]] = self.fy_px;
         k[[0, 2]] = self.cx_px;
@@ -58,7 +58,7 @@ impl Intrinsics {
 }
 
 /// Parameterizes a pinhole camera with zero skew.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PinholeCamera {
     /// Pose of camera in the egovehicle frame (inverse of extrinsics matrix).
     pub ego_se3_cam: SE3,
@@ -82,6 +82,13 @@ impl PinholeCamera {
     /// Return the camera extrinsics.
     pub fn extrinsics(&self) -> Array<f32, Ix2> {
         self.ego_se3_cam.inverse().transform_matrix()
+    }
+
+    /// Camera projection matrix.
+    pub fn p(&self) -> Array<f32, Ix2> {
+        let mut p = Array::<f32, Ix2>::zeros([3, 4]);
+        p.slice_mut(s![..3, ..3]).assign(&self.intrinsics.k());
+        p
     }
 
     /// Create a pinhole camera model from a feather file.
@@ -153,8 +160,8 @@ impl PinholeCamera {
             .into_shape([num_points, 1])
             .unwrap();
         par_azip!((mut is_valid in is_valid_points.outer_iter_mut(), uv_row in uv.outer_iter(), point_cam in points_cam.outer_iter()) {
-            let is_valid_x = (0. < uv_row[0]) && (uv_row[0] < (self.width_px() - 1) as f32);
-            let is_valid_y = (0. < uv_row[1]) && (uv_row[1] < (self.height_px() - 1) as f32);
+            let is_valid_x = (uv_row[0] >= 0.) && (uv_row[0] < (self.width_px() - 1) as f32);
+            let is_valid_y = (uv_row[1] >= 0.) && (uv_row[1] < (self.height_px() - 1) as f32);
             let is_valid_z = point_cam[2] > 0.;
             is_valid[0] = is_valid_x & is_valid_y & is_valid_z;
         });
@@ -167,16 +174,43 @@ impl PinholeCamera {
         points_ego: Array<f32, Ix2>,
     ) -> (Array<f32, Ix2>, Array<f32, Ix2>, Array<bool, Ix2>) {
         // Convert cartesian to homogeneous coordinates.
-        let points_ego_hom = cart_to_hom(points_ego);
-        let points_hom_cam = points_ego_hom.dot(&self.extrinsics().permuted_axes([1, 0]));
-        let points_cart_cam = points_hom_cam.slice(s![.., ..3]);
-        let uv: Array<f32, Ix2> = points_cart_cam.dot(&self.intrinsics.k());
+        let points_hom_ego = cart_to_hom(points_ego.clone());
+        let points_hom_cam = points_hom_ego.dot(&self.extrinsics().t());
 
-        let uv = &uv / &uv.slice(s![.., 2]);
+        let uvz = points_hom_cam
+            .slice(s![.., ..3])
+            .dot(&self.intrinsics.k().t());
+        let uv = &uvz.slice(s![.., ..2]) / &uvz.slice(s![.., 2..3]);
         let is_valid_points = self
             .clone()
-            .cull_to_view_frustum(&uv.view(), &points_cart_cam);
-        (uv, points_cart_cam.to_owned(), is_valid_points)
+            .cull_to_view_frustum(&uv.view(), &points_hom_cam.view());
+        (uv.to_owned(), points_hom_cam.to_owned(), is_valid_points)
+    }
+
+    /// Project a collection of 3d points (provided in the egovehicle frame) to the image plane.
+    pub fn project_ego_to_image_motion_compensated(
+        &self,
+        points_ego: Array<f32, Ix2>,
+        city_se3_ego_camera_t: SE3,
+        city_se3_ego_lidar_t: SE3,
+    ) -> (Array<f32, Ix2>, Array<f32, Ix2>, Array<bool, Ix2>) {
+        // Convert cartesian to homogeneous coordinates.
+        let ego_cam_t_se3_ego_lidar_t = city_se3_ego_camera_t
+            .inverse()
+            .compose(&city_se3_ego_lidar_t);
+
+        let points_ego = ego_cam_t_se3_ego_lidar_t.transform_from(&points_ego.view());
+        let points_hom_ego = cart_to_hom(points_ego.clone());
+        let points_hom_cam = points_hom_ego.dot(&self.extrinsics().t());
+
+        let uvz = points_hom_cam
+            .slice(s![.., ..3])
+            .dot(&self.intrinsics.k().t());
+        let uv = &uvz.slice(s![.., ..2]) / &uvz.slice(s![.., 2..3]);
+        let is_valid_points = self
+            .clone()
+            .cull_to_view_frustum(&uv.view(), &points_hom_cam.view());
+        (uv.to_owned(), points_hom_cam.to_owned(), is_valid_points)
     }
 }
 
