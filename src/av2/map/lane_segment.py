@@ -72,7 +72,7 @@ class LocalLaneMarking:
 
 @dataclass(frozen=False)
 class LaneSegment:
-    """Vector representation of a single lane segment within a log-specific Argoverse 2.0 map.
+    """Vector representation of a single lane segment within a log-specific Argoverse 2 map.
 
     Args:
         id: unique identifier for this lane segment (guaranteed to be unique only within this local map).
