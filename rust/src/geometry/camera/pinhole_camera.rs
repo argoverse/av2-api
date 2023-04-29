@@ -160,8 +160,8 @@ impl PinholeCamera {
             .into_shape([num_points, 1])
             .unwrap();
         par_azip!((mut is_valid in is_valid_points.outer_iter_mut(), uv_row in uv.outer_iter(), point_cam in points_cam.outer_iter()) {
-            let is_valid_x = (uv_row[0] >= 0.) && (uv_row[0] < (self.width_px() - 1) as f32);
-            let is_valid_y = (uv_row[1] >= 0.) && (uv_row[1] < (self.height_px() - 1) as f32);
+            let is_valid_x = (uv_row[0] >= 0.) && (uv_row[0] < self.width_px() as f32);
+            let is_valid_y = (uv_row[1] >= 0.) && (uv_row[1] < self.height_px() as f32);
             let is_valid_z = point_cam[2] > 0.;
             is_valid[0] = is_valid_x & is_valid_y & is_valid_z;
         });
