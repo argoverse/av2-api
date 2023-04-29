@@ -1,6 +1,7 @@
 name: av2
 channels:
   - pytorch
+  - conda-forge/label/rust_dev
   - conda-forge
 dependencies:
   - av

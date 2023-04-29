@@ -7,11 +7,13 @@
 
 pub mod constants;
 pub mod data_loader;
+pub mod geometry;
 pub mod io;
 pub mod ops;
 pub mod path;
 pub mod se3;
 pub mod so3;
+pub mod structures;
 
 use data_loader::{DataLoader, Sweep};
 use ndarray::{Dim, Ix1, Ix2};
