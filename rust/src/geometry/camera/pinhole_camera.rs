@@ -146,26 +146,26 @@ impl PinholeCamera {
     ///
     /// Given a set of coordinates in the image plane and corresponding points
     /// in the camera coordinate reference frame, determine those points
-    /// that have a valid projection into the image. 3d points with valid
-    /// projections have x coordinates in the range [0,width_px-1], y-coordinates
-    /// in the range [0,height_px-1], and a positive z-coordinate (lying in
+    /// that have a valid projection into the image. 3D points with valid
+    /// projections have x coordinates in the range [0,width_px), y-coordinates
+    /// in the range [0,height_px), and a positive z-coordinate (lying in
     /// front of the camera frustum).
     pub fn cull_to_view_frustum(
         self,
         uv: &ArrayView<f32, Ix2>,
-        points_cam: &ArrayView<f32, Ix2>,
+        points_camera: &ArrayView<f32, Ix2>,
     ) -> Array<bool, Ix2> {
         let num_points = uv.shape()[0];
-        let mut is_valid_points = Array::<bool, Ix1>::from_vec(vec![false; num_points])
+        let mut is_within_frustum = Array::<bool, Ix1>::from_vec(vec![false; num_points])
             .into_shape([num_points, 1])
             .unwrap();
-        par_azip!((mut is_valid in is_valid_points.outer_iter_mut(), uv_row in uv.outer_iter(), point_cam in points_cam.outer_iter()) {
-            let is_valid_x = (uv_row[0] >= 0.) && (uv_row[0] < self.width_px() as f32);
-            let is_valid_y = (uv_row[1] >= 0.) && (uv_row[1] < self.height_px() as f32);
-            let is_valid_z = point_cam[2] > 0.;
-            is_valid[0] = is_valid_x & is_valid_y & is_valid_z;
+        par_azip!((mut is_within_frustum_i in is_within_frustum.outer_iter_mut(), uv_row in uv.outer_iter(), point_cam in points_camera.outer_iter()) {
+            let is_within_frustum_x = (uv_row[0] >= 0.) && (uv_row[0] < self.width_px() as f32);
+            let is_within_frustum_y = (uv_row[1] >= 0.) && (uv_row[1] < self.height_px() as f32);
+            let is_within_frustum_z = point_cam[2] > 0.;
+            is_within_frustum_i[0] = is_within_frustum_x & is_within_frustum_y & is_within_frustum_z;
         });
-        is_valid_points
+        is_within_frustum
     }
 
     /// Project a collection of 3d points (provided in the egovehicle frame) to the image plane.
