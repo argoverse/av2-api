@@ -1,9 +1,10 @@
 """Rust backend typing stubs."""
 
 from dataclasses import dataclass, field
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import polars as pl
+import torch
 
 @dataclass
 class DataLoader:
@@ -17,6 +18,7 @@ class DataLoader:
     file_index: pl.DataFrame = field(init=False)
 
     def get(self, index: int) -> Sweep: ...
+    def get_synchronized_images(self, index: int) -> List[torch.Tensor]: ...
     def __len__(self) -> int: ...
 
 @dataclass
