@@ -140,7 +140,7 @@ impl PinholeCamera {
         }
     }
 
-    /// Cull 3d points to camera view frustum.
+    /// Cull 3D points to camera view frustum.
     ///
     /// Ref: https://en.wikipedia.org/wiki/Hidden-surface_determination#Viewing-frustum_culling
     ///
@@ -168,7 +168,7 @@ impl PinholeCamera {
         is_within_frustum
     }
 
-    /// Project a collection of 3d points (provided in the egovehicle frame) to the image plane.
+    /// Project a collection of 3D points (provided in the egovehicle frame) to the image plane.
     pub fn project_ego_to_image(
         &self,
         points_ego: Array<f32, Ix2>,
@@ -187,7 +187,7 @@ impl PinholeCamera {
         (uv.to_owned(), points_hom_cam.to_owned(), is_valid_points)
     }
 
-    /// Project a collection of 3d points (provided in the egovehicle frame) to the image plane.
+    /// Project a collection of 3D points (provided in the egovehicle frame) to the image plane.
     pub fn project_ego_to_image_motion_compensated(
         &self,
         points_ego: Array<f32, Ix2>,
