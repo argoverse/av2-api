@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{ops::DivAssign, path::Path};
 
 use ndarray::{par_azip, s, Array, ArrayView, Ix1, Ix2};
 use polars::{
@@ -177,14 +177,15 @@ impl PinholeCamera {
         let points_hom_ego = cart_to_hom(points_ego);
         let points_hom_cam = points_hom_ego.dot(&self.extrinsics().t());
 
-        let uvz = points_hom_cam
+        let mut uvz = points_hom_cam
             .slice(s![.., ..3])
             .dot(&self.intrinsics.k().t());
-        let uv = &uvz.slice(s![.., ..2]) / &uvz.slice(s![.., 2..3]);
+        let z = uvz.slice(s![.., 2..3]).clone().to_owned();
+        uvz.slice_mut(s![.., ..2]).div_assign(&z);
         let is_valid_points = self
             .clone()
-            .cull_to_view_frustum(&uv.view(), &points_hom_cam.view());
-        (uv.to_owned(), points_hom_cam.to_owned(), is_valid_points)
+            .cull_to_view_frustum(&uvz.view(), &points_hom_cam.view());
+        (uvz.to_owned(), points_hom_cam.to_owned(), is_valid_points)
     }
 
     /// Project a collection of 3D points (provided in the egovehicle frame) to the image plane.
@@ -200,17 +201,7 @@ impl PinholeCamera {
             .compose(&city_se3_ego_lidar_t);
 
         let points_ego = ego_cam_t_se3_ego_lidar_t.transform_from(&points_ego.view());
-        let points_hom_ego = cart_to_hom(points_ego);
-        let points_hom_cam = points_hom_ego.dot(&self.extrinsics().t());
-
-        let uvz = points_hom_cam
-            .slice(s![.., ..3])
-            .dot(&self.intrinsics.k().t());
-        let uv = &uvz.slice(s![.., ..2]) / &uvz.slice(s![.., 2..3]);
-        let is_valid_points = self
-            .clone()
-            .cull_to_view_frustum(&uv.view(), &points_hom_cam.view());
-        (uv.to_owned(), points_hom_cam.to_owned(), is_valid_points)
+        self.project_ego_to_image(points_ego)
     }
 }
 
