@@ -361,7 +361,6 @@ impl DataLoader {
                         };
 
                         TimeStampedImage {
-                            // image: Array3::<u8>::zeros([4, height, width]),
                             image: ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(
                                 width,
                                 height,
