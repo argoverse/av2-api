@@ -30,12 +30,21 @@ def _create_pinhole_camera(
     translation: NDArrayFloat = np.zeros(3)
     ego_SE3_cam = SE3(rotation=rotation, translation=translation)
 
-    intrinsics = Intrinsics(fx_px=fx_px, fy_px=fy_px, cx_px=cx_px, cy_px=cy_px, width_px=width_px, height_px=height_px)
+    intrinsics = Intrinsics(
+        fx_px=fx_px,
+        fy_px=fy_px,
+        cx_px=cx_px,
+        cy_px=cy_px,
+        width_px=width_px,
+        height_px=height_px,
+    )
     pinhole_camera = PinholeCamera(ego_SE3_cam, intrinsics, cam_name)
     return pinhole_camera
 
 
-def _fit_plane_to_point_cloud(points_xyz: NDArrayFloat) -> Tuple[float, float, float, float]:
+def _fit_plane_to_point_cloud(
+    points_xyz: NDArrayFloat,
+) -> Tuple[float, float, float, float]:
     """Use SVD with at least 3 points to fit a plane.
 
     Args:
@@ -45,7 +54,9 @@ def _fit_plane_to_point_cloud(points_xyz: NDArrayFloat) -> Tuple[float, float, f
         (4,) Plane coefficients. Defining ax + by + cz = d for the plane.
     """
     center_xyz: NDArrayFloat = np.mean(points_xyz, axis=0)
-    out: Tuple[NDArrayFloat, NDArrayFloat, NDArrayFloat] = np.linalg.svd(points_xyz - center_xyz)
+    out: Tuple[NDArrayFloat, NDArrayFloat, NDArrayFloat] = np.linalg.svd(
+        points_xyz - center_xyz
+    )
     vh = out[2]
 
     # Get the unitary normal vector
@@ -63,8 +74,17 @@ def test_intrinsics_constructor() -> None:
 
     cx_px, cy_px = 1024, 775
 
-    intrinsics = Intrinsics(fx_px=fx_px, fy_px=fy_px, cx_px=cx_px, cy_px=cy_px, width_px=width_px, height_px=height_px)
-    K_expected: NDArrayFloat = np.array(([1000, 0, 1024], [0, 1001, 775], [0, 0, 1]), dtype=np.float64)
+    intrinsics = Intrinsics(
+        fx_px=fx_px,
+        fy_px=fy_px,
+        cx_px=cx_px,
+        cy_px=cy_px,
+        width_px=width_px,
+        height_px=height_px,
+    )
+    K_expected: NDArrayFloat = np.array(
+        ([1000, 0, 1024], [0, 1001, 775], [0, 0, 1]), dtype=np.float64
+    )
     assert np.array_equal(intrinsics.K, K_expected)
 
 
@@ -93,7 +113,13 @@ def test_right_clipping_plane() -> None:
     fx_px = 10.0
     width_px = 30
     pinhole_camera = _create_pinhole_camera(
-        fx_px=fx_px, fy_px=0, cx_px=0, cy_px=0, height_px=30, width_px=width_px, cam_name="ring_front_center"
+        fx_px=fx_px,
+        fy_px=0,
+        cx_px=0,
+        cy_px=0,
+        height_px=30,
+        width_px=width_px,
+        cam_name="ring_front_center",
     )
     right_plane = pinhole_camera.right_clipping_plane
 
@@ -139,7 +165,13 @@ def test_left_clipping_plane() -> None:
     width_px = 30
 
     pinhole_camera = _create_pinhole_camera(
-        fx_px=fx_px, fy_px=0, cx_px=0, cy_px=0, height_px=30, width_px=width_px, cam_name="ring_front_center"
+        fx_px=fx_px,
+        fy_px=0,
+        cx_px=0,
+        cy_px=0,
+        height_px=30,
+        width_px=width_px,
+        cam_name="ring_front_center",
     )
     left_plane = pinhole_camera.left_clipping_plane
 
@@ -181,7 +213,13 @@ def test_top_clipping_plane() -> None:
     fx_px = 10.0
     height_px = 45
     pinhole_camera = _create_pinhole_camera(
-        fx_px=fx_px, fy_px=0, cx_px=0, cy_px=0, height_px=height_px, width_px=1000, cam_name="ring_front_center"
+        fx_px=fx_px,
+        fy_px=0,
+        cx_px=0,
+        cy_px=0,
+        height_px=height_px,
+        width_px=1000,
+        cam_name="ring_front_center",
     )
 
     top_plane = pinhole_camera.top_clipping_plane
@@ -227,7 +265,13 @@ def test_bottom_clipping_plane() -> None:
     width_px = 10000
 
     pinhole_camera = _create_pinhole_camera(
-        fx_px=fx_px, fy_px=1, cx_px=0, cy_px=0, height_px=height_px, width_px=width_px, cam_name="ring_front_center"
+        fx_px=fx_px,
+        fy_px=1,
+        cx_px=0,
+        cy_px=0,
+        height_px=height_px,
+        width_px=width_px,
+        cam_name="ring_front_center",
     )
     bottom_plane = pinhole_camera.bottom_clipping_plane
 
@@ -258,7 +302,13 @@ def test_form_near_clipping_plane() -> None:
     near_clip_dist = 30.0
 
     pinhole_camera = _create_pinhole_camera(
-        fx_px=1, fy_px=0, cx_px=0, cy_px=0, height_px=30, width_px=width_px, cam_name="ring_front_center"
+        fx_px=1,
+        fy_px=0,
+        cx_px=0,
+        cy_px=0,
+        height_px=30,
+        width_px=width_px,
+        cam_name="ring_front_center",
     )
     near_plane = pinhole_camera.near_clipping_plane(near_clip_dist)
 
@@ -298,9 +348,21 @@ def test_frustum_planes_ring_cam() -> None:
     width_px = 2048
 
     pinhole_camera = _create_pinhole_camera(
-        fx_px=fx_px, fy_px=fy_px, cx_px=cx_px, cy_px=cy_px, height_px=height_px, width_px=width_px, cam_name=camera_name
+        fx_px=fx_px,
+        fy_px=fy_px,
+        cx_px=cx_px,
+        cy_px=cy_px,
+        height_px=height_px,
+        width_px=width_px,
+        cam_name=camera_name,
     )
-    left_plane, right_plane, near_plane, bottom_plane, top_plane = pinhole_camera.frustum_planes(near_clip_dist)
+    (
+        left_plane,
+        right_plane,
+        near_plane,
+        bottom_plane,
+        top_plane,
+    ) = pinhole_camera.frustum_planes(near_clip_dist)
 
     left_plane_expected: NDArrayFloat = np.array([fx_px, 0.0, width_px / 2.0, 0.0])
     right_plane_expected: NDArrayFloat = np.array([-fx_px, 0.0, width_px / 2.0, 0.0])
@@ -308,10 +370,18 @@ def test_frustum_planes_ring_cam() -> None:
     bottom_plane_expected: NDArrayFloat = np.array([0.0, -fx_px, height_px / 2.0, 0.0])
     top_plane_expected: NDArrayFloat = np.array([0.0, fx_px, height_px / 2.0, 0.0])
 
-    assert np.allclose(left_plane, left_plane_expected / np.linalg.norm(left_plane_expected))
-    assert np.allclose(right_plane, right_plane_expected / np.linalg.norm(right_plane_expected))
-    assert np.allclose(bottom_plane, bottom_plane_expected / np.linalg.norm(bottom_plane_expected))
-    assert np.allclose(top_plane, top_plane_expected / np.linalg.norm(top_plane_expected))
+    assert np.allclose(
+        left_plane, left_plane_expected / np.linalg.norm(left_plane_expected)
+    )
+    assert np.allclose(
+        right_plane, right_plane_expected / np.linalg.norm(right_plane_expected)
+    )
+    assert np.allclose(
+        bottom_plane, bottom_plane_expected / np.linalg.norm(bottom_plane_expected)
+    )
+    assert np.allclose(
+        top_plane, top_plane_expected / np.linalg.norm(top_plane_expected)
+    )
     assert np.allclose(near_plane, near_plane_expected)
 
 
@@ -336,9 +406,21 @@ def test_generate_frustum_planes_stereo() -> None:
     width_px = 2048
 
     pinhole_camera = _create_pinhole_camera(
-        fx_px=fx_px, fy_px=fy_px, cx_px=cx_px, cy_px=cy_px, height_px=height_px, width_px=width_px, cam_name=camera_name
+        fx_px=fx_px,
+        fy_px=fy_px,
+        cx_px=cx_px,
+        cy_px=cy_px,
+        height_px=height_px,
+        width_px=width_px,
+        cam_name=camera_name,
     )
-    left_plane, right_plane, near_plane, bottom_plane, top_plane = pinhole_camera.frustum_planes(near_clip_dist)
+    (
+        left_plane,
+        right_plane,
+        near_plane,
+        bottom_plane,
+        top_plane,
+    ) = pinhole_camera.frustum_planes(near_clip_dist)
 
     left_plane_expected: NDArrayFloat = np.array([fx_px, 0.0, width_px / 2.0, 0.0])
     right_plane_expected: NDArrayFloat = np.array([-fx_px, 0.0, width_px / 2.0, 0.0])
@@ -346,10 +428,18 @@ def test_generate_frustum_planes_stereo() -> None:
     bottom_plane_expected: NDArrayFloat = np.array([0.0, -fx_px, height_px / 2.0, 0.0])
     top_plane_expected: NDArrayFloat = np.array([0.0, fx_px, height_px / 2.0, 0.0])
 
-    assert np.allclose(left_plane, left_plane_expected / np.linalg.norm(left_plane_expected))
-    assert np.allclose(right_plane, right_plane_expected / np.linalg.norm(right_plane_expected))
-    assert np.allclose(bottom_plane, bottom_plane_expected / np.linalg.norm(bottom_plane_expected))
-    assert np.allclose(top_plane, top_plane_expected / np.linalg.norm(top_plane_expected))
+    assert np.allclose(
+        left_plane, left_plane_expected / np.linalg.norm(left_plane_expected)
+    )
+    assert np.allclose(
+        right_plane, right_plane_expected / np.linalg.norm(right_plane_expected)
+    )
+    assert np.allclose(
+        bottom_plane, bottom_plane_expected / np.linalg.norm(bottom_plane_expected)
+    )
+    assert np.allclose(
+        top_plane, top_plane_expected / np.linalg.norm(top_plane_expected)
+    )
     assert np.allclose(near_plane, near_plane_expected)
 
 
@@ -488,7 +578,9 @@ def test_compute_pixel_rays() -> None:
     assert np.allclose(gt_ray_dir, ray_dir)
 
 
-def _compute_pixel_ray_direction(u: float, v: float, fx: float, fy: float, img_w: int, img_h: int) -> NDArrayFloat:
+def _compute_pixel_ray_direction(
+    u: float, v: float, fx: float, fy: float, img_w: int, img_h: int
+) -> NDArrayFloat:
     r"""Generate rays in the camera coordinate frame.
 
     Note: only used as a test utility.
@@ -523,7 +615,9 @@ def _compute_pixel_ray_direction(u: float, v: float, fx: float, fy: float, img_w
         ValueError: If horizontal and vertical focal lengths are not close (within 1e-3).
     """
     if not np.isclose(fx, fy, atol=1e-3):
-        raise ValueError(f"Focal lengths in the x and y directions must match: {fx} != {fy}")
+        raise ValueError(
+            f"Focal lengths in the x and y directions must match: {fx} != {fy}"
+        )
 
     # approximation for principal point
     px = img_w / 2
@@ -591,9 +685,13 @@ def test_get_egovehicle_yaw_cam() -> None:
 
     for cam_enum in list(RingCameras):
         cam_name = cam_enum.value
-        pinhole_camera = PinholeCamera.from_feather(log_dir=sample_log_dir, cam_name=cam_name)
+        pinhole_camera = PinholeCamera.from_feather(
+            log_dir=sample_log_dir, cam_name=cam_name
+        )
 
         ego_yaw_cam_deg = np.rad2deg(pinhole_camera.egovehicle_yaw_cam_rad)
-        assert np.isclose(ego_yaw_cam_deg, expected_ego_yaw_cam_deg_dict[cam_name], atol=0.1)
+        assert np.isclose(
+            ego_yaw_cam_deg, expected_ego_yaw_cam_deg_dict[cam_name], atol=0.1
+        )
 
         np.rad2deg(pinhole_camera.fov_theta_rad)

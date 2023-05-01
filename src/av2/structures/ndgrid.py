@@ -38,7 +38,9 @@ class NDGrid:
                 the resolution is not positive.
         """
         if not all(x < y for x, y in zip(self.min_range_m, self.max_range_m)):
-            raise ValueError("All minimum ranges must be less than their corresponding max ranges!")
+            raise ValueError(
+                "All minimum ranges must be less than their corresponding max ranges!"
+            )
         if not all(x > 0 for x in self.resolution_m_per_cell):
             raise ValueError("Resolution per cell must be positive!")
 
@@ -121,7 +123,10 @@ class BEVGrid(NDGrid):
     """
 
     def points_to_bev_img(
-        self, points: NDArrayFloat, color: Tuple[int, int, int] = GRAY_BGR, diameter: int = 2
+        self,
+        points: NDArrayFloat,
+        color: Tuple[int, int, int] = GRAY_BGR,
+        diameter: int = 2,
     ) -> NDArrayByte:
         """Convert a set of points in Cartesian space to a bird's-eye-view image.
 
@@ -142,7 +147,11 @@ class BEVGrid(NDGrid):
 
         points_xy = points[..., :2].copy()  # Prevent modifying input.
         indices_int = self.transform_to_grid_coordinates(points_xy)
-        indices, _ = crop_points(indices_int, lower_bound_inclusive=(0.0, 0.0), upper_bound_exclusive=self.dims)
+        indices, _ = crop_points(
+            indices_int,
+            lower_bound_inclusive=(0.0, 0.0),
+            upper_bound_exclusive=self.dims,
+        )
 
         # Construct uv coordinates.
         H, W = (self.dims[0], self.dims[1])
@@ -152,6 +161,8 @@ class BEVGrid(NDGrid):
         shape = (H, W, C)
         img: NDArrayByte = np.zeros(shape, dtype=np.uint8)
 
-        colors: NDArrayByte = np.array([color for _ in range(len(points_xy))], dtype=np.uint8)
+        colors: NDArrayByte = np.array(
+            [color for _ in range(len(points_xy))], dtype=np.uint8
+        )
         img = draw_points_xy_in_img(img, uv, colors, diameter=diameter)
         return img

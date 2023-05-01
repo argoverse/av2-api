@@ -53,7 +53,9 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):  #
             self.num_accumulated_sweeps,
             self.memory_mapped,
         )
-        self.data_dir = Path(self.root_dir) / self.dataset_name / "sensor" / self.split_name
+        self.data_dir = (
+            Path(self.root_dir) / self.dataset_name / "sensor" / self.split_name
+        )
 
     @cached_property
     def file_index(self) -> pd.DataFrame:

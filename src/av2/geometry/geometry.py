@@ -229,11 +229,15 @@ def crop_points(
 
     # Ensure that the logical operations will broadcast.
     if n_dim != lb_dim or n_dim != ub_dim:
-        raise ValueError(f"Dimensions n_dim {n_dim} must match both lb_dim {lb_dim} and ub_dim {ub_dim}")
+        raise ValueError(
+            f"Dimensions n_dim {n_dim} must match both lb_dim {lb_dim} and ub_dim {ub_dim}"
+        )
 
     # Ensure that the lower bound less than or equal to the upper bound for each dimension.
     if not all(lb < ub for lb, ub in zip(lower_bound_inclusive, upper_bound_exclusive)):
-        raise ValueError("Lower bound must be less than or equal to upper bound for each dimension")
+        raise ValueError(
+            "Lower bound must be less than or equal to upper bound for each dimension"
+        )
 
     # Lower bound mask.
     lb_mask = np.greater_equal(points, lower_bound_inclusive)
@@ -246,7 +250,9 @@ def crop_points(
     return points[is_valid_points], is_valid_points
 
 
-def compute_interior_points_mask(points_xyz: NDArrayFloat, cuboid_vertices: NDArrayFloat) -> NDArrayBool:
+def compute_interior_points_mask(
+    points_xyz: NDArrayFloat, cuboid_vertices: NDArrayFloat
+) -> NDArrayBool:
     r"""Compute the interior points mask for the cuboid.
 
     Reference: https://math.stackexchange.com/questions/1472049/check-if-a-point-is-inside-a-rectangular-shaped-area-3d
@@ -271,7 +277,9 @@ def compute_interior_points_mask(points_xyz: NDArrayFloat, cuboid_vertices: NDAr
         (N,) An array of boolean flags indicating whether the points are interior to the cuboid.
     """
     # Get three corners of the cuboid vertices.
-    vertices: NDArrayFloat = np.stack((cuboid_vertices[6], cuboid_vertices[3], cuboid_vertices[1]))  # (3,3)
+    vertices: NDArrayFloat = np.stack(
+        (cuboid_vertices[6], cuboid_vertices[3], cuboid_vertices[1])
+    )  # (3,3)
 
     # Choose reference vertex.
     # vertices and choice of ref_vertex are coupled.
@@ -289,7 +297,11 @@ def compute_interior_points_mask(points_xyz: NDArrayFloat, cuboid_vertices: NDAr
 
     # Check 6 conditions (2 for each of the 3 orthogonal directions).
     # Refer to the linked reference for additional information.
-    constraint_a = np.logical_and(sim_uvw_ref <= sim_uvw_points, sim_uvw_points <= sim_uvw_vertices)
-    constraint_b = np.logical_and(sim_uvw_ref >= sim_uvw_points, sim_uvw_points >= sim_uvw_vertices)
+    constraint_a = np.logical_and(
+        sim_uvw_ref <= sim_uvw_points, sim_uvw_points <= sim_uvw_vertices
+    )
+    constraint_b = np.logical_and(
+        sim_uvw_ref >= sim_uvw_points, sim_uvw_points >= sim_uvw_vertices
+    )
     is_interior: NDArrayBool = np.logical_or(constraint_a, constraint_b).all(axis=1)
     return is_interior

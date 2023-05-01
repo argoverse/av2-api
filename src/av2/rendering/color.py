@@ -69,6 +69,8 @@ def create_colormap(color_list: Sequence[str], n_colors: int) -> NDArrayFloat:
         array of shape (n_colors, 3) representing a list of RGB colors in [0,1]
     """
     cmap = LinearSegmentedColormap.from_list(name="dummy_name", colors=color_list)
-    colorscale: NDArrayFloat = np.array([cmap(k * 1 / n_colors) for k in range(n_colors)])
+    colorscale: NDArrayFloat = np.array(
+        [cmap(k * 1 / n_colors) for k in range(n_colors)]
+    )
     # ignore the 4th alpha channel
     return colorscale[:, :3]

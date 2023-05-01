@@ -11,7 +11,9 @@ from joblib import Parallel, delayed
 from rich.progress import track
 
 from av2.datasets.motion_forecasting import scenario_serialization
-from av2.datasets.motion_forecasting.viz.scenario_visualization import visualize_scenario
+from av2.datasets.motion_forecasting.viz.scenario_visualization import (
+    visualize_scenario,
+)
 from av2.map.map_api import ArgoverseStaticMap
 
 _DEFAULT_N_JOBS: Final[int] = -2  # Use all but one CPUs
@@ -60,7 +62,9 @@ def generate_scenario_visualizations(
             scenario_path: Path to the parquet file corresponding to the Argoverse scenario to visualize.
         """
         scenario_id = scenario_path.stem.split("_")[-1]
-        static_map_path = scenario_path.parents[0] / f"log_map_archive_{scenario_id}.json"
+        static_map_path = (
+            scenario_path.parents[0] / f"log_map_archive_{scenario_id}.json"
+        )
         viz_save_path = viz_output_dir / f"{scenario_id}.mp4"
 
         scenario = scenario_serialization.load_argoverse_scenario_parquet(scenario_path)
@@ -73,7 +77,8 @@ def generate_scenario_visualizations(
             generate_scenario_visualization(scenario_path)
     else:
         Parallel(n_jobs=_DEFAULT_N_JOBS)(
-            delayed(generate_scenario_visualization)(scenario_path) for scenario_path in track(scenario_file_list)
+            delayed(generate_scenario_visualization)(scenario_path)
+            for scenario_path in track(scenario_file_list)
         )
 
 
@@ -104,9 +109,18 @@ def generate_scenario_visualizations(
     help="Controls how scenarios are selected for visualization - either the first available or at random.",
     type=click.Choice(["first", "random"], case_sensitive=False),
 )
-@click.option("--debug", is_flag=True, default=False, help="Runs preprocessing in single-threaded mode when enabled.")
+@click.option(
+    "--debug",
+    is_flag=True,
+    default=False,
+    help="Runs preprocessing in single-threaded mode when enabled.",
+)
 def run_generate_scenario_visualizations(
-    argoverse_scenario_dir: str, viz_output_dir: str, num_scenarios: int, selection_criteria: str, debug: bool
+    argoverse_scenario_dir: str,
+    viz_output_dir: str,
+    num_scenarios: int,
+    selection_criteria: str,
+    debug: bool,
 ) -> None:
     """Click entry point for generation of Argoverse scenario visualizations."""
     generate_scenario_visualizations(

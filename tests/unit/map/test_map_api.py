@@ -29,7 +29,9 @@ def dummy_static_map(test_data_root_dir: Path) -> ArgoverseStaticMap:
         Static map instantiated from dummy test data.
     """
     log_map_dirpath = (
-        test_data_root_dir / "static_maps" / "dummy_log_map_gs1B8ZCv7DMi8cMt5aN5rSYjQidJXvGP__2020-07-21-Z1F0076"
+        test_data_root_dir
+        / "static_maps"
+        / "dummy_log_map_gs1B8ZCv7DMi8cMt5aN5rSYjQidJXvGP__2020-07-21-Z1F0076"
     )
 
     return ArgoverseStaticMap.from_map_dir(log_map_dirpath, build_raster=True)
@@ -46,7 +48,9 @@ def full_static_map(test_data_root_dir: Path) -> ArgoverseStaticMap:
         Static map instantiated from full test data.
     """
     log_map_dirpath = (
-        test_data_root_dir / "static_maps" / "full_log_map_gs1B8ZCv7DMi8cMt5aN5rSYjQidJXvGP__2020-07-21-Z1F0076"
+        test_data_root_dir
+        / "static_maps"
+        / "full_log_map_gs1B8ZCv7DMi8cMt5aN5rSYjQidJXvGP__2020-07-21-Z1F0076"
     )
     return ArgoverseStaticMap.from_map_dir(log_map_dirpath, build_raster=True)
 
@@ -56,7 +60,10 @@ class TestPolyline:
 
     def test_from_list(self) -> None:
         """Ensure object is generated correctly from a list of dictionaries."""
-        points_dict_list = [{"x": 874.01, "y": -105.15, "z": -19.58}, {"x": 890.58, "y": -104.26, "z": -19.58}]
+        points_dict_list = [
+            {"x": 874.01, "y": -105.15, "z": -19.58},
+            {"x": 890.58, "y": -104.26, "z": -19.58},
+        ]
         polyline = Polyline.from_json_data(points_dict_list)
 
         assert isinstance(polyline, Polyline)
@@ -90,8 +97,14 @@ class TestPedestrianCrossing:
         """Ensure object is generated correctly from a dictionary."""
         json_data = {
             "id": 6310421,
-            "edge1": [{"x": 899.17, "y": -91.52, "z": -19.58}, {"x": 915.68, "y": -93.93, "z": -19.53}],
-            "edge2": [{"x": 899.44, "y": -95.37, "z": -19.48}, {"x": 918.25, "y": -98.05, "z": -19.4}],
+            "edge1": [
+                {"x": 899.17, "y": -91.52, "z": -19.58},
+                {"x": 915.68, "y": -93.93, "z": -19.53},
+            ],
+            "edge2": [
+                {"x": 899.44, "y": -95.37, "z": -19.48},
+                {"x": 918.25, "y": -98.05, "z": -19.4},
+            ],
         }
         pedestrian_crossing = PedestrianCrossing.from_dict(json_data)
 
@@ -101,7 +114,9 @@ class TestPedestrianCrossing:
 class TestArgoverseStaticMap:
     """Unit test for the Argoverse 2.0 per-log map."""
 
-    def test_get_lane_segment_successor_ids(self, dummy_static_map: ArgoverseStaticMap) -> None:
+    def test_get_lane_segment_successor_ids(
+        self, dummy_static_map: ArgoverseStaticMap
+    ) -> None:
         """Ensure lane segment successors are fetched properly."""
         lane_segment_id = 93269421
         successor_ids = dummy_static_map.get_lane_segment_successor_ids(lane_segment_id)
@@ -118,7 +133,9 @@ class TestArgoverseStaticMap:
         expected_successor_ids = [93269526]
         assert successor_ids == expected_successor_ids
 
-    def test_lane_is_in_intersection(self, dummy_static_map: ArgoverseStaticMap) -> None:
+    def test_lane_is_in_intersection(
+        self, dummy_static_map: ArgoverseStaticMap
+    ) -> None:
         """Ensure the attribute describing if a lane segment is located with an intersection is fetched properly."""
         lane_segment_id = 93269421
         in_intersection = dummy_static_map.lane_is_in_intersection(lane_segment_id)
@@ -135,44 +152,64 @@ class TestArgoverseStaticMap:
         assert isinstance(in_intersection, bool)
         assert not in_intersection
 
-    def test_get_lane_segment_left_neighbor_id(self, dummy_static_map: ArgoverseStaticMap) -> None:
+    def test_get_lane_segment_left_neighbor_id(
+        self, dummy_static_map: ArgoverseStaticMap
+    ) -> None:
         """Test getting a lane segment id from the left neighbor."""
         # Ensure id of lane segment (if any) that is the left neighbor to the query lane segment can be fetched properly
         lane_segment_id = 93269421
-        l_neighbor_id = dummy_static_map.get_lane_segment_left_neighbor_id(lane_segment_id)
+        l_neighbor_id = dummy_static_map.get_lane_segment_left_neighbor_id(
+            lane_segment_id
+        )
         assert l_neighbor_id is None
 
         lane_segment_id = 93269500
-        l_neighbor_id = dummy_static_map.get_lane_segment_left_neighbor_id(lane_segment_id)
+        l_neighbor_id = dummy_static_map.get_lane_segment_left_neighbor_id(
+            lane_segment_id
+        )
         assert l_neighbor_id is None
 
         lane_segment_id = 93269520
-        l_neighbor_id = dummy_static_map.get_lane_segment_left_neighbor_id(lane_segment_id)
+        l_neighbor_id = dummy_static_map.get_lane_segment_left_neighbor_id(
+            lane_segment_id
+        )
         assert l_neighbor_id == 93269421
 
-    def test_get_lane_segment_right_neighbor_id(self, dummy_static_map: ArgoverseStaticMap) -> None:
+    def test_get_lane_segment_right_neighbor_id(
+        self, dummy_static_map: ArgoverseStaticMap
+    ) -> None:
         """Test getting a lane segment id from the right neighbor."""
         # Ensure id of lane segment (if any) that is the right neighbor to the query lane segment can be fetched
         lane_segment_id = 93269421
-        r_neighbor_id = dummy_static_map.get_lane_segment_right_neighbor_id(lane_segment_id)
+        r_neighbor_id = dummy_static_map.get_lane_segment_right_neighbor_id(
+            lane_segment_id
+        )
         assert r_neighbor_id == 93269520
 
         lane_segment_id = 93269500
-        r_neighbor_id = dummy_static_map.get_lane_segment_right_neighbor_id(lane_segment_id)
+        r_neighbor_id = dummy_static_map.get_lane_segment_right_neighbor_id(
+            lane_segment_id
+        )
         assert r_neighbor_id == 93269526
 
         lane_segment_id = 93269520
-        r_neighbor_id = dummy_static_map.get_lane_segment_right_neighbor_id(lane_segment_id)
+        r_neighbor_id = dummy_static_map.get_lane_segment_right_neighbor_id(
+            lane_segment_id
+        )
         assert r_neighbor_id == 93269458
 
-    def test_get_scenario_lane_segment_ids(self, dummy_static_map: ArgoverseStaticMap) -> None:
+    def test_get_scenario_lane_segment_ids(
+        self, dummy_static_map: ArgoverseStaticMap
+    ) -> None:
         """Ensure ids of all lane segments in the local map can be fetched properly."""
         lane_segment_ids = dummy_static_map.get_scenario_lane_segment_ids()
 
         expected_lane_segment_ids = [93269421, 93269500, 93269520]
         assert lane_segment_ids == expected_lane_segment_ids
 
-    def test_get_lane_segment_polygon(self, dummy_static_map: ArgoverseStaticMap) -> None:
+    def test_get_lane_segment_polygon(
+        self, dummy_static_map: ArgoverseStaticMap
+    ) -> None:
         """Ensure lane segment polygons are fetched properly."""
         lane_segment_id = 93269421
 
@@ -191,7 +228,9 @@ class TestArgoverseStaticMap:
         )
         np.testing.assert_allclose(ls_polygon, expected_ls_polygon)
 
-    def test_get_lane_segment_centerline(self, dummy_static_map: ArgoverseStaticMap) -> None:
+    def test_get_lane_segment_centerline(
+        self, dummy_static_map: ArgoverseStaticMap
+    ) -> None:
         """Ensure lane segment centerlines can be inferred and fetched properly."""
         lane_segment_id = 93269421
 
@@ -214,14 +253,18 @@ class TestArgoverseStaticMap:
         )
         np.testing.assert_allclose(centerline, expected_centerline)
 
-    def test_get_scenario_lane_segments(self, dummy_static_map: ArgoverseStaticMap) -> None:
+    def test_get_scenario_lane_segments(
+        self, dummy_static_map: ArgoverseStaticMap
+    ) -> None:
         """Ensure that all LaneSegment objects in the local map can be returned as a list."""
         vector_lane_segments = dummy_static_map.get_scenario_lane_segments()
         assert isinstance(vector_lane_segments, list)
         assert all([isinstance(vls, LaneSegment) for vls in vector_lane_segments])
         assert len(vector_lane_segments) == 3
 
-    def test_get_scenario_ped_crossings(self, dummy_static_map: ArgoverseStaticMap) -> None:
+    def test_get_scenario_ped_crossings(
+        self, dummy_static_map: ArgoverseStaticMap
+    ) -> None:
         """Ensure that all PedCrossing objects in the local map can be returned as a list."""
         ped_crossings = dummy_static_map.get_scenario_ped_crossings()
         assert isinstance(ped_crossings, list)
@@ -260,9 +303,16 @@ class TestArgoverseStaticMap:
         ]
         # fmt: on
         assert len(ped_crossings) == len(expected_ped_crossings)
-        assert all([pc == expected_pc for pc, expected_pc in zip(ped_crossings, expected_ped_crossings)])
+        assert all(
+            [
+                pc == expected_pc
+                for pc, expected_pc in zip(ped_crossings, expected_ped_crossings)
+            ]
+        )
 
-    def test_get_scenario_vector_drivable_areas(self, dummy_static_map: ArgoverseStaticMap) -> None:
+    def test_get_scenario_vector_drivable_areas(
+        self, dummy_static_map: ArgoverseStaticMap
+    ) -> None:
         """Ensure that drivable areas are loaded and formatted correctly."""
         vector_das = dummy_static_map.get_scenario_vector_drivable_areas()
         assert isinstance(vector_das, list)
@@ -286,21 +336,35 @@ class TestArgoverseStaticMap:
         # fmt: on
         np.testing.assert_allclose(vector_da.xyz[:4], expected_first4_vertices)
 
-    def test_get_ground_height_at_xy(self, dummy_static_map: ArgoverseStaticMap) -> None:
+    def test_get_ground_height_at_xy(
+        self, dummy_static_map: ArgoverseStaticMap
+    ) -> None:
         """Ensure that ground height at (x,y) locations can be retrieved properly."""
         point_cloud: NDArrayFloat = np.array(
             [
                 [770.6398, -105.8351, -19.4105],  # ego-vehicle pose at one timestamp
                 [943.5386, -49.6295, -19.3291],  # ego-vehicle pose at one timestamp
                 [918.0960, 82.5588, -20.5742],  # ego-vehicle pose at one timestamp
-                [9999999, 999999, 0],  # obviously out of bounds value for city coordinate system
-                [-999999, -999999, 0],  # obviously out of bounds value for city coordinate system
+                [
+                    9999999,
+                    999999,
+                    0,
+                ],  # obviously out of bounds value for city coordinate system
+                [
+                    -999999,
+                    -999999,
+                    0,
+                ],  # obviously out of bounds value for city coordinate system
             ]
         )
 
         assert dummy_static_map.raster_ground_height_layer is not None
 
-        ground_height_z = dummy_static_map.raster_ground_height_layer.get_ground_height_at_xy(point_cloud)
+        ground_height_z = (
+            dummy_static_map.raster_ground_height_layer.get_ground_height_at_xy(
+                point_cloud
+            )
+        )
 
         assert ground_height_z.shape[0] == point_cloud.shape[0]
         assert ground_height_z.dtype == np.dtype(np.float64)
@@ -310,17 +374,29 @@ class TestArgoverseStaticMap:
 
         # based on grid resolution, ground should be within 7 centimeters of 30cm under back axle.
         expected_ground = point_cloud[:3, 2] - 0.30
-        assert np.allclose(np.absolute(expected_ground - ground_height_z[:3]), 0, atol=0.07)
+        assert np.allclose(
+            np.absolute(expected_ground - ground_height_z[:3]), 0, atol=0.07
+        )
 
-    def test_get_ground_points_boolean(self, dummy_static_map: ArgoverseStaticMap) -> None:
+    def test_get_ground_points_boolean(
+        self, dummy_static_map: ArgoverseStaticMap
+    ) -> None:
         """Ensure that points close to the ground surface are correctly classified as `ground` category."""
         point_cloud: NDArrayFloat = np.array(
             [
                 [770.6398, -105.8351, -19.4105],  # ego-vehicle pose at one timestamp
                 [943.5386, -49.6295, -19.3291],  # ego-vehicle pose at one timestamp
                 [918.0960, 82.5588, -20.5742],  # ego-vehicle pose at one timestamp
-                [9999999, 999999, 0],  # obviously out of bounds value for city coordinate system
-                [-999999, -999999, 0],  # obviously out of bounds value for city coordinate system
+                [
+                    9999999,
+                    999999,
+                    0,
+                ],  # obviously out of bounds value for city coordinate system
+                [
+                    -999999,
+                    -999999,
+                    0,
+                ],  # obviously out of bounds value for city coordinate system
             ]
         )
 
@@ -330,7 +406,11 @@ class TestArgoverseStaticMap:
 
         assert dummy_static_map.raster_ground_height_layer is not None
 
-        is_ground_pt = dummy_static_map.raster_ground_height_layer.get_ground_points_boolean(point_cloud)
+        is_ground_pt = (
+            dummy_static_map.raster_ground_height_layer.get_ground_points_boolean(
+                point_cloud
+            )
+        )
         expected_is_ground_pt: NDArrayBool = np.array([True, True, True, False, False])
         assert is_ground_pt.dtype == np.dtype(bool)
         assert np.array_equal(is_ground_pt, expected_is_ground_pt)
@@ -340,7 +420,10 @@ def test_load_motion_forecasting_map(test_data_root_dir: Path) -> None:
     """Try to load a real map from the motion forecasting dataset."""
     mf_scenario_id = "0a1e6f0a-1817-4a98-b02e-db8c9327d151"
     mf_scenario_map_path = (
-        test_data_root_dir / "forecasting_scenarios" / mf_scenario_id / f"log_map_archive_{mf_scenario_id}.json"
+        test_data_root_dir
+        / "forecasting_scenarios"
+        / mf_scenario_id
+        / f"log_map_archive_{mf_scenario_id}.json"
     )
 
     mf_map = ArgoverseStaticMap.from_json(mf_scenario_map_path)

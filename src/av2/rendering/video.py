@@ -35,7 +35,9 @@ class VideoCodecs(str, Enum):
     HEVC_VIDEOTOOLBOX = "hevc_videotoolbox"  # macOS GPU acceleration.
 
 
-HIGH_EFFICIENCY_VIDEO_CODECS: Final[Set[VideoCodecs]] = set([VideoCodecs.LIBX265, VideoCodecs.HEVC_VIDEOTOOLBOX])
+HIGH_EFFICIENCY_VIDEO_CODECS: Final[Set[VideoCodecs]] = set(
+    [VideoCodecs.LIBX265, VideoCodecs.HEVC_VIDEOTOOLBOX]
+)
 
 
 def tile_cameras(
@@ -80,32 +82,46 @@ def tile_cameras(
 
     if "ring_front_center" in named_sensors:
         ring_front_center = named_sensors["ring_front_center"]
-        tiled_im_bgr[:landscape_width, landscape_width : landscape_width + landscape_height] = ring_front_center
+        tiled_im_bgr[
+            :landscape_width, landscape_width : landscape_width + landscape_height
+        ] = ring_front_center
 
     if "ring_front_right" in named_sensors:
         ring_front_right = named_sensors["ring_front_right"]
-        tiled_im_bgr[:landscape_height, landscape_width + landscape_height :] = ring_front_right
+        tiled_im_bgr[
+            :landscape_height, landscape_width + landscape_height :
+        ] = ring_front_right
 
     if "ring_side_left" in named_sensors:
         ring_side_left = named_sensors["ring_side_left"]
-        tiled_im_bgr[landscape_height : 2 * landscape_height, :landscape_width] = ring_side_left
+        tiled_im_bgr[
+            landscape_height : 2 * landscape_height, :landscape_width
+        ] = ring_side_left
 
     if "ring_side_right" in named_sensors:
         ring_side_right = named_sensors["ring_side_right"]
-        tiled_im_bgr[landscape_height : 2 * landscape_height, landscape_width + landscape_height :] = ring_side_right
+        tiled_im_bgr[
+            landscape_height : 2 * landscape_height,
+            landscape_width + landscape_height :,
+        ] = ring_side_right
 
     if bev_img is not None:
         tiled_im_bgr[
-            landscape_width : 2 * landscape_width, landscape_width : landscape_width + landscape_height
+            landscape_width : 2 * landscape_width,
+            landscape_width : landscape_width + landscape_height,
         ] = bev_img
 
     if "ring_rear_left" in named_sensors:
         ring_rear_left = named_sensors["ring_rear_left"]
-        tiled_im_bgr[2 * landscape_height : 3 * landscape_height, :landscape_width] = ring_rear_left
+        tiled_im_bgr[
+            2 * landscape_height : 3 * landscape_height, :landscape_width
+        ] = ring_rear_left
 
     if "ring_rear_right" in named_sensors:
         ring_rear_right = named_sensors["ring_rear_right"]
-        tiled_im_bgr[2 * landscape_height : 3 * landscape_height, width - landscape_width :] = ring_rear_right
+        tiled_im_bgr[
+            2 * landscape_height : 3 * landscape_height, width - landscape_width :
+        ] = ring_rear_right
     return tiled_im_bgr
 
 

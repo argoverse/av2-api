@@ -7,7 +7,9 @@ import numpy as np
 from av2.utils.typing import NDArrayFloat
 
 
-def has_pts_in_infinity_norm_radius(points: NDArrayFloat, window_center: NDArrayFloat, window_sz: float) -> bool:
+def has_pts_in_infinity_norm_radius(
+    points: NDArrayFloat, window_center: NDArrayFloat, window_sz: float
+) -> bool:
     """Check if a map entity has points within a search radius from a single query point.
 
     Note: Distance is measured by the infinity norm.
@@ -24,7 +26,9 @@ def has_pts_in_infinity_norm_radius(points: NDArrayFloat, window_center: NDArray
         ValueError: If `points` is not in R^2 or R^3.
     """
     if points.ndim != 2 or points.shape[1] not in (2, 3):
-        raise ValueError(f"Input points array must have shape (N,2) or (N,3) - received {points.shape}.")
+        raise ValueError(
+            f"Input points array must have shape (N,2) or (N,3) - received {points.shape}."
+        )
 
     if points.shape[1] == 3:
         # take only x,y dimensions

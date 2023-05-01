@@ -53,9 +53,13 @@ def interp_dense_grid_from_sparse(
     output_dtype = values.dtype
 
     # get (x,y) tuples back
-    grid_coords = mesh_grid.get_mesh_grid_as_point_cloud(min_x=0, max_x=grid_w - 1, min_y=0, max_y=grid_h - 1)
+    grid_coords = mesh_grid.get_mesh_grid_as_point_cloud(
+        min_x=0, max_x=grid_w - 1, min_y=0, max_y=grid_h - 1
+    )
     # make RGB a function of (dim0=x,dim1=y)
-    interp_vals = scipy.interpolate.griddata(points, values, grid_coords, method=interp_method)
+    interp_vals = scipy.interpolate.griddata(
+        points, values, grid_coords, method=interp_method
+    )
 
     u = grid_coords[:, 0].astype(np.int32)
     v = grid_coords[:, 1].astype(np.int32)

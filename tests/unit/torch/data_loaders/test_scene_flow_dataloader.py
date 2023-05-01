@@ -19,7 +19,9 @@ def test_scene_flow_dataloader() -> None:
 
     The computed flow should check the visually confirmed labels in flow_labels.feather.
     """
-    dl_test = av2.torch.data_loaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "test")
+    dl_test = av2.torch.data_loaders.scene_flow.SceneFlowDataloader(
+        _TEST_DATA_ROOT, "test_data", "test"
+    )
     sweep_0, sweep_1, ego, not_flow = dl_test[0]
     assert not_flow is None
     rust_sweep = dl_test._backend.get(0)
@@ -40,7 +42,9 @@ def test_scene_flow_dataloader() -> None:
         failed = True
     assert failed
 
-    data_loader = av2.torch.data_loaders.scene_flow.SceneFlowDataloader(_TEST_DATA_ROOT, "test_data", "val")
+    data_loader = av2.torch.data_loaders.scene_flow.SceneFlowDataloader(
+        _TEST_DATA_ROOT, "test_data", "val"
+    )
     assert len(data_loader) == 1
     assert data_loader.get_log_id(0) == "7fab2350-7eaf-3b7e-a39d-6937a4c1bede"
 
@@ -51,7 +55,9 @@ def test_scene_flow_dataloader() -> None:
     flow: Flow = maybe_flow
     assert len(flow) == len(sweep_0.lidar.as_tensor())
 
-    log_dir = _TEST_DATA_ROOT / "test_data/sensor/val/7fab2350-7eaf-3b7e-a39d-6937a4c1bede"
+    log_dir = (
+        _TEST_DATA_ROOT / "test_data/sensor/val/7fab2350-7eaf-3b7e-a39d-6937a4c1bede"
+    )
     flow_labels = pd.read_feather(log_dir / "flow_labels.feather")
 
     FLOW_COLS = ["flow_tx_m", "flow_ty_m", "flow_tz_m"]
@@ -65,7 +71,9 @@ def test_scene_flow_dataloader() -> None:
     assert np.allclose(flow.category_indices.numpy(), flow_labels.classes.to_numpy())
     assert np.allclose(flow.is_dynamic.numpy(), flow_labels.dynamic.to_numpy())
     assert sweep_0.is_ground is not None
-    ground_match: NDArrayBool = sweep_0.is_ground.numpy() == flow_labels.is_ground_0.to_numpy()
+    ground_match: NDArrayBool = (
+        sweep_0.is_ground.numpy() == flow_labels.is_ground_0.to_numpy()
+    )
     assert np.logical_not(ground_match).sum() < 10
 
     gt_ego = np.load(log_dir / "ego_motion.npz")

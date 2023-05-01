@@ -18,7 +18,9 @@ def test_get_mesh_grid_as_point_cloud_3x3square() -> None:
     max_y = 4  # integer, maximum y-coordinate of 2D grid
 
     # return pts, a Numpy array of shape (N,2)
-    pts = mesh_grid_utils.get_mesh_grid_as_point_cloud(min_x, max_x, min_y, max_y, downsample_factor=1.0)
+    pts = mesh_grid_utils.get_mesh_grid_as_point_cloud(
+        min_x, max_x, min_y, max_y, downsample_factor=1.0
+    )
 
     assert pts.shape == (9, 2)
     gt_pts: NDArrayFloat = np.array(
@@ -46,7 +48,9 @@ def test_get_mesh_grid_as_point_cloud_3x2rect() -> None:
     max_y = 3  # integer, maximum y-coordinate of 2D grid
 
     # return pts, a Numpy array of shape (N,2)
-    pts = mesh_grid_utils.get_mesh_grid_as_point_cloud(min_x, max_x, min_y, max_y, downsample_factor=1.0)
+    pts = mesh_grid_utils.get_mesh_grid_as_point_cloud(
+        min_x, max_x, min_y, max_y, downsample_factor=1.0
+    )
 
     assert pts.shape == (6, 2)
     # fmt: off
@@ -71,7 +75,9 @@ def test_get_mesh_grid_as_point_cloud_single_pt() -> None:
     max_y = 2  # integer, maximum y-coordinate of 2D grid
 
     # return pts, a Numpy array of shape (N,2)
-    pts = mesh_grid_utils.get_mesh_grid_as_point_cloud(min_x, max_x, min_y, max_y, downsample_factor=1.0)
+    pts = mesh_grid_utils.get_mesh_grid_as_point_cloud(
+        min_x, max_x, min_y, max_y, downsample_factor=1.0
+    )
 
     assert pts.shape == (1, 2)
     gt_pts: NDArrayFloat = np.array([[-3.0, 2.0]])
@@ -87,7 +93,9 @@ def test_get_mesh_grid_as_point_cloud_downsample() -> None:
     max_y = 5  # integer, maximum y-coordinate of 2D grid
 
     # return pts, a Numpy array of shape (N,2)
-    pts = mesh_grid_utils.get_mesh_grid_as_point_cloud(min_x, max_x, min_y, max_y, downsample_factor=3.0)
+    pts = mesh_grid_utils.get_mesh_grid_as_point_cloud(
+        min_x, max_x, min_y, max_y, downsample_factor=3.0
+    )
 
     assert pts.shape == (4, 2)
 

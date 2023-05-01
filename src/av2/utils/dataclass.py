@@ -36,7 +36,10 @@ def dataclass_eq(base_dataclass: object, other: object) -> bool:
     # Check whether the dataclasses have equal values in all members
     base_tuple = vars(base_dataclass).values()
     other_tuple = vars(other).values()
-    return all(_dataclass_member_eq(base_mem, other_mem) for base_mem, other_mem in zip(base_tuple, other_tuple))
+    return all(
+        _dataclass_member_eq(base_mem, other_mem)
+        for base_mem, other_mem in zip(base_tuple, other_tuple)
+    )
 
 
 def _dataclass_member_eq(base: object, other: object) -> bool:
@@ -55,7 +58,10 @@ def _dataclass_member_eq(base: object, other: object) -> bool:
 
     # If both objects are lists, check equality for all members
     if isinstance(base, list) and isinstance(other, list):
-        return all(_dataclass_member_eq(base_i, other_i) for base_i, other_i in itertools.zip_longest(base, other))
+        return all(
+            _dataclass_member_eq(base_i, other_i)
+            for base_i, other_i in itertools.zip_longest(base, other)
+        )
 
     # If both objects are np arrays, delegate equality check to numpy's built-in operation
     if isinstance(base, np.ndarray) and isinstance(other, np.ndarray):

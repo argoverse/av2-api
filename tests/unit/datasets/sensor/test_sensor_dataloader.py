@@ -29,12 +29,25 @@ def _create_dummy_sensor_dataloader(log_id: str) -> SensorDataloader:
             for t in timestamps_ms:
                 if "ring" in sensor_name:
                     fpath = Path(
-                        sensor_dataset_dir, "dummy", log_id, "sensors", "cameras", sensor_name, f"{int(t*1e6)}.jpg"
+                        sensor_dataset_dir,
+                        "dummy",
+                        log_id,
+                        "sensors",
+                        "cameras",
+                        sensor_name,
+                        f"{int(t*1e6)}.jpg",
                     )
                     Path(fpath).parent.mkdir(exist_ok=True, parents=True)
                     fpath.open("w").close()
                 elif "lidar" in sensor_name:
-                    fpath = Path(sensor_dataset_dir, "dummy", log_id, "sensors", sensor_name, f"{int(t*1e6)}.feather")
+                    fpath = Path(
+                        sensor_dataset_dir,
+                        "dummy",
+                        log_id,
+                        "sensors",
+                        sensor_name,
+                        f"{int(t*1e6)}.feather",
+                    )
                     Path(fpath).parent.mkdir(exist_ok=True, parents=True)
                     fpath.open("w").close()
         return SensorDataloader(dataset_dir=sensor_dataset_dir, with_cache=False)
@@ -121,7 +134,9 @@ def test_sensor_data_loader_milliseconds() -> None:
 
     # use the non-pandas implementation as a "brute-force" (BF) check.
     # read out the dataset root from the other dataloader's attributes.
-    bf_loader = AV2SensorDataLoader(data_dir=loader.dataset_dir / "dummy", labels_dir=loader.dataset_dir / "dummy")
+    bf_loader = AV2SensorDataLoader(
+        data_dir=loader.dataset_dir / "dummy", labels_dir=loader.dataset_dir / "dummy"
+    )
 
     # for every image, make sure query result matches the brute-force query result.
     for ring_camera_enum in RingCameras:
@@ -129,9 +144,14 @@ def test_sensor_data_loader_milliseconds() -> None:
         for cam_timestamp_ms in SENSOR_TIMESTAMPS_MS_DICT[ring_camera_name]:
             cam_timestamp_ns = int(cam_timestamp_ms * 1e6)
             result = loader.get_closest_lidar_fpath(
-                split="dummy", log_id=log_id, cam_name=ring_camera_name, cam_timestamp_ns=cam_timestamp_ns
+                split="dummy",
+                log_id=log_id,
+                cam_name=ring_camera_name,
+                cam_timestamp_ns=cam_timestamp_ns,
             )
-            bf_result = bf_loader.get_closest_lidar_fpath(log_id=log_id, cam_timestamp_ns=cam_timestamp_ns)
+            bf_result = bf_loader.get_closest_lidar_fpath(
+                log_id=log_id, cam_timestamp_ns=cam_timestamp_ns
+            )
             assert result == bf_result
 
     # for every lidar sweep, make sure query result matches the brute-force query result.
@@ -140,10 +160,15 @@ def test_sensor_data_loader_milliseconds() -> None:
         for ring_camera_enum in list(RingCameras):
             ring_camera_name = ring_camera_enum.value
             result = loader.get_closest_img_fpath(
-                split="dummy", log_id=log_id, cam_name=ring_camera_name, lidar_timestamp_ns=lidar_timestamp_ns
+                split="dummy",
+                log_id=log_id,
+                cam_name=ring_camera_name,
+                lidar_timestamp_ns=lidar_timestamp_ns,
             )
             bf_result = bf_loader.get_closest_img_fpath(
-                log_id=log_id, cam_name=ring_camera_name, lidar_timestamp_ns=lidar_timestamp_ns
+                log_id=log_id,
+                cam_name=ring_camera_name,
+                lidar_timestamp_ns=lidar_timestamp_ns,
             )
             assert result == bf_result
 

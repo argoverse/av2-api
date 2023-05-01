@@ -23,7 +23,9 @@ TimestampedCitySE3EgoPoses = Dict[int, SE3]
 SensorPosesMapping = Dict[str, SE3]
 
 
-def read_feather(path: PathType, columns: Optional[Tuple[str, ...]] = None) -> pd.DataFrame:
+def read_feather(
+    path: PathType, columns: Optional[Tuple[str, ...]] = None
+) -> pd.DataFrame:
     """Read Apache Feather data from a .feather file.
 
     AV2 uses .feather to serialize much of its data. This function handles the deserialization
@@ -38,7 +40,9 @@ def read_feather(path: PathType, columns: Optional[Tuple[str, ...]] = None) -> p
         (N,len(columns)) Apache Feather data represented as a `pandas` DataFrame.
     """
     with path.open("rb") as file_handle:
-        dataframe: pd.DataFrame = feather.read_feather(file_handle, columns=columns, memory_map=True)
+        dataframe: pd.DataFrame = feather.read_feather(
+            file_handle, columns=columns, memory_map=True
+        )
     return dataframe
 
 
@@ -65,7 +69,9 @@ def read_lidar_sweep(fpath: Path, attrib_spec: str = "xyz") -> NDArrayFloat:
     """
     possible_attributes = ["x", "y", "z"]
     if not all([a in possible_attributes for a in attrib_spec]):
-        raise ValueError("Attributes must be in (x, y, z, intensity, laser_number, offset_ns).")
+        raise ValueError(
+            "Attributes must be in (x, y, z, intensity, laser_number, offset_ns)."
+        )
 
     sweep_df = read_feather(fpath)
 
@@ -108,12 +114,15 @@ def read_ego_SE3_sensor(log_dir: Path) -> SensorPosesMapping:
     """
     ego_SE3_sensor_path = Path(log_dir, "calibration", "egovehicle_SE3_sensor.feather")
     ego_SE3_sensor = read_feather(ego_SE3_sensor_path)
-    rotations = geometry_utils.quat_to_mat(ego_SE3_sensor.loc[:, ["qw", "qx", "qy", "qz"]].to_numpy())
+    rotations = geometry_utils.quat_to_mat(
+        ego_SE3_sensor.loc[:, ["qw", "qx", "qy", "qz"]].to_numpy()
+    )
     translations = ego_SE3_sensor.loc[:, ["tx_m", "ty_m", "tz_m"]].to_numpy()
     sensor_names = ego_SE3_sensor.loc[:, "sensor_name"].to_numpy()
 
     sensor_name_to_pose: SensorPosesMapping = {
-        name: SE3(rotation=rotations[i], translation=translations[i]) for i, name in enumerate(sensor_names)
+        name: SE3(rotation=rotations[i], translation=translations[i])
+        for i, name in enumerate(sensor_names)
     }
     return sensor_name_to_pose
 
@@ -159,7 +168,8 @@ def read_city_SE3_ego(log_dir: Union[Path, UPath]) -> TimestampedCitySE3EgoPoses
 
     rotation = geometry_utils.quat_to_mat(quat_wxyz)
     timestamp_city_SE3_ego_dict: TimestampedCitySE3EgoPoses = {
-        ts: SE3(rotation=rotation[i], translation=translation_xyz_m[i]) for i, ts in enumerate(timestamps_ns)
+        ts: SE3(rotation=rotation[i], translation=translation_xyz_m[i])
+        for i, ts in enumerate(timestamps_ns)
     }
     return timestamp_city_SE3_ego_dict
 

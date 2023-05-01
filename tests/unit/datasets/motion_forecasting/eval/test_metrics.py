@@ -27,7 +27,11 @@ expected_ade_stationary_k6 = np.full((6,), np.sqrt(2))
 expected_fde_stationary_k6 = np.full((6,), np.sqrt(2))
 
 # Case 3: K=1 forecast in straight line on X axis
-forecasted_trajectories_straight_k1 = np.stack([np.arange(test_N), np.zeros(test_N)], axis=1)[np.newaxis, ...]  # 1xNx2
+forecasted_trajectories_straight_k1 = np.stack(
+    [np.arange(test_N), np.zeros(test_N)], axis=1
+)[
+    np.newaxis, ...
+]  # 1xNx2
 expected_ade_straight_k1 = np.full((1,), np.arange(test_N).mean())
 expected_fde_straight_k1 = np.full((1,), test_N - 1)
 
@@ -39,7 +43,11 @@ expected_ade_straight_k6 = np.full((6,), np.arange(test_N).mean())
 expected_fde_straight_k6 = np.full((6,), test_N - 1)
 
 # Case 5: K=1 forecast in diagonal line
-forecasted_trajectories_diagonal_k1 = np.stack([np.arange(test_N), np.arange(test_N)], axis=1)[np.newaxis, ...]  # 1xNx2
+forecasted_trajectories_diagonal_k1 = np.stack(
+    [np.arange(test_N), np.arange(test_N)], axis=1
+)[
+    np.newaxis, ...
+]  # 1xNx2
 expected_ade_diagonal_k1 = np.full((1,), 6.36396103)
 expected_fde_diagonal_k1 = np.full((1,), np.hypot(test_N - 1, test_N - 1))
 
@@ -55,7 +63,9 @@ expected_fde_diagonal_k1 = np.full((1,), np.hypot(test_N - 1, test_N - 1))
     ],
     ids=["stationary_k1", "stationary_k6", "straight_k1", "straight_k6", "diagonal_k1"],
 )
-def test_compute_ade(forecasted_trajectories: NDArrayFloat, expected_ade: NDArrayFloat) -> None:
+def test_compute_ade(
+    forecasted_trajectories: NDArrayFloat, expected_ade: NDArrayFloat
+) -> None:
     """Test that compute_ade returns the correct output with valid inputs.
 
     Args:
@@ -77,7 +87,9 @@ def test_compute_ade(forecasted_trajectories: NDArrayFloat, expected_ade: NDArra
     ],
     ids=["stationary_k1", "stationary_k6", "straight_k1", "straight_k6", "diagonal_k1"],
 )
-def test_compute_fde(forecasted_trajectories: NDArrayFloat, expected_fde: NDArrayFloat) -> None:
+def test_compute_fde(
+    forecasted_trajectories: NDArrayFloat, expected_fde: NDArrayFloat
+) -> None:
     """Test that compute_fde returns the correct output with valid inputs.
 
     Args:
@@ -93,14 +105,26 @@ def test_compute_fde(forecasted_trajectories: NDArrayFloat, expected_fde: NDArra
     [
         (forecasted_trajectories_stationary_k1, 2.0, False),
         (forecasted_trajectories_stationary_k6, 2.0, False),
-        (forecasted_trajectories_straight_k1, expected_fde_straight_k1[0] + 0.01, False),
+        (
+            forecasted_trajectories_straight_k1,
+            expected_fde_straight_k1[0] + 0.01,
+            False,
+        ),
         (forecasted_trajectories_straight_k1, expected_fde_straight_k1[0] - 0.01, True),
         (forecasted_trajectories_diagonal_k1, 2.0, True),
     ],
-    ids=["stationary_k1", "stationary_k6", "straight_below_threshold", "straight_above_threshold", "diagonal"],
+    ids=[
+        "stationary_k1",
+        "stationary_k6",
+        "straight_below_threshold",
+        "straight_above_threshold",
+        "diagonal",
+    ],
 )
 def test_compute_is_missed_prediction(
-    forecasted_trajectories: NDArrayFloat, miss_threshold_m: float, expected_is_missed_label: bool
+    forecasted_trajectories: NDArrayFloat,
+    miss_threshold_m: float,
+    expected_is_missed_label: bool,
 ) -> None:
     """Test that compute_is_missed_prediction returns the correct output with valid inputs.
 
@@ -126,21 +150,49 @@ out_of_range_probabilities_k6: NDArrayFloat = confident_probabilities_k6 * 10
 wrong_shape_probabilities_k6: NDArrayFloat = np.ones((5,)) / 5
 
 expected_bade_uniform_k1 = expected_ade_stationary_k1
-expected_bade_uniform_k6 = expected_ade_straight_k6 + np.square((1 - uniform_probabilities_k6))
-expected_bade_confident_k6 = expected_ade_straight_k6 + np.square((1 - confident_probabilities_k6))
+expected_bade_uniform_k6 = expected_ade_straight_k6 + np.square(
+    (1 - uniform_probabilities_k6)
+)
+expected_bade_confident_k6 = expected_ade_straight_k6 + np.square(
+    (1 - confident_probabilities_k6)
+)
 
 expected_bfde_uniform_k1 = expected_fde_stationary_k1
-expected_bfde_uniform_k6 = expected_fde_straight_k6 + np.square((1 - uniform_probabilities_k6))
-expected_bfde_confident_k6 = expected_fde_straight_k6 + np.square((1 - confident_probabilities_k6))
+expected_bfde_uniform_k6 = expected_fde_straight_k6 + np.square(
+    (1 - uniform_probabilities_k6)
+)
+expected_bfde_confident_k6 = expected_fde_straight_k6 + np.square(
+    (1 - confident_probabilities_k6)
+)
 
 
 @pytest.mark.parametrize(
     "forecasted_trajectories, forecast_probabilities, normalize, expected_brier_ade",
     [
-        (forecasted_trajectories_stationary_k1, uniform_probabilities_k1, False, expected_bade_uniform_k1),
-        (forecasted_trajectories_straight_k6, uniform_probabilities_k6, False, expected_bade_uniform_k6),
-        (forecasted_trajectories_straight_k6, confident_probabilities_k6, False, expected_bade_confident_k6),
-        (forecasted_trajectories_straight_k6, non_normalized_probabilities_k6, True, expected_bade_confident_k6),
+        (
+            forecasted_trajectories_stationary_k1,
+            uniform_probabilities_k1,
+            False,
+            expected_bade_uniform_k1,
+        ),
+        (
+            forecasted_trajectories_straight_k6,
+            uniform_probabilities_k6,
+            False,
+            expected_bade_uniform_k6,
+        ),
+        (
+            forecasted_trajectories_straight_k6,
+            confident_probabilities_k6,
+            False,
+            expected_bade_confident_k6,
+        ),
+        (
+            forecasted_trajectories_straight_k6,
+            non_normalized_probabilities_k6,
+            True,
+            expected_bade_confident_k6,
+        ),
     ],
     ids=[
         "uniform_stationary_k1",
@@ -194,17 +246,40 @@ def test_compute_brier_ade_data_validation(
     """
     with expectation:
         metrics.compute_brier_ade(
-            forecasted_trajectories_straight_k6, _STATIONARY_GT_TRAJ, forecast_probabilities, normalize
+            forecasted_trajectories_straight_k6,
+            _STATIONARY_GT_TRAJ,
+            forecast_probabilities,
+            normalize,
         )
 
 
 @pytest.mark.parametrize(
     "forecasted_trajectories, forecast_probabilities, normalize, expected_brier_fde",
     [
-        (forecasted_trajectories_stationary_k1, uniform_probabilities_k1, False, expected_bfde_uniform_k1),
-        (forecasted_trajectories_straight_k6, uniform_probabilities_k6, False, expected_bfde_uniform_k6),
-        (forecasted_trajectories_straight_k6, confident_probabilities_k6, False, expected_bfde_confident_k6),
-        (forecasted_trajectories_straight_k6, non_normalized_probabilities_k6, True, expected_bfde_confident_k6),
+        (
+            forecasted_trajectories_stationary_k1,
+            uniform_probabilities_k1,
+            False,
+            expected_bfde_uniform_k1,
+        ),
+        (
+            forecasted_trajectories_straight_k6,
+            uniform_probabilities_k6,
+            False,
+            expected_bfde_uniform_k6,
+        ),
+        (
+            forecasted_trajectories_straight_k6,
+            confident_probabilities_k6,
+            False,
+            expected_bfde_confident_k6,
+        ),
+        (
+            forecasted_trajectories_straight_k6,
+            non_normalized_probabilities_k6,
+            True,
+            expected_bfde_confident_k6,
+        ),
     ],
     ids=[
         "uniform_stationary_k1",
@@ -258,5 +333,8 @@ def test_compute_brier_fde_data_validation(
     """
     with expectation:
         metrics.compute_brier_fde(
-            forecasted_trajectories_straight_k6, _STATIONARY_GT_TRAJ, forecast_probabilities, normalize
+            forecasted_trajectories_straight_k6,
+            _STATIONARY_GT_TRAJ,
+            forecast_probabilities,
+            normalize,
         )

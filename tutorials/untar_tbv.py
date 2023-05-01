@@ -12,7 +12,9 @@ from joblib import Parallel, delayed
 NUM_TBV_SHARDS: Final[int] = 21
 
 
-def run_command(cmd: str, return_output: bool = False) -> Tuple[Optional[bytes], Optional[bytes]]:
+def run_command(
+    cmd: str, return_output: bool = False
+) -> Tuple[Optional[bytes], Optional[bytes]]:
     """Execute a system call, and block until the system call completes.
 
     Args:
@@ -23,14 +25,18 @@ def run_command(cmd: str, return_output: bool = False) -> Tuple[Optional[bytes],
         Tuple of (stdout, stderr) output if return_output is True, else None
     """
     print(cmd)
-    (stdout_data, stderr_data) = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()
+    (stdout_data, stderr_data) = subprocess.Popen(
+        cmd, shell=True, stdout=subprocess.PIPE
+    ).communicate()
 
     if return_output:
         return stdout_data, stderr_data
     return None, None
 
 
-def untar_tbv_dataset(num_workers: int, shard_dirpath: Path, desired_tbv_dataroot: Path) -> None:
+def untar_tbv_dataset(
+    num_workers: int, shard_dirpath: Path, desired_tbv_dataroot: Path
+) -> None:
     """Untar each of the tar.gz archives.
 
     Args:
@@ -58,7 +64,9 @@ def untar_tbv_dataset(num_workers: int, shard_dirpath: Path, desired_tbv_dataroo
             run_command(cmd)
 
 
-@click.command(help="Extract TbV tar.gz archives that were previously downloaded to a local disk.")
+@click.command(
+    help="Extract TbV tar.gz archives that were previously downloaded to a local disk."
+)
 @click.option(
     "--num-workers",
     required=True,
@@ -77,10 +85,14 @@ def untar_tbv_dataset(num_workers: int, shard_dirpath: Path, desired_tbv_dataroo
     help="Path to local directory, where TbV logs will be extracted.",
     type=str,
 )
-def run_untar_tbv_dataset(num_workers: int, shard_dirpath: str, desired_tbv_dataroot: str) -> None:
+def run_untar_tbv_dataset(
+    num_workers: int, shard_dirpath: str, desired_tbv_dataroot: str
+) -> None:
     """Click entry point for TbV tar.gz file extraction."""
     untar_tbv_dataset(
-        num_workers=num_workers, shard_dirpath=Path(shard_dirpath), desired_tbv_dataroot=Path(desired_tbv_dataroot)
+        num_workers=num_workers,
+        shard_dirpath=Path(shard_dirpath),
+        desired_tbv_dataroot=Path(desired_tbv_dataroot),
     )
 
 

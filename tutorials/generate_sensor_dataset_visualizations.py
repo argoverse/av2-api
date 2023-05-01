@@ -24,7 +24,9 @@ RESOLUTION_M_PER_CELL: Tuple[float, float] = (+0.1, +0.1)
 
 # Model an xy grid in the Bird's-eye view.
 BEV_GRID: Final[BEVGrid] = BEVGrid(
-    min_range_m=MIN_RANGE_M, max_range_m=MAX_RANGE_M, resolution_m_per_cell=RESOLUTION_M_PER_CELL
+    min_range_m=MIN_RANGE_M,
+    max_range_m=MAX_RANGE_M,
+    resolution_m_per_cell=RESOLUTION_M_PER_CELL,
 )
 
 
@@ -64,9 +66,15 @@ def generate_sensor_dataset_visualizations(
                     and sweep.timestamp_ns in timestamp_city_SE3_ego_dict
                 ):
                     city_SE3_ego_cam_t = timestamp_city_SE3_ego_dict[cam.timestamp_ns]
-                    city_SE3_ego_lidar_t = timestamp_city_SE3_ego_dict[sweep.timestamp_ns]
+                    city_SE3_ego_lidar_t = timestamp_city_SE3_ego_dict[
+                        sweep.timestamp_ns
+                    ]
 
-                    uv, points_cam, is_valid_points = cam.camera_model.project_ego_to_img_motion_compensated(
+                    (
+                        uv,
+                        points_cam,
+                        is_valid_points,
+                    ) = cam.camera_model.project_ego_to_img_motion_compensated(
                         sweep.xyz,
                         city_SE3_ego_cam_t=city_SE3_ego_cam_t,
                         city_SE3_ego_lidar_t=city_SE3_ego_lidar_t,
@@ -75,11 +83,20 @@ def generate_sensor_dataset_visualizations(
                     uv_int: NDArrayInt = np.round(uv[is_valid_points]).astype(int)
                     colors = create_range_map(points_cam[is_valid_points, :3])
                     img = draw_points_xy_in_img(
-                        cam.img, uv_int, colors=colors, alpha=0.85, diameter=5, sigma=1.0, with_anti_alias=True
+                        cam.img,
+                        uv_int,
+                        colors=colors,
+                        alpha=0.85,
+                        diameter=5,
+                        sigma=1.0,
+                        with_anti_alias=True,
                     )
                     if annotations is not None:
                         img = annotations.project_to_cam(
-                            img, cam.camera_model, city_SE3_ego_cam_t, city_SE3_ego_lidar_t
+                            img,
+                            cam.camera_model,
+                            city_SE3_ego_cam_t,
+                            city_SE3_ego_lidar_t,
                         )
                     cam_name_to_img[cam_name] = img
             if len(cam_name_to_img) < len(cam_names):

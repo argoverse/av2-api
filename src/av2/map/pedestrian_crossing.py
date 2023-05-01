@@ -44,7 +44,9 @@ class PedestrianCrossing:
         if not isinstance(other, PedestrianCrossing):
             return False
 
-        return np.allclose(self.edge1.xyz, other.edge1.xyz) and np.allclose(self.edge2.xyz, other.edge2.xyz)
+        return np.allclose(self.edge1.xyz, other.edge1.xyz) and np.allclose(
+            self.edge2.xyz, other.edge2.xyz
+        )
 
     @classmethod
     def from_dict(cls, json_data: Dict[str, Any]) -> PedestrianCrossing:

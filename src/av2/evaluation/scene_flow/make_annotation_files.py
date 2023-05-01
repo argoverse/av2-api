@@ -6,10 +6,11 @@ from typing import Final, Tuple
 import click
 import numpy as np
 import pandas as pd
+from rich.progress import track
+
 from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
-from rich.progress import track
 
 CLOSE_DISTANCE_THRESHOLD: Final = 35.0
 
@@ -54,7 +55,9 @@ def write_annotation(
     output.to_feather(output_file)
 
 
-def make_annotation_files(output_dir: str, mask_file: str, data_dir: str, name: str, split: str) -> None:
+def make_annotation_files(
+    output_dir: str, mask_file: str, data_dir: str, name: str, split: str
+) -> None:
     """Create annotation files for running the evaluation.
 
     Args:
@@ -86,7 +89,9 @@ def make_annotation_files(output_dir: str, mask_file: str, data_dir: str, name: 
         is_dynamic = flow_labels.is_dynamic[mask].numpy().astype(bool)
 
         pc = sweep_0.lidar.as_tensor()[mask, :3].numpy()
-        is_close = np.logical_and.reduce(np.abs(pc[:, :2]) <= CLOSE_DISTANCE_THRESHOLD, axis=1).astype(bool)
+        is_close = np.logical_and.reduce(
+            np.abs(pc[:, :2]) <= CLOSE_DISTANCE_THRESHOLD, axis=1
+        ).astype(bool)
 
         write_annotation(
             category_indices,
@@ -115,7 +120,9 @@ def make_annotation_files(output_dir: str, mask_file: str, data_dir: str, name: 
     default="val",
     type=click.Choice(["test", "val"]),
 )
-def _make_annotation_files_entry(output_dir: str, mask_file: str, data_dir: str, name: str, split: str) -> None:
+def _make_annotation_files_entry(
+    output_dir: str, mask_file: str, data_dir: str, name: str, split: str
+) -> None:
     """Entry point for make_annotation_files."""
     make_annotation_files(output_dir, mask_file, data_dir, name, split)
 

@@ -67,7 +67,9 @@ def verify_log_contents(data_root: Path, log_id: str, check_image_sizes: bool) -
         if not check_image_sizes:
             continue
         # every image should be (H,W) = 2048x1550 (front-center) or 775x1024 for all other cameras.
-        for img_fpath in track(img_fpaths, description=f"Verifying image sizes for {camera_enum}"):
+        for img_fpath in track(
+            img_fpaths, description=f"Verifying image sizes for {camera_enum}"
+        ):
             img = io_utils.read_img(img_path=img_fpath, channel_order="RGB")
             if camera_enum == RingCameras.RING_FRONT_CENTER:
                 assert img.shape == (2048, 1550, 3)
@@ -84,14 +86,34 @@ def verify_log_contents(data_root: Path, log_id: str, check_image_sizes: bool) -
     assert poses_fpath.exists()
     # poses file should be loadable.
     poses_df = io_utils.read_feather(poses_fpath)
-    assert list(poses_df.keys()) == ["timestamp_ns", "qw", "qx", "qy", "qz", "tx_m", "ty_m", "tz_m"]
+    assert list(poses_df.keys()) == [
+        "timestamp_ns",
+        "qw",
+        "qx",
+        "qy",
+        "qz",
+        "tx_m",
+        "ty_m",
+        "tz_m",
+    ]
 
     # every log should have an extrinsics calibration file.
-    extrinsics_fpath = data_root / log_id / "calibration" / "egovehicle_SE3_sensor.feather"
+    extrinsics_fpath = (
+        data_root / log_id / "calibration" / "egovehicle_SE3_sensor.feather"
+    )
     assert extrinsics_fpath.exists()
     # extrinsics should be loadable.
     extrinsics_df = io_utils.read_feather(extrinsics_fpath)
-    assert list(extrinsics_df.keys()) == ["sensor_name", "qw", "qx", "qy", "qz", "tx_m", "ty_m", "tz_m"]
+    assert list(extrinsics_df.keys()) == [
+        "sensor_name",
+        "qw",
+        "qx",
+        "qy",
+        "qz",
+        "tx_m",
+        "ty_m",
+        "tz_m",
+    ]
 
     # extrinsics should be provided for each camera.
     for camera_enum in list(RingCameras):
@@ -138,7 +160,9 @@ def verify_log_map(data_root: Path, log_id: str) -> None:
     assert log_map_dirpath.exists()
 
     # every log should have one and only one raster height map. (Note: season is stripped from uuid here).
-    ground_height_raster_fpaths = list(log_map_dirpath.glob("*_ground_height_surface____*.npy"))
+    ground_height_raster_fpaths = list(
+        log_map_dirpath.glob("*_ground_height_surface____*.npy")
+    )
     assert len(ground_height_raster_fpaths) == 1
 
     # every log should have a Sim(2) mapping from raster grid coordinates to city coordinates.
@@ -155,7 +179,11 @@ def verify_log_map(data_root: Path, log_id: str) -> None:
 
     # every vector map file should have only 3 keys -- "pedestrian_crossings", "lane_segments", "drivable_areas"
     vector_map_json_data = io_utils.read_json_file(vector_map_fpath)
-    assert list(vector_map_json_data.keys()) == ["pedestrian_crossings", "lane_segments", "drivable_areas"]
+    assert list(vector_map_json_data.keys()) == [
+        "pedestrian_crossings",
+        "lane_segments",
+        "drivable_areas",
+    ]
 
     for _, lane_segment_dict in vector_map_json_data["lane_segments"].items():
         assert tuple(lane_segment_dict.keys()) == EXPECTED_LANE_SEGMENT_ATTRIB_KEYS
@@ -164,10 +192,14 @@ def verify_log_map(data_root: Path, log_id: str) -> None:
     avm = ArgoverseStaticMap.from_json(static_map_path=vector_map_fpath)
 
     # every map should be loadable w/ build_raster=False
-    avm = ArgoverseStaticMap.from_map_dir(log_map_dirpath=log_map_dirpath, build_raster=False)
+    avm = ArgoverseStaticMap.from_map_dir(
+        log_map_dirpath=log_map_dirpath, build_raster=False
+    )
 
     # every map should be loadable w/ build_raster=True.
-    avm = ArgoverseStaticMap.from_map_dir(log_map_dirpath=log_map_dirpath, build_raster=True)
+    avm = ArgoverseStaticMap.from_map_dir(
+        log_map_dirpath=log_map_dirpath, build_raster=True
+    )
 
     # load every lane segment
     lane_segments = avm.get_scenario_lane_segments()
@@ -194,7 +226,9 @@ def verify_logs_using_dataloader(data_root: Path, log_ids: Tuple[str, ...]) -> N
         log_ids: unique IDs of TbV vehicle logs.
     """
     loader = AV2SensorDataLoader(data_dir=data_root, labels_dir=data_root)
-    for log_id in track(log_ids, description="Verify logs using an AV2 dataloader object"):
+    for log_id in track(
+        log_ids, description="Verify logs using an AV2 dataloader object"
+    ):
         logger.info("Verifying log %s", log_id)
         # city abbreviation should be parsable from every vector map file name, and should fall into 1 of 6 cities
         city_name = loader.get_city_name(log_id=log_id)
@@ -203,7 +237,9 @@ def verify_logs_using_dataloader(data_root: Path, log_ids: Tuple[str, ...]) -> N
         # pose should be present for every lidar sweep.
         lidar_timestamps_ns = loader.get_ordered_log_lidar_timestamps(log_id=log_id)
         for lidar_timestamp_ns in lidar_timestamps_ns:
-            city_SE3_egovehicle = loader.get_city_SE3_ego(log_id=log_id, timestamp_ns=lidar_timestamp_ns)
+            city_SE3_egovehicle = loader.get_city_SE3_ego(
+                log_id=log_id, timestamp_ns=lidar_timestamp_ns
+            )
             assert isinstance(city_SE3_egovehicle, SE3)
 
 
@@ -230,7 +266,11 @@ def run_verify_all_tbv_logs(data_root: str, check_image_sizes: bool) -> None:
     for i in range(num_logs):
         log_id = log_ids[i]
         logger.info("Verifying log %d: %s", i, log_id)
-        verify_log_contents(data_root=Path(data_root), log_id=log_id, check_image_sizes=check_image_sizes)
+        verify_log_contents(
+            data_root=Path(data_root),
+            log_id=log_id,
+            check_image_sizes=check_image_sizes,
+        )
 
     verify_logs_using_dataloader(data_root=Path(data_root), log_ids=log_ids)
 
