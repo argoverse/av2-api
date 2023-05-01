@@ -2,6 +2,8 @@
 //!
 //! Reading and writing operations.
 
+use image::ImageBuffer;
+use image::Rgba;
 use ndarray::s;
 use ndarray::Array;
 use ndarray::Array2;
@@ -166,8 +168,17 @@ pub fn read_timestamped_feather(
         .select(&[cols(columns)])
 }
 
-/// Read an image into an RGBA image.
-pub fn read_image(path: &PathBuf) -> Array3<u8> {
+/// Read an image into an RGBA u8 image.
+pub fn read_image_rgba8(path: &PathBuf) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+    ImageReader::open(path)
+        .unwrap()
+        .decode()
+        .unwrap()
+        .to_rgba8()
+}
+
+/// Read an image into an RGBA u8 image and convert to `ndarray`.
+pub fn read_image_rgba8_ndarray(path: &PathBuf) -> Array3<u8> {
     let image = ImageReader::open(path)
         .unwrap()
         .decode()

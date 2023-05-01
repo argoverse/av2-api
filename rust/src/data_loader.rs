@@ -4,9 +4,12 @@
 
 use constants::{ANNOTATION_COLUMNS, POSE_COLUMNS};
 
+use image::ImageBuffer;
+use image::Rgba;
 use io::{read_accumulate_lidar, read_timestamped_feather};
 use itertools::Itertools;
-use ndarray::{Array3, Ix3};
+use ndarray::Ix3;
+use nshare::ToNdarray3;
 use numpy::IntoPyArray;
 use numpy::PyArray;
 use pyo3::prelude::*;
@@ -24,10 +27,11 @@ use glob::glob;
 use polars::prelude::*;
 use pyo3::types::PyBytes;
 
+use crate::io::read_image_rgba8;
 use crate::{
     constants::{self, CameraNames},
     geometry::camera::pinhole_camera::PinholeCamera,
-    io::{self, read_image},
+    io::{self},
     structures::timestamped_image::TimeStampedImage,
 };
 use rayon::iter::IndexedParallelIterator;
@@ -188,7 +192,7 @@ impl DataLoader {
         let images = self.get_synchronized_images(index);
         images
             .into_iter()
-            .map(|x| x.image.into_pyarray(py))
+            .map(|x| x.image.into_ndarray3().into_pyarray(py))
             .collect_vec()
     }
 
@@ -339,7 +343,7 @@ impl DataLoader {
                             timestamp_ns_camera,
                         );
                         let image = TimeStampedImage {
-                            image: read_image(&camera_path),
+                            image: read_image_rgba8(&camera_path),
                             camera_model: PinholeCamera::from_feather(
                                 &self.log_dir(log_id),
                                 camera_name.to_string().as_str(),
@@ -357,7 +361,12 @@ impl DataLoader {
                         };
 
                         TimeStampedImage {
-                            image: Array3::<u8>::zeros([4, height, width]),
+                            image: ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(
+                                width,
+                                height,
+                                vec![0; 4 * height as usize * width as usize],
+                            )
+                            .unwrap(),
                             camera_model: PinholeCamera::from_feather(
                                 &self.log_dir(log_id),
                                 camera_name.as_str(),

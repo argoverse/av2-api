@@ -42,6 +42,9 @@ def main(
         # Lidar (x,y,z) in meters and intensity (i).
         lidar_tensor = sweep.lidar.as_tensor()
 
+        # Synchronized ring cameras.
+        synchronized_images = data_loader.get_synchronized_images(i)
+
         # Transform the points to city coordinates.
         lidar_xyz_city = transform_points(city_SE3_ego_mat4, lidar_tensor[:, :3])
 
@@ -60,7 +63,7 @@ def main(
             # Access track uuid.
             track_uuid = sweep.cuboids.track_uuid
 
-            print(lidar_xyz_city, cuboids, xyzlwh_t, category, track_uuid)
+            # print(lidar_xyz_city, cuboids, xyzlwh_t, category, track_uuid)
 
         if i >= max_iterations:
             logger.info(f"Reached max iterations of {max_iterations}!")

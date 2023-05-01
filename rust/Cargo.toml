@@ -21,9 +21,6 @@ ndarray = { version = "0.15.6", features = [
     "matrixmultiply-threading",
     "rayon",
 ] }
-# nshare = { git = "https://github.com/benjaminrwilson/nshare", features = [
-#     "ndarray",
-# ] }
 nshare = { version = "0.9.0", features = ["ndarray"] }
 numpy = { version = "0.18.0" }
 once_cell = "1.17.1"
