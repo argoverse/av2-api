@@ -2,7 +2,7 @@
 //!
 //! Common constants used throughout the library.
 
-use strum_macros::EnumString;
+use strum_macros::{Display, EnumIter, EnumString};
 
 /// Annotation dataframe columns.
 /// Found in `annotations.feather`.
@@ -30,7 +30,7 @@ pub const POSE_COLUMNS: [&str; 7] = ["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "
 pub const DEFAULT_MAP_FILE_NAME: &str = "log_map_archive___DEFAULT_city_00000.json";
 
 /// Argoverse Sensor dataset categories.
-#[derive(Clone, Copy, Debug, PartialEq, EnumString)]
+#[derive(Clone, Copy, Debug, EnumIter, EnumString, PartialEq)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum AV2Categories {
     /// All recognized animals large enough to affect traffic, but that do not fit into the Cat, Dog, or Horse categories.
@@ -93,4 +93,24 @@ pub enum AV2Categories {
     WheeledDevice,
     /// Person actively riding or being carried by a wheeled device.
     WheeledRider,
+}
+
+/// Argoverse 2 camera names.
+#[derive(Clone, Copy, Debug, Display, EnumIter, EnumString, PartialEq)]
+#[strum(serialize_all = "snake_case")]
+pub enum CameraNames {
+    /// Ring rear left RGB camera.
+    RingRearLeft,
+    /// Ring side left RGB camera.
+    RingSideLeft,
+    /// Ring front left RGB camera.
+    RingFrontLeft,
+    /// Ring front center RGB camera.
+    RingFrontCenter,
+    /// Ring front right RGB camera.
+    RingFrontRight,
+    /// Ring side right RGB camera.
+    RingSideRight,
+    /// Ring rear right RGB camera.
+    RingRearRight,
 }

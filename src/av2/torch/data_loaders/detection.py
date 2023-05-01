@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from typing import List
 
 from torch.utils.data import Dataset
 
 import av2._r as rust
 from av2.utils.typing import PathType
+import torch
 
 from ..structures.sweep import Sweep
 
@@ -43,7 +45,7 @@ class DetectionDataLoader(Dataset[Sweep]):  # type: ignore
     memory_mapped: bool = False
 
     _backend: rust.DataLoader = field(init=False)
-    _current_idx: int = 0
+    _current_sweep_index: int = 0
 
     def __post_init__(self) -> None:
         """Initialize Rust backend."""
@@ -56,9 +58,9 @@ class DetectionDataLoader(Dataset[Sweep]):  # type: ignore
             self.memory_mapped,
         )
 
-    def __getitem__(self, index: int) -> Sweep:
+    def __getitem__(self, sweep_index: int) -> Sweep:
         """Get a sweep from the sensor dataset."""
-        sweep = self._backend.get(index)
+        sweep = self._backend.get(sweep_index)
         return Sweep.from_rust(sweep)
 
     def __len__(self) -> int:
@@ -71,8 +73,13 @@ class DetectionDataLoader(Dataset[Sweep]):  # type: ignore
 
     def __next__(self) -> Sweep:
         """Return the next sweep."""
-        if self._current_idx >= self.__len__():
+        if self._current_sweep_index >= self.__len__():
             raise StopIteration
-        datum = self.__getitem__(self._current_idx)
-        self._current_idx += 1
+        datum = self.__getitem__(self._current_sweep_index)
+        self._current_sweep_index += 1
         return datum
+
+    def get_synchronized_images(self, sweep_index: int) -> List[torch.Tensor]:
+        """Get the synchronized ring images associated with the sweep index.."""
+        synchronized_images_list = self._backend.get_synchronized_images(sweep_index)
+        return [torch.as_tensor(x) for x in synchronized_images_list]

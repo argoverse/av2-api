@@ -35,9 +35,10 @@ dynamic = [
     "authors",
     "description",
     "license",
-    "readme",
     "version"
 ]
+
+readme = "README.md"
 
 [project.optional-dependencies]
 lint = [
