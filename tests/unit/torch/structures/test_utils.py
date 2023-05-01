@@ -33,7 +33,14 @@ def test_tensor_from_frame() -> None:
     tensor = tensor_from_frame(frame, columns=["qw", "qx", "qy", "qz"])
 
     tensor_expected = torch.as_tensor(
-        [[frame.loc[0, "qw"], frame.loc[0, "qx"], frame.loc[0, "qy"], frame.loc[0, "qz"]]]
+        [
+            [
+                frame.loc[0, "qw"],
+                frame.loc[0, "qx"],
+                frame.loc[0, "qy"],
+                frame.loc[0, "qz"],
+            ]
+        ]
     )
     assert_close(tensor, tensor_expected)
 
@@ -42,12 +49,18 @@ def test_SE3_from_frame() -> None:
     """Test converting a data-frame into an SE(3) object."""
     frame = _build_dummy_frame()
 
-    quat_wxyz_tensor = torch.as_tensor(frame[list(QWXYZ_COLUMNS)].to_numpy().astype(np.float32))
-    translation = torch.as_tensor(frame[list(TRANSLATION_COLUMNS)].to_numpy().astype(np.float32))
+    quat_wxyz_tensor = torch.as_tensor(
+        frame[list(QWXYZ_COLUMNS)].to_numpy().astype(np.float32)
+    )
+    translation = torch.as_tensor(
+        frame[list(TRANSLATION_COLUMNS)].to_numpy().astype(np.float32)
+    )
     quat_wxyz = Quaternion(quat_wxyz_tensor)
     rotation = So3(quat_wxyz)
     city_SE3_ego_expected = Se3(rotation, translation)
     city_SE3_ego = SE3_from_frame(frame)
 
     assert_close(city_SE3_ego.translation, city_SE3_ego_expected.translation)
-    assert_close(city_SE3_ego.rotation.matrix(), city_SE3_ego_expected.rotation.matrix())
+    assert_close(
+        city_SE3_ego.rotation.matrix(), city_SE3_ego_expected.rotation.matrix()
+    )

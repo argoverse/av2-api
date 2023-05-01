@@ -34,7 +34,12 @@ def main(
         max_iterations: Maximum number of iterations for the data-loader example.
     """
     logger.info("Starting detection data-loader example ...")
-    data_loader = DetectionDataLoader(root_dir, dataset_name, split_name, num_accumulated_sweeps=num_accumulated_sweeps)
+    data_loader = DetectionDataLoader(
+        root_dir,
+        dataset_name,
+        split_name,
+        num_accumulated_sweeps=num_accumulated_sweeps,
+    )
     for i, sweep in enumerate(tqdm(data_loader)):
         # 4x4 matrix representing the SE(3) transformation to city from ego-vehicle coordinates.
         city_SE3_ego_mat4 = sweep.city_SE3_ego.matrix()

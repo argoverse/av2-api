@@ -67,7 +67,9 @@ def generate_egoview_overlaid_map(
         video_list = []
         for i, img_fpath in enumerate(cam_im_fpaths):
             if i % 50 == 0:
-                logging.info(f"\tOn file {i}/{num_cam_imgs} of camera {cam_name} of {log_id}")
+                logging.info(
+                    f"\tOn file {i}/{num_cam_imgs} of camera {cam_name} of {log_id}"
+                )
 
             cam_timestamp_ns = int(img_fpath.stem)
             city_SE3_ego = loader.get_city_SE3_ego(log_id, cam_timestamp_ns)
@@ -96,7 +98,10 @@ def generate_egoview_overlaid_map(
                 depth_map = None
 
             egoview_renderer = EgoViewMapRenderer(
-                depth_map=depth_map, city_SE3_ego=city_SE3_ego, pinhole_cam=pinhole_cam, avm=avm
+                depth_map=depth_map,
+                city_SE3_ego=city_SE3_ego,
+                pinhole_cam=pinhole_cam,
+                avm=avm,
             )
             frame_rgb = render_egoview(
                 output_dir=output_dir,
@@ -148,7 +153,9 @@ def render_egoview(
         # we only create log-specific directories, if dumping individual frames.
         save_dir.mkdir(exist_ok=True, parents=True)
 
-    img_fname = f"{egoview_renderer.pinhole_cam.cam_name}_{cam_timestamp_ns}_vectormap.jpg"
+    img_fname = (
+        f"{egoview_renderer.pinhole_cam.cam_name}_{cam_timestamp_ns}_vectormap.jpg"
+    )
     save_fpath = save_dir / img_fname
 
     if save_fpath.exists():
@@ -183,7 +190,10 @@ def render_egoview(
 
 
 def render_egoview_with_occlusion_checks(
-    img_canvas: NDArrayByte, egoview_renderer: EgoViewMapRenderer, max_range_m: float, line_width_px: int = 10
+    img_canvas: NDArrayByte,
+    egoview_renderer: EgoViewMapRenderer,
+    max_range_m: float,
+    line_width_px: int = 10,
 ) -> NDArrayByte:
     """Render pedestrian crossings and lane segments in the ego-view.
 
@@ -200,8 +210,12 @@ def render_egoview_with_occlusion_checks(
         array of shape (H,W,3) and type uint8 representing a RGB image.
     """
     for ls in egoview_renderer.avm.get_scenario_lane_segments():
-        img_canvas = egoview_renderer.render_lane_boundary_egoview(img_canvas, ls, "right", line_width_px)
-        img_canvas = egoview_renderer.render_lane_boundary_egoview(img_canvas, ls, "left", line_width_px)
+        img_canvas = egoview_renderer.render_lane_boundary_egoview(
+            img_canvas, ls, "right", line_width_px
+        )
+        img_canvas = egoview_renderer.render_lane_boundary_egoview(
+            img_canvas, ls, "left", line_width_px
+        )
 
     for pc in egoview_renderer.avm.get_scenario_ped_crossings():
         EPS = 1e-5
@@ -213,8 +227,12 @@ def render_egoview_with_occlusion_checks(
         N_INTERP_PTS = 100
         # For pixel-perfect rendering, querying crosswalk boundary ground height at waypoints throughout
         # the street is much more accurate than 3d linear interpolation using only the 4 annotated corners.
-        polygon_city_frame = interp_utils.interp_arc(t=N_INTERP_PTS, points=xwalk_polygon[:, :2])
-        polygon_city_frame = egoview_renderer.avm.append_height_to_2d_city_pt_cloud(points_xy=polygon_city_frame)
+        polygon_city_frame = interp_utils.interp_arc(
+            t=N_INTERP_PTS, points=xwalk_polygon[:, :2]
+        )
+        polygon_city_frame = egoview_renderer.avm.append_height_to_2d_city_pt_cloud(
+            points_xy=polygon_city_frame
+        )
         egoview_renderer.render_polyline_egoview(
             polygon_city_frame,
             img_canvas,
@@ -250,7 +268,9 @@ def parse_camera_enum_types(cam_names: Tuple[str, ...]) -> List[RingCameras]:
     return cam_enums
 
 
-@click.command(help="Generate map visualizations on ego-view imagery from the Argoverse 2 Sensor or TbV Datasets.")
+@click.command(
+    help="Generate map visualizations on ego-view imagery from the Argoverse 2 Sensor or TbV Datasets."
+)
 @click.option(
     "--data-root",
     required=True,

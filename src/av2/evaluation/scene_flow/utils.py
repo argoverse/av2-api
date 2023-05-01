@@ -7,12 +7,13 @@ from zipfile import ZipFile
 import numpy as np
 import pandas as pd
 import torch
+from kornia.geometry.liegroup import Se3
+from torch import BoolTensor
+
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 from av2.torch.structures.flow import Flow
 from av2.torch.structures.sweep import Sweep
 from av2.utils.typing import NDArrayBool, NDArrayFloat
-from kornia.geometry.liegroup import Se3
-from torch import BoolTensor
 
 _EVAL_ROOT: Final = Path(__file__).resolve().parent
 
@@ -34,12 +35,18 @@ def get_eval_point_mask(sweep_uuid: Tuple[str, int], mask_file: Path) -> BoolTen
     """
     with ZipFile(mask_file) as masks:
         log_id, timestamp_ns = sweep_uuid
-        mask = pd.read_feather(masks.open(f"{log_id}/{timestamp_ns}.feather")).to_numpy().astype(bool)
+        mask = (
+            pd.read_feather(masks.open(f"{log_id}/{timestamp_ns}.feather"))
+            .to_numpy()
+            .astype(bool)
+        )
 
     return BoolTensor(torch.from_numpy(mask).squeeze())
 
 
-def compute_eval_point_mask(datum: Tuple[Sweep, Sweep, Se3, Optional[Flow]]) -> BoolTensor:
+def compute_eval_point_mask(
+    datum: Tuple[Sweep, Sweep, Se3, Optional[Flow]]
+) -> BoolTensor:
     """Compute for a given sweep, a boolean mask indicating which points are evaluated on.
 
     Note: This should NOT BE USED FOR CREATING SUBMISSIONS use get_eval_point_mask to ensure consistency.
@@ -54,7 +61,9 @@ def compute_eval_point_mask(datum: Tuple[Sweep, Sweep, Se3, Optional[Flow]]) -> 
         ValueError: if datum does not have ground annotations.
     """
     pcl = datum[0].lidar.as_tensor()[:, :3]
-    is_close = torch.logical_and((pcl[:, 0].abs() <= 50), (pcl[:, 1].abs() <= 50)).bool()
+    is_close = torch.logical_and(
+        (pcl[:, 0].abs() <= 50), (pcl[:, 1].abs() <= 50)
+    ).bool()
 
     if datum[0].is_ground is None:
         raise ValueError("Must have ground annotations loaded to determine eval mask")
@@ -63,7 +72,10 @@ def compute_eval_point_mask(datum: Tuple[Sweep, Sweep, Se3, Optional[Flow]]) -> 
 
 
 def write_output_file(
-    flow: NDArrayFloat, is_dynamic: NDArrayBool, sweep_uuid: Tuple[str, int], output_dir: Path
+    flow: NDArrayFloat,
+    is_dynamic: NDArrayBool,
+    sweep_uuid: Tuple[str, int],
+    output_dir: Path,
 ) -> None:
     """Write an output predictions file in the correct format for submission.
 
@@ -79,6 +91,11 @@ def write_output_file(
     fy_m = flow[:, 1].astype(np.float16)
     fz_m = flow[:, 2].astype(np.float16)
     output = pd.DataFrame(
-        {"flow_tx_m": fx_m, "flow_ty_m": fy_m, "flow_tz_m": fz_m, "is_dynamic": is_dynamic.astype(bool)}
+        {
+            "flow_tx_m": fx_m,
+            "flow_ty_m": fy_m,
+            "flow_tz_m": fz_m,
+            "is_dynamic": is_dynamic.astype(bool),
+        }
     )
     output.to_feather(output_log_dir / f"{sweep_uuid[1]}.feather")

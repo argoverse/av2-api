@@ -14,7 +14,9 @@ from av2.utils.typing import NDArrayFloat, NDArrayInt
 NUM_CENTERLINE_INTERP_PTS: Final[int] = 10
 
 
-def compute_lane_width(left_even_pts: NDArrayFloat, right_even_pts: NDArrayFloat) -> float:
+def compute_lane_width(
+    left_even_pts: NDArrayFloat, right_even_pts: NDArrayFloat
+) -> float:
     """Compute the width of a lane, given an explicit left and right boundary.
 
     Requires an equal number of waypoints on each boundary. For 3d polylines, this incorporates
@@ -39,7 +41,9 @@ def compute_lane_width(left_even_pts: NDArrayFloat, right_even_pts: NDArrayFloat
     return lane_width
 
 
-def compute_mid_pivot_arc(single_pt: NDArrayFloat, arc_pts: NDArrayFloat) -> Tuple[NDArrayFloat, float]:
+def compute_mid_pivot_arc(
+    single_pt: NDArrayFloat, arc_pts: NDArrayFloat
+) -> Tuple[NDArrayFloat, float]:
     """Compute an arc by pivoting around a single point.
 
     Given a line of points on one boundary, and a single point on the other side,
@@ -90,7 +94,9 @@ def compute_midpoint_line(
         ValueError: If the left and right lane boundaries aren't a list of 2d or 3d waypoints.
     """
     if left_ln_boundary.ndim != 2 or right_ln_boundary.ndim != 2:
-        raise ValueError("Left and right lane boundaries must consist of a sequence of 2d or 3d waypoints.")
+        raise ValueError(
+            "Left and right lane boundaries must consist of a sequence of 2d or 3d waypoints."
+        )
 
     dim = left_ln_boundary.shape[1]
     if dim not in [2, 3]:
@@ -100,11 +106,15 @@ def compute_midpoint_line(
         raise ValueError("Left ")
 
     if len(left_ln_boundary) == 1:
-        centerline_pts, lane_width = compute_mid_pivot_arc(single_pt=left_ln_boundary, arc_pts=right_ln_boundary)
+        centerline_pts, lane_width = compute_mid_pivot_arc(
+            single_pt=left_ln_boundary, arc_pts=right_ln_boundary
+        )
         return centerline_pts[:, :2], lane_width
 
     if len(right_ln_boundary) == 1:
-        centerline_pts, lane_width = compute_mid_pivot_arc(single_pt=right_ln_boundary, arc_pts=left_ln_boundary)
+        centerline_pts, lane_width = compute_mid_pivot_arc(
+            single_pt=right_ln_boundary, arc_pts=left_ln_boundary
+        )
         return centerline_pts[:, :2], lane_width
 
     # fall back to the typical case.
@@ -176,7 +186,9 @@ def interp_arc(t: int, points: NDArrayFloat) -> NDArrayFloat:
 
 
 def linear_interpolation(
-    key_timestamps: Tuple[int, int], key_translations: Tuple[NDArrayFloat, NDArrayFloat], query_timestamp: int
+    key_timestamps: Tuple[int, int],
+    key_translations: Tuple[NDArrayFloat, NDArrayFloat],
+    query_timestamp: int,
 ) -> NDArrayFloat:
     """Given two 3d positions at specific timestamps, interpolate an intermediate position at a given timestamp.
 
@@ -203,7 +215,9 @@ def linear_interpolation(
     return translation_interp
 
 
-def interpolate_pose(key_timestamps: Tuple[int, int], key_poses: Tuple[SE3, SE3], query_timestamp: int) -> SE3:
+def interpolate_pose(
+    key_timestamps: Tuple[int, int], key_poses: Tuple[SE3, SE3], query_timestamp: int
+) -> SE3:
     """Given two SE(3) poses at specific timestamps, interpolate an intermediate pose at a given timestamp.
 
     Note: we use a straight line interpolation for the translation, while still using interpolate (aka "slerp")
@@ -236,6 +250,10 @@ def interpolate_pose(key_timestamps: Tuple[int, int], key_poses: Tuple[SE3, SE3]
     R_interp = slerp(query_timestamp).as_matrix()
 
     key_translations = (key_poses[0].translation, key_poses[1].translation)
-    t_interp = linear_interpolation(key_timestamps, key_translations=key_translations, query_timestamp=query_timestamp)
+    t_interp = linear_interpolation(
+        key_timestamps,
+        key_translations=key_translations,
+        query_timestamp=query_timestamp,
+    )
     pose_interp = SE3(rotation=R_interp, translation=t_interp)
     return pose_interp

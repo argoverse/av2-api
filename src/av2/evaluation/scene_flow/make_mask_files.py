@@ -5,11 +5,12 @@ from pathlib import Path
 
 import click
 import pandas as pd
+from kornia.geometry.liegroup import Se3
+from rich.progress import track
+
 from av2.evaluation.scene_flow.utils import compute_eval_point_mask, get_eval_subset
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 from av2.torch.structures.sweep import Sweep
-from kornia.geometry.liegroup import Se3
-from rich.progress import track
 
 
 def get_mask(
@@ -68,7 +69,9 @@ def make_mask_files(output_file: str, data_dir: str, name: str, split: str) -> N
     default="val",
     type=click.Choice(["test", "val"]),
 )
-def _make_mask_files_entry(output_file: str, data_dir: str, name: str, split: str) -> None:
+def _make_mask_files_entry(
+    output_file: str, data_dir: str, name: str, split: str
+) -> None:
     """Entry point for make_mask_files."""
     make_mask_files(output_file, data_dir, name, split)
 

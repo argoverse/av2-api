@@ -3,8 +3,10 @@
 from typing import Any, Dict, Iterable, List, Union, cast
 
 import numpy as np
+
 from av2.evaluation.forecasting import constants
 from av2.utils.typing import NDArrayFloat, NDArrayInt
+
 from ..typing import ForecastSequences, Frame
 
 
@@ -23,18 +25,24 @@ def agent_velocity_m_per_s(agent: Dict[str, Any]) -> NDArrayFloat:
     if "future_translation_m" in agent:  # ground_truth
         return cast(
             NDArrayFloat,
-            (agent["future_translation_m"][0][:2] - agent["current_translation_m"][:2]) / constants.TIME_DELTA_S,
+            (agent["future_translation_m"][0][:2] - agent["current_translation_m"][:2])
+            / constants.TIME_DELTA_S,
         )
 
     else:  # predictions
         res = []
         for i in range(agent["prediction_m"].shape[0]):
-            res.append((agent["prediction_m"][i][0][:2] - agent["current_translation_m"][:2]) / constants.TIME_DELTA_S)
+            res.append(
+                (agent["prediction_m"][i][0][:2] - agent["current_translation_m"][:2])
+                / constants.TIME_DELTA_S
+            )
 
         return np.stack(res)
 
 
-def trajectory_type(agent: Dict[str, Any], category_velocity_m_per_s: Dict[str, float]) -> Union[str, List[str]]:
+def trajectory_type(
+    agent: Dict[str, Any], category_velocity_m_per_s: Dict[str, float]
+) -> Union[str, List[str]]:
     """Get the trajectory type, which is either static, linear or non-linear.
 
     Trajectory is static if the prediction error of a static forecast is below threshold.
@@ -53,13 +61,15 @@ def trajectory_type(agent: Dict[str, Any], category_velocity_m_per_s: Dict[str, 
     if "future_translation_m" in agent:  # ground_truth
         time = agent["future_translation_m"].shape[0] * constants.TIME_DELTA_S
         static_target = agent["current_translation_m"][:2]
-        linear_target = agent["current_translation_m"][:2] + time * agent["velocity_m_per_s"][:2]
+        linear_target = (
+            agent["current_translation_m"][:2] + time * agent["velocity_m_per_s"][:2]
+        )
 
         final_position = agent["future_translation_m"][-1][:2]
 
-        threshold = 1 + constants.FORECAST_SCALAR[len(agent["future_translation_m"])] * category_velocity_m_per_s.get(
-            agent["name"], 0
-        )
+        threshold = 1 + constants.FORECAST_SCALAR[
+            len(agent["future_translation_m"])
+        ] * category_velocity_m_per_s.get(agent["name"], 0)
         if np.linalg.norm(final_position - static_target) < threshold:
             return "static"
         elif np.linalg.norm(final_position - linear_target) < threshold:
@@ -71,12 +81,15 @@ def trajectory_type(agent: Dict[str, Any], category_velocity_m_per_s: Dict[str, 
         res: List[str] = []
         time = agent["prediction_m"].shape[1] * constants.TIME_DELTA_S
 
-        threshold = 1 + constants.FORECAST_SCALAR[len(agent["prediction_m"])] * category_velocity_m_per_s.get(
-            agent["name"], 0
-        )
+        threshold = 1 + constants.FORECAST_SCALAR[
+            len(agent["prediction_m"])
+        ] * category_velocity_m_per_s.get(agent["name"], 0)
         for i in range(agent["prediction_m"].shape[0]):
             static_target = agent["current_translation_m"][:2]
-            linear_target = agent["current_translation_m"][:2] + time * agent["velocity_m_per_s"][i][:2]
+            linear_target = (
+                agent["current_translation_m"][:2]
+                + time * agent["velocity_m_per_s"][i][:2]
+            )
 
             final_position = agent["prediction_m"][i][-1][:2]
 
@@ -126,11 +139,15 @@ def index_array_values(array_dict: Frame, index: Union[int, NDArrayInt]) -> Fram
     Returns:
         Dictionary of numpy arrays, each indexed by the provided index
     """
-    return {k: v[index] if isinstance(v, np.ndarray) else v for k, v in array_dict.items()}
+    return {
+        k: v[index] if isinstance(v, np.ndarray) else v for k, v in array_dict.items()
+    }
 
 
 def annotate_frame_metadata(
-    predictions: ForecastSequences, ground_truth: ForecastSequences, metadata_keys: List[str]
+    predictions: ForecastSequences,
+    ground_truth: ForecastSequences,
+    metadata_keys: List[str],
 ) -> ForecastSequences:
     """Index each numpy array in dictionary.
 

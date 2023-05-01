@@ -19,7 +19,12 @@ from av2.geometry.camera.pinhole_camera import PinholeCamera
 from av2.geometry.se3 import SE3
 from av2.map.lane_segment import LaneMarkType, LaneSegment
 from av2.map.map_api import ArgoverseStaticMap
-from av2.rendering.color import HANDICAP_BLUE_BGR, RED_BGR, TRAFFIC_YELLOW1_BGR, WHITE_BGR
+from av2.rendering.color import (
+    HANDICAP_BLUE_BGR,
+    RED_BGR,
+    TRAFFIC_YELLOW1_BGR,
+    WHITE_BGR,
+)
 from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt
 
 # apply uniform dashes. in reality, there is often a roughly 2:1 ratio between empty space and dashes.
@@ -93,8 +98,14 @@ class EgoViewMapRenderer:
         else:
             bound_color = RED_BGR
 
-        if ("DOUBLE" in mark_type) or ("SOLID_DASH" in mark_type) or ("DASH_SOLID" in mark_type):
-            left, right = polyline_utils.get_double_polylines(polyline_city_frame, width_scaling_factor=0.1)
+        if (
+            ("DOUBLE" in mark_type)
+            or ("SOLID_DASH" in mark_type)
+            or ("DASH_SOLID" in mark_type)
+        ):
+            left, right = polyline_utils.get_double_polylines(
+                polyline_city_frame, width_scaling_factor=0.1
+            )
 
         if mark_type in [
             LaneMarkType.SOLID_WHITE,
@@ -102,19 +113,39 @@ class EgoViewMapRenderer:
             LaneMarkType.SOLID_BLUE,
             LaneMarkType.NONE,
         ]:
-            self.render_polyline_egoview(polyline_city_frame, img_bgr, bound_color, thickness_px=line_width_px)
-
-        elif mark_type in [LaneMarkType.DOUBLE_DASH_YELLOW, LaneMarkType.DOUBLE_DASH_WHITE]:
-            self.draw_dashed_polyline_egoview(
-                left, img_bgr, bound_color, thickness_px=line_width_px, dash_interval_m=DASH_INTERVAL_M
-            )
-            self.draw_dashed_polyline_egoview(
-                right, img_bgr, bound_color, thickness_px=line_width_px, dash_interval_m=DASH_INTERVAL_M
+            self.render_polyline_egoview(
+                polyline_city_frame, img_bgr, bound_color, thickness_px=line_width_px
             )
 
-        elif mark_type in [LaneMarkType.DOUBLE_SOLID_YELLOW, LaneMarkType.DOUBLE_SOLID_WHITE]:
-            self.render_polyline_egoview(left, img_bgr, bound_color, thickness_px=line_width_px)
-            self.render_polyline_egoview(right, img_bgr, bound_color, thickness_px=line_width_px)
+        elif mark_type in [
+            LaneMarkType.DOUBLE_DASH_YELLOW,
+            LaneMarkType.DOUBLE_DASH_WHITE,
+        ]:
+            self.draw_dashed_polyline_egoview(
+                left,
+                img_bgr,
+                bound_color,
+                thickness_px=line_width_px,
+                dash_interval_m=DASH_INTERVAL_M,
+            )
+            self.draw_dashed_polyline_egoview(
+                right,
+                img_bgr,
+                bound_color,
+                thickness_px=line_width_px,
+                dash_interval_m=DASH_INTERVAL_M,
+            )
+
+        elif mark_type in [
+            LaneMarkType.DOUBLE_SOLID_YELLOW,
+            LaneMarkType.DOUBLE_SOLID_WHITE,
+        ]:
+            self.render_polyline_egoview(
+                left, img_bgr, bound_color, thickness_px=line_width_px
+            )
+            self.render_polyline_egoview(
+                right, img_bgr, bound_color, thickness_px=line_width_px
+            )
 
         elif mark_type in [LaneMarkType.DASHED_WHITE, LaneMarkType.DASHED_YELLOW]:
             self.draw_dashed_polyline_egoview(
@@ -125,21 +156,35 @@ class EgoViewMapRenderer:
                 dash_interval_m=DASH_INTERVAL_M,
             )
 
-        elif (mark_type in [LaneMarkType.SOLID_DASH_WHITE, LaneMarkType.SOLID_DASH_YELLOW] and side == "right") or (
-            mark_type == LaneMarkType.DASH_SOLID_YELLOW and side == "left"
-        ):
-            self.render_polyline_egoview(left, img_bgr, bound_color, thickness_px=line_width_px)
+        elif (
+            mark_type in [LaneMarkType.SOLID_DASH_WHITE, LaneMarkType.SOLID_DASH_YELLOW]
+            and side == "right"
+        ) or (mark_type == LaneMarkType.DASH_SOLID_YELLOW and side == "left"):
+            self.render_polyline_egoview(
+                left, img_bgr, bound_color, thickness_px=line_width_px
+            )
             self.draw_dashed_polyline_egoview(
-                right, img_bgr, bound_color, thickness_px=line_width_px, dash_interval_m=DASH_INTERVAL_M
+                right,
+                img_bgr,
+                bound_color,
+                thickness_px=line_width_px,
+                dash_interval_m=DASH_INTERVAL_M,
             )
 
-        elif (mark_type in [LaneMarkType.SOLID_DASH_WHITE, LaneMarkType.SOLID_DASH_YELLOW] and side == "left") or (
-            mark_type == LaneMarkType.DASH_SOLID_YELLOW and side == "right"
-        ):
+        elif (
+            mark_type in [LaneMarkType.SOLID_DASH_WHITE, LaneMarkType.SOLID_DASH_YELLOW]
+            and side == "left"
+        ) or (mark_type == LaneMarkType.DASH_SOLID_YELLOW and side == "right"):
             self.draw_dashed_polyline_egoview(
-                left, img_bgr, bound_color, thickness_px=line_width_px, dash_interval_m=DASH_INTERVAL_M
+                left,
+                img_bgr,
+                bound_color,
+                thickness_px=line_width_px,
+                dash_interval_m=DASH_INTERVAL_M,
             )
-            self.render_polyline_egoview(right, img_bgr, bound_color, thickness_px=line_width_px)
+            self.render_polyline_egoview(
+                right, img_bgr, bound_color, thickness_px=line_width_px
+            )
 
         else:
             raise ValueError(f"Unknown marking type {mark_type}")
@@ -169,7 +214,12 @@ class EgoViewMapRenderer:
             dash_frequency: for each dash_interval_m, we will discretize the length into n sections.
                 1 of n sections will contain a marked dash, and the other (n-1) spaces will be empty (non-marked).
         """
-        interp_polyline, num_waypts = polyline_utils.interp_polyline_by_fixed_waypt_interval(polyline, dash_interval_m)
+        (
+            interp_polyline,
+            num_waypts,
+        ) = polyline_utils.interp_polyline_by_fixed_waypt_interval(
+            polyline, dash_interval_m
+        )
         for i in range(num_waypts - 1):
             # every other segment is a gap
             # (first the next dash interval is a line, and then the dash interval is empty, ...)
@@ -201,11 +251,17 @@ class EgoViewMapRenderer:
             thickness_px: thickness (in pixels) to use when rendering the polyline.
         """
         # must use interpolated, because otherwise points may lie behind camera, etc, cannot draw
-        interp_polyline_city = interp_utils.interp_arc(t=N_INTERP_PTS, points=polyline_city_frame)
-        polyline_ego_frame = self.ego_SE3_city.transform_point_cloud(interp_polyline_city)
+        interp_polyline_city = interp_utils.interp_arc(
+            t=N_INTERP_PTS, points=polyline_city_frame
+        )
+        polyline_ego_frame = self.ego_SE3_city.transform_point_cloud(
+            interp_polyline_city
+        )
 
         # no need to motion compensate, since these are points originally from the city frame.
-        uv, points_cam, is_valid_points = self.pinhole_cam.project_ego_to_img(polyline_ego_frame)
+        uv, points_cam, is_valid_points = self.pinhole_cam.project_ego_to_img(
+            polyline_ego_frame
+        )
         if is_valid_points.sum() == 0:
             return
 
@@ -215,7 +271,9 @@ class EgoViewMapRenderer:
         lane_z = points_cam[:, 2][is_valid_points]
 
         if self.depth_map is not None:
-            allowed_noise = depth_map_utils.compute_allowed_noise_per_point(points_cam[is_valid_points])
+            allowed_noise = depth_map_utils.compute_allowed_noise_per_point(
+                points_cam[is_valid_points]
+            )
             not_occluded = lane_z <= self.depth_map[v, u] + allowed_noise
         else:
             not_occluded = np.ones(lane_z.shape, dtype=bool)
@@ -262,4 +320,11 @@ def draw_visible_polyline_segments_cv2(
         y2 = line_segments_arr_int[i + 1][1]
 
         # Use anti-aliasing (AA) for curves
-        image = cv2.line(image, pt1=(x1, y1), pt2=(x2, y2), color=color, thickness=thickness_px, lineType=cv2.LINE_AA)
+        image = cv2.line(
+            image,
+            pt1=(x1, y1),
+            pt2=(x2, y2),
+            color=color,
+            thickness=thickness_px,
+            lineType=cv2.LINE_AA,
+        )

@@ -30,7 +30,9 @@ def test_get_mask_from_polygon() -> None:
         ]
     )
     # fmt: on
-    mask = raster_utils.get_mask_from_polygons(polygons=[triangle, rectangle], img_h=7, img_w=7)
+    mask = raster_utils.get_mask_from_polygons(
+        polygons=[triangle, rectangle], img_h=7, img_w=7
+    )
 
     # fmt: off
     expected_mask: NDArrayByte = np.array(
@@ -73,7 +75,9 @@ def test_get_mask_from_polygon_repeated_coords() -> None:
         ]
     )
     # fmt: on
-    mask = raster_utils.get_mask_from_polygons(polygons=[triangle, rectangle], img_h=7, img_w=7)
+    mask = raster_utils.get_mask_from_polygons(
+        polygons=[triangle, rectangle], img_h=7, img_w=7
+    )
 
     # fmt: off
     expected_mask: NDArrayByte = np.array(
@@ -124,7 +128,9 @@ def test_get_mask_from_polygon_coords_out_of_bounds() -> None:
 def test_benchmark_blend_images_cv2(benchmark: Callable[..., Any]) -> None:
     """Benchmark opencv implementation of alpha blending."""
 
-    def blend_images(img0: NDArrayByte, img1: NDArrayByte, alpha: float = 0.7) -> NDArrayByte:
+    def blend_images(
+        img0: NDArrayByte, img1: NDArrayByte, alpha: float = 0.7
+    ) -> NDArrayByte:
         """Alpha-blend two images together using OpenCV `addWeighted`.
 
         Args:
@@ -147,7 +153,9 @@ def test_benchmark_blend_images_cv2(benchmark: Callable[..., Any]) -> None:
 def test_benchmark_blend_images_npy(benchmark: Callable[..., Any]) -> None:
     """Benchmark numpy implementation of alpha blending."""
 
-    def blend_images(img0: NDArrayByte, img1: NDArrayByte, alpha: float = 0.7) -> NDArrayByte:
+    def blend_images(
+        img0: NDArrayByte, img1: NDArrayByte, alpha: float = 0.7
+    ) -> NDArrayByte:
         """Alpha-blend two images together using `numpy`.
 
         Args:
@@ -158,7 +166,9 @@ def test_benchmark_blend_images_npy(benchmark: Callable[..., Any]) -> None:
         Returns:
             uint8 array of shape (H,W,3)
         """
-        blended: NDArrayFloat = np.multiply(img0.astype(np.float32), alpha, dtype=float) + np.multiply(
+        blended: NDArrayFloat = np.multiply(
+            img0.astype(np.float32), alpha, dtype=float
+        ) + np.multiply(
             img1.astype(np.float32),
             (1 - alpha),
             dtype=float,
@@ -187,6 +197,8 @@ def test_blend_images() -> None:
     img_b: NDArrayByte = np.zeros((H, W, 3), dtype=np.uint8)
     img_b[:, :, :3] = np.array([2, 4, 8])  # column 0 has uniform intensity
 
-    blended_img_expected: NDArrayByte = np.round(img_a * alpha + img_b * beta + gamma).astype(np.uint8)
+    blended_img_expected: NDArrayByte = np.round(
+        img_a * alpha + img_b * beta + gamma
+    ).astype(np.uint8)
     blended_img = raster_utils.blend_images(img_a, img_b, alpha=alpha)
     assert np.array_equal(blended_img, blended_img_expected)

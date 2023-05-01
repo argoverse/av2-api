@@ -10,7 +10,9 @@ from av2.utils.typing import NDArrayFloat
 
 def _build_dummy_raster_inputs(
     n: int, d: int
-) -> Tuple[NDArrayFloat, Tuple[float, float, float], Tuple[float, float, float], NDArrayFloat]:
+) -> Tuple[
+    NDArrayFloat, Tuple[float, float, float], Tuple[float, float, float], NDArrayFloat
+]:
     """Build dummy inputs for the rasterize function.
 
     Args:

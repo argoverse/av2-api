@@ -10,7 +10,9 @@ import numpy as np
 
 from av2.utils.typing import NDArrayByte, NDArrayFloat
 
-MIN_DISTANCE_AWAY_M: Final[float] = 30.0  # assume max noise starting at this distance (meters)
+MIN_DISTANCE_AWAY_M: Final[
+    float
+] = 30.0  # assume max noise starting at this distance (meters)
 MAX_ALLOWED_NOISE_M: Final[float] = 3.0  # meters
 
 
@@ -39,7 +41,10 @@ def compute_allowed_noise_per_point(points_cam: NDArrayFloat) -> NDArrayFloat:
 
 
 def vis_depth_map(
-    img_rgb: NDArrayByte, depth_map: NDArrayFloat, interp_depth_map: bool, num_dilation_iters: int = 10
+    img_rgb: NDArrayByte,
+    depth_map: NDArrayFloat,
+    interp_depth_map: bool,
+    num_dilation_iters: int = 10,
 ) -> None:
     """Visualize a depth map using Matplotlib's `inferno` colormap side by side with an RGB image.
 

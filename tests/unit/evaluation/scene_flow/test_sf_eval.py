@@ -32,12 +32,20 @@ dts_very_close: NDArrayFloat = gts + 0.01
 dts_close: NDArrayFloat = gts + 0.05
 dts_zero: NDArrayFloat = np.zeros_like(gts).astype(np.float64)
 
-gts_dynamic: NDArrayBool = np.array([False, False, False, False, True, True, True, True, False, False])
+gts_dynamic: NDArrayBool = np.array(
+    [False, False, False, False, True, True, True, True, False, False]
+)
 gts_classes: NDArrayInt = np.array([0, 0, 0, 0, 17, 17, 1, 11, 0, 23])
-gts_valid: NDArrayBool = np.array([False, True, True, True, True, True, True, True, True, True])
-gts_close: NDArrayBool = np.array([True, True, False, False, True, True, False, False, True, True])
+gts_valid: NDArrayBool = np.array(
+    [False, True, True, True, True, True, True, True, True, True]
+)
+gts_close: NDArrayBool = np.array(
+    [True, True, False, False, True, True, False, False, True, True]
+)
 
-dts_dynamic: NDArrayBool = np.array([False, True, False, True, False, True, False, True, False, True])
+dts_dynamic: NDArrayBool = np.array(
+    [False, True, False, True, False, True, False, True, False, True]
+)
 
 
 def test_end_point_error() -> None:
@@ -46,12 +54,21 @@ def test_end_point_error() -> None:
     Verify that calculated end-point error matches the expected value.
     """
     epe_perfect = np.zeros(10)
-    epe_very_close = (np.sqrt(0.01**2 * 3, dtype=np.float64) * np.ones(10)).astype(np.float64)
-    epe_close = (np.sqrt(0.05**2 * 3, dtype=np.float64) * np.ones(10)).astype(np.float64)
-    epe_zero = np.array([0.0e00, 1.0e-3, 1.0e-3, 1.0e-3, 1.0e3, 1.0e3, 1.0e3, 1.0e00, 1.0e00, 1.0e00], dtype=np.float64)
+    epe_very_close = (np.sqrt(0.01**2 * 3, dtype=np.float64) * np.ones(10)).astype(
+        np.float64
+    )
+    epe_close = (np.sqrt(0.05**2 * 3, dtype=np.float64) * np.ones(10)).astype(
+        np.float64
+    )
+    epe_zero = np.array(
+        [0.0e00, 1.0e-3, 1.0e-3, 1.0e-3, 1.0e3, 1.0e3, 1.0e3, 1.0e00, 1.0e00, 1.0e00],
+        dtype=np.float64,
+    )
 
     assert np.allclose(eval.compute_end_point_error(dts_perfect, gts), epe_perfect)
-    assert np.allclose(eval.compute_end_point_error(dts_very_close, gts), epe_very_close)
+    assert np.allclose(
+        eval.compute_end_point_error(dts_very_close, gts), epe_very_close
+    )
     assert np.allclose(eval.compute_end_point_error(dts_close, gts), epe_close)
     assert np.allclose(eval.compute_end_point_error(dts_zero, gts), epe_zero)
 
@@ -67,7 +84,9 @@ def test_accuracy_strict() -> None:
     accS_zero = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
     assert np.allclose(eval.compute_accuracy_strict(dts_perfect, gts), accS_perfect)
-    assert np.allclose(eval.compute_accuracy_strict(dts_very_close, gts), accS_very_close)
+    assert np.allclose(
+        eval.compute_accuracy_strict(dts_very_close, gts), accS_very_close
+    )
     assert np.allclose(eval.compute_accuracy_strict(dts_close, gts), accS_close)
     assert np.allclose(eval.compute_accuracy_strict(dts_zero, gts), accS_zero)
 
@@ -83,7 +102,9 @@ def test_accuracy_relax() -> None:
     accS_zero = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
     assert np.allclose(eval.compute_accuracy_relax(dts_perfect, gts), accS_perfect)
-    assert np.allclose(eval.compute_accuracy_relax(dts_very_close, gts), accS_very_close)
+    assert np.allclose(
+        eval.compute_accuracy_relax(dts_very_close, gts), accS_very_close
+    )
     assert np.allclose(eval.compute_accuracy_relax(dts_close, gts), accS_close)
     assert np.allclose(eval.compute_accuracy_relax(dts_zero, gts), accS_zero)
 
@@ -99,7 +120,9 @@ def test_angle_error() -> None:
     dts_perfect_norm = np.sqrt((dts_perfect**2).sum(-1) + 0.1**2)
     dts_zero_norm = np.sqrt((dts_zero**2).sum(-1) + 0.1**2)
 
-    gts_nz_value = np.array([0.0, 1e-3, 1e-3, 1e-3, 1e3, 1e3, 1e3, 1.0, 1.0, 1.0], dtype=np.float64)
+    gts_nz_value = np.array(
+        [0.0, 1e-3, 1e-3, 1e-3, 1e3, 1e3, 1e3, 1.0, 1.0, 1.0], dtype=np.float64
+    )
 
     ae_perfect = np.arccos(
         np.clip(
@@ -110,7 +133,8 @@ def test_angle_error() -> None:
         )
     )
     ae_close = np.arccos(
-        0.1 / dts_close_norm * 0.1 / gts_norm + (gts_nz_value / gts_norm) * ((gts_nz_value + 0.05) / dts_close_norm)
+        0.1 / dts_close_norm * 0.1 / gts_norm
+        + (gts_nz_value / gts_norm) * ((gts_nz_value + 0.05) / dts_close_norm)
     )
     ae_very_close = np.arccos(
         0.1 / dts_very_close_norm * 0.1 / gts_norm
@@ -203,16 +227,42 @@ def test_metrics() -> None:
     assert nz_subsets == 5
 
     assert np.allclose(
-        sum([accr for accr, count in zip(metrics["ACCURACY_RELAX"], metrics["Count"]) if count > 0]) / nz_subsets, 1.0
+        sum(
+            [
+                accr
+                for accr, count in zip(metrics["ACCURACY_RELAX"], metrics["Count"])
+                if count > 0
+            ]
+        )
+        / nz_subsets,
+        1.0,
     )
     assert np.allclose(
-        sum([accs for accs, count in zip(metrics["ACCURACY_STRICT"], metrics["Count"]) if count > 0]) / nz_subsets, 1.0
+        sum(
+            [
+                accs
+                for accs, count in zip(metrics["ACCURACY_STRICT"], metrics["Count"])
+                if count > 0
+            ]
+        )
+        / nz_subsets,
+        1.0,
     )
     assert np.allclose(
-        sum([ae for ae, count in zip(metrics["ANGLE_ERROR"], metrics["Count"]) if count > 0]) / nz_subsets, 0.0
+        sum(
+            [
+                ae
+                for ae, count in zip(metrics["ANGLE_ERROR"], metrics["Count"])
+                if count > 0
+            ]
+        )
+        / nz_subsets,
+        0.0,
     )
     assert np.allclose(
-        sum([epe for epe, count in zip(metrics["EPE"], metrics["Count"]) if count > 0]) / nz_subsets, 0.0
+        sum([epe for epe, count in zip(metrics["EPE"], metrics["Count"]) if count > 0])
+        / nz_subsets,
+        0.0,
     )
 
 
@@ -232,10 +282,34 @@ def test_average_metrics() -> None:
         timestamp_ns_1 = 111111111111111111
         timestamp_ns_2 = 111111111111111112
 
-        write_annotation(gts_classes, gts_close, gts_dynamic, gts_valid, gts, ("log", timestamp_ns_1), anno_dir)
-        write_annotation(gts_classes, gts_close, gts_dynamic, gts_valid, gts, ("log", timestamp_ns_2), anno_dir)
+        write_annotation(
+            gts_classes,
+            gts_close,
+            gts_dynamic,
+            gts_valid,
+            gts,
+            ("log", timestamp_ns_1),
+            anno_dir,
+        )
+        write_annotation(
+            gts_classes,
+            gts_close,
+            gts_dynamic,
+            gts_valid,
+            gts,
+            ("log", timestamp_ns_2),
+            anno_dir,
+        )
 
-        write_annotation(gts_classes, gts_close, gts_dynamic, gts_valid, gts, ("log_missing", timestamp_ns_1), anno_dir)
+        write_annotation(
+            gts_classes,
+            gts_close,
+            gts_dynamic,
+            gts_valid,
+            gts,
+            ("log_missing", timestamp_ns_1),
+            anno_dir,
+        )
 
         write_output_file(dts_perfect, dts_dynamic, ("log", timestamp_ns_1), pred_dir)
         write_output_file(dts_perfect, dts_dynamic, ("log", timestamp_ns_2), pred_dir)
@@ -255,11 +329,15 @@ def test_average_metrics() -> None:
         assert results_df.FP.sum() == 3 * 2
         assert results_df.FN.sum() == 2 * 2
 
-        assert results_df.groupby(["Class", "Motion"]).Count.sum().Background.Dynamic == 0
+        assert (
+            results_df.groupby(["Class", "Motion"]).Count.sum().Background.Dynamic == 0
+        )
     results_dict = eval.results_to_dict(results_df)
 
     assert len(results_dict) == 38
-    assert np.isnan([results_dict[k] for k in results_dict if k.endswith("Foreground/Static/Far")]).all()
+    assert np.isnan(
+        [results_dict[k] for k in results_dict if k.endswith("Foreground/Static/Far")]
+    ).all()
     assert len([True for k in results_dict if "Background/Dyamic" in k]) == 0
     assert results_dict["Dynamic IoU"] == 2 / (3 + 2 + 2)
     assert results_dict["EPE 3-Way Average"] == 0.0

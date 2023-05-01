@@ -20,7 +20,11 @@ def convert_path_to_named_record(path: Path) -> Dict[str, Union[str, int]]:
     """
     sensor_path = path.parent
     sensor_name = sensor_path.stem
-    log_path = sensor_path.parent.parent if sensor_name == "lidar" else sensor_path.parent.parent.parent
+    log_path = (
+        sensor_path.parent.parent
+        if sensor_name == "lidar"
+        else sensor_path.parent.parent.parent
+    )
 
     # log_id is 2 directories up for the lidar filepaths, but 3 levels up for images
     # {log_id}/sensors/cameras/ring_*/*.jpg vs.

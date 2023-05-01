@@ -16,7 +16,9 @@ UINT8_BITS: Final[np.uint8] = np.log2(UINT8_MAX + 1).astype(np.uint8)
 
 
 @nb.njit
-def integer_linear_interpolation(x: np.uint8, y: np.uint8, alpha: np.uint16, beta: np.uint16) -> np.uint8:
+def integer_linear_interpolation(
+    x: np.uint8, y: np.uint8, alpha: np.uint16, beta: np.uint16
+) -> np.uint8:
     """Approximate floating point linear interpolation.
 
     This function approximates the following:
@@ -43,7 +45,9 @@ def integer_linear_interpolation(x: np.uint8, y: np.uint8, alpha: np.uint16, bet
 
 
 @nb.njit
-def alpha_blend_kernel(fg: NDArrayByte, bg: NDArrayByte, alpha: np.uint8) -> Tuple[np.uint8, np.uint8, np.uint8]:
+def alpha_blend_kernel(
+    fg: NDArrayByte, bg: NDArrayByte, alpha: np.uint8
+) -> Tuple[np.uint8, np.uint8, np.uint8]:
     """Fast integer alpha blending.
 
     Reference: https://stackoverflow.com/a/12016968
@@ -127,10 +131,14 @@ def draw_points_kernel(
                 if (vj >= 0 and uk >= 0) and (vj < H and uk < W):
                     alpha_vj_uk = alpha
                     if with_anti_alias:
-                        alpha_vj_uk *= gaussian_kernel(vj, v, sigma) * gaussian_kernel(uk, u, sigma)
+                        alpha_vj_uk *= gaussian_kernel(vj, v, sigma) * gaussian_kernel(
+                            uk, u, sigma
+                        )
                     alpha_vj_uk *= float(UINT8_MAX)
                     alpha_vj_uk_uint8 = np.uint8(alpha_vj_uk)
-                    blend = alpha_blend_kernel(colors[i], img[vj, uk], alpha=alpha_vj_uk_uint8)
+                    blend = alpha_blend_kernel(
+                        colors[i], img[vj, uk], alpha=alpha_vj_uk_uint8
+                    )
                     img[vj, uk, 0] = blend[0]
                     img[vj, uk, 1] = blend[1]
                     img[vj, uk, 2] = blend[2]
@@ -138,7 +146,9 @@ def draw_points_kernel(
 
 
 @nb.njit(nogil=True)
-def clip_line_frustum(p1: NDArrayFloat, p2: NDArrayFloat, planes: NDArrayFloat) -> NDArrayFloat:
+def clip_line_frustum(
+    p1: NDArrayFloat, p2: NDArrayFloat, planes: NDArrayFloat
+) -> NDArrayFloat:
     """Iterate over the frustum planes and intersect them with the segment.
 
     We exploit the fact that in a camera frustum, all plane normals point inside the frustum volume.

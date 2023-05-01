@@ -20,7 +20,13 @@ from av2.geometry.se3 import SE3
 from av2.rendering.color import BLUE_BGR, TRAFFIC_YELLOW1_BGR
 from av2.rendering.vector import draw_line_frustum
 from av2.utils.io import read_feather
-from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt, NDArrayObject
+from av2.utils.typing import (
+    NDArrayBool,
+    NDArrayByte,
+    NDArrayFloat,
+    NDArrayInt,
+    NDArrayObject,
+)
 
 ORDERED_CUBOID_COL_NAMES: Final[List[str]] = [
     "tx_m",
@@ -104,12 +110,16 @@ class Cuboid:
 
         # Transform unit polygons.
         vertices_obj_xyz_m: NDArrayFloat = (dims_lwh_m / 2.0) * unit_vertices_obj_xyz_m
-        vertices_dst_xyz_m = self.dst_SE3_object.transform_point_cloud(vertices_obj_xyz_m)
+        vertices_dst_xyz_m = self.dst_SE3_object.transform_point_cloud(
+            vertices_obj_xyz_m
+        )
 
         # Finally, return the polygons.
         return vertices_dst_xyz_m
 
-    def compute_interior_points(self, points_xyz_m: NDArrayFloat) -> Tuple[NDArrayFloat, NDArrayBool]:
+    def compute_interior_points(
+        self, points_xyz_m: NDArrayFloat
+    ) -> Tuple[NDArrayFloat, NDArrayBool]:
         """Given a query point cloud, filter to points interior to the cuboid, and provide mask.
 
         Note: comparison is to cuboid vertices in the destination reference frame.
@@ -148,7 +158,10 @@ class Cuboid:
 
     @classmethod
     def from_numpy(
-        cls, params: NDArrayObject, category: Optional[Enum] = None, timestamp_ns: Optional[int] = None
+        cls,
+        params: NDArrayObject,
+        category: Optional[Enum] = None,
+        timestamp_ns: Optional[int] = None,
     ) -> Cuboid:
         """Convert a set of cuboid parameters to a `Cuboid` object.
 
@@ -191,13 +204,17 @@ class CuboidList:
     @property
     def xyz_center_m(self) -> NDArrayFloat:
         """Cartesian coordinate centers (x,y,z) in the destination reference frame."""
-        center_xyz_m: NDArrayFloat = np.stack([cuboid.dst_SE3_object.translation for cuboid in self.cuboids])
+        center_xyz_m: NDArrayFloat = np.stack(
+            [cuboid.dst_SE3_object.translation for cuboid in self.cuboids]
+        )
         return center_xyz_m
 
     @property
     def dims_lwh_m(self) -> NDArrayFloat:
         """Object extents (length,width,height) along the (x,y,z) axes respectively in meters."""
-        dims_lwh: NDArrayFloat = np.stack([cuboid.dims_lwh_m for cuboid in self.cuboids])
+        dims_lwh: NDArrayFloat = np.stack(
+            [cuboid.dims_lwh_m for cuboid in self.cuboids]
+        )
         return dims_lwh
 
     @cached_property
@@ -219,7 +236,9 @@ class CuboidList:
         Returns:
             (N,8,3) array of cuboid vertices.
         """
-        vertices_m: NDArrayFloat = np.stack([cuboid.vertices_m for cuboid in self.cuboids])
+        vertices_m: NDArrayFloat = np.stack(
+            [cuboid.vertices_m for cuboid in self.cuboids]
+        )
         return vertices_m
 
     @property
@@ -244,7 +263,9 @@ class CuboidList:
             IndexError: if index is invalid (i.e. out of bounds).
         """
         if idx < 0 or idx >= len(self):
-            raise IndexError(f"Attempted to access cuboid {idx}, but only indices [0,{len(self)-1}] are valid")
+            raise IndexError(
+                f"Attempted to access cuboid {idx}, but only indices [0,{len(self)-1}] are valid"
+            )
         return self.cuboids[idx]
 
     def transform(self, target_SE3_dst: SE3) -> CuboidList:
@@ -304,13 +325,23 @@ class CuboidList:
         # Collapse first dimension to allow for vectorization.
         cuboids_vertices_ego = cuboids_vertices_ego.reshape(-1, D)
         if city_SE3_ego_cam_t is not None and city_SE3_ego_lidar_t is not None:
-            _, cuboids_vertices_cam, _ = cam_model.project_ego_to_img_motion_compensated(
-                cuboids_vertices_ego, city_SE3_ego_cam_t=city_SE3_ego_cam_t, city_SE3_ego_lidar_t=city_SE3_ego_lidar_t
+            (
+                _,
+                cuboids_vertices_cam,
+                _,
+            ) = cam_model.project_ego_to_img_motion_compensated(
+                cuboids_vertices_ego,
+                city_SE3_ego_cam_t=city_SE3_ego_cam_t,
+                city_SE3_ego_lidar_t=city_SE3_ego_lidar_t,
             )
         else:
-            _, cuboids_vertices_cam, _ = cam_model.project_ego_to_img(cuboids_vertices_ego)
+            _, cuboids_vertices_cam, _ = cam_model.project_ego_to_img(
+                cuboids_vertices_ego
+            )
 
-        cuboids_vertices_cam = cuboids_vertices_cam[:, :3].reshape(N, V, D)  # Unravel collapsed dimension.
+        cuboids_vertices_cam = cuboids_vertices_cam[:, :3].reshape(
+            N, V, D
+        )  # Unravel collapsed dimension.
 
         # Compute depth of each cuboid center (mean of the cuboid's vertices).
         cuboid_centers = cuboids_vertices_cam.mean(axis=1)
@@ -406,12 +437,16 @@ class CuboidList:
         Returns:
             Constructed cuboids.
         """
-        cuboids_parameters: NDArrayFloat = data.loc[:, ORDERED_CUBOID_COL_NAMES].to_numpy()
+        cuboids_parameters: NDArrayFloat = data.loc[
+            :, ORDERED_CUBOID_COL_NAMES
+        ].to_numpy()
         categories: NDArrayObject = data.loc[:, "category"].to_numpy()
         timestamps_ns: NDArrayInt = data.loc[:, "timestamp_ns"].to_numpy()
 
         cuboid_list = [
             Cuboid.from_numpy(params, category, timestamp_ns)
-            for params, category, timestamp_ns in zip(cuboids_parameters, categories, timestamps_ns)
+            for params, category, timestamp_ns in zip(
+                cuboids_parameters, categories, timestamps_ns
+            )
         ]
         return cls(cuboid_list)

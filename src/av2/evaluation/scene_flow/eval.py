@@ -5,16 +5,31 @@ from __future__ import annotations
 import zipfile
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Callable, DefaultDict, Dict, Final, List, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    DefaultDict,
+    Dict,
+    Final,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 from zipfile import ZipFile
 
-import av2.evaluation.scene_flow.constants as constants
 import click
 import numpy as np
 import pandas as pd
-from av2.evaluation.scene_flow.constants import SceneFlowMetricType, SegmentationMetricType
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 from rich.progress import track
+
+import av2.evaluation.scene_flow.constants as constants
+from av2.evaluation.scene_flow.constants import (
+    SceneFlowMetricType,
+    SegmentationMetricType,
+)
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
 ACCURACY_RELAX_DISTANCE_THRESHOLD: Final = 0.1
 ACCURACY_STRICT_DISTANCE_THRESHOLD: Final = 0.05
@@ -32,11 +47,15 @@ def compute_end_point_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloa
     Returns:
         The point-wise end-point error.
     """
-    end_point_error: NDArrayFloat = np.linalg.norm(dts - gts, axis=-1).astype(np.float64)
+    end_point_error: NDArrayFloat = np.linalg.norm(dts - gts, axis=-1).astype(
+        np.float64
+    )
     return end_point_error
 
 
-def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, distance_threshold: float) -> NDArrayFloat:
+def compute_accuracy(
+    dts: NDArrayFloat, gts: NDArrayFloat, distance_threshold: float
+) -> NDArrayFloat:
     """Compute the percent of inliers for a given threshold for a set of prediction and ground truth vectors.
 
     Args:
@@ -52,7 +71,9 @@ def compute_accuracy(dts: NDArrayFloat, gts: NDArrayFloat, distance_threshold: f
     relative_error = np.divide(l2_norm, gts_norm + EPS)
     abs_error_inlier = np.less(l2_norm, distance_threshold).astype(bool)
     relative_error_inlier = np.less(relative_error, distance_threshold).astype(bool)
-    accuracy: NDArrayFloat = np.logical_or(abs_error_inlier, relative_error_inlier).astype(np.float64)
+    accuracy: NDArrayFloat = np.logical_or(
+        abs_error_inlier, relative_error_inlier
+    ).astype(np.float64)
     return accuracy
 
 
@@ -93,8 +114,12 @@ def compute_angle_error(dts: NDArrayFloat, gts: NDArrayFloat) -> NDArrayFloat:
         The pointwise angle errors in space-time.
     """
     # Convert the 3D flow vectors to 4D space-time vectors.
-    dts_space_time = np.pad(dts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA)
-    gts_space_time = np.pad(gts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA)
+    dts_space_time = np.pad(
+        dts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA
+    )
+    gts_space_time = np.pad(
+        gts, ((0, 0), (0, 1)), constant_values=constants.SWEEP_PAIR_TIME_DELTA
+    )
 
     dts_space_time_norm = np.linalg.norm(dts_space_time, axis=-1, keepdims=True)
     gts_space_time_norm = np.linalg.norm(gts_space_time, axis=-1, keepdims=True)
@@ -186,7 +211,9 @@ def compute_scene_flow_metrics(
     elif scene_flow_metric_type == SceneFlowMetricType.EPE:
         return compute_end_point_error(dts, gts)
     else:
-        raise NotImplementedError(f"The scene flow metric type {scene_flow_metric_type} is not implemented!")
+        raise NotImplementedError(
+            f"The scene flow metric type {scene_flow_metric_type} is not implemented!"
+        )
 
 
 def compute_segmentation_metrics(
@@ -214,7 +241,9 @@ def compute_segmentation_metrics(
     elif segmentation_metric_type == SegmentationMetricType.FN:
         return compute_false_negatives(dts, gts)
     else:
-        raise NotImplementedError(f"The segmentation metric type {segmentation_metric_type} is not implemented!")
+        raise NotImplementedError(
+            f"The segmentation metric type {segmentation_metric_type} is not implemented!"
+        )
 
 
 def compute_metrics(
@@ -275,11 +304,15 @@ def compute_metrics(
                 if subset_size > 0:
                     for flow_metric_type in SceneFlowMetricType:
                         results[flow_metric_type] += [
-                            compute_scene_flow_metrics(pred_sub, gts_sub, flow_metric_type).mean()
+                            compute_scene_flow_metrics(
+                                pred_sub, gts_sub, flow_metric_type
+                            ).mean()
                         ]
                     for seg_metric_type in SegmentationMetricType:
                         results[seg_metric_type] += [
-                            compute_segmentation_metrics(pred_dynamic[mask], is_dynamic[mask], seg_metric_type)
+                            compute_segmentation_metrics(
+                                pred_dynamic[mask], is_dynamic[mask], seg_metric_type
+                            )
                         ]
                 else:
                     for flow_metric_type in SceneFlowMetricType:
@@ -289,7 +322,9 @@ def compute_metrics(
     return results
 
 
-def evaluate_predictions(annotations_dir: Path, get_prediction: Callable[[Path], pd.DataFrame]) -> pd.DataFrame:
+def evaluate_predictions(
+    annotations_dir: Path, get_prediction: Callable[[Path], pd.DataFrame]
+) -> pd.DataFrame:
     """Run the evaluation on predictions and labels.
 
     Args:
@@ -331,7 +366,9 @@ def evaluate_predictions(annotations_dir: Path, get_prediction: Callable[[Path],
     return df
 
 
-def get_prediction_from_directory(annotation_name: Path, predictions_dir: Path) -> Optional[pd.DataFrame]:
+def get_prediction_from_directory(
+    annotation_name: Path, predictions_dir: Path
+) -> Optional[pd.DataFrame]:
     """Get the prediction corresponding annotation from a directory of prediction files.
 
     Args:
@@ -348,7 +385,9 @@ def get_prediction_from_directory(annotation_name: Path, predictions_dir: Path) 
     return pred
 
 
-def get_prediction_from_zipfile(annotation_name: Path, predictions_zip: Path) -> Optional[pd.DataFrame]:
+def get_prediction_from_zipfile(
+    annotation_name: Path, predictions_zip: Path
+) -> Optional[pd.DataFrame]:
     """Get the prediction corresponding annotation from a zip archive of prediction files.
 
     Args:
@@ -377,7 +416,9 @@ def evaluate_directories(annotations_dir: Path, predictions_dir: Path) -> pd.Dat
     Returns:
         DataFrame containing the average metrics on each subset of each example.
     """
-    return evaluate_predictions(annotations_dir, lambda n: get_prediction_from_directory(n, predictions_dir))
+    return evaluate_predictions(
+        annotations_dir, lambda n: get_prediction_from_directory(n, predictions_dir)
+    )
 
 
 def evaluate_zip(annotations_dir: Path, predictions_zip: Path) -> pd.DataFrame:
@@ -390,7 +431,9 @@ def evaluate_zip(annotations_dir: Path, predictions_zip: Path) -> pd.DataFrame:
     Returns:
         DataFrame containing the average metrics on each subset of each example.
     """
-    return evaluate_predictions(annotations_dir, lambda n: get_prediction_from_zipfile(n, predictions_zip))
+    return evaluate_predictions(
+        annotations_dir, lambda n: get_prediction_from_zipfile(n, predictions_zip)
+    )
 
 
 def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
@@ -405,7 +448,9 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
     output = {}
     grouped = frame.groupby(["Class", "Motion", "Distance"])
 
-    def weighted_average(x: pd.DataFrame, metric_type: Union[SceneFlowMetricType, SegmentationMetricType]) -> float:
+    def weighted_average(
+        x: pd.DataFrame, metric_type: Union[SceneFlowMetricType, SegmentationMetricType]
+    ) -> float:
         """Weighted average of metric m using the Count column.
 
         Args:
@@ -422,34 +467,46 @@ def results_to_dict(frame: pd.DataFrame) -> Dict[str, float]:
         return averages
 
     for metric_type in SceneFlowMetricType:
-        avg: pd.Series[float] = grouped.apply(lambda x, m=metric_type: weighted_average(x, metric_type=m))
+        avg: pd.Series[float] = grouped.apply(
+            lambda x, m=metric_type: weighted_average(x, metric_type=m)
+        )
         segments: List[Tuple[str, str, str]] = avg.index.to_list()
         for segment in segments:
             if segment[:2] == NO_FMT_INDICES:
                 continue
 
             metric_type_str = (
-                metric_type.title().replace("_", " ") if metric_type != SceneFlowMetricType.EPE else metric_type
+                metric_type.title().replace("_", " ")
+                if metric_type != SceneFlowMetricType.EPE
+                else metric_type
             )
             name = metric_type_str + "/" + "/".join([str(i) for i in segment])
             output[name] = avg.loc[segment]
 
     grouped = frame.groupby(["Class", "Motion"])
     for metric_type in SceneFlowMetricType:
-        avg_nodist: pd.Series[float] = grouped.apply(lambda x, m=metric_type: weighted_average(x, metric_type=m))
+        avg_nodist: pd.Series[float] = grouped.apply(
+            lambda x, m=metric_type: weighted_average(x, metric_type=m)
+        )
         segments_nodist: List[Tuple[str, str, str]] = avg_nodist.index.to_list()
         for segment in segments_nodist:
             if segment[:2] == NO_FMT_INDICES:
                 continue
 
             metric_type_str = (
-                metric_type.title().replace("_", " ") if metric_type != SceneFlowMetricType.EPE else metric_type
+                metric_type.title().replace("_", " ")
+                if metric_type != SceneFlowMetricType.EPE
+                else metric_type
             )
             name = metric_type_str + "/" + "/".join([str(i) for i in segment])
             output[name] = avg_nodist.loc[segment]
-    output["Dynamic IoU"] = frame.TP.sum() / (frame.TP.sum() + frame.FP.sum() + frame.FN.sum())
+    output["Dynamic IoU"] = frame.TP.sum() / (
+        frame.TP.sum() + frame.FP.sum() + frame.FN.sum()
+    )
     output["EPE 3-Way Average"] = (
-        output["EPE/Foreground/Dynamic"] + output["EPE/Foreground/Static"] + output["EPE/Background/Static"]
+        output["EPE/Foreground/Dynamic"]
+        + output["EPE/Foreground/Static"]
+        + output["EPE/Background/Static"]
     ) / 3
     return output
 

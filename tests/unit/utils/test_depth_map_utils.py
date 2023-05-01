@@ -18,14 +18,20 @@ def test_vis_depth_map() -> None:
     img_rgb: NDArrayByte = np.zeros((H, W, 3), dtype=np.uint8)
     img_rgb[:, :, 0] = 255  # channels will be (255,0,0) for red.
 
-    depth_map: NDArrayFloat = np.arange(H * W).reshape(H, W).astype(np.float32) / (H * W) * 255
+    depth_map: NDArrayFloat = (
+        np.arange(H * W).reshape(H, W).astype(np.float32) / (H * W) * 255
+    )
 
-    depth_map_utils.vis_depth_map(img_rgb=img_rgb, depth_map=depth_map, interp_depth_map=True)
+    depth_map_utils.vis_depth_map(
+        img_rgb=img_rgb, depth_map=depth_map, interp_depth_map=True
+    )
     if visualize:
         plt.show()
         plt.close("all")
 
-    depth_map_utils.vis_depth_map(img_rgb=img_rgb, depth_map=depth_map, interp_depth_map=False)
+    depth_map_utils.vis_depth_map(
+        img_rgb=img_rgb, depth_map=depth_map, interp_depth_map=False
+    )
     if visualize:
         plt.show()
         plt.close("all")

@@ -8,7 +8,9 @@ import numpy as np
 from av2.utils.typing import NDArrayBool, NDArrayFloat
 
 
-def compute_ade(forecasted_trajectories: NDArrayFloat, gt_trajectory: NDArrayFloat) -> NDArrayFloat:
+def compute_ade(
+    forecasted_trajectories: NDArrayFloat, gt_trajectory: NDArrayFloat
+) -> NDArrayFloat:
     """Compute the average displacement error for a set of K predicted trajectories (for the same actor).
 
     Args:
@@ -18,12 +20,16 @@ def compute_ade(forecasted_trajectories: NDArrayFloat, gt_trajectory: NDArrayFlo
     Returns:
         (K,) Average displacement error for each of the predicted trajectories.
     """
-    displacement_errors = np.linalg.norm(forecasted_trajectories - gt_trajectory, axis=2)
+    displacement_errors = np.linalg.norm(
+        forecasted_trajectories - gt_trajectory, axis=2
+    )
     ade: NDArrayFloat = np.mean(displacement_errors, axis=1)
     return ade
 
 
-def compute_fde(forecasted_trajectories: NDArrayFloat, gt_trajectory: NDArrayFloat) -> NDArrayFloat:
+def compute_fde(
+    forecasted_trajectories: NDArrayFloat, gt_trajectory: NDArrayFloat
+) -> NDArrayFloat:
     """Compute the final displacement error for a set of K predicted trajectories (for the same actor).
 
     Args:
@@ -78,7 +84,9 @@ def compute_brier_ade(
         (K,) Probability-weighted average displacement error for each predicted trajectory.
     """
     # Compute ADE with Brier score component
-    brier_score = _compute_brier_score(forecasted_trajectories, forecast_probabilities, normalize)
+    brier_score = _compute_brier_score(
+        forecasted_trajectories, forecast_probabilities, normalize
+    )
     ade_vector = compute_ade(forecasted_trajectories, gt_trajectory)
     brier_ade: NDArrayFloat = ade_vector + brier_score
     return brier_ade
@@ -102,7 +110,9 @@ def compute_brier_fde(
         (K,) Probability-weighted final displacement error for each predicted trajectory.
     """
     # Compute FDE with Brier score component
-    brier_score = _compute_brier_score(forecasted_trajectories, forecast_probabilities, normalize)
+    brier_score = _compute_brier_score(
+        forecasted_trajectories, forecast_probabilities, normalize
+    )
     fde_vector = compute_fde(forecasted_trajectories, gt_trajectory)
     brier_fde: NDArrayFloat = fde_vector + brier_score
     return brier_fde
@@ -136,7 +146,9 @@ def _compute_brier_score(
 
     # Validate that all forecast probabilities are in the range [0, 1]
     if np.logical_or(forecast_probabilities < 0.0, forecast_probabilities > 1.0).any():
-        raise ValueError("At least one forecast probability falls outside the range [0, 1].")
+        raise ValueError(
+            "At least one forecast probability falls outside the range [0, 1]."
+        )
 
     # If enabled, normalize forecast probabilities to sum to 1
     if normalize:
@@ -146,7 +158,9 @@ def _compute_brier_score(
     return brier_score
 
 
-def compute_world_fde(forecasted_world_trajectories: NDArrayFloat, gt_world_trajectories: NDArrayFloat) -> NDArrayFloat:
+def compute_world_fde(
+    forecasted_world_trajectories: NDArrayFloat, gt_world_trajectories: NDArrayFloat
+) -> NDArrayFloat:
     """Compute the mean final displacement error for each of K predicted worlds.
 
     Args:
@@ -167,7 +181,9 @@ def compute_world_fde(forecasted_world_trajectories: NDArrayFloat, gt_world_traj
     return world_fdes
 
 
-def compute_world_ade(forecasted_world_trajectories: NDArrayFloat, gt_world_trajectories: NDArrayFloat) -> NDArrayFloat:
+def compute_world_ade(
+    forecasted_world_trajectories: NDArrayFloat, gt_world_trajectories: NDArrayFloat
+) -> NDArrayFloat:
     """Compute the mean average displacement error for each of K predicted worlds.
 
     Args:
@@ -189,7 +205,9 @@ def compute_world_ade(forecasted_world_trajectories: NDArrayFloat, gt_world_traj
 
 
 def compute_world_misses(
-    forecasted_world_trajectories: NDArrayFloat, gt_world_trajectories: NDArrayFloat, miss_threshold_m: float = 2.0
+    forecasted_world_trajectories: NDArrayFloat,
+    gt_world_trajectories: NDArrayFloat,
+    miss_threshold_m: float = 2.0,
 ) -> NDArrayBool:
     """For each world, compute whether predictions for each actor misssed by more than a distance threshold.
 
@@ -230,7 +248,12 @@ def compute_world_brier_fde(
         (K,) Mean probability-weighted final displacement error for each of the predicted worlds.
     """
     actor_brier_fdes = [
-        compute_brier_fde(forecasted_actor_trajectories, gt_actor_trajectory, forecasted_world_probabilities, normalize)
+        compute_brier_fde(
+            forecasted_actor_trajectories,
+            gt_actor_trajectory,
+            forecasted_world_probabilities,
+            normalize,
+        )
         for forecasted_actor_trajectories, gt_actor_trajectory in zip(
             forecasted_world_trajectories, gt_world_trajectories
         )
@@ -256,7 +279,9 @@ def compute_world_collisions(
     for actor_idx in range(len(forecasted_world_trajectories)):
         # Compute distance from current actor to all other predicted actors at each timestep
         forecasted_actor_trajectories = forecasted_world_trajectories[actor_idx]
-        scenario_actor_dists = np.linalg.norm(forecasted_world_trajectories - forecasted_actor_trajectories, axis=-1)
+        scenario_actor_dists = np.linalg.norm(
+            forecasted_world_trajectories - forecasted_actor_trajectories, axis=-1
+        )
 
         # For each world, find the closest distance to any other predicted actor, at any time
         scenario_actor_dists[actor_idx, :, :] = np.inf

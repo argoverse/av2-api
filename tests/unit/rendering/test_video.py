@@ -87,5 +87,7 @@ def test_crop_video_to_even_dims() -> None:
     save_fpath = Path(NamedTemporaryFile(suffix=".mp4").name)
     assert not save_fpath.exists()
 
-    video_utils.write_video(video=cropped_video, dst=save_fpath, fps=10, preset="medium")
+    video_utils.write_video(
+        video=cropped_video, dst=save_fpath, fps=10, preset="medium"
+    )
     assert save_fpath.exists()

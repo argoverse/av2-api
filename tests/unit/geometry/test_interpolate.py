@@ -91,8 +91,12 @@ def test_compute_lane_width_curved_width1() -> None:
          \\ -----
           \\-----
     """
-    left_even_pts: NDArrayFloat = np.array([[0, 2], [-2, 2], [-3, 1], [-3, 0], [-2, -1], [0, -1]])
-    right_even_pts: NDArrayFloat = np.array([[0, 3], [-2, 3], [-4, 1], [-4, 0], [-2, -2], [0, -2]])
+    left_even_pts: NDArrayFloat = np.array(
+        [[0, 2], [-2, 2], [-3, 1], [-3, 0], [-2, -1], [0, -1]]
+    )
+    right_even_pts: NDArrayFloat = np.array(
+        [[0, 3], [-2, 3], [-4, 1], [-4, 0], [-2, -2], [0, -2]]
+    )
     lane_width = interp_utils.compute_lane_width(left_even_pts, right_even_pts)
     gt_lane_width = 1.0
     assert np.isclose(lane_width, gt_lane_width)
@@ -115,9 +119,13 @@ def test_compute_lane_width_curved_not_width1() -> None:
 
     We get waypoint distances of [1,1,1,1,0.707..., 1,1]
     """
-    left_even_pts: NDArrayFloat = np.array([[0, 2], [-2, 2], [-3, 1], [-3, 0], [-2.5, -0.5], [-2, -1], [0, -1]])
+    left_even_pts: NDArrayFloat = np.array(
+        [[0, 2], [-2, 2], [-3, 1], [-3, 0], [-2.5, -0.5], [-2, -1], [0, -1]]
+    )
 
-    right_even_pts: NDArrayFloat = np.array([[0, 3], [-2, 3], [-4, 1], [-4, 0], [-3, -1], [-2, -2], [0, -2]])
+    right_even_pts: NDArrayFloat = np.array(
+        [[0, 3], [-2, 3], [-4, 1], [-4, 0], [-3, -1], [-2, -2], [0, -2]]
+    )
 
     lane_width = interp_utils.compute_lane_width(left_even_pts, right_even_pts)
     gt_lane_width = 0.9581581115980783
@@ -236,7 +244,9 @@ def test_compute_mid_pivot_arc_5pt_cul_de_sac() -> None:
     # centerline_pts: Numpy array of shape (N,3)
     centerline_pts, lane_width = interp_utils.compute_mid_pivot_arc(single_pt, arc_pts)
 
-    gt_centerline_pts: NDArrayFloat = np.array([[0, 1], [0.5, 0.5], [1, 0], [0.5, -0.5], [0, -1]])
+    gt_centerline_pts: NDArrayFloat = np.array(
+        [[0, 1], [0.5, 0.5], [1, 0], [0.5, -0.5], [0, -1]]
+    )
     gt_lane_width = (2 + 2 + 2 + np.sqrt(2) + np.sqrt(2)) / 5
     assert np.allclose(centerline_pts, gt_centerline_pts)
     assert np.isclose(lane_width, gt_lane_width)
@@ -251,9 +261,13 @@ def test_compute_midpoint_line_cul_de_sac_right_onept() -> None:
     left_ln_bnds: NDArrayFloat = np.array([[0, 2], [1, 1], [2, 0], [1, -1], [0, -2]])
     right_ln_bnds: NDArrayFloat = np.array([[0, 0]])
 
-    centerline_pts, lane_width = interp_utils.compute_midpoint_line(left_ln_bnds, right_ln_bnds, num_interp_pts=5)
+    centerline_pts, lane_width = interp_utils.compute_midpoint_line(
+        left_ln_bnds, right_ln_bnds, num_interp_pts=5
+    )
 
-    gt_centerline_pts: NDArrayFloat = np.array([[0, 1], [0.5, 0.5], [1, 0], [0.5, -0.5], [0, -1]])
+    gt_centerline_pts: NDArrayFloat = np.array(
+        [[0, 1], [0.5, 0.5], [1, 0], [0.5, -0.5], [0, -1]]
+    )
     gt_lane_width = (2 + 2 + 2 + np.sqrt(2) + np.sqrt(2)) / 5
 
     assert np.allclose(centerline_pts, gt_centerline_pts)
@@ -269,9 +283,13 @@ def test_compute_midpoint_line_cul_de_sac_left_onept() -> None:
     right_ln_bnds: NDArrayFloat = np.array([[0, 2], [1, 1], [2, 0], [1, -1], [0, -2]])
     left_ln_bnds: NDArrayFloat = np.array([[0, 0]])
 
-    centerline_pts, lane_width = interp_utils.compute_midpoint_line(left_ln_bnds, right_ln_bnds, num_interp_pts=5)
+    centerline_pts, lane_width = interp_utils.compute_midpoint_line(
+        left_ln_bnds, right_ln_bnds, num_interp_pts=5
+    )
 
-    gt_centerline_pts: NDArrayFloat = np.array([[0, 1], [0.5, 0.5], [1, 0], [0.5, -0.5], [0, -1]])
+    gt_centerline_pts: NDArrayFloat = np.array(
+        [[0, 1], [0.5, 0.5], [1, 0], [0.5, -0.5], [0, -1]]
+    )
     gt_lane_width = (2 + 2 + 2 + np.sqrt(2) + np.sqrt(2)) / 5
 
     assert np.allclose(centerline_pts, gt_centerline_pts)
@@ -284,12 +302,18 @@ def test_compute_midpoint_line_straightline_maintain_5_waypts() -> None:
     Make sure that if we provide left and right boundary polylines in 2d,
     we can get the correct centerline by averaging left and right waypoints.
     """
-    right_ln_bnds: NDArrayFloat = np.array([[-1, 4], [-1, 2], [-1, 0], [-1, -2], [-1, -4]])
+    right_ln_bnds: NDArrayFloat = np.array(
+        [[-1, 4], [-1, 2], [-1, 0], [-1, -2], [-1, -4]]
+    )
     left_ln_bnds: NDArrayFloat = np.array([[2, 4], [2, 2], [2, 0], [2, -2], [2, -4]])
 
-    centerline_pts, lane_width = interp_utils.compute_midpoint_line(left_ln_bnds, right_ln_bnds, num_interp_pts=5)
+    centerline_pts, lane_width = interp_utils.compute_midpoint_line(
+        left_ln_bnds, right_ln_bnds, num_interp_pts=5
+    )
 
-    gt_centerline_pts: NDArrayFloat = np.array([[0.5, 4], [0.5, 2], [0.5, 0], [0.5, -2], [0.5, -4]])
+    gt_centerline_pts: NDArrayFloat = np.array(
+        [[0.5, 4], [0.5, 2], [0.5, 0], [0.5, -2], [0.5, -4]]
+    )
     gt_lane_width = 3.0
     assert np.allclose(centerline_pts, gt_centerline_pts)
     assert np.isclose(lane_width, gt_lane_width)
@@ -301,12 +325,18 @@ def test_compute_midpoint_line_straightline_maintain_4_waypts() -> None:
     Make sure that if we provide left and right boundary polylines in 2d,
     we can get the correct centerline by averaging left and right waypoints.
     """
-    right_ln_bnds: NDArrayFloat = np.array([[-1, 4], [-1, 2], [-1, 0], [-1, -2], [-1, -4]])
+    right_ln_bnds: NDArrayFloat = np.array(
+        [[-1, 4], [-1, 2], [-1, 0], [-1, -2], [-1, -4]]
+    )
     left_ln_bnds: NDArrayFloat = np.array([[2, 4], [2, 2], [2, 0], [2, -2], [2, -4]])
 
-    centerline_pts, lane_width = interp_utils.compute_midpoint_line(left_ln_bnds, right_ln_bnds, num_interp_pts=4)
+    centerline_pts, lane_width = interp_utils.compute_midpoint_line(
+        left_ln_bnds, right_ln_bnds, num_interp_pts=4
+    )
 
-    gt_centerline_pts: NDArrayFloat = np.array([[0.5, 4], [0.5, 4 / 3], [0.5, -4 / 3], [0.5, -4]])
+    gt_centerline_pts: NDArrayFloat = np.array(
+        [[0.5, 4], [0.5, 4 / 3], [0.5, -4 / 3], [0.5, -4]]
+    )
     gt_lane_width = 3.0
     assert np.allclose(centerline_pts, gt_centerline_pts)
     assert np.isclose(lane_width, gt_lane_width)
@@ -318,10 +348,14 @@ def test_compute_midpoint_line_straightline_maintain_3_waypts() -> None:
     Make sure that if we provide left and right boundary polylines in 2d,
     we can get the correct centerline by averaging left and right waypoints.
     """
-    right_ln_bnds: NDArrayFloat = np.array([[-1, 4], [-1, 2], [-1, 0], [-1, -2], [-1, -4]])
+    right_ln_bnds: NDArrayFloat = np.array(
+        [[-1, 4], [-1, 2], [-1, 0], [-1, -2], [-1, -4]]
+    )
     left_ln_bnds: NDArrayFloat = np.array([[2, 4], [2, 2], [2, 0], [2, -2], [2, -4]])
 
-    centerline_pts, lane_width = interp_utils.compute_midpoint_line(left_ln_bnds, right_ln_bnds, num_interp_pts=3)
+    centerline_pts, lane_width = interp_utils.compute_midpoint_line(
+        left_ln_bnds, right_ln_bnds, num_interp_pts=3
+    )
 
     gt_centerline_pts: NDArrayFloat = np.array([[0.5, 4], [0.5, 0], [0.5, -4]])
     gt_lane_width = 3.0
@@ -335,10 +369,14 @@ def test_compute_midpoint_line_straightline_maintain_2_waypts() -> None:
     Make sure that if we provide left and right boundary polylines in 2d,
     we can get the correct centerline by averaging left and right waypoints.
     """
-    right_ln_bnds: NDArrayFloat = np.array([[-1, 4], [-1, 2], [-1, 0], [-1, -2], [-1, -4]])
+    right_ln_bnds: NDArrayFloat = np.array(
+        [[-1, 4], [-1, 2], [-1, 0], [-1, -2], [-1, -4]]
+    )
     left_ln_bnds: NDArrayFloat = np.array([[2, 4], [2, 2], [2, 0], [2, -2], [2, -4]])
 
-    centerline_pts, lane_width = interp_utils.compute_midpoint_line(left_ln_bnds, right_ln_bnds, num_interp_pts=2)
+    centerline_pts, lane_width = interp_utils.compute_midpoint_line(
+        left_ln_bnds, right_ln_bnds, num_interp_pts=2
+    )
 
     gt_centerline_pts: NDArrayFloat = np.array([[0.5, 4], [0.5, -4]])
     gt_lane_width = 3.0
@@ -358,7 +396,9 @@ def test_compute_midpoint_line_curved_maintain_4_waypts() -> None:
     right_ln_bnds: NDArrayFloat = np.array([[-1, 3], [1, 3], [4, 0], [4, -2]])
     left_ln_bnds: NDArrayFloat = np.array([[-1, 1], [1, 1], [2, 0], [2, -2]])
 
-    centerline_pts, lane_width = interp_utils.compute_midpoint_line(left_ln_bnds, right_ln_bnds, num_interp_pts=4)
+    centerline_pts, lane_width = interp_utils.compute_midpoint_line(
+        left_ln_bnds, right_ln_bnds, num_interp_pts=4
+    )
 
     # from argoverse.utils.mpl_plotting_utils import draw_polygon_mpl
 
@@ -403,7 +443,9 @@ def test_compute_midpoint_line_straightline_maintain_3_waypts_3dpolylines() -> N
     )
 
     # fmt: on
-    centerline_pts, lane_width = interp_utils.compute_midpoint_line(left_ln_bnds, right_ln_bnds, num_interp_pts=3)
+    centerline_pts, lane_width = interp_utils.compute_midpoint_line(
+        left_ln_bnds, right_ln_bnds, num_interp_pts=3
+    )
     # fmt: off
     gt_centerline_pts: NDArrayFloat = np.array(
         [
@@ -558,14 +600,17 @@ def test_interpolate_pose() -> None:
 
     city_SE3_egot0 = SE3(rotation=np.eye(3), translation=np.array([5, 0, 0]))
     city_SE3_egot1 = SE3(
-        rotation=Rotation.from_euler("z", 90, degrees=True).as_matrix(), translation=np.array([0, 5, 0])
+        rotation=Rotation.from_euler("z", 90, degrees=True).as_matrix(),
+        translation=np.array([0, 5, 0]),
     )
 
     t0 = 0
     t1 = 10
     for query_timestamp in np.arange(11):
         pose = interp_utils.interpolate_pose(
-            key_timestamps=(t0, t1), key_poses=(city_SE3_egot0, city_SE3_egot1), query_timestamp=query_timestamp
+            key_timestamps=(t0, t1),
+            key_poses=(city_SE3_egot0, city_SE3_egot1),
+            query_timestamp=query_timestamp,
         )
         if visualize:
             _plot_pose(pose)
@@ -608,16 +653,22 @@ def test_linear_interpolation() -> None:
     X1: NDArrayFloat = np.array([-1, 2, 10], dtype=float)
 
     # at start of interval (@5 sec)
-    Xt_5 = interp_utils.linear_interpolation(key_timestamps=(5, 15), key_translations=(X0, X1), query_timestamp=5)
+    Xt_5 = interp_utils.linear_interpolation(
+        key_timestamps=(5, 15), key_translations=(X0, X1), query_timestamp=5
+    )
     expected_Xt_5: NDArrayFloat = np.array([1, 0, 0], dtype=float)
     assert np.array_equal(Xt_5, expected_Xt_5)
 
     # midway through interval (@10 sec)
-    Xt_10 = interp_utils.linear_interpolation(key_timestamps=(5, 15), key_translations=(X0, X1), query_timestamp=10)
+    Xt_10 = interp_utils.linear_interpolation(
+        key_timestamps=(5, 15), key_translations=(X0, X1), query_timestamp=10
+    )
     expected_Xt_10: NDArrayFloat = np.array([0, 1, 5], dtype=float)
     assert np.array_equal(Xt_10, expected_Xt_10)
 
     # at end of interval (@15 sec)
-    Xt_15 = interp_utils.linear_interpolation(key_timestamps=(5, 15), key_translations=(X0, X1), query_timestamp=15)
+    Xt_15 = interp_utils.linear_interpolation(
+        key_timestamps=(5, 15), key_translations=(X0, X1), query_timestamp=15
+    )
     expected_Xt_15: NDArrayFloat = np.array([-1, 2, 10], dtype=float)
     assert np.array_equal(Xt_15, expected_Xt_15)

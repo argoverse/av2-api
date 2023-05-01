@@ -4,13 +4,20 @@ from pathlib import Path
 
 import click
 import numpy as np
-from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset, write_output_file
-from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 from kornia.geometry.linalg import transform_points
 from rich.progress import track
 
+from av2.evaluation.scene_flow.utils import (
+    get_eval_point_mask,
+    get_eval_subset,
+    write_output_file,
+)
+from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 
-def example_submission(output_dir: str, mask_file: str, data_dir: str, name: str) -> None:
+
+def example_submission(
+    output_dir: str, mask_file: str, data_dir: str, name: str
+) -> None:
     """Output example submission files for the leaderboard. Predicts the ego motion for every point.
 
     Args:
@@ -47,7 +54,9 @@ def example_submission(output_dir: str, mask_file: str, data_dir: str, name: str
     help="the data should be located in <data_dir>/<name>/sensor/<split>",
     default="av2",
 )
-def _example_submission_entry(output_dir: str, mask_file: str, data_dir: str, name: str) -> None:
+def _example_submission_entry(
+    output_dir: str, mask_file: str, data_dir: str, name: str
+) -> None:
     """Entry point for example_submission."""
     example_submission(output_dir, mask_file, data_dir, name)
 

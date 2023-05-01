@@ -12,7 +12,10 @@ import av2.evaluation.scene_flow.eval as eval
 from av2.evaluation.scene_flow.example_submission import example_submission
 from av2.evaluation.scene_flow.make_annotation_files import make_annotation_files
 from av2.evaluation.scene_flow.make_mask_files import make_mask_files
-from av2.evaluation.scene_flow.make_submission_archive import make_submission_archive, validate
+from av2.evaluation.scene_flow.make_submission_archive import (
+    make_submission_archive,
+    validate,
+)
 from av2.evaluation.scene_flow.utils import compute_eval_point_mask
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
 
@@ -39,10 +42,18 @@ def test_submission() -> None:
         make_mask_files(str(mask_file), str(_TEST_DATA_ROOT), "test_data", "val")
 
         annotations_dir = test_dir / "annotations"
-        make_annotation_files(str(annotations_dir), str(mask_file), str(_TEST_DATA_ROOT), "test_data", "val")
+        make_annotation_files(
+            str(annotations_dir),
+            str(mask_file),
+            str(_TEST_DATA_ROOT),
+            "test_data",
+            "val",
+        )
 
         predictions_dir = test_dir / "output"
-        example_submission(str(predictions_dir), str(mask_file), str(_TEST_DATA_ROOT), "test_data")
+        example_submission(
+            str(predictions_dir), str(mask_file), str(_TEST_DATA_ROOT), "test_data"
+        )
 
         results = eval.evaluate(str(annotations_dir), str(predictions_dir))
         for metric in results:
@@ -50,7 +61,9 @@ def test_submission() -> None:
                 if "Static" in metric:
                     assert np.allclose(results[metric], 1.0)
                 elif "Dynamic" in metric and "Strict" in metric:
-                    assert np.isnan(results[metric]) or np.allclose(results[metric], 0.0)
+                    assert np.isnan(results[metric]) or np.allclose(
+                        results[metric], 0.0
+                    )
             elif metric.startswith("EPE"):
                 if "Static" in metric:
                     if "Background" in metric:
@@ -62,23 +75,34 @@ def test_submission() -> None:
                     assert results[metric] < 1e-4
 
         output_file = test_dir / "submission.zip"
-        success = make_submission_archive(str(predictions_dir), str(mask_file), str(output_file))
+        success = make_submission_archive(
+            str(predictions_dir), str(mask_file), str(output_file)
+        )
         assert success
         assert output_file.stat().st_size > 0
 
         annotation_files = list(annotations_dir.rglob("*.feather"))
-        print([anno_file.relative_to(annotations_dir).as_posix() for anno_file in annotation_files])
+        print(
+            [
+                anno_file.relative_to(annotations_dir).as_posix()
+                for anno_file in annotation_files
+            ]
+        )
         with ZipFile(output_file, "r") as zf:
             files = {f.filename for f in zf.filelist}
         print(files)
 
-        results_zip = eval.results_to_dict(eval.evaluate_zip(annotations_dir, output_file))
+        results_zip = eval.results_to_dict(
+            eval.evaluate_zip(annotations_dir, output_file)
+        )
         for metric in results:
             assert np.allclose(results[metric], results_zip[metric], equal_nan=True)
 
         empty_predictions_dir = test_dir / "bad_output_1"
         empty_predictions_dir.mkdir()
-        success = make_submission_archive(str(empty_predictions_dir), str(mask_file), str(output_file))
+        success = make_submission_archive(
+            str(empty_predictions_dir), str(mask_file), str(output_file)
+        )
         assert not success
 
         failed = False

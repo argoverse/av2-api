@@ -53,7 +53,9 @@ def test_SE3_transform_point_cloud_identity() -> None:
 
 def test_SE3_transform_point_cloud_by_quaternion() -> None:
     """Test rotating points by a given quaternion, and then adding translation vector to each point."""
-    pts: NDArrayFloat = np.array([[1.0, 1.0, 1.1], [1.0, 1.0, 2.1], [1.0, 1.0, 3.1], [1.0, 1.0, 4.1]])
+    pts: NDArrayFloat = np.array(
+        [[1.0, 1.0, 1.1], [1.0, 1.0, 2.1], [1.0, 1.0, 3.1], [1.0, 1.0, 4.1]]
+    )
 
     # x, y, z of cuboid center
     t: NDArrayFloat = np.array([-34.7128603513203, 5.29461762417753, 0.10328996181488])
@@ -103,7 +105,9 @@ def test_SE3_inverse_transform_point_cloud_identity() -> None:
 
     Since the transformation was the identity, the points should not be affected.
     """
-    transformed_pts: NDArrayFloat = np.array([[1.0, 1.0, 1.1], [1.0, 1.0, 2.1], [1.0, 1.0, 3.1], [1.0, 1.0, 4.1]])
+    transformed_pts: NDArrayFloat = np.array(
+        [[1.0, 1.0, 1.1], [1.0, 1.0, 2.1], [1.0, 1.0, 3.1], [1.0, 1.0, 4.1]]
+    )
     dst_se3_src = SE3(rotation=np.eye(3), translation=np.zeros(3))
     pts = dst_se3_src.inverse().transform_point_cloud(transformed_pts.copy())
     assert np.allclose(pts, transformed_pts)
@@ -128,7 +132,9 @@ def test_SE3_inverse_transform_point_cloud() -> None:
 
     dst_se3_src = SE3(rotation=R, translation=t)
     pts = dst_se3_src.inverse().transform_point_cloud(transformed_pts)
-    gt_pts: NDArrayFloat = np.array([[1.0, 1.0, 1.1], [1.0, 1.0, 2.1], [1.0, 1.0, 3.1], [1.0, 1.0, 4.1]])
+    gt_pts: NDArrayFloat = np.array(
+        [[1.0, 1.0, 1.1], [1.0, 1.0, 2.1], [1.0, 1.0, 3.1], [1.0, 1.0, 4.1]]
+    )
 
     assert np.allclose(pts, gt_pts)
 
@@ -165,7 +171,9 @@ def test_SE3_chaining_transforms() -> None:
     assert np.allclose(fr2_se3_fr0.translation, np.zeros(3))
 
 
-def test_benchmark_SE3_transform_point_cloud_optimized(benchmark: Callable[..., Any]) -> None:
+def test_benchmark_SE3_transform_point_cloud_optimized(
+    benchmark: Callable[..., Any]
+) -> None:
     """Ensure that our transform_point_cloud() implementation is faster than a naive implementation."""
     num_pts = 100000
     points_src = np.random.randn(num_pts, 3)
@@ -182,7 +190,9 @@ def test_benchmark_SE3_transform_point_cloud_optimized(benchmark: Callable[..., 
     benchmark(dst_SE3_src.transform_point_cloud, points_src)
 
 
-def test_benchmark_SE3_transform_point_cloud_unoptimized(benchmark: Callable[..., Any]) -> None:
+def test_benchmark_SE3_transform_point_cloud_unoptimized(
+    benchmark: Callable[..., Any]
+) -> None:
     """Benchmark unoptimized SE(3) transformation."""
 
     def benchmark_SE3_transform_point_cloud_unoptimized(
@@ -192,7 +202,9 @@ def test_benchmark_SE3_transform_point_cloud_unoptimized(benchmark: Callable[...
         # convert to homogeneous
         num_pts = len(point_cloud)
         homogeneous_pts: NDArrayFloat = np.hstack([point_cloud, np.ones((num_pts, 1))])
-        transformed_point_cloud: NDArrayFloat = homogeneous_pts.dot(transform_matrix.T)[:, :3]
+        transformed_point_cloud: NDArrayFloat = homogeneous_pts.dot(transform_matrix.T)[
+            :, :3
+        ]
         return transformed_point_cloud
 
     num_pts = 100000
@@ -207,4 +219,8 @@ def test_benchmark_SE3_transform_point_cloud_unoptimized(benchmark: Callable[...
 
     dst_SE3_src = SE3(rotation=R.copy(), translation=t.copy())
 
-    benchmark(benchmark_SE3_transform_point_cloud_unoptimized, points_src, dst_SE3_src.transform_matrix)
+    benchmark(
+        benchmark_SE3_transform_point_cloud_unoptimized,
+        points_src,
+        dst_SE3_src.transform_matrix,
+    )

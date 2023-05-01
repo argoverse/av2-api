@@ -18,7 +18,9 @@ def test_has_pts_in_infinity_norm_radius1() -> None:
             [5.1, 5.1]
         ])
     # fmt: on
-    within = infinity_norm_utils.has_pts_in_infinity_norm_radius(pts, window_center=np.zeros(2), window_sz=5)
+    within = infinity_norm_utils.has_pts_in_infinity_norm_radius(
+        pts, window_center=np.zeros(2), window_sz=5
+    )
     assert not within
 
 
@@ -32,7 +34,9 @@ def test_has_pts_in_infinity_norm_radius2() -> None:
             [5.1, 5.1]
         ])
     # fmt: on
-    within = infinity_norm_utils.has_pts_in_infinity_norm_radius(pts, window_center=np.zeros(2), window_sz=5)
+    within = infinity_norm_utils.has_pts_in_infinity_norm_radius(
+        pts, window_center=np.zeros(2), window_sz=5
+    )
     assert within
 
 
@@ -46,12 +50,16 @@ def test_has_pts_in_infinity_norm_radius3() -> None:
             [4.9, 4.9]
         ])
     # fmt: on
-    within = infinity_norm_utils.has_pts_in_infinity_norm_radius(pts, window_center=np.zeros(2), window_sz=5)
+    within = infinity_norm_utils.has_pts_in_infinity_norm_radius(
+        pts, window_center=np.zeros(2), window_sz=5
+    )
     assert within
 
 
 def test_has_pts_in_infinity_norm_radius4() -> None:
     """All pts within radius."""
     pts: NDArrayFloat = np.array([[4.9, 4.9]])
-    within = infinity_norm_utils.has_pts_in_infinity_norm_radius(pts, window_center=np.zeros(2), window_sz=5)
+    within = infinity_norm_utils.has_pts_in_infinity_norm_radius(
+        pts, window_center=np.zeros(2), window_sz=5
+    )
     assert within

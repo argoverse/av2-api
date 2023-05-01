@@ -50,7 +50,9 @@ CITY_ORIGIN_LATLONG_DICT: Final[Dict[CityName, Tuple[float, float]]] = {
 }
 
 
-def convert_gps_to_utm(latitude: float, longitude: float, city_name: CityName) -> Tuple[float, float]:
+def convert_gps_to_utm(
+    latitude: float, longitude: float, city_name: CityName
+) -> Tuple[float, float]:
     """Convert GPS coordinates to UTM coordinates.
 
     Args:
@@ -62,7 +64,13 @@ def convert_gps_to_utm(latitude: float, longitude: float, city_name: CityName) -
         easting: corresponding UTM Easting.
         northing: corresponding UTM Northing.
     """
-    projector = Proj(proj="utm", zone=UTM_ZONE_MAP[city_name], ellps="WGS84", datum="WGS84", units="m")
+    projector = Proj(
+        proj="utm",
+        zone=UTM_ZONE_MAP[city_name],
+        ellps="WGS84",
+        datum="WGS84",
+        units="m",
+    )
 
     # convert to UTM.
     easting, northing = projector(longitude, latitude)
@@ -70,7 +78,9 @@ def convert_gps_to_utm(latitude: float, longitude: float, city_name: CityName) -
     return easting, northing
 
 
-def convert_city_coords_to_utm(points_city: Union[NDArrayFloat, NDArrayInt], city_name: CityName) -> NDArrayFloat:
+def convert_city_coords_to_utm(
+    points_city: Union[NDArrayFloat, NDArrayInt], city_name: CityName
+) -> NDArrayFloat:
     """Convert city coordinates to UTM coordinates.
 
     Args:
@@ -82,12 +92,18 @@ def convert_city_coords_to_utm(points_city: Union[NDArrayFloat, NDArrayInt], cit
     """
     latitude, longitude = CITY_ORIGIN_LATLONG_DICT[city_name]
     # get (easting, northing) of origin
-    origin_utm = convert_gps_to_utm(latitude=latitude, longitude=longitude, city_name=city_name)
-    points_utm: NDArrayFloat = points_city.astype(float) + np.array(origin_utm, dtype=float)
+    origin_utm = convert_gps_to_utm(
+        latitude=latitude, longitude=longitude, city_name=city_name
+    )
+    points_utm: NDArrayFloat = points_city.astype(float) + np.array(
+        origin_utm, dtype=float
+    )
     return points_utm
 
 
-def convert_city_coords_to_wgs84(points_city: Union[NDArrayFloat, NDArrayInt], city_name: CityName) -> NDArrayFloat:
+def convert_city_coords_to_wgs84(
+    points_city: Union[NDArrayFloat, NDArrayInt], city_name: CityName
+) -> NDArrayFloat:
     """Convert city coordinates to WGS84 coordinates.
 
     Args:
@@ -99,7 +115,13 @@ def convert_city_coords_to_wgs84(points_city: Union[NDArrayFloat, NDArrayInt], c
     """
     points_utm = convert_city_coords_to_utm(points_city, city_name)
 
-    projector = Proj(proj="utm", zone=UTM_ZONE_MAP[city_name], ellps="WGS84", datum="WGS84", units="m")
+    projector = Proj(
+        proj="utm",
+        zone=UTM_ZONE_MAP[city_name],
+        ellps="WGS84",
+        datum="WGS84",
+        units="m",
+    )
 
     points_wgs84 = []
     for easting, northing in points_utm:

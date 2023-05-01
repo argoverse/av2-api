@@ -47,7 +47,9 @@ def test_get_city_SE3_ego(test_data_root_dir: Path) -> None:
     dataroot = test_data_root_dir / "sensor_dataset_logs"
     loader = AV2SensorDataLoader(data_dir=dataroot, labels_dir=dataroot)
 
-    city_SE3_egovehicle = loader.get_city_SE3_ego(log_id=log_id, timestamp_ns=timestamp_ns)
+    city_SE3_egovehicle = loader.get_city_SE3_ego(
+        log_id=log_id, timestamp_ns=timestamp_ns
+    )
 
     assert isinstance(city_SE3_egovehicle, SE3)
     expected_translation: NDArrayFloat = np.array([1468.87, 211.51, 13.14])

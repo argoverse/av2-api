@@ -52,7 +52,9 @@ class Sim2:
         if not isinstance(self.s, numbers.Number):
             raise ValueError("Scale `s` must be a numeric type!")
         if math.isclose(self.s, 0.0):
-            raise ZeroDivisionError("3x3 matrix formation would require division by zero")
+            raise ZeroDivisionError(
+                "3x3 matrix formation would require division by zero"
+            )
 
     @property
     def theta_deg(self) -> float:
@@ -74,7 +76,9 @@ class Sim2:
     def __repr__(self) -> str:
         """Return a human-readable string representation of the class."""
         trans = np.round(self.t, 2)
-        return f"Angle (deg.): {self.theta_deg:.1f}, Trans.: {trans}, Scale: {self.s:.1f}"
+        return (
+            f"Angle (deg.): {self.theta_deg:.1f}, Trans.: {trans}, Scale: {self.s:.1f}"
+        )
 
     def __eq__(self, other: object) -> bool:
         """Check for equality with other Sim(2) object."""
@@ -203,7 +207,9 @@ class Sim2:
     def from_matrix(cls, T: NDArrayFloat) -> Sim2:
         """Generate class instance from a 3x3 Numpy matrix."""
         if np.isclose(T[2, 2], 0.0):
-            raise ZeroDivisionError("Sim(2) scale calculation would lead to division by zero.")
+            raise ZeroDivisionError(
+                "Sim(2) scale calculation would lead to division by zero."
+            )
 
         R = T[:2, :2]
         t = T[:2, 2]

@@ -60,11 +60,7 @@ repository = "https://github.com/argoverse/av2-api"
 features = ["pyo3/extension-module"]
 module-name = "av2._r"
 
-[tool.black]
-line-length = 120
-
 [tool.ruff]
-line-length = 120
 select = [
     "D",
 ]

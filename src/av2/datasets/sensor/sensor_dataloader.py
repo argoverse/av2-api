@@ -22,7 +22,12 @@ from av2.structures.cuboid import CuboidList
 from av2.structures.sweep import Sweep
 from av2.structures.timestamped_image import TimestampedImage
 from av2.utils.constants import HOME
-from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego, read_feather, read_img
+from av2.utils.io import (
+    TimestampedCitySE3EgoPoses,
+    read_city_SE3_ego,
+    read_feather,
+    read_img,
+)
 from av2.utils.metric_time import TimeUnit, to_metric_time
 
 logger = logging.Logger(__name__)
@@ -40,13 +45,19 @@ LIDAR_FRAME_RATE_HZ: Final[int] = 10
 
 # constants defined in milliseconds
 # below evaluates to 50 ms
-CAM_SHUTTER_INTERVAL_MS: Final[float] = to_metric_time(ts=1 / CAM_FPS, src=Second, dst=Millisecond)
+CAM_SHUTTER_INTERVAL_MS: Final[float] = to_metric_time(
+    ts=1 / CAM_FPS, src=Second, dst=Millisecond
+)
 
 # below evaluates to 100 ms
-LIDAR_SWEEP_INTERVAL_MS: Final[float] = to_metric_time(ts=1 / LIDAR_FRAME_RATE_HZ, src=Second, dst=Millisecond)
+LIDAR_SWEEP_INTERVAL_MS: Final[float] = to_metric_time(
+    ts=1 / LIDAR_FRAME_RATE_HZ, src=Second, dst=Millisecond
+)
 
 ALLOWED_TIMESTAMP_BUFFER_MS: Final[int] = 2  # allow 2 ms of buffer
-LIDAR_SWEEP_INTERVAL_W_BUFFER_MS: Final[float] = LIDAR_SWEEP_INTERVAL_MS + ALLOWED_TIMESTAMP_BUFFER_MS
+LIDAR_SWEEP_INTERVAL_W_BUFFER_MS: Final[float] = (
+    LIDAR_SWEEP_INTERVAL_MS + ALLOWED_TIMESTAMP_BUFFER_MS
+)
 LIDAR_SWEEP_INTERVAL_W_BUFFER_NS: Final[float] = to_metric_time(
     ts=LIDAR_SWEEP_INTERVAL_W_BUFFER_MS, src=Millisecond, dst=Nanosecond
 )
@@ -151,7 +162,9 @@ class SensorDataloader:
 
         # Populate synchronization database.
         if self.cam_names:
-            synchronization_cache_path = HOME / ".cache" / "av2" / "synchronization_cache.feather"
+            synchronization_cache_path = (
+                HOME / ".cache" / "av2" / "synchronization_cache.feather"
+            )
             synchronization_cache_path.parent.mkdir(parents=True, exist_ok=True)
 
             # If caching is enabled AND the path exists, then load from the cache file.
@@ -165,7 +178,9 @@ class SensorDataloader:
                 self.synchronization_cache.to_feather(str(synchronization_cache_path))
 
             # Finally, create a MultiIndex set the sync records index and sort it.
-            self.synchronization_cache.set_index(keys=["split", "log_id", "sensor_name"], inplace=True)
+            self.synchronization_cache.set_index(
+                keys=["split", "log_id", "sensor_name"], inplace=True
+            )
             self.synchronization_cache.sort_index(inplace=True)
 
     @cached_property
@@ -181,7 +196,9 @@ class SensorDataloader:
     @cached_property
     def sensor_counts(self) -> pd.Series:
         """Return the number of records for each sensor."""
-        sensor_counts: pd.Series = self.sensor_cache.index.get_level_values("sensor_name").value_counts()
+        sensor_counts: pd.Series = self.sensor_cache.index.get_level_values(
+            "sensor_name"
+        ).value_counts()
         return sensor_counts
 
     @property
@@ -231,7 +248,9 @@ class SensorDataloader:
 
         # Set index as tuples of the form: (split, log_id, sensor_name, timestamp_ns) and sort the index.
         # sorts by split, log_id, and then by sensor name, and then by timestamp.
-        sensor_cache.set_index(["split", "log_id", "sensor_name", "timestamp_ns"], inplace=True)
+        sensor_cache.set_index(
+            ["split", "log_id", "sensor_name", "timestamp_ns"], inplace=True
+        )
         sensor_cache.sort_index(inplace=True)
 
         # Return all of the sensor records.
@@ -245,9 +264,12 @@ class SensorDataloader:
                 N is the number of sweeps for all logs in the dataset, and the `sensor_name` column
                 should be populated with `lidar` in every entry.
         """
-        lidar_paths = sorted(self.dataset_dir.glob(LIDAR_PATTERN), key=lambda x: int(x.stem))
+        lidar_paths = sorted(
+            self.dataset_dir.glob(LIDAR_PATTERN), key=lambda x: int(x.stem)
+        )
         lidar_record_list = [
-            convert_path_to_named_record(x) for x in track(lidar_paths, description="Loading lidar records ...")
+            convert_path_to_named_record(x)
+            for x in track(lidar_paths, description="Loading lidar records ...")
         ]
 
         # Concatenate into single dataframe (list-of-dicts to DataFrame).
@@ -264,11 +286,14 @@ class SensorDataloader:
                 every entry.
         """
         # Get sorted list of camera paths.
-        cam_paths = sorted(self.dataset_dir.glob(CAMERA_PATTERN), key=lambda x: int(x.stem))
+        cam_paths = sorted(
+            self.dataset_dir.glob(CAMERA_PATTERN), key=lambda x: int(x.stem)
+        )
 
         # Load entire set of camera records.
         cam_record_list = [
-            convert_path_to_named_record(x) for x in track(cam_paths, description="Loading camera records ...")
+            convert_path_to_named_record(x)
+            for x in track(cam_paths, description="Loading camera records ...")
         ]
 
         # Concatenate into single dataframe (list-of-dicts to DataFrame).
@@ -310,7 +335,9 @@ class SensorDataloader:
         """
         # Grab the lidar record at the specified index.
         # Selects data at a particular level of a MultiIndex.
-        record: Tuple[str, str, int] = self.sensor_cache.xs(key="lidar", level=2).iloc[idx].name
+        record: Tuple[str, str, int] = (
+            self.sensor_cache.xs(key="lidar", level=2).iloc[idx].name
+        )
 
         # Grab the identifying record fields.
         split, log_id, timestamp_ns = record
@@ -345,7 +372,9 @@ class SensorDataloader:
 
         # Load camera imagery if enabled.
         if self.cam_names:
-            datum.synchronized_imagery = self._load_synchronized_cams(split, sensor_dir, log_id, timestamp_ns)
+            datum.synchronized_imagery = self._load_synchronized_cams(
+                split, sensor_dir, log_id, timestamp_ns
+            )
 
         # Return datum at the specified index.
         return datum
@@ -368,28 +397,38 @@ class SensorDataloader:
 
         # Create list to store synchronized data frames.
         sync_list: List[pd.DataFrame] = []
-        unique_sensor_names: List[str] = self.sensor_cache.index.unique(level=2).tolist()
+        unique_sensor_names: List[str] = self.sensor_cache.index.unique(
+            level=2
+        ).tolist()
 
         # Associate a 'source' sensor to a 'target' sensor for all available sensors.
         # For example, we associate the lidar sensor with each ring camera which
         # produces a mapping from lidar -> all-other-sensors.
         for src_sensor_name in unique_sensor_names:
-            src_records = self.sensor_cache.xs(src_sensor_name, level=2, drop_level=False).reset_index()
-            src_records = src_records.rename({"timestamp_ns": src_sensor_name}, axis=1).sort_values(src_sensor_name)
+            src_records = self.sensor_cache.xs(
+                src_sensor_name, level=2, drop_level=False
+            ).reset_index()
+            src_records = src_records.rename(
+                {"timestamp_ns": src_sensor_name}, axis=1
+            ).sort_values(src_sensor_name)
 
             # _Very_ important to convert to timedelta. Tolerance below causes precision loss otherwise.
             src_records[src_sensor_name] = pd.to_timedelta(src_records[src_sensor_name])
             for target_sensor_name in unique_sensor_names:
                 if src_sensor_name == target_sensor_name:
                     continue
-                target_records = self.sensor_cache.xs(target_sensor_name, level=2).reset_index()
-                target_records = target_records.rename({"timestamp_ns": target_sensor_name}, axis=1).sort_values(
-                    target_sensor_name
-                )
+                target_records = self.sensor_cache.xs(
+                    target_sensor_name, level=2
+                ).reset_index()
+                target_records = target_records.rename(
+                    {"timestamp_ns": target_sensor_name}, axis=1
+                ).sort_values(target_sensor_name)
 
                 # Merge based on matching criterion.
                 # _Very_ important to convert to timedelta. Tolerance below causes precision loss otherwise.
-                target_records[target_sensor_name] = pd.to_timedelta(target_records[target_sensor_name])
+                target_records[target_sensor_name] = pd.to_timedelta(
+                    target_records[target_sensor_name]
+                )
                 tolerance = pd.to_timedelta(CAM_SHUTTER_INTERVAL_MS / 2 * 1e6)
                 if "ring" in src_sensor_name:
                     tolerance = pd.to_timedelta(LIDAR_SWEEP_INTERVAL_W_BUFFER_NS / 2)
@@ -430,33 +469,45 @@ class SensorDataloader:
             RuntimeError: if the synchronization database (sync_records) has not been created.
         """
         if self.synchronization_cache is None:
-            raise RuntimeError("Requested synchronized data, but the synchronization database has not been created.")
+            raise RuntimeError(
+                "Requested synchronized data, but the synchronization database has not been created."
+            )
 
         src_timedelta_ns = pd.Timedelta(src_timestamp_ns)
-        src_to_target_records = self.synchronization_cache.loc[(split, log_id, src_sensor_name)].set_index(
-            src_sensor_name
-        )
+        src_to_target_records = self.synchronization_cache.loc[
+            (split, log_id, src_sensor_name)
+        ].set_index(src_sensor_name)
         index = src_to_target_records.index
         if src_timedelta_ns not in index:
             # This timestamp does not correspond to any lidar sweep.
             return None
 
         # Grab the synchronization record.
-        target_timestamp_ns = src_to_target_records.loc[src_timedelta_ns, target_sensor_name]
+        target_timestamp_ns = src_to_target_records.loc[
+            src_timedelta_ns, target_sensor_name
+        ]
         if pd.isna(target_timestamp_ns):
             # No match was found within tolerance.
             return None
 
         sensor_dir = self.dataset_dir / split / log_id / "sensors"
-        valid_cameras = [x.value for x in list(RingCameras)] + [x.value for x in list(StereoCameras)]
+        valid_cameras = [x.value for x in list(RingCameras)] + [
+            x.value for x in list(StereoCameras)
+        ]
         timestamp_ns_str = str(target_timestamp_ns.asm8.item())
         if target_sensor_name in valid_cameras:
-            target_path = sensor_dir / "cameras" / target_sensor_name / f"{timestamp_ns_str}.jpg"
+            target_path = (
+                sensor_dir / "cameras" / target_sensor_name / f"{timestamp_ns_str}.jpg"
+            )
         else:
-            target_path = sensor_dir / target_sensor_name / f"{timestamp_ns_str}.feather"
+            target_path = (
+                sensor_dir / target_sensor_name / f"{timestamp_ns_str}.feather"
+            )
         return target_path
 
-    def get_closest_img_fpath(self, split: str, log_id: str, cam_name: str, lidar_timestamp_ns: int) -> Optional[Path]:
+    def get_closest_img_fpath(
+        self, split: str, log_id: str, cam_name: str, lidar_timestamp_ns: int
+    ) -> Optional[Path]:
         """Find the file path to the closest image from the reference camera name to the lidar timestamp.
 
         Args:
@@ -476,7 +527,9 @@ class SensorDataloader:
             target_sensor_name=cam_name,
         )
 
-    def get_closest_lidar_fpath(self, split: str, log_id: str, cam_name: str, cam_timestamp_ns: int) -> Optional[Path]:
+    def get_closest_lidar_fpath(
+        self, split: str, log_id: str, cam_name: str, cam_timestamp_ns: int
+    ) -> Optional[Path]:
         """Find the file path to the closest image from the lidar to the reference camera.
 
         Args:
@@ -496,7 +549,9 @@ class SensorDataloader:
             target_sensor_name="lidar",
         )
 
-    def _load_annotations(self, split: str, log_id: str, sweep_timestamp_ns: int) -> CuboidList:
+    def _load_annotations(
+        self, split: str, log_id: str, sweep_timestamp_ns: int
+    ) -> CuboidList:
         """Load the sweep annotations at the provided timestamp.
 
         Args:
@@ -507,13 +562,17 @@ class SensorDataloader:
         Returns:
             Cuboid list of annotations.
         """
-        annotations_feather_path = self.dataset_dir / split / log_id / "annotations.feather"
+        annotations_feather_path = (
+            self.dataset_dir / split / log_id / "annotations.feather"
+        )
 
         # Load annotations from disk.
         # NOTE: This contains annotations for the ENTIRE sequence.
         # The sweep annotations are selected below.
         cuboid_list = CuboidList.from_feather(annotations_feather_path)
-        cuboids = list(filter(lambda x: x.timestamp_ns == sweep_timestamp_ns, cuboid_list.cuboids))
+        cuboids = list(
+            filter(lambda x: x.timestamp_ns == sweep_timestamp_ns, cuboid_list.cuboids)
+        )
         return CuboidList(cuboids=cuboids)
 
     def _load_synchronized_cams(
@@ -534,7 +593,9 @@ class SensorDataloader:
             RuntimeError: if the synchronization database (sync_records) has not been created.
         """
         if self.synchronization_cache is None:
-            raise RuntimeError("Requested synchronized data, but the synchronization database has not been created.")
+            raise RuntimeError(
+                "Requested synchronized data, but the synchronization database has not been created."
+            )
 
         cam_paths = [
             self.find_closest_target_fpath(
@@ -553,7 +614,9 @@ class SensorDataloader:
             if p is not None:
                 cams[p.parent.stem] = TimestampedImage(
                     img=read_img(p, channel_order="BGR"),
-                    camera_model=PinholeCamera.from_feather(log_dir=log_dir, cam_name=p.parent.stem),
+                    camera_model=PinholeCamera.from_feather(
+                        log_dir=log_dir, cam_name=p.parent.stem
+                    ),
                     timestamp_ns=int(p.stem),
                 )
         return cams

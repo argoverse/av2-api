@@ -78,7 +78,9 @@ class SE3:
         Returns:
             instance of SE3 class, representing inverse of SE3 transformation target_SE3_src.
         """
-        return SE3(rotation=self.rotation.T, translation=self.rotation.T.dot(-self.translation))
+        return SE3(
+            rotation=self.rotation.T, translation=self.rotation.T.dot(-self.translation)
+        )
 
     def compose(self, right_SE3: SE3) -> SE3:
         """Compose (right multiply) this class' transformation matrix T with another SE(3) instance.
@@ -91,7 +93,9 @@ class SE3:
         Returns:
             New instance of SE3 class.
         """
-        chained_transform_matrix: NDArrayFloat = self.transform_matrix @ right_SE3.transform_matrix
+        chained_transform_matrix: NDArrayFloat = (
+            self.transform_matrix @ right_SE3.transform_matrix
+        )
         chained_SE3 = SE3(
             rotation=chained_transform_matrix[:3, :3],
             translation=chained_transform_matrix[:3, 3],

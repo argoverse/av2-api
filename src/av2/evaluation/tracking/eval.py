@@ -19,14 +19,19 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, 
 import click
 import numpy as np
 import trackeval
-from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
-from av2.evaluation.tracking import constants, utils
-from av2.evaluation.tracking.constants import SUBMETRIC_TO_METRIC_CLASS_NAME
-from av2.utils.typing import NDArrayFloat, NDArrayInt
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 from trackeval.datasets._base_dataset import _BaseDataset
+
+from av2.evaluation.detection.utils import (
+    compute_objects_in_roi_mask,
+    load_mapped_avm_and_egoposes,
+)
+from av2.evaluation.tracking import constants, utils
+from av2.evaluation.tracking.constants import SUBMETRIC_TO_METRIC_CLASS_NAME
+from av2.utils.typing import NDArrayFloat, NDArrayInt
+
 from ..typing import Sequences
 
 
@@ -66,7 +71,9 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         }
         return default_config
 
-    def _load_raw_file(self, tracker: str, seq_id: Union[str, int], is_gt: bool) -> Dict[str, Any]:
+    def _load_raw_file(
+        self, tracker: str, seq_id: Union[str, int], is_gt: bool
+    ) -> Dict[str, Any]:
         """Get raw track data, from either trackers or ground truth."""
         tracks = (self.gt_tracks if is_gt else self.predicted_tracks)[tracker][seq_id]
         source = "gt" if is_gt else "tracker"
@@ -77,7 +84,10 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         raw_data = {
             f"{source}_ids": [frame["track_id"] for frame in tracks],
             f"{source}_classes": [frame["label"] for frame in tracks],
-            f"{source}_dets": [np.concatenate((frame["translation_m"], frame["size"]), axis=-1) for frame in tracks],
+            f"{source}_dets": [
+                np.concatenate((frame["translation_m"], frame["size"]), axis=-1)
+                for frame in tracks
+            ],
             "num_timesteps": len(tracks),
             "seq": seq_id,
         }
@@ -85,7 +95,9 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
             raw_data[f"{source}_confidences"] = [frame["score"] for frame in tracks]
         return raw_data
 
-    def get_preprocessed_seq_data(self, raw_data: Dict[str, Any], cls: str) -> Dict[str, Any]:
+    def get_preprocessed_seq_data(
+        self, raw_data: Dict[str, Any], cls: str
+    ) -> Dict[str, Any]:
         """Filter data to keep only one class and map id to 0 - n.
 
         Args:
@@ -117,12 +129,18 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
             data["gt_dets"][t] = data["gt_dets"][t][gt_to_keep_mask, :]
 
             tracker_to_keep_mask = data["tracker_classes"][t] == cls_id
-            data["tracker_classes"][t] = data["tracker_classes"][t][tracker_to_keep_mask]
+            data["tracker_classes"][t] = data["tracker_classes"][t][
+                tracker_to_keep_mask
+            ]
             data["tracker_ids"][t] = data["tracker_ids"][t][tracker_to_keep_mask]
             data["tracker_dets"][t] = data["tracker_dets"][t][tracker_to_keep_mask, :]
-            data["tracker_confidences"][t] = data["tracker_confidences"][t][tracker_to_keep_mask]
+            data["tracker_confidences"][t] = data["tracker_confidences"][t][
+                tracker_to_keep_mask
+            ]
 
-            data["similarity_scores"][t] = data["similarity_scores"][t][:, tracker_to_keep_mask][gt_to_keep_mask]
+            data["similarity_scores"][t] = data["similarity_scores"][t][
+                :, tracker_to_keep_mask
+            ][gt_to_keep_mask]
 
         # Map ids to 0 - n.
         unique_gt_ids = set(chain.from_iterable(data["gt_ids"]))
@@ -141,13 +159,19 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
 
     def _map_ids(self, ids: List[Any], unique_ids: Iterable[Any]) -> List[NDArrayInt]:
         id_map = {id: i for i, id in enumerate(unique_ids)}
-        return [np.array([id_map[id] for id in id_array], dtype=int) for id_array in ids]
+        return [
+            np.array([id_map[id] for id in id_array], dtype=int) for id_array in ids
+        ]
 
-    def _calculate_similarities(self, gt_dets_t: NDArrayFloat, tracker_dets_t: NDArrayFloat) -> NDArrayFloat:
+    def _calculate_similarities(
+        self, gt_dets_t: NDArrayFloat, tracker_dets_t: NDArrayFloat
+    ) -> NDArrayFloat:
         """Euclidean distance of the x, y translation coordinates."""
         gt_xy = gt_dets_t[:, :2]
         tracker_xy = tracker_dets_t[:, :2]
-        sim = self._calculate_euclidean_similarity(gt_xy, tracker_xy, zero_distance=self.zero_distance)
+        sim = self._calculate_euclidean_similarity(
+            gt_xy, tracker_xy, zero_distance=self.zero_distance
+        )
         return cast(NDArrayFloat, sim)
 
 
@@ -193,17 +217,25 @@ def evaluate_tracking(
     Returns:
         Dictionary of metric values.
     """
-    labels_id_ts = set((frame["seq_id"], frame["timestamp_ns"]) for frame in utils.ungroup_frames(labels))
-    predictions_id_ts = set(
-        (frame["seq_id"], frame["timestamp_ns"]) for frame in utils.ungroup_frames(track_predictions)
+    labels_id_ts = set(
+        (frame["seq_id"], frame["timestamp_ns"])
+        for frame in utils.ungroup_frames(labels)
     )
-    assert labels_id_ts == predictions_id_ts, "sequences ids and timestamp_ns in labels and predictions don't match"
+    predictions_id_ts = set(
+        (frame["seq_id"], frame["timestamp_ns"])
+        for frame in utils.ungroup_frames(track_predictions)
+    )
+    assert (
+        labels_id_ts == predictions_id_ts
+    ), "sequences ids and timestamp_ns in labels and predictions don't match"
     metrics_config = {
         "METRICS": ["HOTA", "CLEAR"],
         "THRESHOLD": iou_threshold,
     }
     metric_names = cast(List[str], metrics_config["METRICS"])
-    metrics_list = [getattr(trackeval.metrics, metric)(metrics_config) for metric in metric_names]
+    metrics_list = [
+        getattr(trackeval.metrics, metric)(metrics_config) for metric in metric_names
+    ]
     dataset_config = {
         **TrackEvalDataset.get_default_dataset_config(),
         "GT_TRACKS": {tracker_name: labels},
@@ -299,10 +331,18 @@ def _tune_score_thresholds(
         )
 
     metric_results = []
-    for threshold_i in tqdm(range(num_thresholds), "calculating optimal track score thresholds"):
-        score_threshold_by_class = {n: score_thresholds_by_class[n][threshold_i] for n in classes}
-        filtered_predictions = utils.filter_by_class_thresholds(track_predictions, score_threshold_by_class)
-        with contextlib.redirect_stdout(None):  # silence print statements from TrackEval
+    for threshold_i in tqdm(
+        range(num_thresholds), "calculating optimal track score thresholds"
+    ):
+        score_threshold_by_class = {
+            n: score_thresholds_by_class[n][threshold_i] for n in classes
+        }
+        filtered_predictions = utils.filter_by_class_thresholds(
+            track_predictions, score_threshold_by_class
+        )
+        with contextlib.redirect_stdout(
+            None
+        ):  # silence print statements from TrackEval
             result_for_threshold, _ = evaluator.evaluate(
                 [
                     TrackEvalDataset(
@@ -314,18 +354,26 @@ def _tune_score_thresholds(
                 ],
                 metrics_list,
             )
-        metric_results.append(result_for_threshold["TrackEvalDataset"]["tracker"]["COMBINED_SEQ"])
+        metric_results.append(
+            result_for_threshold["TrackEvalDataset"]["tracker"]["COMBINED_SEQ"]
+        )
 
     optimal_score_threshold_by_class = {}
     optimal_metric_values_by_class = {}
     mean_metric_values_by_class = {}
     for name in classes:
-        metric_values = [r[name][metric_class][objective_metric] for r in metric_results]
-        metric_values = [np.mean(v) if isinstance(v, np.ndarray) else v for v in metric_values]
+        metric_values = [
+            r[name][metric_class][objective_metric] for r in metric_results
+        ]
+        metric_values = [
+            np.mean(v) if isinstance(v, np.ndarray) else v for v in metric_values
+        ]
         optimal_threshold = score_thresholds_by_class[name][np.argmax(metric_values)]
         optimal_score_threshold_by_class[name] = optimal_threshold
         optimal_metric_values_by_class[name] = max(0, np.max(metric_values))
-        mean_metric_values_by_class[name] = np.nanmean(np.array(metric_values).clip(min=0))
+        mean_metric_values_by_class[name] = np.nanmean(
+            np.array(metric_values).clip(min=0)
+        )
     return (
         optimal_score_threshold_by_class,
         optimal_metric_values_by_class,
@@ -335,7 +383,10 @@ def _tune_score_thresholds(
 
 def _filter_by_class(detections: Any, name: str) -> Any:
     return utils.group_frames(
-        [utils.index_array_values(f, f["name"] == name) for f in utils.ungroup_frames(detections)]
+        [
+            utils.index_array_values(f, f["name"] == name)
+            for f in utils.ungroup_frames(detections)
+        ]
     )
 
 
@@ -350,7 +401,9 @@ def _calculate_score_thresholds(
     recall_thresholds = np.linspace(min_recall, 1, num_thresholds).round(12)[::-1]
     if len(scores) == 0:
         return np.zeros_like(recall_thresholds)
-    score_thresholds = _recall_to_scores(scores, recall_threshold=recall_thresholds, n_gt=n_gt)
+    score_thresholds = _recall_to_scores(
+        scores, recall_threshold=recall_thresholds, n_gt=n_gt
+    )
     score_thresholds = np.nan_to_num(score_thresholds, nan=0)
     return score_thresholds
 
@@ -365,7 +418,9 @@ def _calculate_matched_scores(
     num_tp = 0
     for seq_id in labels:
         for label_frame, prediction_frame in zip(labels[seq_id], predictions[seq_id]):
-            sim = sim_func(label_frame["translation_m"], prediction_frame["translation_m"])
+            sim = sim_func(
+                label_frame["translation_m"], prediction_frame["translation_m"]
+            )
             match_rows, match_cols = linear_sum_assignment(-sim)
             scores.append(prediction_frame["score"][match_cols])
             n_gt += len(label_frame["translation_m"])
@@ -375,7 +430,9 @@ def _calculate_matched_scores(
     return scores_array, n_gt
 
 
-def _recall_to_scores(scores: NDArrayFloat, recall_threshold: NDArrayFloat, n_gt: int) -> NDArrayFloat:
+def _recall_to_scores(
+    scores: NDArrayFloat, recall_threshold: NDArrayFloat, n_gt: int
+) -> NDArrayFloat:
     # Sort scores.
     scores.sort()
     scores = scores[::-1]
@@ -392,10 +449,14 @@ def _recall_to_scores(scores: NDArrayFloat, recall_threshold: NDArrayFloat, n_gt
     return score_thresholds
 
 
-def _xy_center_similarity(centers1: NDArrayFloat, centers2: NDArrayFloat, zero_distance: float) -> NDArrayFloat:
+def _xy_center_similarity(
+    centers1: NDArrayFloat, centers2: NDArrayFloat, zero_distance: float
+) -> NDArrayFloat:
     if centers1.size == 0 or centers2.size == 0:
         return np.zeros((len(centers1), len(centers2)))
-    xy_dist = np.linalg.norm(centers1[:, np.newaxis, :2] - centers2[np.newaxis, :, :2], axis=2)
+    xy_dist = np.linalg.norm(
+        centers1[:, np.newaxis, :2] - centers2[np.newaxis, :, :2], axis=2
+    )
     sim = np.maximum(0, 1 - xy_dist / zero_distance)
     return cast(NDArrayFloat, sim)
 
@@ -416,7 +477,8 @@ def filter_max_dist(tracks: Any, max_range_m: int) -> Any:
             utils.index_array_values(
                 frame,
                 np.linalg.norm(
-                    frame["translation_m"][:, :2] - np.array(frame["ego_translation_m"])[:2],
+                    frame["translation_m"][:, :2]
+                    - np.array(frame["ego_translation_m"])[:2],
                     axis=1,
                 )
                 <= max_range_m,
@@ -453,7 +515,9 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
         return tracks
 
     log_ids = list(tracks.keys())
-    log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, Path(dataset_dir))
+    log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(
+        log_ids, Path(dataset_dir)
+    )
 
     for log_id in log_ids:
         avm = log_id_to_avm[log_id]
@@ -541,7 +605,9 @@ def evaluate(
         num_thresholds=10,
         match_distance_m=2,
     )
-    filtered_track_predictions = utils.filter_by_class_thresholds(track_predictions, score_thresholds)
+    filtered_track_predictions = utils.filter_by_class_thresholds(
+        track_predictions, score_thresholds
+    )
     res = evaluate_tracking(
         labels,
         filtered_track_predictions,
@@ -576,7 +642,9 @@ def runner(
     track_predictions = pickle.load(open(predictions, "rb"))
     labels = pickle.load(open(ground_truth, "rb"))
 
-    _, _, mean_metric_values = evaluate(track_predictions, labels, objective_metric, max_range_m, dataset_dir, out)
+    _, _, mean_metric_values = evaluate(
+        track_predictions, labels, objective_metric, max_range_m, dataset_dir, out
+    )
 
     pprint(mean_metric_values)
 
