@@ -204,6 +204,7 @@ dependencies = [
  "itertools",
  "ndarray",
  "nshare",
+ "num-traits",
  "numpy",
  "once_cell",
  "polars",

@@ -22,6 +22,7 @@ ndarray = { version = "0.15.6", features = [
     "rayon",
 ] }
 nshare = { version = "0.9.0", features = ["ndarray"] }
+num-traits = "0.2.15"
 numpy = { version = "0.18.0" }
 once_cell = "1.17.1"
 polars = { version = "0.28.0", features = [
