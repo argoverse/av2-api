@@ -29,4 +29,6 @@ class TestDrivableArea(unittest.TestCase):
 
         assert isinstance(drivable_area, DrivableArea)
         assert drivable_area.id == 4499430
-        assert len(drivable_area.area_boundary) == 4  # first vertex is repeated as the last vertex
+        assert (
+            len(drivable_area.area_boundary) == 4
+        )  # first vertex is repeated as the last vertex

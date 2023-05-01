@@ -31,7 +31,11 @@ RING_CAMERA_FPS: Final[int] = 20
 
 
 def generate_egoview_overlaid_lidar(
-    data_root: Path, output_dir: Path, log_id: str, render_ground_pts_only: bool, dump_single_frames: bool
+    data_root: Path,
+    output_dir: Path,
+    log_id: str,
+    render_ground_pts_only: bool,
+    dump_single_frames: bool,
 ) -> None:
     """Render LiDAR points from a particular camera's viewpoint (color by ground surface, and apply ROI filtering).
 
@@ -52,7 +56,9 @@ def generate_egoview_overlaid_lidar(
     avm = ArgoverseStaticMap.from_map_dir(log_map_dirpath, build_raster=True)
 
     # repeat red to green colormap every 50 m.
-    colors_arr_rgb = color_utils.create_colormap(color_list=[RED_HEX, GREEN_HEX], n_colors=NUM_RANGE_BINS)
+    colors_arr_rgb = color_utils.create_colormap(
+        color_list=[RED_HEX, GREEN_HEX], n_colors=NUM_RANGE_BINS
+    )
     colors_arr_rgb = (colors_arr_rgb * 255).astype(np.uint8)
     colors_arr_bgr: NDArrayByte = np.fliplr(colors_arr_rgb)
 
@@ -63,7 +69,9 @@ def generate_egoview_overlaid_lidar(
         video_list = []
         for i, im_fpath in enumerate(cam_im_fpaths):
             if i % 50 == 0:
-                logging.info(f"\tOn file {i}/{num_cam_imgs} of camera {cam_name} of {log_id}")
+                logging.info(
+                    f"\tOn file {i}/{num_cam_imgs} of camera {cam_name} of {log_id}"
+                )
 
             cam_timestamp_ns = int(im_fpath.stem)
             city_SE3_ego = loader.get_city_SE3_ego(log_id, cam_timestamp_ns)
@@ -74,7 +82,10 @@ def generate_egoview_overlaid_lidar(
             # load feather file path, e.g. '315978406032859416.feather"
             lidar_fpath = loader.get_closest_lidar_fpath(log_id, cam_timestamp_ns)
             if lidar_fpath is None:
-                logger.info("No LiDAR sweep found within the synchronization interval for %s, so skipping...", cam_name)
+                logger.info(
+                    "No LiDAR sweep found within the synchronization interval for %s, so skipping...",
+                    cam_name,
+                )
                 continue
 
             img_bgr = io_utils.read_img(im_fpath, channel_order="BGR")
@@ -86,11 +97,19 @@ def generate_egoview_overlaid_lidar(
             lidar_points_city = city_SE3_ego.transform_point_cloud(lidar_points_ego)
             lidar_points_city = avm.remove_non_drivable_area_points(lidar_points_city)
             is_ground_logicals = avm.get_ground_points_boolean(lidar_points_city)
-            lidar_points_city = lidar_points_city[is_ground_logicals if render_ground_pts_only else ~is_ground_logicals]
-            lidar_points_ego = city_SE3_ego.inverse().transform_point_cloud(lidar_points_city)
+            lidar_points_city = lidar_points_city[
+                is_ground_logicals if render_ground_pts_only else ~is_ground_logicals
+            ]
+            lidar_points_ego = city_SE3_ego.inverse().transform_point_cloud(
+                lidar_points_city
+            )
 
             # motion compensate always
-            uv, points_cam, is_valid_points = loader.project_ego_to_img_motion_compensated(
+            (
+                uv,
+                points_cam,
+                is_valid_points,
+            ) = loader.project_ego_to_img_motion_compensated(
                 points_lidar_time=lidar_points_ego,
                 cam_name=cam_name,
                 cam_timestamp_ns=cam_timestamp_ns,
@@ -113,26 +132,38 @@ def generate_egoview_overlaid_lidar(
             uv_colors_bgr = colors_arr_bgr[color_bins]
 
             img_empty = np.full_like(img_bgr, fill_value=255)
-            img_empty = raster_rendering_utils.draw_points_xy_in_img(img_empty, uv_int, uv_colors_bgr, diameter=10)
+            img_empty = raster_rendering_utils.draw_points_xy_in_img(
+                img_empty, uv_int, uv_colors_bgr, diameter=10
+            )
             blended_bgr = raster_utils.blend_images(img_bgr, img_empty)
             frame_rgb = blended_bgr[:, :, ::-1]
 
             if dump_single_frames:
                 save_dir = output_dir / log_id / cam_name
                 os.makedirs(save_dir, exist_ok=True)
-                cv2.imwrite(str(save_dir / f"{cam_name}_{lidar_timestamp_ns}.jpg"), blended_bgr)
+                cv2.imwrite(
+                    str(save_dir / f"{cam_name}_{lidar_timestamp_ns}.jpg"), blended_bgr
+                )
 
             video_list.append(frame_rgb)
 
         if len(video_list) == 0:
-            raise RuntimeError("No video frames were found; log data was not found on disk.")
+            raise RuntimeError(
+                "No video frames were found; log data was not found on disk."
+            )
 
         video: NDArrayByte = np.stack(video_list).astype(np.uint8)
         video_output_dir = output_dir / "videos"
-        video_utils.write_video(video=video, dst=video_output_dir / f"{log_id}_{cam_name}.mp4", fps=RING_CAMERA_FPS)
+        video_utils.write_video(
+            video=video,
+            dst=video_output_dir / f"{log_id}_{cam_name}.mp4",
+            fps=RING_CAMERA_FPS,
+        )
 
 
-@click.command(help="Generate LiDAR + map visualizations from the Argoverse 2 Sensor Dataset.")
+@click.command(
+    help="Generate LiDAR + map visualizations from the Argoverse 2 Sensor Dataset."
+)
 @click.option(
     "-d",
     "--data-root",
@@ -170,7 +201,11 @@ def generate_egoview_overlaid_lidar(
     type=bool,
 )
 def run_generate_egoview_overlaid_lidar(
-    data_root: str, output_dir: str, log_id: str, render_ground_pts_only: bool, dump_single_frames: bool
+    data_root: str,
+    output_dir: str,
+    log_id: str,
+    render_ground_pts_only: bool,
+    dump_single_frames: bool,
 ) -> None:
     """Click entry point for visualizing LiDAR returns rendered on top of sensor imagery."""
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)

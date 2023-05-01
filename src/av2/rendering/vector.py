@@ -65,7 +65,9 @@ def plot_polygon_patch_mpl(
 
     vertices = polygon_pts[:, :2]
     mpath = MPath(vertices, codes)
-    patch = mpatches.PathPatch(mpath, facecolor=color, edgecolor=color, alpha=alpha, zorder=zorder)
+    patch = mpatches.PathPatch(
+        mpath, facecolor=color, edgecolor=color, alpha=alpha, zorder=zorder
+    )
     ax.add_patch(patch)
 
 
@@ -132,5 +134,7 @@ def draw_line_frustum(
         uv, _, _ = cam_model.project_cam_to_img(clipped_points)
         uv_int: NDArrayInt = np.round(uv).astype(int)
         p1, p2 = uv_int[0], uv_int[1]
-        img = draw_line_in_img(img, p1, p2, color=color, thickness=thickness, line_type=line_type)
+        img = draw_line_in_img(
+            img, p1, p2, color=color, thickness=thickness, line_type=line_type
+        )
     return img

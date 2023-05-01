@@ -7,7 +7,9 @@ import numpy as np
 from av2.utils.typing import NDArrayFloat
 
 
-def iou_3d_axis_aligned(src_dims_m: NDArrayFloat, target_dims_m: NDArrayFloat) -> NDArrayFloat:
+def iou_3d_axis_aligned(
+    src_dims_m: NDArrayFloat, target_dims_m: NDArrayFloat
+) -> NDArrayFloat:
     """Compute 3d, axis-aligned (vertical axis alignment) intersection-over-union (IoU) between two sets of cuboids.
 
     Both objects are aligned to their +x axis and their centroids are placed at the origin

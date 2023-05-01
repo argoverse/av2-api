@@ -49,7 +49,10 @@ class ChallengeSubmission:
             ValueError: If for any track, number of probabilities doesn't match the number of predicted trajectories.
             ValueError: If prediction probabilities for at least one scenario do not sum to 1.
         """
-        for scenario_id, (scenario_probabilities, scenario_trajectories) in self.predictions.items():
+        for scenario_id, (
+            scenario_probabilities,
+            scenario_trajectories,
+        ) in self.predictions.items():
             for track_id, track_trajectories in scenario_trajectories.items():
                 # Validate that predicted trajectories are of the correct shape
                 if track_trajectories[0].shape[-2:] != EXPECTED_PREDICTION_SHAPE:
@@ -94,13 +97,24 @@ class ChallengeSubmission:
         for scenario_id, scenario_df in submission_df.groupby("scenario_id"):
             scenario_trajectories: ScenarioTrajectories = {}
             for track_id, track_df in scenario_df.groupby("track_id"):
-                predicted_trajectories_x = np.stack(track_df.loc[:, "predicted_trajectory_x"].values.tolist())
-                predicted_trajectories_y = np.stack(track_df.loc[:, "predicted_trajectory_y"].values.tolist())
-                predicted_trajectories = np.stack((predicted_trajectories_x, predicted_trajectories_y), axis=-1)
+                predicted_trajectories_x = np.stack(
+                    track_df.loc[:, "predicted_trajectory_x"].values.tolist()
+                )
+                predicted_trajectories_y = np.stack(
+                    track_df.loc[:, "predicted_trajectory_y"].values.tolist()
+                )
+                predicted_trajectories = np.stack(
+                    (predicted_trajectories_x, predicted_trajectories_y), axis=-1
+                )
                 scenario_trajectories[track_id] = predicted_trajectories
 
-            scenario_probabilities = np.array(track_df.loc[:, "probability"].values.tolist())
-            submission_dict[scenario_id] = (scenario_probabilities, scenario_trajectories)
+            scenario_probabilities = np.array(
+                track_df.loc[:, "probability"].values.tolist()
+            )
+            submission_dict[scenario_id] = (
+                scenario_probabilities,
+                scenario_trajectories,
+            )
 
         return cls(predictions=submission_dict)
 
@@ -113,7 +127,10 @@ class ChallengeSubmission:
         prediction_rows: List[PredictionRow] = []
 
         # Build list of rows for the submission dataframe
-        for scenario_id, (scenario_probabilities, scenario_trajectories) in self.predictions.items():
+        for scenario_id, (
+            scenario_probabilities,
+            scenario_trajectories,
+        ) in self.predictions.items():
             for track_id, track_trajectories in scenario_trajectories.items():
                 for world_idx in range(len(track_trajectories)):
                     prediction_rows.append(

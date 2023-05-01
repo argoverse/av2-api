@@ -8,10 +8,18 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 
-from av2.datasets.motion_forecasting.data_schema import ArgoverseScenario, ObjectState, ObjectType, Track, TrackCategory
+from av2.datasets.motion_forecasting.data_schema import (
+    ArgoverseScenario,
+    ObjectState,
+    ObjectType,
+    Track,
+    TrackCategory,
+)
 
 
-def serialize_argoverse_scenario_parquet(save_path: Path, scenario: ArgoverseScenario) -> None:
+def serialize_argoverse_scenario_parquet(
+    save_path: Path, scenario: ArgoverseScenario
+) -> None:
     """Serialize a single Argoverse scenario in parquet format and save to disk.
 
     Args:
@@ -64,7 +72,9 @@ def load_argoverse_scenario_parquet(scenario_path: Path) -> ArgoverseScenario:
 
     # Interpolate scenario timestamps based on the saved start and end timestamps
     timestamps_ns = np.linspace(
-        tracks_df["start_timestamp"][0], tracks_df["end_timestamp"][0], num=tracks_df["num_timestamps"][0]
+        tracks_df["start_timestamp"][0],
+        tracks_df["end_timestamp"][0],
+        num=tracks_df["num_timestamps"][0],
     )
 
     return ArgoverseScenario(
@@ -139,7 +149,9 @@ def _load_tracks_from_tabular_format(tracks_df: pd.DataFrame) -> List[Track]:
     for track_id, track_df in tracks_df.groupby("track_id"):
         observed_states: List[bool] = track_df.loc[:, "observed"].values.tolist()
         object_type: ObjectType = ObjectType(track_df["object_type"].iloc[0])
-        object_category: TrackCategory = TrackCategory(track_df["object_category"].iloc[0])
+        object_category: TrackCategory = TrackCategory(
+            track_df["object_category"].iloc[0]
+        )
         timesteps: List[int] = track_df.loc[:, "timestep"].values.tolist()
         positions: List[Tuple[float, float]] = list(
             zip(
@@ -168,7 +180,12 @@ def _load_tracks_from_tabular_format(tracks_df: pd.DataFrame) -> List[Track]:
             )
 
         tracks.append(
-            Track(track_id=track_id, object_states=object_states, object_type=object_type, category=object_category)
+            Track(
+                track_id=track_id,
+                object_states=object_states,
+                object_type=object_type,
+                category=object_category,
+            )
         )
 
     return tracks

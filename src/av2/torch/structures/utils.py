@@ -47,7 +47,9 @@ def SE3_from_frame(frame: pd.DataFrame) -> Se3:
     quat_wxyz = Quaternion(torch.as_tensor(quaternion_npy, dtype=torch.float32)[None])
     rotation = So3(quat_wxyz)
 
-    translation_npy = frame.loc[0, list(TRANSLATION_COLUMNS)].to_numpy().astype(np.float32)
+    translation_npy = (
+        frame.loc[0, list(TRANSLATION_COLUMNS)].to_numpy().astype(np.float32)
+    )
     translation = torch.as_tensor(translation_npy, dtype=torch.float32)[None]
     dst_SE3_src = Se3(rotation, translation)
     dst_SE3_src.rotation._q.requires_grad_(False)

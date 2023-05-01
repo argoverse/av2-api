@@ -9,7 +9,10 @@ import torch
 from kornia.geometry.linalg import transform_points
 from torch import BoolTensor, ByteTensor, FloatTensor
 
-from av2.evaluation.scene_flow.constants import CATEGORY_TO_INDEX, SCENE_FLOW_DYNAMIC_THRESHOLD
+from av2.evaluation.scene_flow.constants import (
+    CATEGORY_TO_INDEX,
+    SCENE_FLOW_DYNAMIC_THRESHOLD,
+)
 from av2.structures.cuboid import Cuboid, CuboidList
 from av2.torch.structures.cuboids import Cuboids
 from av2.torch.structures.sweep import Sweep
@@ -59,14 +62,21 @@ class Flow:
             raise ValueError("Can only create flow from sweeps with annotations")
         else:
             current_cuboids, next_cuboids = current_sweep.cuboids, next_sweep.cuboids
-        city_SE3_ego0, city_SE3_ego1 = current_sweep.city_SE3_ego, next_sweep.city_SE3_ego
+        city_SE3_ego0, city_SE3_ego1 = (
+            current_sweep.city_SE3_ego,
+            next_sweep.city_SE3_ego,
+        )
         ego1_SE3_ego0 = city_SE3_ego1.inverse() * city_SE3_ego0
 
         current_cuboid_map = cuboids_to_id_cuboid_map(current_cuboids)
         next_cuboid_map = cuboids_to_id_cuboid_map(next_cuboids)
 
         current_pc = current_sweep.lidar.as_tensor()[:, :3]
-        rigid_flow = (transform_points(ego1_SE3_ego0.matrix(), current_pc[None])[0] - current_pc).float().detach()
+        rigid_flow = (
+            (transform_points(ego1_SE3_ego0.matrix(), current_pc[None])[0] - current_pc)
+            .float()
+            .detach()
+        )
         flow = rigid_flow.clone()
 
         is_valid = torch.ones(len(current_pc), dtype=torch.bool)
@@ -77,14 +87,20 @@ class Flow:
             c0.length_m += BOUNDING_BOX_EXPANSION  # the bounding boxes are a little too tight sometimes
             c0.width_m += BOUNDING_BOX_EXPANSION
             obj_pts_npy, obj_mask_npy = c0.compute_interior_points(current_pc.numpy())
-            obj_pts, obj_mask = torch.as_tensor(obj_pts_npy, dtype=torch.float32), torch.as_tensor(obj_mask_npy)
+            obj_pts, obj_mask = torch.as_tensor(
+                obj_pts_npy, dtype=torch.float32
+            ), torch.as_tensor(obj_mask_npy)
             category_inds[obj_mask] = CATEGORY_TO_INDEX[str(c0.category)]
 
             if id in next_cuboid_map:
                 c1 = next_cuboid_map[id]
                 c1_SE3_c0 = c1.dst_SE3_object.compose(c0.dst_SE3_object.inverse())
                 flow[obj_mask] = (
-                    torch.as_tensor(c1_SE3_c0.transform_point_cloud(obj_pts.numpy()), dtype=torch.float32) - obj_pts
+                    torch.as_tensor(
+                        c1_SE3_c0.transform_point_cloud(obj_pts.numpy()),
+                        dtype=torch.float32,
+                    )
+                    - obj_pts
                 )
             else:
                 is_valid[obj_mask] = 0

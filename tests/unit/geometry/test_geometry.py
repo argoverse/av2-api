@@ -82,9 +82,14 @@ def test_cart_to_hom_3d() -> None:
             np.array([[1, -1], [1, -2], [0, -2], [0, -1]]).astype(np.float64),
         ),
     ],
-    ids=[f"Cartesian to texture coordinates conversion (Test Case: {idx + 1})" for idx in range(2)],
+    ids=[
+        f"Cartesian to texture coordinates conversion (Test Case: {idx + 1})"
+        for idx in range(2)
+    ],
 )
-def test_xy_to_uv(xy: NDArrayFloat, width: int, height: int, expected_uv: NDArrayFloat) -> None:
+def test_xy_to_uv(
+    xy: NDArrayFloat, width: int, height: int, expected_uv: NDArrayFloat
+) -> None:
     """Test conversion of coordinates in R^2 (x,y) to texture coordinates (u,v) in R^2.
 
     Args:
@@ -122,15 +127,24 @@ def test_quat_to_mat_3d(quat_wxyz: NDArrayFloat) -> None:
 @pytest.mark.parametrize(
     "cart_xyz, expected_sph_theta_phi_r",
     [
-        (np.array([1, 1, 1]).astype(np.float64), np.array([0.78539816, 0.61547971, 1.73205081])),
+        (
+            np.array([1, 1, 1]).astype(np.float64),
+            np.array([0.78539816, 0.61547971, 1.73205081]),
+        ),
         (
             np.array([[1, 1, 1], [1, 2, 0]]).astype(np.float64),
-            np.array([[0.78539816, 0.61547971, 1.73205081], [1.10714872, 0.0, 2.23606798]]),
+            np.array(
+                [[0.78539816, 0.61547971, 1.73205081], [1.10714872, 0.0, 2.23606798]]
+            ),
         ),
     ],
-    ids=[f"Cartesian to Spherical coordinates (Test Case: {idx + 1})" for idx in range(2)],
+    ids=[
+        f"Cartesian to Spherical coordinates (Test Case: {idx + 1})" for idx in range(2)
+    ],
 )
-def test_cart_to_sph_3d(cart_xyz: NDArrayFloat, expected_sph_theta_phi_r: NDArrayFloat) -> None:
+def test_cart_to_sph_3d(
+    cart_xyz: NDArrayFloat, expected_sph_theta_phi_r: NDArrayFloat
+) -> None:
     """Test conversion of cartesian coordinates to spherical coordinates.
 
     Args:
@@ -144,38 +158,83 @@ def test_cart_to_sph_3d(cart_xyz: NDArrayFloat, expected_sph_theta_phi_r: NDArra
     "points_xyz, lower_bound_inclusive, upper_bound_exclusive, expected_crop_points, expected_mask",
     [
         (
-            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]).astype(
-                np.int64
-            ),
+            np.array(
+                [
+                    [0, 0, 0],
+                    [1, 0, 0],
+                    [1, 1, 0],
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 1],
+                    [1, 0, 1],
+                    [1, 1, 1],
+                ]
+            ).astype(np.int64),
             (0, 0, 0),
             (1.5, 1.5, 1.5),
-            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]).astype(
-                np.int64
-            ),
+            np.array(
+                [
+                    [0, 0, 0],
+                    [1, 0, 0],
+                    [1, 1, 0],
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 1],
+                    [1, 0, 1],
+                    [1, 1, 1],
+                ]
+            ).astype(np.int64),
             np.array([True] * 8),
         ),
         (
-            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]).astype(
-                np.int64
-            ),
+            np.array(
+                [
+                    [0, 0, 0],
+                    [1, 0, 0],
+                    [1, 1, 0],
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 1],
+                    [1, 0, 1],
+                    [1, 1, 1],
+                ]
+            ).astype(np.int64),
             (0, 0, 0),
             (0.5, 0.5, 0.5),
             np.array([[0, 0, 0]]).astype(np.int64),
             np.array([True] + [False] * 7),
         ),
         (
-            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]).astype(
-                np.int64
-            ),
+            np.array(
+                [
+                    [0, 0, 0],
+                    [1, 0, 0],
+                    [1, 1, 0],
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 1],
+                    [1, 0, 1],
+                    [1, 1, 1],
+                ]
+            ).astype(np.int64),
             (0, 0, 0),
             (1.25, 1.25, 1.0),
             np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]).astype(np.int64),
             np.array([True] * 4 + [False] * 4),
         ),
         (
-            np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]).astype(
-                np.int64
-            ),
+            np.array(
+                [
+                    [0, 0, 0],
+                    [1, 0, 0],
+                    [1, 1, 0],
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 1],
+                    [1, 0, 1],
+                    [1, 1, 1],
+                ]
+            ).astype(np.int64),
             (-1.0, -1.0, -1.0),
             (0.0, 1.0, 1.0),
             np.empty((0, 3)).astype(np.int64),
@@ -205,7 +264,9 @@ def test_crop_points(
         expected_crop_points: (...,3) Expected tuple of cropped Cartesian coordinates.
         expected_mask: (...,) Expected boolean mask.
     """
-    cropped_xyz, mask = geometry_utils.crop_points(points_xyz, lower_bound_inclusive, upper_bound_exclusive)
+    cropped_xyz, mask = geometry_utils.crop_points(
+        points_xyz, lower_bound_inclusive, upper_bound_exclusive
+    )
 
     np.testing.assert_array_equal(expected_crop_points, cropped_xyz)
     np.testing.assert_array_equal(expected_mask, mask)
@@ -267,7 +328,9 @@ def test_crop_points(
         "No points lie inside the bounding box.",
     ],
 )
-def test_compute_interior_points_mask(points_xyz: NDArrayFloat, expected_is_interior: NDArrayBool) -> None:
+def test_compute_interior_points_mask(
+    points_xyz: NDArrayFloat, expected_is_interior: NDArrayBool
+) -> None:
     r"""Test finding the points interior to an axis-aligned cuboid.
 
     Reference: https://math.stackexchange.com/questions/1472049/check-if-a-point-is-inside-a-rectangular-shaped-area-3d
@@ -300,11 +363,15 @@ def test_compute_interior_points_mask(points_xyz: NDArrayFloat, expected_is_inte
         category=AnnotationCategories.REGULAR_VEHICLE,
         timestamp_ns=0,
     )
-    is_interior = geometry_utils.compute_interior_points_mask(points_xyz, cuboid.vertices_m)
+    is_interior = geometry_utils.compute_interior_points_mask(
+        points_xyz, cuboid.vertices_m
+    )
     assert np.array_equal(is_interior, expected_is_interior)
 
 
-def test_benchmark_compute_interior_points_mask_optimized(benchmark: Callable[..., Any]) -> None:
+def test_benchmark_compute_interior_points_mask_optimized(
+    benchmark: Callable[..., Any]
+) -> None:
     """Benchmark compute_interior_pts on 100000 random points."""
     rotation: NDArrayFloat = np.eye(3)
     translation: NDArrayFloat = np.array([0.5, 0.5, 0.5])
@@ -320,10 +387,14 @@ def test_benchmark_compute_interior_points_mask_optimized(benchmark: Callable[..
 
     N = 100000
     points_xyz: NDArrayFloat = 100.0 * np.random.rand(N, 3)
-    benchmark(geometry_utils.compute_interior_points_mask, points_xyz, cuboid.vertices_m)
+    benchmark(
+        geometry_utils.compute_interior_points_mask, points_xyz, cuboid.vertices_m
+    )
 
 
-def test_benchmark_compute_interior_points_mask_slow(benchmark: Callable[..., Any]) -> None:
+def test_benchmark_compute_interior_points_mask_slow(
+    benchmark: Callable[..., Any]
+) -> None:
     """Benchmark compute_interior_points_mask on 100000 random points."""
     rotation: NDArrayFloat = np.eye(3)
     translation: NDArrayFloat = np.array([0.5, 0.5, 0.5])
@@ -340,7 +411,9 @@ def test_benchmark_compute_interior_points_mask_slow(benchmark: Callable[..., An
     N = 100000
     points_xyz: NDArrayFloat = 100.0 * np.random.rand(N, 3)
 
-    def compute_interior_points_mask_slow(points_xyz: NDArrayFloat, cuboid_vertices: NDArrayFloat) -> NDArrayBool:
+    def compute_interior_points_mask_slow(
+        points_xyz: NDArrayFloat, cuboid_vertices: NDArrayFloat
+    ) -> NDArrayBool:
         """Compute the interior points mask with the older slow version.
 
         Args:
@@ -357,30 +430,38 @@ def test_benchmark_compute_interior_points_mask_slow(benchmark: Callable[..., An
         # point x lies within the box when the following
         # constraints are respected
         valid_u1 = np.logical_and(
-            u.dot(cuboid_vertices[2]) <= points_xyz.dot(u), points_xyz.dot(u) <= u.dot(cuboid_vertices[6])
+            u.dot(cuboid_vertices[2]) <= points_xyz.dot(u),
+            points_xyz.dot(u) <= u.dot(cuboid_vertices[6]),
         )
         valid_v1 = np.logical_and(
-            v.dot(cuboid_vertices[2]) <= points_xyz.dot(v), points_xyz.dot(v) <= v.dot(cuboid_vertices[3])
+            v.dot(cuboid_vertices[2]) <= points_xyz.dot(v),
+            points_xyz.dot(v) <= v.dot(cuboid_vertices[3]),
         )
         valid_w1 = np.logical_and(
-            w.dot(cuboid_vertices[2]) <= points_xyz.dot(w), points_xyz.dot(w) <= w.dot(cuboid_vertices[1])
+            w.dot(cuboid_vertices[2]) <= points_xyz.dot(w),
+            points_xyz.dot(w) <= w.dot(cuboid_vertices[1]),
         )
 
         valid_u2 = np.logical_and(
-            u.dot(cuboid_vertices[2]) >= points_xyz.dot(u), points_xyz.dot(u) >= u.dot(cuboid_vertices[6])
+            u.dot(cuboid_vertices[2]) >= points_xyz.dot(u),
+            points_xyz.dot(u) >= u.dot(cuboid_vertices[6]),
         )
         valid_v2 = np.logical_and(
-            v.dot(cuboid_vertices[2]) >= points_xyz.dot(v), points_xyz.dot(v) >= v.dot(cuboid_vertices[3])
+            v.dot(cuboid_vertices[2]) >= points_xyz.dot(v),
+            points_xyz.dot(v) >= v.dot(cuboid_vertices[3]),
         )
         valid_w2 = np.logical_and(
-            w.dot(cuboid_vertices[2]) >= points_xyz.dot(w), points_xyz.dot(w) >= w.dot(cuboid_vertices[1])
+            w.dot(cuboid_vertices[2]) >= points_xyz.dot(w),
+            points_xyz.dot(w) >= w.dot(cuboid_vertices[1]),
         )
 
         valid_u = np.logical_or(valid_u1, valid_u2)
         valid_v = np.logical_or(valid_v1, valid_v2)
         valid_w = np.logical_or(valid_w1, valid_w2)
 
-        is_interior: NDArrayBool = np.logical_and(np.logical_and(valid_u, valid_v), valid_w)
+        is_interior: NDArrayBool = np.logical_and(
+            np.logical_and(valid_u, valid_v), valid_w
+        )
         return is_interior
 
     benchmark(compute_interior_points_mask_slow, points_xyz, cuboid.vertices_m)
@@ -433,7 +514,9 @@ def test_mat_to_xyz_constrained() -> None:
     xyz[0] = 0  # Set roll to zero.
     mat_constrained = xyz_to_mat(xyz)
 
-    xyz_expected = np.deg2rad([0, 0, 90])  # [45, 0, 90] -> constrain roll to zero -> [0, 0, 90].
+    xyz_expected = np.deg2rad(
+        [0, 0, 90]
+    )  # [45, 0, 90] -> constrain roll to zero -> [0, 0, 90].
     mat_constrained_expected = xyz_to_mat(xyz_expected)
     np.testing.assert_allclose(mat_constrained, mat_constrained_expected)
 
@@ -510,7 +593,12 @@ def test_xyz_to_mat_vs_gtsam() -> None:
 
 def test_constrain_cuboid_pose() -> None:
     """Unit test to constrain cuboid pose."""
-    path = Path(__file__).parent.resolve() / "data" / "b87683ae-14c5-321f-8af3-623e7bafc3a7" / "annotations.feather"
+    path = (
+        Path(__file__).parent.resolve()
+        / "data"
+        / "b87683ae-14c5-321f-8af3-623e7bafc3a7"
+        / "annotations.feather"
+    )
     cuboid_list = CuboidList.from_feather(path)
     for cuboid in cuboid_list.cuboids:
         pose = cuboid.dst_SE3_object

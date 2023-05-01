@@ -40,7 +40,9 @@ class Sweep:
     is_ground: Optional[torch.Tensor] = None
 
     @classmethod
-    def from_rust(cls, sweep: rust.Sweep, avm: Optional[ArgoverseStaticMap] = None) -> Sweep:
+    def from_rust(
+        cls, sweep: rust.Sweep, avm: Optional[ArgoverseStaticMap] = None
+    ) -> Sweep:
         """Build a sweep from the Rust backend.
 
         Args:
@@ -60,7 +62,9 @@ class Sweep:
         if avm is not None:
             pcl_ego = lidar.as_tensor()[:, :3]
             pcl_city_1 = transform_points(city_SE3_ego.matrix(), pcl_ego[None])[0]
-            is_ground = torch.from_numpy(avm.get_ground_points_boolean(pcl_city_1.numpy()).astype(bool))
+            is_ground = torch.from_numpy(
+                avm.get_ground_points_boolean(pcl_city_1.numpy()).astype(bool)
+            )
 
         return cls(
             city_SE3_ego=city_SE3_ego,

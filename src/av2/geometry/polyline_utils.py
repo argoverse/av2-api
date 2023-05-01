@@ -34,7 +34,9 @@ def get_polyline_length(polyline: NDArrayFloat) -> float:
     return float(np.linalg.norm(offsets, axis=1).sum())
 
 
-def interp_polyline_by_fixed_waypt_interval(polyline: NDArrayFloat, waypt_interval: float) -> Tuple[NDArrayFloat, int]:
+def interp_polyline_by_fixed_waypt_interval(
+    polyline: NDArrayFloat, waypt_interval: float
+) -> Tuple[NDArrayFloat, int]:
     """Resample waypoints of a polyline so that waypoints appear roughly at fixed intervals from the start.
 
     Args:
@@ -61,7 +63,9 @@ def interp_polyline_by_fixed_waypt_interval(polyline: NDArrayFloat, waypt_interv
     return interp_polyline, num_waypts
 
 
-def get_double_polylines(polyline: NDArrayFloat, width_scaling_factor: float) -> Tuple[NDArrayFloat, NDArrayFloat]:
+def get_double_polylines(
+    polyline: NDArrayFloat, width_scaling_factor: float
+) -> Tuple[NDArrayFloat, NDArrayFloat]:
     """Treat any polyline as a centerline, and extend a narrow strip on both sides.
 
     Dimension is preserved (2d->2d, and 3d->3d).
@@ -75,20 +79,26 @@ def get_double_polylines(polyline: NDArrayFloat, width_scaling_factor: float) ->
         left: array of shape (N,2) or (N,3) representing left polyline.
         right: array of shape (N,2) or (N,3) representing right polyline.
     """
-    double_line_polygon = centerline_to_polygon(centerline=polyline, width_scaling_factor=width_scaling_factor)
+    double_line_polygon = centerline_to_polygon(
+        centerline=polyline, width_scaling_factor=width_scaling_factor
+    )
     num_pts = double_line_polygon.shape[0]
 
     # split index -- polygon from right boundary, left boundary, then close it w/ 0th vertex of right
     # we swap left and right since our polygon is generated about a boundary, not a centerline
     k = num_pts // 2
     left = double_line_polygon[:k]
-    right = double_line_polygon[k:-1]  # throw away the last point, since it is just a repeat
+    right = double_line_polygon[
+        k:-1
+    ]  # throw away the last point, since it is just a repeat
 
     return left, right
 
 
 def swap_left_and_right(
-    condition: NDArrayBool, left_centerline: NDArrayFloat, right_centerline: NDArrayFloat
+    condition: NDArrayBool,
+    left_centerline: NDArrayFloat,
+    right_centerline: NDArrayFloat,
 ) -> Tuple[NDArrayFloat, NDArrayFloat]:
     """Swap points in left and right centerline according to condition.
 
@@ -147,7 +157,9 @@ def centerline_to_polygon(
     x_disp = AVG_LANE_WIDTH_M * width_scaling_factor / 2.0 * np.cos(thetas)
     y_disp = AVG_LANE_WIDTH_M * width_scaling_factor / 2.0 * np.sin(thetas)
 
-    displacement: NDArrayFloat = np.hstack([x_disp[:, np.newaxis], y_disp[:, np.newaxis]])
+    displacement: NDArrayFloat = np.hstack(
+        [x_disp[:, np.newaxis], y_disp[:, np.newaxis]]
+    )
 
     # preserve z coordinates.
     right_centerline = centerline.copy()
@@ -160,16 +172,24 @@ def centerline_to_polygon(
     subtract_cond1 = np.logical_and(dx > 0, dy < 0)
     subtract_cond2 = np.logical_and(dx > 0, dy > 0)
     subtract_cond = np.logical_or(subtract_cond1, subtract_cond2)
-    left_centerline, right_centerline = swap_left_and_right(subtract_cond, left_centerline, right_centerline)
+    left_centerline, right_centerline = swap_left_and_right(
+        subtract_cond, left_centerline, right_centerline
+    )
 
     # right centerline also depended on if we added or subtracted y
     neg_disp_cond = displacement[:, 1] > 0
-    left_centerline, right_centerline = swap_left_and_right(neg_disp_cond, left_centerline, right_centerline)
+    left_centerline, right_centerline = swap_left_and_right(
+        neg_disp_cond, left_centerline, right_centerline
+    )
 
     if visualize:
         plt.scatter(centerline[:, 0], centerline[:, 1], 20, marker=".", color="b")
-        plt.scatter(right_centerline[:, 0], right_centerline[:, 1], 20, marker=".", color="r")
-        plt.scatter(left_centerline[:, 0], left_centerline[:, 1], 20, marker=".", color="g")
+        plt.scatter(
+            right_centerline[:, 0], right_centerline[:, 1], 20, marker=".", color="r"
+        )
+        plt.scatter(
+            left_centerline[:, 0], left_centerline[:, 1], 20, marker=".", color="g"
+        )
         fname = datetime.datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S_%f")
         plt.savefig(f"polygon_unit_tests/{fname}.png")
         plt.close("all")
@@ -178,7 +198,9 @@ def centerline_to_polygon(
     return convert_lane_boundaries_to_polygon(right_centerline, left_centerline)
 
 
-def convert_lane_boundaries_to_polygon(right_lane_bounds: NDArrayFloat, left_lane_bounds: NDArrayFloat) -> NDArrayFloat:
+def convert_lane_boundaries_to_polygon(
+    right_lane_bounds: NDArrayFloat, left_lane_bounds: NDArrayFloat
+) -> NDArrayFloat:
     """Convert lane boundaries to a polygon.
 
     Given left and right boundaries of a lane segment, provide the exterior vertices of the
@@ -203,9 +225,13 @@ def convert_lane_boundaries_to_polygon(right_lane_bounds: NDArrayFloat, left_lan
         RuntimeError: If the last dimension of the left and right boundary polylines do not match.
     """
     if not right_lane_bounds.shape[-1] == left_lane_bounds.shape[-1]:
-        raise RuntimeError("Last dimension of left and right boundary polylines must match.")
+        raise RuntimeError(
+            "Last dimension of left and right boundary polylines must match."
+        )
 
-    polygon: NDArrayFloat = np.vstack([right_lane_bounds, left_lane_bounds[::-1], right_lane_bounds[0]])
+    polygon: NDArrayFloat = np.vstack(
+        [right_lane_bounds, left_lane_bounds[::-1], right_lane_bounds[0]]
+    )
     if not polygon.ndim == 2 or polygon.shape[1] not in [2, 3]:
         raise RuntimeError("Polygons must be Nx2 or Nx3 in shape.")
     return polygon

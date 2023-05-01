@@ -108,7 +108,9 @@ class PinholeCamera:
             cam_name=cam_name,
         )
 
-    def cull_to_view_frustum(self, uv: NDArrayFloat, points_cam: NDArrayFloat) -> NDArrayBool:
+    def cull_to_view_frustum(
+        self, uv: NDArrayFloat, points_cam: NDArrayFloat
+    ) -> NDArrayBool:
         """Cull 3d points to camera view frustum.
 
         Given a set of coordinates in the image plane and corresponding points
@@ -131,7 +133,9 @@ class PinholeCamera:
         is_valid_x = np.logical_and(0 <= uv[:, 0], uv[:, 0] < self.width_px - 1)
         is_valid_y = np.logical_and(0 <= uv[:, 1], uv[:, 1] < self.height_px - 1)
         is_valid_z = points_cam[:, 2] > 0
-        is_valid_points: NDArrayBool = np.logical_and.reduce([is_valid_x, is_valid_y, is_valid_z])
+        is_valid_points: NDArrayBool = np.logical_and.reduce(
+            [is_valid_x, is_valid_y, is_valid_z]
+        )
         return is_valid_points
 
     def project_ego_to_img(
@@ -249,8 +253,12 @@ class PinholeCamera:
         if city_SE3_ego_lidar_t is None:
             raise ValueError("city_SE3_ego_lidar_t cannot be `None`!")
 
-        ego_cam_t_SE3_ego_lidar_t = city_SE3_ego_cam_t.inverse().compose(city_SE3_ego_lidar_t)
-        points_cam_time = ego_cam_t_SE3_ego_lidar_t.transform_point_cloud(points_lidar_time)
+        ego_cam_t_SE3_ego_lidar_t = city_SE3_ego_cam_t.inverse().compose(
+            city_SE3_ego_lidar_t
+        )
+        points_cam_time = ego_cam_t_SE3_ego_lidar_t.transform_point_cloud(
+            points_lidar_time
+        )
         return self.project_ego_to_img(points_cam_time)
 
     @cached_property
@@ -332,7 +340,9 @@ class PinholeCamera:
         bottom_plane = self.bottom_clipping_plane
 
         near_plane = self.near_clipping_plane(near_clip_dist)
-        planes: NDArrayFloat = np.stack([left_plane, right_plane, near_plane, bottom_plane, top_plane])
+        planes: NDArrayFloat = np.stack(
+            [left_plane, right_plane, near_plane, bottom_plane, top_plane]
+        )
         return planes
 
     @cached_property
@@ -363,7 +373,9 @@ class PinholeCamera:
         fov_theta_rad = 2 * np.arctan(0.5 * self.width_px / self.intrinsics.fx_px)
         return float(fov_theta_rad)
 
-    def compute_pixel_ray_directions(self, uv: Union[NDArrayFloat, NDArrayInt]) -> NDArrayFloat:
+    def compute_pixel_ray_directions(
+        self, uv: Union[NDArrayFloat, NDArrayInt]
+    ) -> NDArrayFloat:
         """Given (u,v) coordinates and intrinsics, generate pixel rays in the camera coordinate frame.
 
         Assume +z points out of the camera, +y is downwards, and +x is across the imager.
@@ -382,7 +394,9 @@ class PinholeCamera:
         img_h, img_w = self.height_px, self.width_px
 
         if not np.isclose(fx, fy, atol=1e-3):
-            raise ValueError(f"Focal lengths in the x and y directions must match: {fx} != {fy}")
+            raise ValueError(
+                f"Focal lengths in the x and y directions must match: {fx} != {fy}"
+            )
 
         if uv.shape[1] != 2:
             raise ValueError("Input (u,v) coordinates must be (N,2) in shape.")
@@ -424,10 +438,14 @@ class PinholeCamera:
             round(self.intrinsics.width_px * scale),
             round(self.intrinsics.height_px * scale),
         )
-        return PinholeCamera(ego_SE3_cam=self.ego_SE3_cam, intrinsics=intrinsics, cam_name=self.cam_name)
+        return PinholeCamera(
+            ego_SE3_cam=self.ego_SE3_cam, intrinsics=intrinsics, cam_name=self.cam_name
+        )
 
 
-def remove_nan_values(uv: NDArrayFloat, points_cam: NDArrayFloat) -> Tuple[NDArrayFloat, NDArrayFloat]:
+def remove_nan_values(
+    uv: NDArrayFloat, points_cam: NDArrayFloat
+) -> Tuple[NDArrayFloat, NDArrayFloat]:
     """Remove NaN values from camera coordinates and image plane coordinates (accepts corrupt array).
 
     Args:

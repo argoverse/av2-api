@@ -6,11 +6,11 @@ import logging
 from dataclasses import dataclass, field
 from typing import List
 
+import torch
 from torch.utils.data import Dataset
 
 import av2._r as rust
 from av2.utils.typing import PathType
-import torch
 
 from ..structures.sweep import Sweep
 

@@ -3,6 +3,7 @@
 from typing import Final
 
 import numpy as np
+
 from av2.evaluation import SensorCompetitionCategories
 
 NUM_TIMESTEPS: Final = 6

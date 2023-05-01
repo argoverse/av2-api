@@ -41,7 +41,9 @@ class AV2SensorDataLoader:
             ValueError: if input arguments are not Path objects.
         """
         if not isinstance(data_dir, Path) or not isinstance(labels_dir, Path):
-            raise ValueError("Input arguments must be Path objects, representing paths to local directories")
+            raise ValueError(
+                "Input arguments must be Path objects, representing paths to local directories"
+            )
 
         self._data_dir = data_dir
         self._labels_dir = labels_dir
@@ -67,7 +69,9 @@ class AV2SensorDataLoader:
         Raises:
             RuntimeError: If no recorded pose is available for the requested timestamp.
         """
-        log_poses_df = io_utils.read_feather(self._data_dir / log_id / "city_SE3_egovehicle.feather")
+        log_poses_df = io_utils.read_feather(
+            self._data_dir / log_id / "city_SE3_egovehicle.feather"
+        )
         pose_df = log_poses_df.loc[log_poses_df["timestamp_ns"] == timestamp_ns]
 
         if len(pose_df) == 0:
@@ -76,7 +80,9 @@ class AV2SensorDataLoader:
         city_SE3_ego = convert_pose_dataframe_to_SE3(pose_df)
         return city_SE3_ego
 
-    def get_subsampled_ego_trajectory(self, log_id: str, sample_rate_hz: float = 1.0) -> NDArrayFloat:
+    def get_subsampled_ego_trajectory(
+        self, log_id: str, sample_rate_hz: float = 1.0
+    ) -> NDArrayFloat:
         """Get the trajectory of the AV (egovehicle) at an approximate sampling rate (Hz).
 
         Note: the trajectory is NOT interpolated to give an *exact* sampling rate.
@@ -101,7 +107,9 @@ class AV2SensorDataLoader:
                 MAX_MEASUREMENT_FREQUENCY_HZ,
             )
 
-        log_poses_df = io_utils.read_feather(self._data_dir / log_id / "city_SE3_egovehicle.feather")
+        log_poses_df = io_utils.read_feather(
+            self._data_dir / log_id / "city_SE3_egovehicle.feather"
+        )
 
         # timestamp of the pose measurement.
         timestamp_ns = list(log_poses_df.timestamp_ns)
@@ -159,7 +167,9 @@ class AV2SensorDataLoader:
         """Return a list of all vehicle log IDs available at the provided dataroot."""
         return sorted([d.name for d in self._data_dir.glob("*") if d.is_dir()])
 
-    def get_closest_img_fpath(self, log_id: str, cam_name: str, lidar_timestamp_ns: int) -> Optional[Path]:
+    def get_closest_img_fpath(
+        self, log_id: str, cam_name: str, lidar_timestamp_ns: int
+    ) -> Optional[Path]:
         """Return the filepath corresponding to the closest image from the lidar timestamp.
 
         Args:
@@ -170,13 +180,24 @@ class AV2SensorDataLoader:
         Returns:
             im_fpath: path to image if one is found within the expected time interval, or else None.
         """
-        cam_timestamp_ns = self._sdb.get_closest_cam_channel_timestamp(lidar_timestamp_ns, cam_name, log_id)
+        cam_timestamp_ns = self._sdb.get_closest_cam_channel_timestamp(
+            lidar_timestamp_ns, cam_name, log_id
+        )
         if cam_timestamp_ns is None:
             return None
-        img_fpath = self._data_dir / log_id / "sensors" / "cameras" / cam_name / f"{cam_timestamp_ns}.jpg"
+        img_fpath = (
+            self._data_dir
+            / log_id
+            / "sensors"
+            / "cameras"
+            / cam_name
+            / f"{cam_timestamp_ns}.jpg"
+        )
         return img_fpath
 
-    def get_closest_lidar_fpath(self, log_id: str, cam_timestamp_ns: int) -> Optional[Path]:
+    def get_closest_lidar_fpath(
+        self, log_id: str, cam_timestamp_ns: int
+    ) -> Optional[Path]:
         """Get file path for LiDAR sweep accumulated to a timestamp closest to a camera timestamp.
 
         Args:
@@ -186,14 +207,18 @@ class AV2SensorDataLoader:
         Returns:
             lidar_fpath: path to sweep .feather file if one is found within the expected time interval, or else None.
         """
-        lidar_timestamp_ns = self._sdb.get_closest_lidar_timestamp(cam_timestamp_ns, log_id)
+        lidar_timestamp_ns = self._sdb.get_closest_lidar_timestamp(
+            cam_timestamp_ns, log_id
+        )
         if lidar_timestamp_ns is None:
             return None
         lidar_fname = f"{lidar_timestamp_ns}.feather"
         lidar_fpath = self._data_dir / log_id / "sensors" / "lidar" / lidar_fname
         return lidar_fpath
 
-    def get_lidar_fpath_at_lidar_timestamp(self, log_id: str, lidar_timestamp_ns: int) -> Optional[Path]:
+    def get_lidar_fpath_at_lidar_timestamp(
+        self, log_id: str, lidar_timestamp_ns: int
+    ) -> Optional[Path]:
         """Return the file path for the LiDAR sweep accumulated to the query timestamp, if it exists.
 
         Args:
@@ -233,7 +258,9 @@ class AV2SensorDataLoader:
         Returns:
             lidar_timestamps_ns: ordered timestamps, provided in nanoseconds.
         """
-        ordered_lidar_fpaths: List[Path] = self.get_ordered_log_lidar_fpaths(log_id=log_id)
+        ordered_lidar_fpaths: List[Path] = self.get_ordered_log_lidar_fpaths(
+            log_id=log_id
+        )
         lidar_timestamps_ns = [int(fp.stem) for fp in ordered_lidar_fpaths]
         return lidar_timestamps_ns
 
@@ -261,10 +288,14 @@ class AV2SensorDataLoader:
         Returns:
             List of paths, representing paths to ordered JPEG files in this log, for a specific camera.
         """
-        cam_img_fpaths = sorted(self._data_dir.glob(f"{log_id}/sensors/cameras/{cam_name}/*.jpg"))
+        cam_img_fpaths = sorted(
+            self._data_dir.glob(f"{log_id}/sensors/cameras/{cam_name}/*.jpg")
+        )
         return cam_img_fpaths
 
-    def get_labels_at_lidar_timestamp(self, log_id: str, lidar_timestamp_ns: int) -> CuboidList:
+    def get_labels_at_lidar_timestamp(
+        self, log_id: str, lidar_timestamp_ns: int
+    ) -> CuboidList:
         """Load the sweep annotations at the provided timestamp.
 
         Args:
@@ -280,7 +311,9 @@ class AV2SensorDataLoader:
         # NOTE: This file contains annotations for the ENTIRE sequence.
         # The sweep annotations are selected below.
         cuboid_list = CuboidList.from_feather(annotations_feather_path)
-        cuboids = list(filter(lambda x: x.timestamp_ns == lidar_timestamp_ns, cuboid_list.cuboids))
+        cuboids = list(
+            filter(lambda x: x.timestamp_ns == lidar_timestamp_ns, cuboid_list.cuboids)
+        )
         return CuboidList(cuboids=cuboids)
 
     def project_ego_to_img_motion_compensated(
@@ -310,11 +343,15 @@ class AV2SensorDataLoader:
 
         # get transformation to bring point in egovehicle frame to city frame,
         # at the time when camera image was recorded.
-        city_SE3_ego_cam_t = self.get_city_SE3_ego(log_id=log_id, timestamp_ns=cam_timestamp_ns)
+        city_SE3_ego_cam_t = self.get_city_SE3_ego(
+            log_id=log_id, timestamp_ns=cam_timestamp_ns
+        )
 
         # get transformation to bring point in egovehicle frame to city frame,
         # at the time when the LiDAR sweep was recorded.
-        city_SE3_ego_lidar_t = self.get_city_SE3_ego(log_id=log_id, timestamp_ns=lidar_timestamp_ns)
+        city_SE3_ego_lidar_t = self.get_city_SE3_ego(
+            log_id=log_id, timestamp_ns=lidar_timestamp_ns
+        )
 
         return pinhole_camera.project_ego_to_img_motion_compensated(
             points_lidar_time=points_lidar_time,
@@ -337,9 +374,13 @@ class AV2SensorDataLoader:
         Raises:
             ValueError: If requested timestamp has no corresponding LiDAR sweep.
         """
-        lidar_fpath = self.get_lidar_fpath_at_lidar_timestamp(log_id=log_id, lidar_timestamp_ns=lidar_timestamp_ns)
+        lidar_fpath = self.get_lidar_fpath_at_lidar_timestamp(
+            log_id=log_id, lidar_timestamp_ns=lidar_timestamp_ns
+        )
         if lidar_fpath is None:
-            raise ValueError("Requested colored sweep at a timestamp that has no corresponding LiDAR sweep.")
+            raise ValueError(
+                "Requested colored sweep at a timestamp that has no corresponding LiDAR sweep."
+            )
 
         sweep = Sweep.from_feather(lidar_fpath)
         n_sweep_pts = len(sweep)
@@ -422,7 +463,9 @@ class AV2SensorDataLoader:
         # form depth map from LiDAR
         if interp_depth_map:
             if u.max() > pinhole_camera.width_px or v.max() > pinhole_camera.height_px:
-                raise RuntimeError("Regular grid interpolation will fail due to out-of-bound inputs.")
+                raise RuntimeError(
+                    "Regular grid interpolation will fail due to out-of-bound inputs."
+                )
 
             depth_map = dense_grid_interpolation.interp_dense_grid_from_sparse(
                 grid_img=depth_map,

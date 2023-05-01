@@ -8,13 +8,25 @@ from typing import List
 import numpy as np
 
 from av2.datasets.motion_forecasting import scenario_serialization
-from av2.datasets.motion_forecasting.data_schema import ArgoverseScenario, ObjectState, ObjectType, Track, TrackCategory
+from av2.datasets.motion_forecasting.data_schema import (
+    ArgoverseScenario,
+    ObjectState,
+    ObjectType,
+    Track,
+    TrackCategory,
+)
 
 # Build test ArgoverseScenario
 _TEST_OBJECT_STATES: List[ObjectState] = [
-    ObjectState(observed=True, timestep=0, position=(0.0, 0.0), heading=0.0, velocity=(0.0, 0.0)),
-    ObjectState(observed=True, timestep=1, position=(1.0, 1.0), heading=0.0, velocity=(1.0, 1.0)),
-    ObjectState(observed=True, timestep=2, position=(2.0, 2.0), heading=0.0, velocity=(2.0, 2.0)),
+    ObjectState(
+        observed=True, timestep=0, position=(0.0, 0.0), heading=0.0, velocity=(0.0, 0.0)
+    ),
+    ObjectState(
+        observed=True, timestep=1, position=(1.0, 1.0), heading=0.0, velocity=(1.0, 1.0)
+    ),
+    ObjectState(
+        observed=True, timestep=2, position=(2.0, 2.0), heading=0.0, velocity=(2.0, 2.0)
+    ),
 ]
 _TEST_TRACKS: List[Track] = [
     Track(
@@ -49,20 +61,31 @@ def test_parquet_scenario_serialization_roundtrip(tmpdir: Path) -> None:
     """
     # Serialize Argoverse scenario to parquet and save to disk
     scenario_path = tmpdir / "test.parquet"
-    scenario_serialization.serialize_argoverse_scenario_parquet(scenario_path, _TEST_SCENARIO)
+    scenario_serialization.serialize_argoverse_scenario_parquet(
+        scenario_path, _TEST_SCENARIO
+    )
     assert scenario_path.exists(), "Serialized Argoverse scenario not saved to disk."
 
     # Check that loading and deserializing a parquet-formatted Argoverse scenario returns an equivalent object
-    loaded_test_scenario = scenario_serialization.load_argoverse_scenario_parquet(scenario_path)
-    assert loaded_test_scenario == _TEST_SCENARIO, "Deserialized Argoverse scenario did not match original object."
+    loaded_test_scenario = scenario_serialization.load_argoverse_scenario_parquet(
+        scenario_path
+    )
+    assert (
+        loaded_test_scenario == _TEST_SCENARIO
+    ), "Deserialized Argoverse scenario did not match original object."
 
 
 def test_load_argoverse_scenario_parquet(test_data_root_dir: Path) -> None:
     """Try to load a real scenario from the motion forecasting dataset."""
     test_scenario_id = "0a1e6f0a-1817-4a98-b02e-db8c9327d151"
     test_scenario_path = (
-        test_data_root_dir / "forecasting_scenarios" / test_scenario_id / f"scenario_{test_scenario_id}.parquet"
+        test_data_root_dir
+        / "forecasting_scenarios"
+        / test_scenario_id
+        / f"scenario_{test_scenario_id}.parquet"
     )
 
-    test_scenario = scenario_serialization.load_argoverse_scenario_parquet(test_scenario_path)
+    test_scenario = scenario_serialization.load_argoverse_scenario_parquet(
+        test_scenario_path
+    )
     assert test_scenario.scenario_id == test_scenario_id

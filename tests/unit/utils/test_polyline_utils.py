@@ -22,7 +22,9 @@ def test_convert_lane_boundaries_to_polygon_3d() -> None:
             [14, -1, 8]
         ])
     # fmt: on
-    polygon = polyline_utils.convert_lane_boundaries_to_polygon(right_ln_bnd, left_ln_bnd)
+    polygon = polyline_utils.convert_lane_boundaries_to_polygon(
+        right_ln_bnd, left_ln_bnd
+    )
 
     # fmt: off
     gt_polygon: NDArrayFloat = np.array(

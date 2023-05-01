@@ -14,19 +14,24 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 
 import click
 import numpy as np
+from scipy.spatial.transform import Rotation
+from tqdm import tqdm
+
 from av2.evaluation import NUM_RECALL_SAMPLES
-from av2.evaluation.detection.utils import compute_objects_in_roi_mask, load_mapped_avm_and_egoposes
+from av2.evaluation.detection.utils import (
+    compute_objects_in_roi_mask,
+    load_mapped_avm_and_egoposes,
+)
 from av2.evaluation.forecasting import constants, utils
 from av2.evaluation.forecasting.constants import (
     AV2_CATEGORIES,
     CATEGORY_TO_VELOCITY_M_PER_S,
     DISTANCE_THRESHOLDS_M,
-    VELOCITY_TYPES,
     MAX_DISPLACEMENT_M,
+    VELOCITY_TYPES,
 )
 from av2.utils.typing import NDArrayFloat
-from scipy.spatial.transform import Rotation
-from tqdm import tqdm
+
 from ..typing import ForecastSequences, Sequences
 
 
@@ -83,7 +88,9 @@ def evaluate(
                 agent["seq_id"] = seq_id
                 agent["timestamp_ns"] = timestamp_ns
                 agent["velocity_m_per_s"] = utils.agent_velocity_m_per_s(agent)
-                agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY_M_PER_S)
+                agent["trajectory_type"] = utils.trajectory_type(
+                    agent, CATEGORY_TO_VELOCITY_M_PER_S
+                )
 
                 gt_agents.append(agent)
 
@@ -91,7 +98,9 @@ def evaluate(
                 agent["seq_id"] = seq_id
                 agent["timestamp_ns"] = timestamp_ns
                 agent["velocity_m_per_s"] = utils.agent_velocity_m_per_s(agent)
-                agent["trajectory_type"] = utils.trajectory_type(agent, CATEGORY_TO_VELOCITY_M_PER_S)
+                agent["trajectory_type"] = utils.trajectory_type(
+                    agent, CATEGORY_TO_VELOCITY_M_PER_S
+                )
 
                 pred_agents.append(agent)
 
@@ -101,7 +110,15 @@ def evaluate(
     ):
         category_velocity_m_per_s = CATEGORY_TO_VELOCITY_M_PER_S[category]
         outputs.append(
-            accumulate(pred_agents, gt_agents, top_k, category, velocity_type, category_velocity_m_per_s, th)
+            accumulate(
+                pred_agents,
+                gt_agents,
+                top_k,
+                category,
+                velocity_type,
+                category_velocity_m_per_s,
+                th,
+            )
         )
 
     for apf, ade, fde, category, velocity_type, threshold in outputs:
@@ -114,7 +131,8 @@ def evaluate(
     for category in AV2_CATEGORIES:
         for velocity_type in VELOCITY_TYPES:
             results[velocity_type][category]["mAP_F"] = round(
-                np.mean(results[velocity_type][category]["mAP_F"]), constants.NUM_DECIMALS
+                np.mean(results[velocity_type][category]["mAP_F"]),
+                constants.NUM_DECIMALS,
             )
             results[velocity_type][category]["ADE"] = round(
                 np.mean(results[velocity_type][category]["ADE"]), constants.NUM_DECIMALS
@@ -160,7 +178,11 @@ def accumulate(
         return gt == profile or gt == "ignore" and pred == profile
 
     pred = [agent for agent in pred_agents if agent["name"] == class_name]
-    gt = [agent for agent in gt_agents if agent["name"] == class_name and agent["trajectory_type"] == profile]
+    gt = [
+        agent
+        for agent in gt_agents
+        if agent["name"] == class_name and agent["trajectory_type"] == profile
+    ]
     conf = [agent["detection_score"] for agent in pred]
     sortind = [i for (v, i) in sorted((v, i) for (i, v) in enumerate(conf))][::-1]
     gt_agents_by_frame = defaultdict(list)
@@ -179,12 +201,15 @@ def accumulate(
         min_dist = np.inf
         match_gt_idx = None
 
-        gt_agents_in_frame = gt_agents_by_frame[(pred_agent["seq_id"], pred_agent["timestamp_ns"])]
+        gt_agents_in_frame = gt_agents_by_frame[
+            (pred_agent["seq_id"], pred_agent["timestamp_ns"])
+        ]
         for gt_idx, gt_agent in enumerate(gt_agents_in_frame):
             if not (pred_agent["seq_id"], pred_agent["timestamp_ns"], gt_idx) in taken:
                 # Find closest match among ground truth boxes
                 this_distance = utils.center_distance(
-                    gt_agent["current_translation_m"], pred_agent["current_translation_m"]
+                    gt_agent["current_translation_m"],
+                    pred_agent["current_translation_m"],
                 )
                 if this_distance < min_dist:
                     min_dist = this_distance
@@ -198,7 +223,10 @@ def accumulate(
             gt_match_agent = gt_agents_in_frame[match_gt_idx]
 
             gt_len = gt_match_agent["future_translation_m"].shape[0]
-            forecast_match_th = [threshold + constants.FORECAST_SCALAR[i] * velocity for i in range(gt_len + 1)]
+            forecast_match_th = [
+                threshold + constants.FORECAST_SCALAR[i] * velocity
+                for i in range(gt_len + 1)
+            ]
 
             if top_k == 1:
                 ind = cast(int, np.argmax(pred_agent["score"]))
@@ -209,7 +237,9 @@ def accumulate(
                     )
                     for i in range(gt_len)
                 ]
-                forecast_match = [dist < th for dist, th in zip(forecast_dist, forecast_match_th[1:])]
+                forecast_match = [
+                    dist < th for dist, th in zip(forecast_dist, forecast_match_th[1:])
+                ]
 
                 ade = cast(float, np.mean(forecast_dist))
                 fde = forecast_dist[-1]
@@ -226,7 +256,10 @@ def accumulate(
                         )
                         for i in range(gt_len)
                     ]
-                    curr_forecast_match = [dist < th for dist, th in zip(curr_forecast_dist, forecast_match_th[1:])]
+                    curr_forecast_match = [
+                        dist < th
+                        for dist, th in zip(curr_forecast_dist, forecast_match_th[1:])
+                    ]
 
                     curr_ade = cast(float, np.mean(curr_forecast_dist))
                     curr_fde = curr_forecast_dist[-1]
@@ -276,7 +309,9 @@ def accumulate(
     prec = tp_array / (fp_array + tp_array)
     rec = tp_array / float(npos)
 
-    rec_interp = np.linspace(0, 1, NUM_RECALL_SAMPLES)  # 101 steps, from 0% to 100% recall.
+    rec_interp = np.linspace(
+        0, 1, NUM_RECALL_SAMPLES
+    )  # 101 steps, from 0% to 100% recall.
     apf = np.mean(np.interp(rec_interp, rec, prec, right=0))
 
     return (
@@ -303,13 +338,19 @@ def convert_forecast_labels(labels: Any) -> Any:
         frame_dict = {}
         for frame_idx, frame in enumerate(frames):
             forecast_instances = []
-            for instance in utils.array_dict_iterator(frame, len(frame["translation_m"])):
+            for instance in utils.array_dict_iterator(
+                frame, len(frame["translation_m"])
+            ):
                 future_translations: Any = []
-                for future_frame in frames[frame_idx + 1 : frame_idx + 1 + constants.NUM_TIMESTEPS]:
+                for future_frame in frames[
+                    frame_idx + 1 : frame_idx + 1 + constants.NUM_TIMESTEPS
+                ]:
                     if instance["track_id"] not in future_frame["track_id"]:
                         break
                     future_translations.append(
-                        future_frame["translation_m"][future_frame["track_id"] == instance["track_id"]][0]
+                        future_frame["translation_m"][
+                            future_frame["track_id"] == instance["track_id"]
+                        ][0]
                     )
 
                 if len(future_translations) == 0:
@@ -335,7 +376,9 @@ def convert_forecast_labels(labels: Any) -> Any:
     return forecast_labels
 
 
-def filter_max_dist(forecasts: ForecastSequences, max_range_m: int) -> ForecastSequences:
+def filter_max_dist(
+    forecasts: ForecastSequences, max_range_m: int
+) -> ForecastSequences:
     """Remove all tracks that are beyond `max_range_m`.
 
     Args:
@@ -351,7 +394,10 @@ def filter_max_dist(forecasts: ForecastSequences, max_range_m: int) -> ForecastS
                 agent
                 for agent in forecasts[seq_id][timestamp_ns]
                 if "ego_translation_m" in agent
-                and np.linalg.norm(agent["current_translation_m"] - agent["ego_translation_m"]) < max_range_m
+                and np.linalg.norm(
+                    agent["current_translation_m"] - agent["ego_translation_m"]
+                )
+                < max_range_m
             ]
             forecasts[seq_id][timestamp_ns] = keep_forecasts
 
@@ -370,7 +416,9 @@ def yaw_to_quaternion3d(yaw: float) -> NDArrayFloat:
     return np.array([qw, qx, qy, qz])
 
 
-def filter_drivable_area(forecasts: ForecastSequences, dataset_dir: str) -> ForecastSequences:
+def filter_drivable_area(
+    forecasts: ForecastSequences, dataset_dir: str
+) -> ForecastSequences:
     """Convert the unified label format to a format that is easier to work with for forecasting evaluation.
 
     Args:
@@ -381,7 +429,9 @@ def filter_drivable_area(forecasts: ForecastSequences, dataset_dir: str) -> Fore
         forecasts: Dictionary of tracks.
     """
     log_ids = list(forecasts.keys())
-    log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, Path(dataset_dir))
+    log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(
+        log_ids, Path(dataset_dir)
+    )
 
     for log_id in log_ids:
         avm = log_id_to_avm[log_id]
@@ -395,7 +445,9 @@ def filter_drivable_area(forecasts: ForecastSequences, dataset_dir: str) -> Fore
                 continue
 
             for box in forecasts[log_id][timestamp_ns]:
-                translation_m.append(box["current_translation_m"] - box["ego_translation_m"])
+                translation_m.append(
+                    box["current_translation_m"] - box["ego_translation_m"]
+                )
                 size.append(box["size"])
                 quat.append(yaw_to_quaternion3d(box["yaw"]))
 
@@ -411,7 +463,9 @@ def filter_drivable_area(forecasts: ForecastSequences, dataset_dir: str) -> Fore
             )
 
             is_evaluated = compute_objects_in_roi_mask(boxes, city_SE3_ego, avm)
-            forecasts[log_id][timestamp_ns] = list(np.array(forecasts[log_id][timestamp_ns])[is_evaluated])
+            forecasts[log_id][timestamp_ns] = list(
+                np.array(forecasts[log_id][timestamp_ns])[is_evaluated]
+            )
 
     return forecasts
 
@@ -441,9 +495,27 @@ def runner(
 
     res = evaluate(predictions2, ground_truth2, top_k, max_range_m, dataset_dir)
 
-    mAP_F = np.nanmean([metrics["mAP_F"] for traj_metrics in res.values() for metrics in traj_metrics.values()])
-    ADE = np.nanmean([metrics["ADE"] for traj_metrics in res.values() for metrics in traj_metrics.values()])
-    FDE = np.nanmean([metrics["FDE"] for traj_metrics in res.values() for metrics in traj_metrics.values()])
+    mAP_F = np.nanmean(
+        [
+            metrics["mAP_F"]
+            for traj_metrics in res.values()
+            for metrics in traj_metrics.values()
+        ]
+    )
+    ADE = np.nanmean(
+        [
+            metrics["ADE"]
+            for traj_metrics in res.values()
+            for metrics in traj_metrics.values()
+        ]
+    )
+    FDE = np.nanmean(
+        [
+            metrics["FDE"]
+            for traj_metrics in res.values()
+            for metrics in traj_metrics.values()
+        ]
+    )
     res["mean_mAP_F"] = mAP_F
     res["mean_ADE"] = ADE
     res["mean_FDE"] = FDE

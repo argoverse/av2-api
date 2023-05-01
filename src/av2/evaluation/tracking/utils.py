@@ -11,8 +11,10 @@ from itertools import chain
 from typing import Any, Dict, Iterable, List, Union, cast
 
 import numpy as np
+
 from av2.utils.typing import NDArrayInt
-from ..typing import Sequences, Frame, Frames
+
+from ..typing import Frame, Frames, Sequences
 
 
 def save(obj: Any, path: str) -> None:  # noqa
@@ -44,7 +46,9 @@ def load(path: str) -> Any:  # noqa
         return pickle.load(f)
 
 
-def annotate_frame_metadata(prediction_frames: Frames, label_frames: Frames, metadata_keys: List[str]) -> None:
+def annotate_frame_metadata(
+    prediction_frames: Frames, label_frames: Frames, metadata_keys: List[str]
+) -> None:
     """Copy annotations with provided keys from label to prediction frames.
 
     Args:
@@ -96,7 +100,9 @@ def index_array_values(array_dict: Frame, index: Union[int, NDArrayInt]) -> Fram
     Returns:
         Dictionary of numpy arrays, each indexed by the provided index
     """
-    return {k: v[index] if isinstance(v, np.ndarray) else v for k, v in array_dict.items()}
+    return {
+        k: v[index] if isinstance(v, np.ndarray) else v for k, v in array_dict.items()
+    }
 
 
 def array_dict_iterator(array_dict: Frame, length: int) -> Iterable[Frame]:
@@ -140,7 +146,9 @@ def concatenate_array_values(array_dicts: Frames) -> Frame:
     return concatenated
 
 
-def filter_by_class_thresholds(frames_by_seq_id: Sequences, thresholds_by_class: Dict[str, float]) -> Sequences:
+def filter_by_class_thresholds(
+    frames_by_seq_id: Sequences, thresholds_by_class: Dict[str, float]
+) -> Sequences:
     """Filter detections, keeping only detections with score higher than the provided threshold for that class.
 
     If a class threshold is not provided, all detections in that class is filtered.

@@ -11,7 +11,9 @@ from PIL import Image, ImageDraw
 from av2.utils.typing import NDArrayByte, NDArrayFloat
 
 
-def get_mask_from_polygons(polygons: List[NDArrayFloat], img_h: int, img_w: int) -> NDArrayByte:
+def get_mask_from_polygons(
+    polygons: List[NDArrayFloat], img_h: int, img_w: int
+) -> NDArrayByte:
     """Rasterize multiple polygons onto a single 2d grid/array.
 
     NOTE: Pillow can gracefully handle the scenario when a polygon has coordinates outside of the grid,
@@ -34,7 +36,9 @@ def get_mask_from_polygons(polygons: List[NDArrayFloat], img_h: int, img_w: int)
     return mask
 
 
-def blend_images(img0: NDArrayByte, img1: NDArrayByte, alpha: float = 0.7) -> NDArrayByte:
+def blend_images(
+    img0: NDArrayByte, img1: NDArrayByte, alpha: float = 0.7
+) -> NDArrayByte:
     """Alpha-blend two images together.
 
     Args:

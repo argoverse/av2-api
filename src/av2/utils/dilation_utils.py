@@ -37,5 +37,7 @@ def dilate_by_l2(img: NDArrayByte, dilation_thresh: float = 5.0) -> NDArrayByte:
     distance_mask: NDArrayFloat = cv2.distanceTransform(
         mask_diff, distanceType=cv2.DIST_L2, maskSize=cv2.DIST_MASK_PRECISE
     )
-    dilated_img: NDArrayByte = np.less_equal(distance_mask.astype(np.float32), dilation_thresh).astype(np.uint8)
+    dilated_img: NDArrayByte = np.less_equal(
+        distance_mask.astype(np.float32), dilation_thresh
+    ).astype(np.uint8)
     return dilated_img

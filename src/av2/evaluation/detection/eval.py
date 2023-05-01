@@ -58,7 +58,9 @@ from typing import Any, Dict, Final, List, Optional, Tuple, cast
 
 import numpy as np
 import pandas as pd
+import polars as pl
 from tqdm import tqdm
+
 from av2.evaluation.detection.constants import (
     HIERARCHY,
     LCA,
@@ -80,7 +82,6 @@ from av2.map.map_api import ArgoverseStaticMap
 from av2.structures.cuboid import ORDERED_CUBOID_COL_NAMES
 from av2.utils.io import TimestampedCitySE3EgoPoses
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayObject
-import polars as pl
 
 warnings.filterwarnings("ignore", module="google")
 
@@ -133,11 +134,15 @@ def evaluate(
 
     uuid_to_dts = {
         k: v[list(DTS_COLUMNS)].to_numpy().astype(float)
-        for k, v in dts_pl.partition_by(DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True).items()
+        for k, v in dts_pl.partition_by(
+            DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True
+        ).items()
     }
     uuid_to_gts = {
         k: v[list(GTS_COLUMNS)].to_numpy().astype(float)
-        for k, v in gts_pl.partition_by(DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True).items()
+        for k, v in gts_pl.partition_by(
+            DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True
+        ).items()
     }
 
     log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
@@ -147,7 +152,9 @@ def evaluate(
     if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
         logger.info("Loading maps and egoposes ...")
         log_ids: List[str] = gts.loc[:, "log_id"].unique().tolist()
-        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
+        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(
+            log_ids, cfg.dataset_dir
+        )
 
     accumulate_args_list: List[
         Tuple[
@@ -185,11 +192,15 @@ def evaluate(
 
     logger.info("Starting evaluation ...")
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = p.starmap(accumulate, accumulate_args_list)
+        outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = p.starmap(
+            accumulate, accumulate_args_list
+        )
 
     dts_list, gts_list = zip(*outputs)
 
-    METRIC_COLUMN_NAMES = cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
+    METRIC_COLUMN_NAMES = (
+        cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
+    )
     dts_metrics: NDArrayFloat = np.concatenate(dts_list)
     gts_metrics: NDArrayFloat = np.concatenate(gts_list)
     dts.loc[:, METRIC_COLUMN_NAMES] = dts_metrics
@@ -218,7 +229,9 @@ def summarize_metrics(
         The summary metrics.
     """
     # Sample recall values in the [0, 1] interval.
-    recall_interpolated: NDArrayFloat = np.linspace(0, 1, cfg.num_recall_samples, endpoint=True)
+    recall_interpolated: NDArrayFloat = np.linspace(
+        0, 1, cfg.num_recall_samples, endpoint=True
+    )
 
     # Initialize the summary metrics.
     summary = pd.DataFrame(
@@ -226,7 +239,9 @@ def summarize_metrics(
         index=cfg.categories,
     )
 
-    average_precisions = pd.DataFrame({t: 0.0 for t in cfg.affinity_thresholds_m}, index=cfg.categories)
+    average_precisions = pd.DataFrame(
+        {t: 0.0 for t in cfg.affinity_thresholds_m}, index=cfg.categories
+    )
     for category in cfg.categories:
         # Find detections that have the current category.
         is_category_dts = dts["category"] == category
@@ -235,7 +250,11 @@ def summarize_metrics(
         is_valid_dts = np.logical_and(is_category_dts, dts["is_evaluated"])
 
         # Get valid detections and sort them in descending order.
-        category_dts = dts.loc[is_valid_dts].sort_values(by="score", ascending=False).reset_index(drop=True)
+        category_dts = (
+            dts.loc[is_valid_dts]
+            .sort_values(by="score", ascending=False)
+            .reset_index(drop=True)
+        )
 
         # Find annotations that have the current category.
         is_category_gts = gts["category"] == category
@@ -248,19 +267,27 @@ def summarize_metrics(
             continue
 
         for affinity_threshold_m in cfg.affinity_thresholds_m:
-            true_positives: NDArrayBool = category_dts[affinity_threshold_m].astype(bool).to_numpy()
+            true_positives: NDArrayBool = (
+                category_dts[affinity_threshold_m].astype(bool).to_numpy()
+            )
 
             # Continue if there aren't any true positives.
             if len(true_positives) == 0:
                 continue
 
             # Compute average precision for the current threshold.
-            threshold_average_precision, _ = compute_average_precision(true_positives, recall_interpolated, num_gts)
+            threshold_average_precision, _ = compute_average_precision(
+                true_positives, recall_interpolated, num_gts
+            )
 
             # Record the average precision.
-            average_precisions.loc[category, affinity_threshold_m] = threshold_average_precision
+            average_precisions.loc[
+                category, affinity_threshold_m
+            ] = threshold_average_precision
 
-        mean_average_precisions: NDArrayFloat = average_precisions.loc[category].to_numpy().mean()
+        mean_average_precisions: NDArrayFloat = (
+            average_precisions.loc[category].to_numpy().mean()
+        )
 
         # Select only the true positives for each instance.
         middle_idx = len(cfg.affinity_thresholds_m) // 2
@@ -330,21 +357,29 @@ def evaluate_hierarchy(
 
     uuid_to_dts = {
         cast(Tuple[str, int], k): v[list(DTS_COLUMNS)].to_numpy().astype(np.float64)
-        for k, v in dts_pl.partition_by(UUID_COLUMNS, maintain_order=True, as_dict=True).items()
+        for k, v in dts_pl.partition_by(
+            UUID_COLUMNS, maintain_order=True, as_dict=True
+        ).items()
     }
     uuid_to_gts = {
         cast(Tuple[str, int], k): v[list(GTS_COLUMNS)].to_numpy().astype(np.float64)
-        for k, v in gts_pl.partition_by(UUID_COLUMNS, maintain_order=True, as_dict=True).items()
+        for k, v in gts_pl.partition_by(
+            UUID_COLUMNS, maintain_order=True, as_dict=True
+        ).items()
     }
 
     uuid_to_dts_cats = {
         cast(Tuple[str, int], k): v[list(CATEGORY_COLUMN)].to_numpy().astype(np.object_)
-        for k, v in dts_pl.partition_by(UUID_COLUMNS, maintain_order=True, as_dict=True).items()
+        for k, v in dts_pl.partition_by(
+            UUID_COLUMNS, maintain_order=True, as_dict=True
+        ).items()
     }
 
     uuid_to_gts_cats = {
         cast(Tuple[str, int], k): v[list(CATEGORY_COLUMN)].to_numpy().astype(np.object_)
-        for k, v in gts_pl.partition_by(UUID_COLUMNS, maintain_order=True, as_dict=True).items()
+        for k, v in gts_pl.partition_by(
+            UUID_COLUMNS, maintain_order=True, as_dict=True
+        ).items()
     }
 
     log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
@@ -354,7 +389,9 @@ def evaluate_hierarchy(
     if cfg.eval_only_roi_instances and cfg.dataset_dir is not None:
         logger.info("Loading maps and egoposes ...")
         log_ids: List[str] = gts.loc[:, "log_id"].unique().tolist()
-        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(log_ids, cfg.dataset_dir)
+        log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(
+            log_ids, cfg.dataset_dir
+        )
 
     is_evaluated_args_list: List[
         Tuple[
@@ -421,9 +458,15 @@ def evaluate_hierarchy(
 
     logger.info("Starting evaluation ...")
     with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs: List[Tuple[NDArrayFloat, NDArrayFloat, NDArrayObject, NDArrayObject, Tuple[str, int]]] = p.starmap(
-            is_evaluated, is_evaluated_args_list
-        )
+        outputs: List[
+            Tuple[
+                NDArrayFloat,
+                NDArrayFloat,
+                NDArrayObject,
+                NDArrayObject,
+                Tuple[str, int],
+            ]
+        ] = p.starmap(is_evaluated, is_evaluated_args_list)
 
     dts_list: List[NDArrayFloat] = []
     gts_list: List[NDArrayFloat] = []

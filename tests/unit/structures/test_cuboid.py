@@ -63,7 +63,9 @@ def test_compute_interior_points() -> None:
         ], dtype=float  
     )
     # fmt: on
-    expected_is_interior: NDArrayBool = np.array([False, True, True, True, True, True, False])
+    expected_is_interior: NDArrayBool = np.array(
+        [False, True, True, True, True, True, False]
+    )
 
     dst_SE3_object = SE3(rotation=np.eye(3), translation=np.array([2, 0, 0]))
 
@@ -108,7 +110,14 @@ def _get_dummy_cuboid_list_params(num_cuboids: int) -> List[Cuboid]:
     """Create a cuboid list of length `num_cuboids`."""
     cuboids: List[Cuboid] = []
     for i in range(num_cuboids):
-        ego_SE3_object, length_m, width_m, height_m, category, timestamp_ns = _get_dummy_cuboid_params()
+        (
+            ego_SE3_object,
+            length_m,
+            width_m,
+            height_m,
+            category,
+            timestamp_ns,
+        ) = _get_dummy_cuboid_params()
         cuboid = Cuboid(
             dst_SE3_object=ego_SE3_object,
             length_m=length_m + i,
@@ -123,7 +132,14 @@ def _get_dummy_cuboid_list_params(num_cuboids: int) -> List[Cuboid]:
 
 def test_cuboid_constructor() -> None:
     """Test initializing a single cuboid."""
-    ego_SE3_object, length_m, width_m, height_m, category, timestamp_ns = _get_dummy_cuboid_params()
+    (
+        ego_SE3_object,
+        length_m,
+        width_m,
+        height_m,
+        category,
+        timestamp_ns,
+    ) = _get_dummy_cuboid_params()
     cuboid = Cuboid(
         dst_SE3_object=ego_SE3_object,
         length_m=length_m,
@@ -229,7 +245,9 @@ def test_benchmark_transform_for_loop(benchmark: Callable[..., Any]) -> None:
 def test_benchmark_transform_list_comprehension(benchmark: Callable[..., Any]) -> None:
     """Benchmark cuboid transform with list comprehension."""
 
-    def benchmark_transform_list_comprehension(cuboids: List[Cuboid], target_SE3_ego: SE3) -> List[Cuboid]:
+    def benchmark_transform_list_comprehension(
+        cuboids: List[Cuboid], target_SE3_ego: SE3
+    ) -> List[Cuboid]:
         transformed_cuboids: List[Cuboid] = [
             Cuboid(
                 dst_SE3_object=target_SE3_ego.compose(cuboid.dst_SE3_object),
@@ -245,7 +263,9 @@ def test_benchmark_transform_list_comprehension(benchmark: Callable[..., Any]) -
 
     num_cuboids = 1000
     cuboids = _get_dummy_cuboid_list_params(num_cuboids)
-    benchmark(benchmark_transform_list_comprehension, cuboids, cuboids[0].dst_SE3_object)
+    benchmark(
+        benchmark_transform_list_comprehension, cuboids, cuboids[0].dst_SE3_object
+    )
 
 
 if __name__ == "__main__":

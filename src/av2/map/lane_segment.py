@@ -107,7 +107,9 @@ class LaneSegment:
         return cls(
             id=json_data["id"],
             lane_type=LaneType(json_data["lane_type"]),
-            right_lane_boundary=Polyline.from_json_data(json_data["right_lane_boundary"]),
+            right_lane_boundary=Polyline.from_json_data(
+                json_data["right_lane_boundary"]
+            ),
             left_lane_boundary=Polyline.from_json_data(json_data["left_lane_boundary"]),
             right_mark_type=LaneMarkType(json_data["right_lane_mark_type"]),
             left_mark_type=LaneMarkType(json_data["left_lane_mark_type"]),
@@ -122,7 +124,10 @@ class LaneSegment:
     def left_lane_marking(self) -> LocalLaneMarking:
         """Retrieve the left lane marking associated with this lane segment."""
         return LocalLaneMarking(
-            mark_type=self.left_mark_type, src_lane_id=self.id, bound_side="left", polyline=self.left_lane_boundary.xyz
+            mark_type=self.left_mark_type,
+            src_lane_id=self.id,
+            bound_side="left",
+            polyline=self.left_lane_boundary.xyz,
         )
 
     @property
@@ -146,7 +151,9 @@ class LaneSegment:
             self.right_lane_boundary.xyz, self.left_lane_boundary.xyz
         )
 
-    def is_within_l_infinity_norm_radius(self, query_center: NDArrayFloat, search_radius_m: float) -> bool:
+    def is_within_l_infinity_norm_radius(
+        self, query_center: NDArrayFloat, search_radius_m: float
+    ) -> bool:
         """Whether any waypoint of lane boundaries falls within search_radius_m of query center, by l-infinity norm.
 
         Could have very long segment, with endpoints and all waypoints outside of radius, therefore cannot check just
@@ -161,10 +168,12 @@ class LaneSegment:
         """
         try:
             right_ln_bnd_interp = interp_utils.interp_arc(
-                t=WPT_INFINITY_NORM_INTERP_NUM, points=self.right_lane_boundary.xyz[:, :2]
+                t=WPT_INFINITY_NORM_INTERP_NUM,
+                points=self.right_lane_boundary.xyz[:, :2],
             )
             left_ln_bnd_interp = interp_utils.interp_arc(
-                t=WPT_INFINITY_NORM_INTERP_NUM, points=self.left_lane_boundary.xyz[:, :2]
+                t=WPT_INFINITY_NORM_INTERP_NUM,
+                points=self.left_lane_boundary.xyz[:, :2],
             )
         except Exception:
             logger.exception("Interpolation failed for lane segment %d", self.id)

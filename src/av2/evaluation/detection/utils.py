@@ -16,6 +16,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
+from joblib import Parallel, delayed
+from scipy.spatial.distance import cdist
+from upath import UPath
+
 from av2.evaluation import NUM_RECALL_SAMPLES, SensorCompetitionCategories
 from av2.evaluation.detection.constants import (
     MAX_NORMALIZED_ASE,
@@ -37,9 +41,6 @@ from av2.structures.cuboid import Cuboid, CuboidList
 from av2.utils.constants import EPS
 from av2.utils.io import TimestampedCitySE3EgoPoses, read_city_SE3_ego
 from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt, NDArrayObject
-from joblib import Parallel, delayed
-from scipy.spatial.distance import cdist
-from upath import UPath
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +144,9 @@ def accumulate(
         is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
 
     is_evaluated_dts &= compute_evaluated_dts_mask(dts[..., :3], cfg)
-    is_evaluated_gts &= compute_evaluated_gts_mask(gts[..., :3], gts[..., -1].astype(int), cfg)
+    is_evaluated_gts &= compute_evaluated_gts_mask(
+        gts[..., :3], gts[..., -1].astype(int), cfg
+    )
 
     # Initialize results array.
     dts_augmented: NDArrayFloat = np.zeros((N, T + E + 1))
@@ -155,7 +158,9 @@ def accumulate(
 
     if is_evaluated_dts.sum() > 0 and is_evaluated_gts.sum() > 0:
         # Compute true positives by assigning detections and ground truths.
-        dts_assignments, gts_assignments = assign(dts[is_evaluated_dts], gts[is_evaluated_gts], cfg)
+        dts_assignments, gts_assignments = assign(
+            dts[is_evaluated_dts], gts[is_evaluated_gts], cfg
+        )
         dts_augmented[is_evaluated_dts, :-1] = dts_assignments
         gts_augmented[is_evaluated_gts, :-1] = gts_assignments
 
@@ -204,7 +209,9 @@ def is_evaluated(
         is_evaluated_gts &= compute_objects_in_roi_mask(gts, city_SE3_ego, avm)
 
     is_evaluated_dts &= compute_evaluated_dts_mask(dts[..., :3], cfg)
-    is_evaluated_gts &= compute_evaluated_gts_mask(gts[..., :3], gts[..., -1].astype(int), cfg)
+    is_evaluated_gts &= compute_evaluated_gts_mask(
+        gts[..., :3], gts[..., -1].astype(int), cfg
+    )
 
     dts = dts[is_evaluated_dts]
     gts = gts[is_evaluated_gts]
@@ -293,7 +300,9 @@ def accumulate_hierarchy(
         match_gt_idx = len(cfg.affinity_thresholds_m) * [None]
 
         if len(gts_uuids) > 0:
-            keep_sweep = np.all(gts_uuids == np.array([gts.shape[0] * [pred_uuid]]).squeeze(), axis=1)
+            keep_sweep = np.all(
+                gts_uuids == np.array([gts.shape[0] * [pred_uuid]]).squeeze(), axis=1
+            )
         else:
             keep_sweep = []
 
@@ -307,26 +316,36 @@ def accumulate_hierarchy(
 
             # Find closest match among ground truth boxes
             for i in range(len(cfg.affinity_thresholds_m)):
-                if gt_cat == cat and not (pred_uuid[0], pred_uuid[1], gt_idx) in taken[i]:
+                if (
+                    gt_cat == cat
+                    and not (pred_uuid[0], pred_uuid[1], gt_idx) in taken[i]
+                ):
                     this_distance = dist_mat[pred_idx][gt_idx]
                     if this_distance < min_dist[i]:
                         min_dist[i] = this_distance
                         match_gt_idx[i] = gt_idx
 
-        is_match = [min_dist[i] < dist_th for i, dist_th in enumerate(cfg.affinity_thresholds_m)]
+        is_match = [
+            min_dist[i] < dist_th for i, dist_th in enumerate(cfg.affinity_thresholds_m)
+        ]
 
         for gt in zip(gt_ind_sweep, gts_sweep, gts_cats_sweep, gts_uuids_sweep):
             gt_idx, gt_box, gt_cat, gt_uuid = gt
             # Find closest match among ground truth boxes
 
             for i in range(len(cfg.affinity_thresholds_m)):
-                if not is_match[i] and not (pred_uuid[0], pred_uuid[1], gt_idx) in taken[i]:
+                if (
+                    not is_match[i]
+                    and not (pred_uuid[0], pred_uuid[1], gt_idx) in taken[i]
+                ):
                     this_distance = dist_mat[pred_idx][gt_idx]
                     if this_distance < min_dist[i]:
                         min_dist[i] = this_distance
                         match_gt_idx[i] = gt_idx
 
-        is_dist = [min_dist[i] < dist_th for i, dist_th in enumerate(cfg.affinity_thresholds_m)]
+        is_dist = [
+            min_dist[i] < dist_th for i, dist_th in enumerate(cfg.affinity_thresholds_m)
+        ]
         is_match = [
             True if is_dist[i] and gts_cats[match_gt_idx[i]] == cat else False
             for i in range(len(cfg.affinity_thresholds_m))
@@ -367,7 +386,9 @@ def accumulate_hierarchy(
         prec = tp[i] / (fp[i] + tp[i])
         rec = tp[i] / float(npos)
 
-        rec_interp = np.linspace(0, 1, NUM_RECALL_SAMPLES)  # 101 steps, from 0% to 100% recall.
+        rec_interp = np.linspace(
+            0, 1, NUM_RECALL_SAMPLES
+        )  # 101 steps, from 0% to 100% recall.
         ap = np.mean(np.interp(rec_interp, rec, prec, right=0))
 
         mAP.append(round(ap, NUM_DECIMALS))
@@ -375,7 +396,9 @@ def accumulate_hierarchy(
     return float(np.mean(mAP)), cat, lca
 
 
-def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDArrayFloat, NDArrayFloat]:
+def assign(
+    dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg
+) -> Tuple[NDArrayFloat, NDArrayFloat]:
     """Attempt assignment of each detection to a ground truth label.
 
     The detections (gts) and ground truth annotations (gts) are expected to be shape (N,10) and (M,10)
@@ -400,7 +423,9 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
             $$T$$: cfg.affinity_thresholds_m (0.5, 1.0, 2.0, 4.0 by default).
             $$E$$: ATE, ASE, AOE.
     """
-    affinity_matrix = compute_affinity_matrix(dts[..., :3], gts[..., :3], cfg.affinity_type)
+    affinity_matrix = compute_affinity_matrix(
+        dts[..., :3], gts[..., :3], cfg.affinity_type
+    )
 
     # Get the GT label for each max-affinity GT label, detection pair.
     idx_gts: NDArrayInt = affinity_matrix.argmax(axis=1)[None]
@@ -408,7 +433,9 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
     # The affinity matrix is an N by M matrix of the detections and ground truth labels respectively.
     # We want to take the corresponding affinity for each of the initial assignments using `gt_matches`.
     # The following line grabs the max affinity for each detection to a ground truth label.
-    affinities: NDArrayFloat = np.take_along_axis(affinity_matrix.transpose(), idx_gts, axis=0)[0]
+    affinities: NDArrayFloat = np.take_along_axis(
+        affinity_matrix.transpose(), idx_gts, axis=0
+    )[0]
 
     # Find the indices of the _first_ detection assigned to each GT.
     assignments: Tuple[NDArrayInt, NDArrayInt] = np.unique(idx_gts, return_index=True)
@@ -436,14 +463,22 @@ def assign(dts: NDArrayFloat, gts: NDArrayFloat, cfg: DetectionCfg) -> Tuple[NDA
         tps_dts = dts[idx_tps_dts]
         tps_gts = gts[idx_tps_gts]
 
-        translation_errors = distance(tps_dts[:, :3], tps_gts[:, :3], DistanceType.TRANSLATION)
+        translation_errors = distance(
+            tps_dts[:, :3], tps_gts[:, :3], DistanceType.TRANSLATION
+        )
         scale_errors = distance(tps_dts[:, 3:6], tps_gts[:, 3:6], DistanceType.SCALE)
-        orientation_errors = distance(tps_dts[:, 6:10], tps_gts[:, 6:10], DistanceType.ORIENTATION)
-        dts_metrics[idx_tps_dts, 4:] = np.stack((translation_errors, scale_errors, orientation_errors), axis=-1)
+        orientation_errors = distance(
+            tps_dts[:, 6:10], tps_gts[:, 6:10], DistanceType.ORIENTATION
+        )
+        dts_metrics[idx_tps_dts, 4:] = np.stack(
+            (translation_errors, scale_errors, orientation_errors), axis=-1
+        )
     return dts_metrics, gts_metrics
 
 
-def interpolate_precision(precision: NDArrayFloat, interpolation_method: InterpType = InterpType.ALL) -> NDArrayFloat:
+def interpolate_precision(
+    precision: NDArrayFloat, interpolation_method: InterpType = InterpType.ALL
+) -> NDArrayFloat:
     r"""Interpolate the precision at each sampled recall.
 
     This function smooths the precision-recall curve according to the method introduced in Pascal
@@ -473,7 +508,9 @@ def interpolate_precision(precision: NDArrayFloat, interpolation_method: InterpT
     return precision_interpolated
 
 
-def compute_affinity_matrix(dts: NDArrayFloat, gts: NDArrayFloat, metric: AffinityType) -> NDArrayFloat:
+def compute_affinity_matrix(
+    dts: NDArrayFloat, gts: NDArrayFloat, metric: AffinityType
+) -> NDArrayFloat:
     """Calculate the affinity matrix between detections and ground truth annotations.
 
     Args:
@@ -523,13 +560,17 @@ def compute_average_precision(
     precision = interpolate_precision(precision)
 
     # Evaluate precision at different recalls.
-    precision_interpolated: NDArrayFloat = np.interp(recall_interpolated, recall, precision, right=0)
+    precision_interpolated: NDArrayFloat = np.interp(
+        recall_interpolated, recall, precision, right=0
+    )
 
     average_precision = np.mean(precision_interpolated).astype(float)
     return average_precision, precision_interpolated
 
 
-def distance(dts: NDArrayFloat, gts: NDArrayFloat, metric: DistanceType) -> NDArrayFloat:
+def distance(
+    dts: NDArrayFloat, gts: NDArrayFloat, metric: DistanceType
+) -> NDArrayFloat:
     """Distance functions between detections and ground truth.
 
     Args:
@@ -558,7 +599,9 @@ def distance(dts: NDArrayFloat, gts: NDArrayFloat, metric: DistanceType) -> NDAr
         raise NotImplementedError("This distance metric is not implemented!")
 
 
-def compute_objects_in_roi_mask(cuboids_ego: NDArrayFloat, city_SE3_ego: SE3, avm: ArgoverseStaticMap) -> NDArrayBool:
+def compute_objects_in_roi_mask(
+    cuboids_ego: NDArrayFloat, city_SE3_ego: SE3, avm: ArgoverseStaticMap
+) -> NDArrayBool:
     """Compute the evaluated cuboids mask based off whether _any_ of their vertices fall into the ROI.
 
     Args:
@@ -573,7 +616,9 @@ def compute_objects_in_roi_mask(cuboids_ego: NDArrayFloat, city_SE3_ego: SE3, av
     if len(cuboids_ego) == 0:
         is_within_roi = np.zeros((0,), dtype=bool)
         return is_within_roi
-    cuboid_list_ego: CuboidList = CuboidList([Cuboid.from_numpy(params) for params in cuboids_ego])
+    cuboid_list_ego: CuboidList = CuboidList(
+        [Cuboid.from_numpy(params) for params in cuboids_ego]
+    )
     cuboid_list_city = cuboid_list_ego.transform(city_SE3_ego)
     cuboid_list_vertices_m_city = cuboid_list_city.vertices_m
 
@@ -661,9 +706,14 @@ def load_mapped_avm_and_egoposes(
     Raises:
         RuntimeError: If the process for loading maps and timestamped egoposes fails.
     """
-    log_id_to_timestamped_poses = {log_id: read_city_SE3_ego(dataset_dir / log_id) for log_id in log_ids}
+    log_id_to_timestamped_poses = {
+        log_id: read_city_SE3_ego(dataset_dir / log_id) for log_id in log_ids
+    }
     avms: Optional[List[ArgoverseStaticMap]] = Parallel(n_jobs=-1, backend="threading")(
-        delayed(ArgoverseStaticMap.from_map_dir)(dataset_dir / log_id / "map", build_raster=True) for log_id in log_ids
+        delayed(ArgoverseStaticMap.from_map_dir)(
+            dataset_dir / log_id / "map", build_raster=True
+        )
+        for log_id in log_ids
     )
 
     if avms is None:

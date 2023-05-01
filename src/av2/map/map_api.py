@@ -93,7 +93,9 @@ class RasterMapLayer:
             * (npyimage_coords[:, 0] >= 0)
             * (npyimage_coords[:, 0] < self.array.shape[1])
         )
-        raster_values[ind_valid_pts] = self.array[npyimage_coords[ind_valid_pts, 1], npyimage_coords[ind_valid_pts, 0]]
+        raster_values[ind_valid_pts] = self.array[
+            npyimage_coords[ind_valid_pts, 1], npyimage_coords[ind_valid_pts, 0]
+        ]
         return raster_values
 
 
@@ -122,13 +124,17 @@ class GroundHeightLayer(RasterMapLayer):
             RuntimeError: If raster ground height layer file is missing or Sim(2) mapping from city to image coordinates
                 is missing.
         """
-        ground_height_npy_fpaths = sorted(log_map_dirpath.glob("*_ground_height_surface____*.npy"))
+        ground_height_npy_fpaths = sorted(
+            log_map_dirpath.glob("*_ground_height_surface____*.npy")
+        )
         if not len(ground_height_npy_fpaths) == 1:
             raise RuntimeError("Raster ground height layer file is missing")
 
         Sim2_json_fpaths = sorted(log_map_dirpath.glob("*___img_Sim2_city.json"))
         if not len(Sim2_json_fpaths) == 1:
-            raise RuntimeError("Sim(2) mapping from city to image coordinates is missing")
+            raise RuntimeError(
+                "Sim(2) mapping from city to image coordinates is missing"
+            )
 
         # load the file with rasterized values
         with ground_height_npy_fpaths[0].open("rb") as f:
@@ -136,7 +142,9 @@ class GroundHeightLayer(RasterMapLayer):
 
         array_Sim2_city = Sim2.from_json(Sim2_json_fpaths[0])
 
-        return cls(array=ground_height_array.astype(float), array_Sim2_city=array_Sim2_city)
+        return cls(
+            array=ground_height_array.astype(float), array_Sim2_city=array_Sim2_city
+        )
 
     def get_ground_points_boolean(self, points_xyz: NDArrayFloat) -> NDArrayBool:
         """Check whether each 3d point is likely to be from the ground surface.
@@ -152,11 +160,15 @@ class GroundHeightLayer(RasterMapLayer):
             ValueError: If `points_xyz` aren't 3d.
         """
         if points_xyz.shape[1] != 3:
-            raise ValueError("3-dimensional points must be provided to classify them as `ground` with the map.")
+            raise ValueError(
+                "3-dimensional points must be provided to classify them as `ground` with the map."
+            )
 
         ground_height_values = self.get_ground_height_at_xy(points_xyz)
         z = points_xyz[:, 2]
-        near_ground: NDArrayBool = np.absolute(z - ground_height_values) <= GROUND_HEIGHT_THRESHOLD_M
+        near_ground: NDArrayBool = (
+            np.absolute(z - ground_height_values) <= GROUND_HEIGHT_THRESHOLD_M
+        )
         underground: NDArrayBool = z < ground_height_values
         is_ground_boolean_arr: NDArrayBool = near_ground | underground
         return is_ground_boolean_arr
@@ -181,9 +193,9 @@ class GroundHeightLayer(RasterMapLayer):
         Returns:
             Numpy array of shape (K,)
         """
-        ground_height_values: NDArrayFloat = self.get_raster_values_at_coords(points_xyz, fill_value=np.nan).astype(
-            float
-        )
+        ground_height_values: NDArrayFloat = self.get_raster_values_at_coords(
+            points_xyz, fill_value=np.nan
+        ).astype(float)
         return ground_height_values
 
 
@@ -195,7 +207,9 @@ class DrivableAreaMapLayer(RasterMapLayer):
     """
 
     @classmethod
-    def from_vector_data(cls, drivable_areas: List[DrivableArea]) -> DrivableAreaMapLayer:
+    def from_vector_data(
+        cls, drivable_areas: List[DrivableArea]
+    ) -> DrivableAreaMapLayer:
         """Return a drivable area map from vector data.
 
         NOTE: This function provides "drivable area" as a binary segmentation mask in the bird's eye view.
@@ -216,7 +230,9 @@ class DrivableAreaMapLayer(RasterMapLayer):
         img_w = int((x_max - x_min + 1) * array_s_city)
 
         # scale determines the resolution of the raster DA layer.
-        array_Sim2_city = Sim2(R=np.eye(2), t=np.array([-x_min, -y_min]), s=array_s_city)
+        array_Sim2_city = Sim2(
+            R=np.eye(2), t=np.array([-x_min, -y_min]), s=array_s_city
+        )
 
         # convert vertices for each polygon from a 3d array in city coordinates, to a 2d array
         # in image/array coordinates.
@@ -239,7 +255,9 @@ class RoiMapLayer(RasterMapLayer):
     """
 
     @classmethod
-    def from_drivable_area_layer(cls, drivable_area_layer: DrivableAreaMapLayer) -> RoiMapLayer:
+    def from_drivable_area_layer(
+        cls, drivable_area_layer: DrivableAreaMapLayer
+    ) -> RoiMapLayer:
         """Rasterize and return 3d vector drivable area as a 2d array, and dilate it by 5 meters, to return a ROI mask.
 
         Args:
@@ -252,13 +270,19 @@ class RoiMapLayer(RasterMapLayer):
                     p_array  = array_Sim2_city * p_city
         """
         # initialize ROI as zero-level isocontour of drivable area, and the dilate to 5-meter isocontour
-        roi_mat_init: NDArrayByte = copy.deepcopy(drivable_area_layer.array).astype(np.uint8)
-        roi_mask = dilation_utils.dilate_by_l2(roi_mat_init, dilation_thresh=ROI_ISOCONTOUR_GRID)
+        roi_mat_init: NDArrayByte = copy.deepcopy(drivable_area_layer.array).astype(
+            np.uint8
+        )
+        roi_mask = dilation_utils.dilate_by_l2(
+            roi_mat_init, dilation_thresh=ROI_ISOCONTOUR_GRID
+        )
 
         return cls(array=roi_mask, array_Sim2_city=drivable_area_layer.array_Sim2_city)
 
 
-def compute_data_bounds(drivable_areas: List[DrivableArea]) -> Tuple[int, int, int, int]:
+def compute_data_bounds(
+    drivable_areas: List[DrivableArea],
+) -> Tuple[int, int, int, int]:
     """Find the minimum and maximum coordinates along the x and y axes for a set of drivable areas.
 
     Args:
@@ -326,15 +350,22 @@ class ArgoverseStaticMap:
         log_id = static_map_path.stem.split("log_map_archive_")[1]
         vector_data = io.read_json_file(static_map_path)
 
-        vector_drivable_areas = {da["id"]: DrivableArea.from_dict(da) for da in vector_data["drivable_areas"].values()}
-        vector_lane_segments = {ls["id"]: LaneSegment.from_dict(ls) for ls in vector_data["lane_segments"].values()}
+        vector_drivable_areas = {
+            da["id"]: DrivableArea.from_dict(da)
+            for da in vector_data["drivable_areas"].values()
+        }
+        vector_lane_segments = {
+            ls["id"]: LaneSegment.from_dict(ls)
+            for ls in vector_data["lane_segments"].values()
+        }
 
         if "pedestrian_crossings" not in vector_data:
             logger.error("Missing Pedestrian crossings!")
             vector_pedestrian_crossings = {}
         else:
             vector_pedestrian_crossings = {
-                pc["id"]: PedestrianCrossing.from_dict(pc) for pc in vector_data["pedestrian_crossings"].values()
+                pc["id"]: PedestrianCrossing.from_dict(pc)
+                for pc in vector_data["pedestrian_crossings"].values()
             }
 
         return cls(
@@ -348,7 +379,9 @@ class ArgoverseStaticMap:
         )
 
     @classmethod
-    def from_map_dir(cls, log_map_dirpath: Union[Path, UPath], build_raster: bool = False) -> ArgoverseStaticMap:
+    def from_map_dir(
+        cls, log_map_dirpath: Union[Path, UPath], build_raster: bool = False
+    ) -> ArgoverseStaticMap:
         """Instantiate an Argoverse map object from data stored within a map data directory.
 
         Note: The ground height surface file and associated coordinate mapping is not provided for the
@@ -370,7 +403,9 @@ class ArgoverseStaticMap:
         # Load vector map data from JSON file
         vector_data_fnames = sorted(log_map_dirpath.glob("log_map_archive_*.json"))
         if not len(vector_data_fnames) == 1:
-            raise RuntimeError(f"JSON file containing vector map data is missing (searched in {log_map_dirpath})")
+            raise RuntimeError(
+                f"JSON file containing vector map data is missing (searched in {log_map_dirpath})"
+            )
         vector_data_fname = vector_data_fnames[0].name
 
         vector_data_json_path = log_map_dirpath / vector_data_fname
@@ -379,10 +414,18 @@ class ArgoverseStaticMap:
 
         # Avoid file I/O and polygon rasterization when not needed
         if build_raster:
-            drivable_areas: List[DrivableArea] = list(static_map.vector_drivable_areas.values())
-            static_map.raster_drivable_area_layer = DrivableAreaMapLayer.from_vector_data(drivable_areas=drivable_areas)
-            static_map.raster_roi_layer = RoiMapLayer.from_drivable_area_layer(static_map.raster_drivable_area_layer)
-            static_map.raster_ground_height_layer = GroundHeightLayer.from_file(log_map_dirpath)
+            drivable_areas: List[DrivableArea] = list(
+                static_map.vector_drivable_areas.values()
+            )
+            static_map.raster_drivable_area_layer = (
+                DrivableAreaMapLayer.from_vector_data(drivable_areas=drivable_areas)
+            )
+            static_map.raster_roi_layer = RoiMapLayer.from_drivable_area_layer(
+                static_map.raster_drivable_area_layer
+            )
+            static_map.raster_ground_height_layer = GroundHeightLayer.from_file(
+                log_map_dirpath
+            )
 
         return static_map
 
@@ -396,7 +439,9 @@ class ArgoverseStaticMap:
         """
         return list(self.vector_drivable_areas.values())
 
-    def get_lane_segment_successor_ids(self, lane_segment_id: int) -> Optional[List[int]]:
+    def get_lane_segment_successor_ids(
+        self, lane_segment_id: int
+    ) -> Optional[List[int]]:
         """Get lane id for the lane successor of the specified lane_segment_id.
 
         Args:
@@ -448,8 +493,12 @@ class ArgoverseStaticMap:
         Returns:
             Numpy array of shape (N,3).
         """
-        left_ln_bound = self.vector_lane_segments[lane_segment_id].left_lane_boundary.xyz
-        right_ln_bound = self.vector_lane_segments[lane_segment_id].right_lane_boundary.xyz
+        left_ln_bound = self.vector_lane_segments[
+            lane_segment_id
+        ].left_lane_boundary.xyz
+        right_ln_bound = self.vector_lane_segments[
+            lane_segment_id
+        ].right_lane_boundary.xyz
 
         lane_centerline, _ = interp_utils.compute_midpoint_line(
             left_ln_boundary=left_ln_bound,
@@ -488,7 +537,9 @@ class ArgoverseStaticMap:
         """
         return list(self.vector_pedestrian_crossings.values())
 
-    def get_nearby_ped_crossings(self, query_center: NDArrayFloat, search_radius_m: float) -> List[PedestrianCrossing]:
+    def get_nearby_ped_crossings(
+        self, query_center: NDArrayFloat, search_radius_m: float
+    ) -> List[PedestrianCrossing]:
         """Return nearby pedestrian crossings.
 
         Returns pedestrian crossings for which any waypoint of their boundary falls within `search_radius_m` meters
@@ -513,7 +564,9 @@ class ArgoverseStaticMap:
         """
         return list(self.vector_lane_segments.values())
 
-    def get_nearby_lane_segments(self, query_center: NDArrayFloat, search_radius_m: float) -> List[LaneSegment]:
+    def get_nearby_lane_segments(
+        self, query_center: NDArrayFloat, search_radius_m: float
+    ) -> List[LaneSegment]:
         """Return the nearby lane segments.
 
         Return lane segments for which any waypoint of their lane boundaries falls
@@ -528,7 +581,9 @@ class ArgoverseStaticMap:
         """
         scenario_lane_segments = self.get_scenario_lane_segments()
         return [
-            ls for ls in scenario_lane_segments if ls.is_within_l_infinity_norm_radius(query_center, search_radius_m)
+            ls
+            for ls in scenario_lane_segments
+            if ls.is_within_l_infinity_norm_radius(query_center, search_radius_m)
         ]
 
     def remove_ground_surface(self, points_xyz: NDArrayFloat) -> NDArrayFloat:
@@ -575,7 +630,9 @@ class ArgoverseStaticMap:
         Returns:
             subset of original point cloud, returning only those points lying within the drivable area.
         """
-        is_da_boolean_arr = self.get_raster_layer_points_boolean(points_xyz, layer_name=RasterLayerType.DRIVABLE_AREA)
+        is_da_boolean_arr = self.get_raster_layer_points_boolean(
+            points_xyz, layer_name=RasterLayerType.DRIVABLE_AREA
+        )
         filtered_points_xyz: NDArrayFloat = points_xyz[is_da_boolean_arr]
         return filtered_points_xyz
 
@@ -590,7 +647,9 @@ class ArgoverseStaticMap:
         Returns:
             subset of original point cloud, returning only those points lying within the ROI.
         """
-        is_da_boolean_arr = self.get_raster_layer_points_boolean(points_xyz, layer_name=RasterLayerType.ROI)
+        is_da_boolean_arr = self.get_raster_layer_points_boolean(
+            points_xyz, layer_name=RasterLayerType.ROI
+        )
         filtered_points_xyz: NDArrayFloat = points_xyz[is_da_boolean_arr]
         return filtered_points_xyz
 
@@ -609,8 +668,13 @@ class ArgoverseStaticMap:
         if self.raster_drivable_area_layer is None:
             raise ValueError("Raster drivable area is not loaded!")
 
-        raster_drivable_area_layer: NDArrayByte = self.raster_drivable_area_layer.array.astype(np.uint8)
-        return raster_drivable_area_layer, self.raster_drivable_area_layer.array_Sim2_city
+        raster_drivable_area_layer: NDArrayByte = (
+            self.raster_drivable_area_layer.array.astype(np.uint8)
+        )
+        return (
+            raster_drivable_area_layer,
+            self.raster_drivable_area_layer.array_Sim2_city,
+        )
 
     def get_rasterized_roi(self) -> Tuple[NDArrayByte, Sim2]:
         """Get the drivable area along with Sim(2) that maps matrix coordinates to city coordinates.
@@ -629,7 +693,9 @@ class ArgoverseStaticMap:
         raster_roi_layer: NDArrayByte = self.raster_roi_layer.array.astype(np.uint8)
         return raster_roi_layer, self.raster_roi_layer.array_Sim2_city
 
-    def get_raster_layer_points_boolean(self, points_xyz: NDArrayFloat, layer_name: RasterLayerType) -> NDArrayBool:
+    def get_raster_layer_points_boolean(
+        self, points_xyz: NDArrayFloat, layer_name: RasterLayerType
+    ) -> NDArrayBool:
         """Query the binary segmentation layers (drivable area and ROI) at specific coordinates, to check values.
 
         Args:
@@ -648,18 +714,24 @@ class ArgoverseStaticMap:
         if layer_name == RasterLayerType.ROI:
             if self.raster_roi_layer is None:
                 raise ValueError("Raster ROI is not loaded!")
-            layer_values = self.raster_roi_layer.get_raster_values_at_coords(points_xyz, fill_value=0)
+            layer_values = self.raster_roi_layer.get_raster_values_at_coords(
+                points_xyz, fill_value=0
+            )
         elif layer_name == RasterLayerType.DRIVABLE_AREA:
             if self.raster_drivable_area_layer is None:
                 raise ValueError("Raster drivable area is not loaded!")
-            layer_values = self.raster_drivable_area_layer.get_raster_values_at_coords(points_xyz, fill_value=0)
+            layer_values = self.raster_drivable_area_layer.get_raster_values_at_coords(
+                points_xyz, fill_value=0
+            )
         else:
             raise ValueError("layer_name should be either `roi` or `drivable_area`.")
 
         is_layer_boolean_arr: NDArrayBool = layer_values == 1.0
         return is_layer_boolean_arr
 
-    def append_height_to_2d_city_pt_cloud(self, points_xy: NDArrayFloat) -> NDArrayFloat:
+    def append_height_to_2d_city_pt_cloud(
+        self, points_xy: NDArrayFloat
+    ) -> NDArrayFloat:
         """Accept 2d point cloud in xy plane and returns a 3d point cloud (xyz) by querying map for ground height.
 
         Args:

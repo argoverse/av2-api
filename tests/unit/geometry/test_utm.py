@@ -19,7 +19,9 @@ def test_convert_city_coords_to_wgs84_atx() -> None:
         ]
     )
 
-    wgs84_coords = geo_utils.convert_city_coords_to_wgs84(points_city, city_name=CityName.ATX)
+    wgs84_coords = geo_utils.convert_city_coords_to_wgs84(
+        points_city, city_name=CityName.ATX
+    )
 
     expected_wgs84_coords: NDArrayFloat = np.array(
         [
@@ -40,7 +42,9 @@ def test_convert_city_coords_to_wgs84_wdc() -> None:
         ]
     )
 
-    wgs84_coords = geo_utils.convert_city_coords_to_wgs84(points_city, city_name=CityName.WDC)
+    wgs84_coords = geo_utils.convert_city_coords_to_wgs84(
+        points_city, city_name=CityName.WDC
+    )
     expected_wgs84_coords: NDArrayFloat = np.array(
         [
             [38.9299801515994, -77.0168603173312],

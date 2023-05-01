@@ -206,7 +206,9 @@ def test_transform_from_backwards() -> None:
     """Test Similarity(2) backward transform."""
     img_pts: NDArrayFloat = np.array([[6, 4], [4, 6], [0, 0], [1, 7]])
 
-    expected_world_pts: NDArrayFloat = np.array([[2, -1], [1, 0], [-1, -3], [-0.5, 0.5]])
+    expected_world_pts: NDArrayFloat = np.array(
+        [[2, -1], [1, 0], [-1, -3], [-0.5, 0.5]]
+    )
     scale = 0.5
     wSimg = Sim2(R=np.eye(2), t=np.array([-2.0, -6.0]), s=scale)
 
