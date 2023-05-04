@@ -38,10 +38,7 @@ pub fn main() {
         let (log_id, timestamp_ns) = datum.sweep_uuid;
         let dst = DST_DIR
             .clone()
-            .join(log_id)
-            .join("sensors")
-            .join("lidar")
-            .join(format!("{timestamp_ns}.feather"));
+            .join(format!("{log_id}/sensors/lidar/{timestamp_ns}.feather"));
 
         fs::create_dir_all(dst.parent().unwrap()).unwrap();
         write_feather_eager(&dst, lidar);
