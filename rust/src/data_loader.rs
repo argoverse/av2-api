@@ -42,6 +42,7 @@ const MAX_CAM_LIDAR_TOL_NS: f32 = 50000000.;
 
 /// Data associated with a single lidar sweep.
 #[pyclass]
+#[derive(Debug)]
 pub struct Sweep {
     /// Ego-vehicle city pose.
     #[pyo3(get, set)]
@@ -233,6 +234,13 @@ impl DataLoader {
 
 /// Rust methods.
 impl DataLoader {
+    #[must_use]
+    #[inline]
+    /// Return the data loader length.
+    pub fn len(&self) -> usize {
+        self.file_index.0.shape().0
+    }
+
     /// Log split directory.
     /// E.g., ~/data/datasets/av2/sensor/<split_name>.
     pub fn split_dir(&self) -> PathBuf {
