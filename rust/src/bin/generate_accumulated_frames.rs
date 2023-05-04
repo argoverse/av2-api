@@ -34,11 +34,9 @@ pub fn main() {
     let bar = ProgressBar::new(data_loader.len() as u64);
     for datum in data_loader {
         let lidar = datum.lidar.0;
-        println!("{}", lidar);
         let (log_id, timestamp_ns) = datum.sweep_uuid;
-        let dst = DST_DIR
-            .clone()
-            .join(format!("{log_id}/sensors/lidar/{timestamp_ns}.feather"));
+        let suffix = format!("{log_id}/sensors/lidar/{timestamp_ns}.feather");
+        let dst = DST_DIR.clone().join(suffix);
 
         fs::create_dir_all(dst.parent().unwrap()).unwrap();
         write_feather_eager(&dst, lidar);
