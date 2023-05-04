@@ -234,11 +234,18 @@ impl DataLoader {
 
 /// Rust methods.
 impl DataLoader {
+    /// Return the data loader length.
     #[must_use]
     #[inline]
-    /// Return the data loader length.
     pub fn len(&self) -> usize {
         self.file_index.0.shape().0
+    }
+
+    /// Returns `true` if `self` has a length of zero bytes.
+    #[must_use]
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Log split directory.
