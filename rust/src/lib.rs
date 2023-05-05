@@ -11,8 +11,8 @@ pub mod geometry;
 pub mod io;
 pub mod ops;
 pub mod path;
-pub mod structures;
 pub mod share;
+pub mod structures;
 
 use data_loader::{DataLoader, Sweep};
 use ndarray::{Dim, Ix1, Ix2};
