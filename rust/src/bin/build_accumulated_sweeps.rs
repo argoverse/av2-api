@@ -35,8 +35,7 @@ const MEMORY_MAPPED: bool = false;
 
 static DST_DATASET_NAME: Lazy<String> =
     Lazy::new(|| format!("{DATASET_NAME}_{NUM_ACCUMULATED_SWEEPS}_sweep"));
-static SRC_PREFIX: Lazy<PathBuf> =
-    Lazy::new(|| ROOT_DIR.join(DATASET_NAME.clone()).join(DATASET_TYPE));
+static SRC_PREFIX: Lazy<PathBuf> = Lazy::new(|| ROOT_DIR.join(DATASET_NAME).join(DATASET_TYPE));
 static DST_PREFIX: Lazy<PathBuf> =
     Lazy::new(|| ROOT_DIR.join(DST_DATASET_NAME.clone()).join(DATASET_TYPE));
 

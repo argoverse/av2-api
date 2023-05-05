@@ -6,7 +6,10 @@ use polars::{
     prelude::{DataFrame, IntoLazy},
 };
 
-use crate::{geometry::utils::cart_to_hom, io::read_feather_eager, se3::SE3, so3::quat_to_mat3};
+use crate::{
+    geometry::se3::SE3, geometry::so3::quat_to_mat3, geometry::utils::cart_to_hom,
+    io::read_feather_eager,
+};
 
 /// Pinhole camera intrinsics.
 #[derive(Clone, Debug)]

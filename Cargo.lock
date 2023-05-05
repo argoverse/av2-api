@@ -1429,7 +1429,7 @@ dependencies = [
 [[package]]
 name = "nshare"
 version = "0.9.0"
-source = "git+https://github.com/benjaminrwilson/nshare#e896e103dc6b6e449b760d1e6d639590a864a80b"
+source = "git+https://github.com/benjaminrwilson/nshare?rev=e896e103dc6b6e449b760d1e6d639590a864a80b#e896e103dc6b6e449b760d1e6d639590a864a80b"
 dependencies = [
  "image",
  "nalgebra",

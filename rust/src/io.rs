@@ -29,10 +29,10 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use crate::constants::POSE_COLUMNS;
-use crate::se3::SE3;
+use crate::geometry::se3::SE3;
 use image::io::Reader as ImageReader;
 
-use crate::so3::quat_to_mat3;
+use crate::geometry::so3::quat_to_mat3;
 
 /// Read a feather file and load into a `polars` dataframe.
 pub fn read_feather_eager(path: &PathBuf, memory_mapped: bool) -> DataFrame {
