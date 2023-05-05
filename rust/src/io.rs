@@ -44,6 +44,15 @@ pub fn read_feather_eager(path: &PathBuf, memory_mapped: bool) -> DataFrame {
         .unwrap()
 }
 
+/// Write a feather file to disk using LZ4 compression.
+pub fn write_feather_eager(path: &PathBuf, mut data_frame: DataFrame) {
+    let file = File::create(path).expect("could not create file");
+    IpcWriter::new(file)
+        .with_compression(Some(IpcCompression::LZ4))
+        .finish(&mut data_frame)
+        .unwrap()
+}
+
 /// Read a feather file and load into a `polars` dataframe.
 /// TODO: Implement once upstream half-type is fixed.
 // pub fn read_feather_lazy(path: &PathBuf, memory_mapped: bool) -> DataFrame {
