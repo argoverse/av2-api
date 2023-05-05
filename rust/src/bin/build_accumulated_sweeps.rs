@@ -1,45 +1,72 @@
+//! # build_accumulated_sweeps
+//!
+//! Accumulates lidar sweeps across a contiguous temporal window.
+//! Defaults to a 5 frame window (~1 second of lidar data).
+
 use std::{fs, path::PathBuf};
 
 use av2::{data_loader::DataLoader, io::write_feather_eager};
 use indicatif::ProgressBar;
+
+#[macro_use]
+extern crate log;
 use once_cell::sync::Lazy;
 
-static ROOT_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::home_dir().unwrap().join("data/datasets/"));
-static DATASET_NAME: &str = "av2";
-static DATASET_TYPE: &str = "sensor";
-static SPLIT_NAME: &str = "val";
+/// Constants can be changed to fit your directory structure.
+/// However, it's recommend to place the datasets in the default folders.
 
+/// Root directory to datasets.
+static ROOT_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::home_dir().unwrap().join("data/datasets/"));
+
+/// Dataset name.
+static DATASET_NAME: &str = "av2";
+
+/// Dataset type. This will either be "lidar" or "sensor".
+static DATASET_TYPE: &str = "sensor";
+
+/// Split names for the dataset.
+static SPLIT_NAMES: Lazy<Vec<&str>> = Lazy::new(|| vec!["train", "val", "test"]);
+
+/// Number of accumulated sweeps.
 const NUM_ACCUMULATED_SWEEPS: usize = 5;
+
+/// Memory maps the sweeps for fast pre-processing. Requires .feather files to be uncompressed.
 const MEMORY_MAPPED: bool = false;
 
 static DST_DATASET_NAME: Lazy<String> =
     Lazy::new(|| format!("{DATASET_NAME}_{NUM_ACCUMULATED_SWEEPS}_sweep"));
-static DST_DIR: Lazy<PathBuf> = Lazy::new(|| {
-    ROOT_DIR
-        .join(DST_DATASET_NAME.clone())
-        .join(DATASET_TYPE)
-        .join(SPLIT_NAME)
-});
+static SRC_PREFIX: Lazy<PathBuf> =
+    Lazy::new(|| ROOT_DIR.join(DATASET_NAME.clone()).join(DATASET_TYPE));
+static DST_PREFIX: Lazy<PathBuf> =
+    Lazy::new(|| ROOT_DIR.join(DST_DATASET_NAME.clone()).join(DATASET_TYPE));
 
+/// Script entrypoint.
 pub fn main() {
-    let data_loader = DataLoader::new(
-        ROOT_DIR.clone().to_str().unwrap(),
-        DATASET_NAME,
-        DATASET_TYPE,
-        SPLIT_NAME,
-        NUM_ACCUMULATED_SWEEPS,
-        MEMORY_MAPPED,
-    );
+    env_logger::init();
+    for split_name in SPLIT_NAMES.clone() {
+        if !SRC_PREFIX.join(split_name).exists() {
+            error!("Cannot find `{split_name}` split. Skipping ...");
+            continue;
+        }
+        let data_loader = DataLoader::new(
+            ROOT_DIR.clone().to_str().unwrap(),
+            DATASET_NAME,
+            DATASET_TYPE,
+            split_name,
+            NUM_ACCUMULATED_SWEEPS,
+            MEMORY_MAPPED,
+        );
+        let bar = ProgressBar::new(data_loader.len() as u64);
+        for datum in data_loader {
+            let lidar = datum.lidar.0;
+            let (log_id, timestamp_ns) = datum.sweep_uuid;
 
-    let bar = ProgressBar::new(data_loader.len() as u64);
-    for datum in data_loader {
-        let lidar = datum.lidar.0;
-        let (log_id, timestamp_ns) = datum.sweep_uuid;
-        let suffix = format!("{log_id}/sensors/lidar/{timestamp_ns}.feather");
-        let dst = DST_DIR.clone().join(suffix);
+            let suffix = format!("{split_name}/{log_id}/sensors/lidar/{timestamp_ns}.feather");
+            let dst = DST_PREFIX.clone().join(suffix);
 
-        fs::create_dir_all(dst.parent().unwrap()).unwrap();
-        write_feather_eager(&dst, lidar);
-        bar.inc(1)
+            fs::create_dir_all(dst.parent().unwrap()).unwrap();
+            write_feather_eager(&dst, lidar);
+            bar.inc(1)
+        }
     }
 }
