@@ -15,12 +15,13 @@ pub mod share;
 pub mod structures;
 
 use data_loader::{DataLoader, Sweep};
+use geometry::augmentations::{reflect_pose_x, reflect_pose_y};
 use ndarray::{Dim, Ix1, Ix2};
 use numpy::PyReadonlyArray;
 use numpy::{IntoPyArray, PyArray};
 use pyo3::prelude::*;
 
-use geometry::so3::quat_to_mat3;
+use geometry::so3::{quat_to_mat3, quat_to_yaw, yaw_to_quat};
 use numpy::PyReadonlyArray2;
 
 use crate::ops::voxelize;
@@ -64,12 +65,56 @@ fn py_quat_to_mat3<'py>(
     quat_to_mat3(&quat_wxyz.as_array().view()).into_pyarray(py)
 }
 
+#[pyfunction]
+#[pyo3(name = "quat_to_yaw")]
+#[allow(clippy::type_complexity)]
+fn py_quat_to_yaw<'py>(
+    py: Python<'py>,
+    quat_wxyz: PyReadonlyArray<f32, Ix2>,
+) -> &'py PyArray<f32, Ix2> {
+    quat_to_yaw(&quat_wxyz.as_array().view()).into_pyarray(py)
+}
+
+#[pyfunction]
+#[pyo3(name = "yaw_to_quat")]
+#[allow(clippy::type_complexity)]
+fn py_yaw_to_quat<'py>(
+    py: Python<'py>,
+    quat_wxyz: PyReadonlyArray<f32, Ix2>,
+) -> &'py PyArray<f32, Ix2> {
+    yaw_to_quat(&quat_wxyz.as_array().view()).into_pyarray(py)
+}
+
+#[pyfunction]
+#[pyo3(name = "reflect_pose_x")]
+#[allow(clippy::type_complexity)]
+fn py_reflect_pose_x<'py>(
+    py: Python<'py>,
+    quat_wxyz: PyReadonlyArray<f32, Ix2>,
+) -> &'py PyArray<f32, Ix2> {
+    reflect_pose_x(&quat_wxyz.as_array().view()).into_pyarray(py)
+}
+
+#[pyfunction]
+#[pyo3(name = "reflect_pose_y")]
+#[allow(clippy::type_complexity)]
+fn py_reflect_pose_y<'py>(
+    py: Python<'py>,
+    quat_wxyz: PyReadonlyArray<f32, Ix2>,
+) -> &'py PyArray<f32, Ix2> {
+    reflect_pose_y(&quat_wxyz.as_array().view()).into_pyarray(py)
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _r(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<DataLoader>()?;
     m.add_class::<Sweep>()?;
     m.add_function(wrap_pyfunction!(py_quat_to_mat3, m)?)?;
+    m.add_function(wrap_pyfunction!(py_quat_to_yaw, m)?)?;
+    m.add_function(wrap_pyfunction!(py_reflect_pose_x, m)?)?;
+    m.add_function(wrap_pyfunction!(py_reflect_pose_y, m)?)?;
     m.add_function(wrap_pyfunction!(py_voxelize, m)?)?;
+    m.add_function(wrap_pyfunction!(py_yaw_to_quat, m)?)?;
     Ok(())
 }
