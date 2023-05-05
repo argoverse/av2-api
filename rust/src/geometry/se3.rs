@@ -2,7 +2,11 @@
 //!
 //! Special Euclidean Group 3.
 
-use ndarray::{s, Array1, Array2, ArrayView2};
+use std::{f32::consts::PI, ops::Neg};
+
+use ndarray::{concatenate, s, Array, Array1, Array2, ArrayView, ArrayView2, Axis, Ix2};
+
+use super::so3::{quat_to_yaw, yaw_to_quat};
 
 /// Special Euclidean Group 3 (SE(3)).
 /// Rigid transformation parameterized by a rotation and translation in $R^3$.
@@ -56,4 +60,34 @@ impl SE3 {
                 .to_owned(),
         }
     }
+}
+
+/// Reflect pose across the x-axis.
+/// (N,10) `xyzlwh_qwxyz` represent the translation, dimensions, and orientation of `N` rigid objects.
+pub fn reflect_pose_x(xyzlwh_qwxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
+    let xyz_m = xyzlwh_qwxyz.slice(s![.., ..3]);
+    let quat_wxyz = xyzlwh_qwxyz.slice(s![.., -4..]);
+
+    let mut reflected_xyz_m = xyz_m.clone().to_owned();
+    reflected_xyz_m.assign(&reflected_xyz_m.slice(s![.., 1]).neg());
+
+    let yaw_rad = quat_to_yaw(&quat_wxyz);
+    let reflected_yaw_rad = -yaw_rad;
+    let reflected_quat_wxyz = yaw_to_quat(&reflected_yaw_rad.view());
+    concatenate![Axis(1), reflected_xyz_m, reflected_quat_wxyz]
+}
+
+/// Reflect pose across the y-axis.
+/// (N,10) `xyzlwh_qwxyz` represent the translation, dimensions, and orientation of `N` rigid objects.
+pub fn reflect_pose_y(xyzlwh_qwxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
+    let xyz_m = xyzlwh_qwxyz.slice(s![.., ..3]);
+    let quat_wxyz = xyzlwh_qwxyz.slice(s![.., -4..]);
+
+    let mut reflected_xyz_m = xyz_m.clone().to_owned();
+    reflected_xyz_m.assign(&reflected_xyz_m.slice(s![.., 0]).neg());
+
+    let yaw_rad = quat_to_yaw(&quat_wxyz);
+    let reflected_yaw_rad = PI - yaw_rad;
+    let reflected_quat_wxyz = yaw_to_quat(&reflected_yaw_rad.view());
+    concatenate![Axis(1), reflected_xyz_m, reflected_quat_wxyz]
 }

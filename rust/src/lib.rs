@@ -15,7 +15,7 @@ pub mod share;
 pub mod structures;
 
 use data_loader::{DataLoader, Sweep};
-use geometry::augmentations::{reflect_pose_x, reflect_pose_y};
+use geometry::se3::{reflect_pose_x, reflect_pose_y};
 use ndarray::{Dim, Ix1, Ix2};
 use numpy::PyReadonlyArray;
 use numpy::{IntoPyArray, PyArray};
