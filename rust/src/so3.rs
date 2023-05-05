@@ -2,10 +2,10 @@
 //!
 //! Special Orthogonal Group 3 (SO(3)).
 
-use ndarray::{Array2, ArrayView1};
+use ndarray::{Array, Array2, ArrayView, Ix1, Ix2};
 
 /// Convert a quaternion in scalar-first format to a 3x3 rotation matrix.
-pub fn quat_to_mat3(quat_wxyz: &ArrayView1<f32>) -> Array2<f32> {
+pub fn quat_to_mat3(quat_wxyz: &ArrayView<f32, Ix1>) -> Array<f32, Ix2> {
     let w = quat_wxyz[0];
     let x = quat_wxyz[1];
     let y = quat_wxyz[2];
@@ -30,4 +30,41 @@ pub fn quat_to_mat3(quat_wxyz: &ArrayView1<f32>) -> Array2<f32> {
             vec![e_00, e_01, e_02, e_10, e_11, e_12, e_20, e_21, e_22],
         )
     }
+}
+
+/// Convert a scalar-first quaternion to yaw.
+/// In the Argoverse 2 coordinate system, this is counter-clockwise rotation about the +z axis.
+pub fn quat_to_yaw(quat_wxyz: ArrayView<f32, Ix1>) -> f32 {
+    let (qw, qx, qy, qz) = (quat_wxyz[0], quat_wxyz[1], quat_wxyz[2], quat_wxyz[3]);
+    let siny_cosp = 2. * (qw * qz + qx * qy);
+    let cosy_cosp = 1. - 2. * (qy * qy + qz * qz);
+    siny_cosp.atan2(cosy_cosp)
+}
+
+/// Convert rotation about the z-axis to a scalar-first quaternion.
+pub fn yaw_to_quat(yaw_rad: f32) -> Array<f32, Ix1> {
+    let cy = f32::cos(0.5 * yaw_rad);
+    let sy = f32::sin(0.5 * yaw_rad);
+
+    // pitch_rad = 0.0
+    // cos(0.5 * pitch_rad) = 1.0
+    let cp = 1.0;
+
+    // pitch_rad = 0.0
+    // sin(0.5 * pitch_rad) = 0.0
+    let sp = 0.0;
+
+    // roll_rad = 0.0
+    // cos(0.5 * roll_rad) = 1.0
+    let cr = 1.0;
+
+    // roll_rad = 0.0
+    // sin(0.5 * roll_rad) = 0.0
+    let sr = 0.0;
+
+    let qw = cr * cp * cy + sr * sp * sy;
+    let qx = sr * cp * cy - cr * sp * sy;
+    let qy = cr * sp * cy + sr * cp * sy;
+    let qz = cr * cp * sy - sr * sp * cy;
+    Array::<f32, Ix1>::from_vec(vec![qw, qx, qy, qz])
 }
