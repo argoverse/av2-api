@@ -2,8 +2,6 @@
 //!
 //! Special Orthogonal Group 3 (SO(3)).
 
-use std::f32::consts::PI;
-
 use ndarray::{par_azip, Array, Array2, ArrayView, Ix1, Ix2};
 
 /// Convert a quaternion in scalar-first format to a 3x3 rotation matrix.
@@ -93,18 +91,4 @@ pub fn _yaw_to_quat(yaw_rad: f32) -> Array<f32, Ix1> {
     let qy = cr * sp * cy + sr * cp * sy;
     let qz = cr * cp * sy - sr * sp * cy;
     Array::<f32, Ix1>::from_vec(vec![qw, qx, qy, qz])
-}
-
-/// Reflect pose across the x-axis.
-pub fn reflect_pose_x(quat_wxyz: ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
-    let yaw_rad = quat_to_yaw(quat_wxyz);
-    let reflected_yaw_rad = -yaw_rad;
-    yaw_to_quat(reflected_yaw_rad.view())
-}
-
-/// Reflect pose across the y-axis.
-pub fn reflect_pose_y(quat_wxyz: ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
-    let yaw_rad = quat_to_yaw(quat_wxyz);
-    let reflected_yaw_rad = yaw_rad - PI;
-    yaw_to_quat(reflected_yaw_rad.view())
 }

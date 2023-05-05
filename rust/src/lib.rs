@@ -11,8 +11,6 @@ pub mod geometry;
 pub mod io;
 pub mod ops;
 pub mod path;
-pub mod se3;
-pub mod so3;
 pub mod structures;
 
 use data_loader::{DataLoader, Sweep};
@@ -21,8 +19,8 @@ use numpy::PyReadonlyArray;
 use numpy::{IntoPyArray, PyArray};
 use pyo3::prelude::*;
 
+use geometry::so3::quat_to_mat3;
 use numpy::PyReadonlyArray2;
-use so3::quat_to_mat3;
 
 use crate::ops::voxelize;
 
