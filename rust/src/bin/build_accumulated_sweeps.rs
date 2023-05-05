@@ -57,9 +57,9 @@ pub fn main() {
             MEMORY_MAPPED,
         );
         let bar = ProgressBar::new(data_loader.len() as u64);
-        for datum in data_loader {
-            let lidar = datum.lidar.0;
-            let (log_id, timestamp_ns) = datum.sweep_uuid;
+        for sweep in data_loader {
+            let lidar = sweep.lidar.0;
+            let (log_id, timestamp_ns) = sweep.sweep_uuid;
 
             let suffix = format!("{split_name}/{log_id}/sensors/lidar/{timestamp_ns}.feather");
             let dst = DST_PREFIX.clone().join(suffix);
