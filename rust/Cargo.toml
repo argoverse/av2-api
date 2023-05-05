@@ -24,7 +24,7 @@ ndarray = { version = "0.15.6", features = [
     "matrixmultiply-threading",
     "rayon",
 ] }
-nshare = { git = "https://github.com/benjaminrwilson/nshare", features = [
+nshare = { git = "https://github.com/benjaminrwilson/nshare", ref = "e896e103dc6b6e449b760d1e6d639590a864a80b", features = [
     "ndarray",
 ] }
 numpy = { version = "0.18.0" }
