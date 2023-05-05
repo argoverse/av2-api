@@ -11,8 +11,6 @@ use crate::geometry::so3::{quat_to_yaw, yaw_to_quat};
 /// Reflect pose across the x-axis.
 pub fn reflect_pose_x(quat_wxyz: ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
     let yaw_rad = quat_to_yaw(quat_wxyz);
-
-    println!("{}", yaw_rad);
     let reflected_yaw_rad = -yaw_rad;
     yaw_to_quat(reflected_yaw_rad.view())
 }
