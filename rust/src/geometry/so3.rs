@@ -67,28 +67,7 @@ pub fn yaw_to_quat(yaw_rad: ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
 
 /// Convert rotation about the z-axis to a scalar-first quaternion.
 pub fn _yaw_to_quat(yaw_rad: f32) -> Array<f32, Ix1> {
-    let cy = f32::cos(0.5 * yaw_rad);
-    let sy = f32::sin(0.5 * yaw_rad);
-
-    // pitch_rad = 0.0
-    // cos(0.5 * pitch_rad) = 1.0
-    let cp = 1.0;
-
-    // pitch_rad = 0.0
-    // sin(0.5 * pitch_rad) = 0.0
-    let sp = 0.0;
-
-    // roll_rad = 0.0
-    // cos(0.5 * roll_rad) = 1.0
-    let cr = 1.0;
-
-    // roll_rad = 0.0
-    // sin(0.5 * roll_rad) = 0.0
-    let sr = 0.0;
-
-    let qw = cr * cp * cy + sr * sp * sy;
-    let qx = sr * cp * cy - cr * sp * sy;
-    let qy = cr * sp * cy + sr * cp * sy;
-    let qz = cr * cp * sy - sr * sp * cy;
-    Array::<f32, Ix1>::from_vec(vec![qw, qx, qy, qz])
+    let qw = f32::cos(0.5 * yaw_rad);
+    let qz = f32::sin(0.5 * yaw_rad);
+    Array::<f32, Ix1>::from_vec(vec![qw, 0.0, 0.0, qz])
 }
