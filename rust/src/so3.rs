@@ -4,7 +4,7 @@
 
 use std::f32::consts::PI;
 
-use ndarray::{Array, Array2, ArrayView, Ix1, Ix2};
+use ndarray::{par_azip, Array, Array2, ArrayView, Ix1, Ix2};
 
 /// Convert a quaternion in scalar-first format to a 3x3 rotation matrix.
 pub fn quat_to_mat3(quat_wxyz: &ArrayView<f32, Ix1>) -> Array<f32, Ix2> {
@@ -36,15 +36,39 @@ pub fn quat_to_mat3(quat_wxyz: &ArrayView<f32, Ix1>) -> Array<f32, Ix2> {
 
 /// Convert a scalar-first quaternion to yaw.
 /// In the Argoverse 2 coordinate system, this is counter-clockwise rotation about the +z axis.
-pub fn quat_to_yaw(quat_wxyz: ArrayView<f32, Ix1>) -> f32 {
+/// Parallelized for batch processing.
+pub fn quat_to_yaw(quat_wxyz: ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
+    let num_quats = quat_wxyz.shape()[0];
+    let mut yaws_rad = Array::<f32, Ix2>::zeros((num_quats, 1));
+    par_azip!((mut y in yaws_rad.outer_iter_mut(), q in quat_wxyz.outer_iter()) {
+        y[0] = _quat_to_yaw(q);
+    });
+    yaws_rad
+}
+
+/// Convert a scalar-first quaternion to yaw.
+/// In the Argoverse 2 coordinate system, this is counter-clockwise rotation about the +z axis.
+pub fn _quat_to_yaw(quat_wxyz: ArrayView<f32, Ix1>) -> f32 {
     let (qw, qx, qy, qz) = (quat_wxyz[0], quat_wxyz[1], quat_wxyz[2], quat_wxyz[3]);
     let siny_cosp = 2. * (qw * qz + qx * qy);
     let cosy_cosp = 1. - 2. * (qy * qy + qz * qz);
     siny_cosp.atan2(cosy_cosp)
 }
 
+/// Convert a scalar-first quaternion to yaw.
+/// In the Argoverse 2 coordinate system, this is counter-clockwise rotation about the +z axis.
+/// Parallelized for batch processing.
+pub fn yaw_to_quat(yaw_rad: ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
+    let num_yaws = yaw_rad.shape()[0];
+    let mut quat_wxyz = Array::<f32, Ix2>::zeros((num_yaws, 4));
+    par_azip!((mut q in quat_wxyz.outer_iter_mut(), y in yaw_rad.outer_iter()) {
+        q.assign(&_yaw_to_quat(y[0]));
+    });
+    quat_wxyz
+}
+
 /// Convert rotation about the z-axis to a scalar-first quaternion.
-pub fn yaw_to_quat(yaw_rad: f32) -> Array<f32, Ix1> {
+pub fn _yaw_to_quat(yaw_rad: f32) -> Array<f32, Ix1> {
     let cy = f32::cos(0.5 * yaw_rad);
     let sy = f32::sin(0.5 * yaw_rad);
 
@@ -72,15 +96,15 @@ pub fn yaw_to_quat(yaw_rad: f32) -> Array<f32, Ix1> {
 }
 
 /// Reflect pose across the x-axis.
-pub fn reflect_pose_x(quat_wxyz: ArrayView<f32, Ix1>) -> Array<f32, Ix1> {
+pub fn reflect_pose_x(quat_wxyz: ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
     let yaw_rad = quat_to_yaw(quat_wxyz);
     let reflected_yaw_rad = -yaw_rad;
-    yaw_to_quat(reflected_yaw_rad)
+    yaw_to_quat(reflected_yaw_rad.view())
 }
 
 /// Reflect pose across the y-axis.
-pub fn reflect_pose_y(quat_wxyz: ArrayView<f32, Ix1>) -> Array<f32, Ix1> {
+pub fn reflect_pose_y(quat_wxyz: ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
     let yaw_rad = quat_to_yaw(quat_wxyz);
     let reflected_yaw_rad = yaw_rad - PI;
-    yaw_to_quat(reflected_yaw_rad)
+    yaw_to_quat(reflected_yaw_rad.view())
 }
