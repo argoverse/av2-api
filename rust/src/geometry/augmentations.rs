@@ -60,8 +60,6 @@ pub fn sample_scene_reflection_x(
             .collect()
             .unwrap();
 
-        // println!("{}", augmented_lidar);
-
         let column_names = vec!["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"];
         let poses = data_frame_to_ndarray_f32(cuboids.clone(), column_names.clone());
         let augmented_poses = reflect_pose_x(&poses.view());
