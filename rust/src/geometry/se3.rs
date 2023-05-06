@@ -2,7 +2,7 @@
 //!
 //! Special Euclidean Group 3.
 
-use std::{f32::consts::PI, ops::Neg};
+use std::f32::consts::PI;
 
 use ndarray::{concatenate, s, Array, Array1, Array2, ArrayView, ArrayView2, Axis, Ix2};
 
@@ -64,12 +64,14 @@ impl SE3 {
 
 /// Reflect pose across the x-axis.
 /// (N,10) `xyzlwh_qwxyz` represent the translation, dimensions, and orientation of `N` rigid objects.
-pub fn reflect_pose_x(xyzlwh_qwxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
-    let xyz_m = xyzlwh_qwxyz.slice(s![.., ..3]);
-    let quat_wxyz = xyzlwh_qwxyz.slice(s![.., -4..]);
+pub fn reflect_pose_x(xyz_qwxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
+    let xyz_m = xyz_qwxyz.slice(s![.., ..3]);
+    let quat_wxyz = xyz_qwxyz.slice(s![.., -4..]);
 
     let mut reflected_xyz_m = xyz_m.clone().to_owned();
-    reflected_xyz_m.assign(&reflected_xyz_m.slice(s![.., 1]).neg());
+    reflected_xyz_m
+        .slice_mut(s![.., 1])
+        .par_mapv_inplace(|y| -y);
 
     let yaw_rad = quat_to_yaw(&quat_wxyz);
     let reflected_yaw_rad = -yaw_rad;
@@ -78,13 +80,17 @@ pub fn reflect_pose_x(xyzlwh_qwxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
 }
 
 /// Reflect pose across the y-axis.
-/// (N,10) `xyzlwh_qwxyz` represent the translation, dimensions, and orientation of `N` rigid objects.
-pub fn reflect_pose_y(xyzlwh_qwxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
-    let xyz_m = xyzlwh_qwxyz.slice(s![.., ..3]);
-    let quat_wxyz = xyzlwh_qwxyz.slice(s![.., -4..]);
+/// (N,10) `xyz_qwxyz` represent the translation, dimensions, and orientation of `N` rigid objects.
+pub fn reflect_pose_y(xyz_qwxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
+    let xyz_m = xyz_qwxyz.slice(s![.., ..3]);
+    let quat_wxyz = xyz_qwxyz.slice(s![.., -4..]);
 
     let mut reflected_xyz_m = xyz_m.clone().to_owned();
-    reflected_xyz_m.assign(&reflected_xyz_m.slice(s![.., 0]).neg());
+    reflected_xyz_m
+        .slice_mut(s![.., 0])
+        .par_mapv_inplace(|x| -x);
+
+    println!("{}", reflected_xyz_m);
 
     let yaw_rad = quat_to_yaw(&quat_wxyz);
     let reflected_yaw_rad = PI - yaw_rad;

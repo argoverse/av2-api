@@ -3,10 +3,14 @@
 //! Conversion methods between different libraries.
 
 use ndarray::{Array, Ix2};
-use polars::{prelude::NamedFrom, series::Series};
+use polars::{
+    lazy::dsl::{cols, lit, Expr},
+    prelude::{DataFrame, Float32Type, IntoLazy, NamedFrom},
+    series::Series,
+};
 
 /// Convert the columns of an `ndarray::Array` into a vector of `polars::series::Series`.
-pub fn ndarray_to_series_vec(arr: Array<f32, Ix2>, column_names: Vec<&str>) -> Vec<Series> {
+pub fn ndarray_to_series_vec(arr: Array<f32, Ix2>, column_names: Vec<&str>) -> Vec<Expr> {
     let num_dims = arr.shape()[1];
     if num_dims != column_names.len() {
         panic!("Number of array columns and column names must match.");
@@ -18,7 +22,22 @@ pub fn ndarray_to_series_vec(arr: Array<f32, Ix2>, column_names: Vec<&str>) -> V
             column_name,
             column.as_standard_layout().to_owned().into_raw_vec(),
         );
-        series_vec.push(series);
+        series_vec.push(lit(series));
     }
     series_vec
+}
+
+/// Convert a data frame to an `ndarray::Array::<f32, Ix2>`.
+pub fn data_frame_to_ndarray_f32(
+    data_frame: DataFrame,
+    column_names: Vec<&str>,
+) -> Array<f32, Ix2> {
+    data_frame
+        .clone()
+        .lazy()
+        .select(&[cols(column_names)])
+        .collect()
+        .unwrap()
+        .to_ndarray::<Float32Type>()
+        .unwrap()
 }
