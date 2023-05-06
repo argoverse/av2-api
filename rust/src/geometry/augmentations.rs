@@ -20,8 +20,8 @@ pub fn sample_scene_reflection_x(
     cuboids: DataFrame,
     p: f64,
 ) -> (DataFrame, DataFrame) {
-    let d = Bernoulli::new(p).unwrap();
-    let is_augmented = d.sample(&mut rand::thread_rng());
+    let distribution = Bernoulli::new(p).unwrap();
+    let is_augmented = distribution.sample(&mut rand::thread_rng());
     if is_augmented {
         let augmented_lidar = lidar
             .clone()
@@ -59,8 +59,8 @@ pub fn sample_scene_reflection_y(
     cuboids: DataFrame,
     p: f64,
 ) -> (DataFrame, DataFrame) {
-    let d = Bernoulli::new(p).unwrap();
-    let is_augmented = d.sample(&mut rand::thread_rng());
+    let distribution: Bernoulli = Bernoulli::new(p).unwrap();
+    let is_augmented = distribution.sample(&mut rand::thread_rng());
     if is_augmented {
         let augmented_lidar = lidar
             .clone()
