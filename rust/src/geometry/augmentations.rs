@@ -2,7 +2,6 @@
 //!
 //! Geometric augmentations.
 
-use ndarray::{Array, ArrayView, Ix2};
 use polars::{
     lazy::dsl::{col, GetOutput},
     prelude::{DataFrame, DataType, IntoLazy},
@@ -13,24 +12,6 @@ use rand_distr::{Bernoulli, Distribution};
 use crate::share::{data_frame_to_ndarray_f32, ndarray_to_series_vec};
 
 use super::se3::{reflect_pose_x, reflect_pose_y};
-
-/// Reflect all poses across the x-axis with probability `p` (sampled from a Bernoulli distribution).
-pub fn _sample_global_reflect_pose_x(xyzlwh_qwxyz: ArrayView<f32, Ix2>, p: f64) -> Array<f32, Ix2> {
-    let d = Bernoulli::new(p).unwrap();
-    if d.sample(&mut rand::thread_rng()) {
-        return reflect_pose_x(&xyzlwh_qwxyz.view());
-    }
-    xyzlwh_qwxyz.to_owned()
-}
-
-/// Reflect all poses across the y-axis with probability `p` (sampled from a Bernoulli distribution).
-pub fn _sample_global_reflect_pose_y(xyzlwh_qwxyz: ArrayView<f32, Ix2>, p: f64) -> Array<f32, Ix2> {
-    let d = Bernoulli::new(p).unwrap();
-    if d.sample(&mut rand::thread_rng()) {
-        return reflect_pose_y(&xyzlwh_qwxyz.view());
-    }
-    xyzlwh_qwxyz.to_owned()
-}
 
 /// Sample a scene reflection.
 /// This reflects both a point cloud and cuboids across the x-axis.
