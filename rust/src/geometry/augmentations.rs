@@ -11,7 +11,7 @@ use rand_distr::{Bernoulli, Distribution};
 
 use crate::share::{data_frame_to_ndarray_f32, ndarray_to_series_vec};
 
-use super::se3::{reflect_pose_x, reflect_pose_y};
+use super::so3::{reflect_orientation_x, reflect_orientation_y};
 
 /// Sample a scene reflection.
 /// This reflects both a point cloud and cuboids across the x-axis.
@@ -42,7 +42,7 @@ pub fn sample_scene_reflection_x(
 
         let column_names = vec!["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"];
         let poses = data_frame_to_ndarray_f32(cuboids.clone(), column_names.clone());
-        let augmented_poses = reflect_pose_x(&poses.view());
+        let augmented_poses = reflect_orientation_x(&poses.view());
         let series_vec = ndarray_to_series_vec(augmented_poses, column_names);
         let augmented_cuboids = cuboids.lazy().with_columns(series_vec).collect().unwrap();
         (augmented_lidar, augmented_cuboids)
@@ -80,7 +80,7 @@ pub fn sample_scene_reflection_y(
 
         let column_names = vec!["tx_m", "ty_m", "tz_m", "qw", "qx", "qy", "qz"];
         let poses = data_frame_to_ndarray_f32(cuboids.clone(), column_names.clone());
-        let augmented_poses = reflect_pose_y(&poses.view());
+        let augmented_poses = reflect_orientation_y(&poses.view());
         let series_vec = ndarray_to_series_vec(augmented_poses, column_names);
         let augmented_cuboids = cuboids.lazy().with_columns(series_vec).collect().unwrap();
         (augmented_lidar, augmented_cuboids)
