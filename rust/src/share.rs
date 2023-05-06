@@ -9,8 +9,8 @@ use polars::{
     series::Series,
 };
 
-/// Convert the columns of an `ndarray::Array` into a vector of `polars::series::Series`.
-pub fn ndarray_to_series_vec(arr: Array<f32, Ix2>, column_names: Vec<&str>) -> Vec<Expr> {
+/// Convert the columns of an `ndarray::Array` into a vector of `polars` expressions.
+pub fn ndarray_to_expr_vec(arr: Array<f32, Ix2>, column_names: Vec<&str>) -> Vec<Expr> {
     let num_dims = arr.shape()[1];
     if num_dims != column_names.len() {
         panic!("Number of array columns and column names must match.");

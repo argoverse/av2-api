@@ -11,7 +11,7 @@ use polars::{
 };
 use rand_distr::{Bernoulli, Distribution};
 
-use crate::share::{data_frame_to_ndarray_f32, ndarray_to_series_vec};
+use crate::share::{data_frame_to_ndarray_f32, ndarray_to_expr_vec};
 
 use super::so3::{
     reflect_orientation_x, reflect_orientation_y, reflect_translation_x, reflect_translation_y,
@@ -59,7 +59,7 @@ pub fn sample_scene_reflection_x(
             .into_iter()
             .chain(orientation_column_names)
             .collect_vec();
-        let series_vec = ndarray_to_series_vec(augmented_poses, column_names);
+        let series_vec = ndarray_to_expr_vec(augmented_poses, column_names);
         let augmented_cuboids = cuboids.lazy().with_columns(series_vec).collect().unwrap();
         (augmented_lidar, augmented_cuboids)
     } else {
@@ -109,7 +109,7 @@ pub fn sample_scene_reflection_y(
             .into_iter()
             .chain(orientation_column_names)
             .collect_vec();
-        let series_vec = ndarray_to_series_vec(augmented_poses, column_names);
+        let series_vec = ndarray_to_expr_vec(augmented_poses, column_names);
         let augmented_cuboids = cuboids.lazy().with_columns(series_vec).collect().unwrap();
         (augmented_lidar, augmented_cuboids)
     } else {

@@ -75,7 +75,7 @@ pub fn _yaw_to_quat(yaw_rad: f32) -> Array<f32, Ix1> {
 }
 
 /// Reflect orientation across the x-axis.
-/// (N,7) `quat_wxyz` orientation of `N` rigid objects.
+/// (N,4) `quat_wxyz` orientation of `N` rigid objects.
 pub fn reflect_orientation_x(quat_wxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
     let yaw_rad = quat_to_yaw(quat_wxyz);
     let reflected_yaw_rad = -yaw_rad;
@@ -83,7 +83,7 @@ pub fn reflect_orientation_x(quat_wxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2>
 }
 
 /// Reflect orientation across the y-axis.
-/// (N,7) `quat_wxyz` orientation of `N` rigid objects.
+/// (N,4) `quat_wxyz` orientation of `N` rigid objects.
 pub fn reflect_orientation_y(quat_wxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
     let yaw_rad = quat_to_yaw(quat_wxyz);
     let reflected_yaw_rad = PI - yaw_rad;
