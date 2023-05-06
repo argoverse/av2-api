@@ -63,7 +63,7 @@ impl SE3 {
 }
 
 /// Reflect pose across the x-axis.
-/// (N,10) `xyzlwh_qwxyz` represent the translation, dimensions, and orientation of `N` rigid objects.
+/// (N,7) `xyz_qwxyz` represent the translation and orientation of `N` rigid objects.
 pub fn reflect_pose_x(xyz_qwxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
     let xyz_m = xyz_qwxyz.slice(s![.., ..3]);
     let quat_wxyz = xyz_qwxyz.slice(s![.., -4..]);
@@ -80,7 +80,7 @@ pub fn reflect_pose_x(xyz_qwxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
 }
 
 /// Reflect pose across the y-axis.
-/// (N,10) `xyz_qwxyz` represent the translation, dimensions, and orientation of `N` rigid objects.
+/// (N,7) `xyz_qwxyz` represent the translation and orientation of `N` rigid objects.
 pub fn reflect_pose_y(xyz_qwxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
     let xyz_m = xyz_qwxyz.slice(s![.., ..3]);
     let quat_wxyz = xyz_qwxyz.slice(s![.., -4..]);
