@@ -33,7 +33,6 @@ pub fn data_frame_to_ndarray_f32(
     column_names: Vec<&str>,
 ) -> Array<f32, Ix2> {
     data_frame
-        .clone()
         .lazy()
         .select(&[cols(column_names)])
         .collect()

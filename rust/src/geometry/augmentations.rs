@@ -24,7 +24,6 @@ pub fn sample_scene_reflection_x(
     let is_augmented = distribution.sample(&mut rand::thread_rng());
     if is_augmented {
         let augmented_lidar = lidar
-            .clone()
             .lazy()
             .with_column(col("y").map(
                 move |x| {
@@ -63,7 +62,6 @@ pub fn sample_scene_reflection_y(
     let is_augmented = distribution.sample(&mut rand::thread_rng());
     if is_augmented {
         let augmented_lidar = lidar
-            .clone()
             .lazy()
             .with_column(col("x").map(
                 move |x| {
