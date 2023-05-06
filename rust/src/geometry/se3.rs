@@ -90,8 +90,6 @@ pub fn reflect_pose_y(xyz_qwxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
         .slice_mut(s![.., 0])
         .par_mapv_inplace(|x| -x);
 
-    println!("{}", reflected_xyz_m);
-
     let yaw_rad = quat_to_yaw(&quat_wxyz);
     let reflected_yaw_rad = PI - yaw_rad;
     let reflected_quat_wxyz = yaw_to_quat(&reflected_yaw_rad.view());
