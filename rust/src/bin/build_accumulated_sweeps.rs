@@ -56,15 +56,45 @@ pub fn main() {
             MEMORY_MAPPED,
         );
         let bar = ProgressBar::new(data_loader.len() as u64);
+
+        let mut previous_log_id = String::new();
         for sweep in data_loader {
-            let lidar = sweep.lidar.0;
-            let (log_id, timestamp_ns) = sweep.sweep_uuid;
+            let lidar = &sweep.lidar.0;
+            let (log_id, timestamp_ns) = &sweep.sweep_uuid;
 
-            let suffix = format!("{split_name}/{log_id}/sensors/lidar/{timestamp_ns}.feather");
+            let log_suffix = format!("{split_name}/{log_id}");
+            let suffix = format!("{log_suffix}/sensors/lidar/{timestamp_ns}.feather");
             let dst = DST_PREFIX.clone().join(suffix);
-
             fs::create_dir_all(dst.parent().unwrap()).unwrap();
-            write_feather_eager(&dst, lidar);
+            write_feather_eager(&dst, lidar.to_owned());
+
+            let log_id = sweep.sweep_uuid.0;
+            if log_id != previous_log_id {
+                let city_se3_egovehicle_src = SRC_PREFIX
+                    .clone()
+                    .join(log_suffix.clone())
+                    .join("city_SE3_egovehicle.feather");
+                let city_se3_egovehicle_dst = DST_PREFIX
+                    .clone()
+                    .join(log_suffix.clone())
+                    .join("city_SE3_egovehicle.feather");
+
+                fs::copy(city_se3_egovehicle_src, city_se3_egovehicle_dst).unwrap();
+
+                if split_name != "test" {
+                    let annotations_src = SRC_PREFIX
+                        .clone()
+                        .join(log_suffix.clone())
+                        .join("annotations.feather");
+                    let annotations_dst = DST_PREFIX
+                        .clone()
+                        .join(log_suffix.clone())
+                        .join("annotations.feather");
+
+                    fs::copy(annotations_src, annotations_dst).unwrap();
+                }
+            }
+            previous_log_id = log_id.to_string();
             bar.inc(1)
         }
     }
