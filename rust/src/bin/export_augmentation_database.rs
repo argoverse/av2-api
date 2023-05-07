@@ -72,7 +72,6 @@ pub fn main() {
             let lidar_column_names = lidar.get_column_names();
             let lidar_ndarray = lidar.to_ndarray::<Float32Type>().unwrap();
 
-            // Original owner.
             let cuboids = sweep.cuboids.unwrap().0;
             let category = cuboids["category"]
                 .utf8()
@@ -97,6 +96,7 @@ pub fn main() {
                     .collect_vec();
 
                 let points_i = lidar_ndarray.select(Axis(0), &indices);
+                
                 let data_frame_i = DataFrame::from_iter(ndarray_to_series_vec(
                     points_i,
                     lidar_column_names.clone(),
