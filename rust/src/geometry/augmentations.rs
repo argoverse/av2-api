@@ -2,19 +2,27 @@
 //!
 //! Geometric augmentations.
 
+use std::ops::MulAssign;
+
 use itertools::Itertools;
-use ndarray::{concatenate, Axis};
+use ndarray::{concatenate, s, Axis};
 use polars::{
-    lazy::dsl::{col, GetOutput},
-    prelude::{DataFrame, DataType, IntoLazy},
+    lazy::dsl::{col, cols, GetOutput},
+    prelude::{DataFrame, DataType, Float32Type, IntoLazy},
     series::Series,
 };
-use rand_distr::{Bernoulli, Distribution};
+use rand_distr::{Bernoulli, Distribution, Uniform};
 
-use crate::share::{data_frame_to_ndarray_f32, ndarray_to_expr_vec};
+use crate::{
+    io::ndarray_from_frame,
+    share::{data_frame_to_ndarray_f32, ndarray_to_expr_vec},
+};
 
-use super::so3::{
-    reflect_orientation_x, reflect_orientation_y, reflect_translation_x, reflect_translation_y,
+use super::{
+    polytope::{compute_interior_points_mask, cuboids_to_polygons},
+    so3::{
+        reflect_orientation_x, reflect_orientation_y, reflect_translation_x, reflect_translation_y,
+    },
 };
 
 /// Sample a scene reflection.
@@ -115,4 +123,52 @@ pub fn sample_scene_reflection_y(
     } else {
         (lidar, cuboids)
     }
+}
+
+/// Sample a scene with random object scaling.
+pub fn sample_random_object_scale(
+    lidar: DataFrame,
+    cuboids: DataFrame,
+    low_inclusive: f64,
+    high_inclusive: f64,
+) -> (DataFrame, DataFrame) {
+    let mut points = ndarray_from_frame(&lidar, cols(["x", "y", "z"]));
+    let distribution = Uniform::new_inclusive(low_inclusive, high_inclusive);
+
+    let mut cuboids_ndarray = cuboids.to_ndarray::<Float32Type>().unwrap();
+    let cuboid_vertices = cuboids_to_polygons(&cuboids_ndarray.view());
+    let interior_points_mask =
+        compute_interior_points_mask(&points.view(), &cuboid_vertices.view());
+    for m in interior_points_mask.outer_iter() {
+        let scale_factor = distribution.sample(&mut rand::thread_rng()) as f32;
+        let indices = m
+            .iter()
+            .enumerate()
+            .filter_map(|(i, x)| match *x {
+                true => Some(i),
+                _ => None,
+            })
+            .collect_vec();
+        let mut interior_points = points.select(Axis(0), &indices);
+        interior_points *= scale_factor;
+
+        for index in indices {
+            points
+                .slice_mut(s![index, ..])
+                .assign(&interior_points.slice(s![index, ..]));
+        }
+
+        cuboids_ndarray
+            .slice_mut(s![.., 3..6])
+            .par_mapv_inplace(|x| x * scale_factor);
+    }
+
+    let lidar_column_names = vec!["x", "y", "z"];
+    let series_vec = ndarray_to_expr_vec(points, lidar_column_names);
+    let augmented_lidar = lidar.lazy().with_columns(series_vec).collect().unwrap();
+
+    let cuboid_column_names = vec!["length_m", "width_m", "height_m"];
+    let series_vec = ndarray_to_expr_vec(cuboids_ndarray, cuboid_column_names);
+    let augmented_cuboids = cuboids.lazy().with_columns(series_vec).collect().unwrap();
+    (augmented_lidar, augmented_cuboids)
 }
