@@ -8,16 +8,19 @@ use av2::{
     data_loader::DataLoader,
     geometry::polytope::{compute_interior_points_mask, cuboids_to_polygons},
     io::write_feather_eager,
-    share::ndarray_to_series_vec,
 };
 use indicatif::ProgressBar;
 
 #[macro_use]
 extern crate log;
 use itertools::Itertools;
-use ndarray::{s, Axis};
+use ndarray::{s, Array, Axis, Ix2};
 use once_cell::sync::Lazy;
-use polars::prelude::{DataFrame, Float32Type};
+use polars::{
+    df,
+    prelude::{DataFrame, Float32Type, NamedFrom},
+    series::Series,
+};
 use std::collections::HashMap;
 
 /// Constants can be changed to fit your directory structure.
@@ -33,7 +36,7 @@ static DATASET_NAME: &str = "av2";
 static DATASET_TYPE: &str = "sensor";
 
 /// Split names for the dataset.
-static SPLIT_NAMES: Lazy<Vec<&str>> = Lazy::new(|| vec!["val"]);
+static SPLIT_NAMES: Lazy<Vec<&str>> = Lazy::new(|| vec!["train"]);
 
 /// Number of accumulated sweeps.
 const NUM_ACCUMULATED_SWEEPS: usize = 1;
@@ -46,6 +49,18 @@ static DST_DATASET_NAME: Lazy<String> =
 static SRC_PREFIX: Lazy<PathBuf> = Lazy::new(|| ROOT_DIR.join(DATASET_NAME).join(DATASET_TYPE));
 static DST_PREFIX: Lazy<PathBuf> =
     Lazy::new(|| ROOT_DIR.join(DST_DATASET_NAME.clone()).join(DATASET_TYPE));
+
+static EXPORTED_COLUMN_NAMES: Lazy<Vec<&str>> = Lazy::new(|| {
+    vec![
+        "x",
+        "y",
+        "z",
+        "intensity",
+        "laser_number",
+        "offset_ns",
+        "timedelta_ns",
+    ]
+});
 
 /// Script entrypoint.
 pub fn main() {
@@ -65,11 +80,10 @@ pub fn main() {
             MEMORY_MAPPED,
         );
 
-        let mut category_counter: HashMap<String, usize> = HashMap::new();
+        let mut category_counter: HashMap<String, u64> = HashMap::new();
         let bar = ProgressBar::new(data_loader.len() as u64);
         for sweep in data_loader {
             let lidar = &sweep.lidar.0;
-            let lidar_column_names = lidar.get_column_names();
             let lidar_ndarray = lidar.to_ndarray::<Float32Type>().unwrap();
 
             let cuboids = sweep.cuboids.unwrap().0;
@@ -96,11 +110,7 @@ pub fn main() {
                     .collect_vec();
 
                 let points_i = lidar_ndarray.select(Axis(0), &indices);
-                
-                let data_frame_i = DataFrame::from_iter(ndarray_to_series_vec(
-                    points_i,
-                    lidar_column_names.clone(),
-                ));
+                let data_frame_i = _build_data_frame(points_i, EXPORTED_COLUMN_NAMES.clone());
 
                 category_counter
                     .entry(c.to_string())
@@ -112,7 +122,45 @@ pub fn main() {
                 fs::create_dir_all(dst.parent().unwrap()).unwrap();
                 write_feather_eager(&dst, data_frame_i);
             }
-            bar.inc(1)
+            bar.inc(1);
         }
+
+        let category = category_counter.keys().cloned().collect_vec();
+        let count = category_counter.values().cloned().collect_vec();
+        let num_padding = category_counter.values().map(|_| 8_u8).collect_vec();
+        let index =
+            df!("category" => category, "count" => count, "num_padding" => num_padding).unwrap();
+
+        let dst = DST_PREFIX.join("_index.feather");
+        write_feather_eager(&dst, index);
     }
+}
+
+// Helper method to build exported `DataFrame`.
+fn _build_data_frame(arr: Array<f32, Ix2>, column_names: Vec<&str>) -> DataFrame {
+    let series_vec = arr
+        .columns()
+        .into_iter()
+        .zip(column_names.into_iter())
+        .map(|(column, column_name)| match column_name {
+            "x" => Series::new("x", column.to_owned().into_raw_vec()),
+            "y" => Series::new("y", column.to_owned().into_raw_vec()),
+            "z" => Series::new("z", column.to_owned().into_raw_vec()),
+            "intensity" => Series::new(
+                "intensity",
+                column.to_owned().mapv(|x| x as u8).into_raw_vec(),
+            ),
+            "laser_number" => Series::new(
+                "laser_number",
+                column.to_owned().mapv(|x| x as u8).into_raw_vec(),
+            ),
+            "offset_ns" => Series::new(
+                "offset_ns",
+                column.to_owned().mapv(|x| x as u32).into_raw_vec(),
+            ),
+            "timedelta_ns" => Series::new("timedelta_ns", column.to_owned().into_raw_vec()),
+            _ => panic!(),
+        })
+        .collect_vec();
+    DataFrame::from_iter(series_vec)
 }
