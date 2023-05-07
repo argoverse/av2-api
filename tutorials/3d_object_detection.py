@@ -55,10 +55,8 @@ def main(
 
         # Cuboids might not be available (e.g., using the "test" split).
         if sweep.cuboids is not None:
-            # Annotations in (x,y,z,l,w,h,yaw) format.
-            cuboids = sweep.cuboids.as_tensor()
 
-            # Annotations in (x,y,z,l,theta) format.
+            # Annotations in (x,y,z,l,w,h,yaw) format.
             # 1-DOF rotation.
             xyzlwh_t = sweep.cuboids.as_tensor()
 
@@ -68,7 +66,7 @@ def main(
             # Access track uuid.
             track_uuid = sweep.cuboids.track_uuid
 
-            # print(lidar_xyz_city, cuboids, xyzlwh_t, category, track_uuid)
+            # print(lidar_xyz_city, xyzlwh_t, category, track_uuid)
 
         if i >= max_iterations:
             logger.info(f"Reached max iterations of {max_iterations}!")
