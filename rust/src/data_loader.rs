@@ -401,10 +401,13 @@ impl Iterator for DataLoader {
 
     fn next(&mut self) -> Option<Self::Item> {
         let idx = self.current_index;
-        let sweep_data = self.get(idx);
-        self.current_index += 1;
-
-        Some(sweep_data)
+        if idx == self.len() {
+            None
+        } else {
+            let sweep_data = self.get(idx);
+            self.current_index += 1;
+            Some(sweep_data)
+        }
     }
 }
 
