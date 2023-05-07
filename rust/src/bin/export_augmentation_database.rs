@@ -1,23 +1,24 @@
-//! # build_accumulated_sweeps
+//! # export_augmentation_database
 //!
-//! Accumulates lidar sweeps across a contiguous temporal window.
-//! Defaults to a 5 frame window (~1 second of lidar data).
+//! Exports cropped annotations from the `train` dataset for augmentation during training.
 
 use std::{fs, path::PathBuf};
 
 use av2::{
     data_loader::DataLoader,
-    io::{ndarray_filtered_from_frame, write_feather_eager},
+    geometry::polytope::{compute_interior_points_mask, cuboids_to_polygons},
+    io::write_feather_eager,
+    share::ndarray_to_series_vec,
 };
 use indicatif::ProgressBar;
 
 #[macro_use]
 extern crate log;
+use itertools::Itertools;
+use ndarray::{s, Axis};
 use once_cell::sync::Lazy;
-use polars::{
-    lazy::dsl::{col, lit},
-    prelude::{Float32Type, IntoLazy},
-};
+use polars::prelude::{DataFrame, Float32Type};
+use std::collections::HashMap;
 
 /// Constants can be changed to fit your directory structure.
 /// However, it's recommend to place the datasets in the default folders.
@@ -32,16 +33,16 @@ static DATASET_NAME: &str = "av2";
 static DATASET_TYPE: &str = "sensor";
 
 /// Split names for the dataset.
-static SPLIT_NAMES: Lazy<Vec<&str>> = Lazy::new(|| vec!["train", "val"]);
+static SPLIT_NAMES: Lazy<Vec<&str>> = Lazy::new(|| vec!["val"]);
 
 /// Number of accumulated sweeps.
-const NUM_ACCUMULATED_SWEEPS: usize = 5;
+const NUM_ACCUMULATED_SWEEPS: usize = 1;
 
 /// Memory maps the sweeps for fast pre-processing. Requires .feather files to be uncompressed.
 const MEMORY_MAPPED: bool = false;
 
 static DST_DATASET_NAME: Lazy<String> =
-    Lazy::new(|| format!("{DATASET_NAME}_{NUM_ACCUMULATED_SWEEPS}_sweep"));
+    Lazy::new(|| format!("{DATASET_NAME}_{NUM_ACCUMULATED_SWEEPS}_database"));
 static SRC_PREFIX: Lazy<PathBuf> = Lazy::new(|| ROOT_DIR.join(DATASET_NAME).join(DATASET_TYPE));
 static DST_PREFIX: Lazy<PathBuf> =
     Lazy::new(|| ROOT_DIR.join(DST_DATASET_NAME.clone()).join(DATASET_TYPE));
@@ -50,8 +51,9 @@ static DST_PREFIX: Lazy<PathBuf> =
 pub fn main() {
     env_logger::init();
     for split_name in SPLIT_NAMES.clone() {
-        if !SRC_PREFIX.join(split_name).exists() {
-            error!("Cannot find `{split_name}` split. Skipping ...");
+        let split_path = SRC_PREFIX.join(split_name);
+        if !split_path.exists() {
+            error!("Cannot find `{split_path:?}`. Skipping ...");
             continue;
         }
         let data_loader = DataLoader::new(
@@ -62,33 +64,54 @@ pub fn main() {
             NUM_ACCUMULATED_SWEEPS,
             MEMORY_MAPPED,
         );
+
+        let mut category_counter: HashMap<String, usize> = HashMap::new();
         let bar = ProgressBar::new(data_loader.len() as u64);
         for sweep in data_loader {
-            let (log_id, timestamp_ns) = sweep.sweep_uuid;
-            let lidar = sweep.lidar.0;
-            let cuboids = sweep
-                .cuboids
+            let lidar = &sweep.lidar.0;
+            let lidar_column_names = lidar.get_column_names();
+            let lidar_ndarray = lidar.to_ndarray::<Float32Type>().unwrap();
+
+            // Original owner.
+            let cuboids = sweep.cuboids.unwrap().0;
+            let category = cuboids["category"]
+                .utf8()
                 .unwrap()
-                .0
-                .to_ndarray::<Float32Type>()
-                .unwrap();
+                .into_iter()
+                .map(|x| x.unwrap())
+                .collect_vec()
+                .clone();
 
-            compute_inte
-            // let cuboids = ndarray_filtered_from_frame(
-            //     &sweep.cuboids.unwrap().0,
-            //     col("*"),
-            //     col("timestamp_ns").eq(lit(timestamp_ns)),
-            // );
-            // let cuboids = sweep
-            //     .cuboids
-            //     .unwrap()
-            //     .0
-            //     .clone()
-            //     .lazy()
-            //     .filter(col("timestamp_ns").eq(lit(timestamp_ns)))
-            //     .collect()
-            //     .to_;
+            let cuboids = cuboids.clone().to_ndarray::<Float32Type>().unwrap();
+            let cuboid_vertices = cuboids_to_polygons(&cuboids.view());
+            let points = lidar_ndarray.slice(s![.., ..3]);
+            let mask = compute_interior_points_mask(&points.view(), &cuboid_vertices.view());
+            for (c, m) in category.into_iter().zip(mask.outer_iter()) {
+                let indices = m
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, x)| match *x {
+                        true => Some(i),
+                        _ => None,
+                    })
+                    .collect_vec();
 
+                let points_i = lidar_ndarray.select(Axis(0), &indices);
+                let data_frame_i = DataFrame::from_iter(ndarray_to_series_vec(
+                    points_i,
+                    lidar_column_names.clone(),
+                ));
+
+                category_counter
+                    .entry(c.to_string())
+                    .and_modify(|count| *count += 1)
+                    .or_insert(0);
+                let count = category_counter.get(&c.to_string()).unwrap();
+
+                let dst = DST_PREFIX.join(c).join(format!("{count:08}.feather"));
+                fs::create_dir_all(dst.parent().unwrap()).unwrap();
+                write_feather_eager(&dst, data_frame_i);
+            }
             bar.inc(1)
         }
     }

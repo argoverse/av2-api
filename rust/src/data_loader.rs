@@ -42,7 +42,7 @@ const MAX_CAM_LIDAR_TOL_NS: f32 = 50000000.;
 
 /// Data associated with a single lidar sweep.
 #[pyclass]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Sweep {
     /// Ego-vehicle city pose.
     #[pyo3(get, set)]

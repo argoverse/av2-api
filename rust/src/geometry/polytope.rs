@@ -2,7 +2,21 @@
 //!
 //! Geometric algorithms for polygon geometries.
 
-use ndarray::{concatenate, par_azip, s, Array, ArrayView, Axis, Ix2, Ix3, Slice};
+use ndarray::{concatenate, par_azip, s, Array, ArrayView, Axis, Ix1, Ix2, Ix3, Slice};
+use once_cell::sync::Lazy;
+
+use super::so3::quat_to_mat3;
+
+// Safety: 24 elements (8 * 3 = 24) are defined.
+static VERTS: Lazy<Array<f32, Ix2>> = Lazy::new(|| unsafe {
+    Array::<f32, Ix2>::from_shape_vec_unchecked(
+        (8, 3),
+        vec![
+            1., 1., 1., 1., -1., 1., 1., -1., -1., 1., 1., -1., -1., 1., 1., -1., -1., 1., -1.,
+            -1., -1., -1., 1., -1.,
+        ],
+    )
+});
 
 /// Compute a boolean mask indicating which points are interior to the cuboid geometry.
 pub fn compute_interior_points_mask(
@@ -52,4 +66,25 @@ pub fn compute_interior_points_mask(
     });
 
     is_interior
+}
+
+/// Convert (N,10) cuboids to polygons.
+pub fn cuboids_to_polygons(cuboids: &ArrayView<f32, Ix2>) -> Array<f32, Ix3> {
+    let num_cuboids = cuboids.shape()[0];
+    let mut polygons = Array::<f32, Ix3>::zeros([num_cuboids, 8, 3]);
+    par_azip!((mut p in polygons.outer_iter_mut(), c in cuboids.outer_iter()) {
+        p.assign(&_cuboid_to_polygon(&c))
+    });
+    polygons
+}
+
+/// Convert a single cuboid to a polygon.
+fn _cuboid_to_polygon(cuboid: &ArrayView<f32, Ix1>) -> Array<f32, Ix2> {
+    let center_xyz = cuboid.slice(s![0..3]);
+    let dims_lwh = cuboid.slice(s![3..6]);
+    let quat_wxyz = cuboid.slice(s![6..10]);
+    let mat = quat_to_mat3(&quat_wxyz);
+    let verts = &VERTS.clone() * &dims_lwh / 2.;
+    let verts = verts.dot(&mat.t()) + center_xyz;
+    verts.as_standard_layout().to_owned()
 }
