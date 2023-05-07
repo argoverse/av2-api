@@ -55,7 +55,6 @@ def main(
 
         # Cuboids might not be available (e.g., using the "test" split).
         if sweep.cuboids is not None:
-
             # Annotations in (x,y,z,l,w,h,yaw) format.
             # 1-DOF rotation.
             xyzlwh_t = sweep.cuboids.as_tensor()
