@@ -2,7 +2,9 @@
 //!
 //! Special Orthogonal Group 3 (SO(3)).
 
-use ndarray::{par_azip, Array, Array2, ArrayView, Ix1, Ix2};
+use std::f32::consts::PI;
+
+use ndarray::{par_azip, s, Array, Array2, ArrayView, Ix1, Ix2};
 
 /// Convert a quaternion in scalar-first format to a 3x3 rotation matrix.
 pub fn quat_to_mat3(quat_wxyz: &ArrayView<f32, Ix1>) -> Array<f32, Ix2> {
@@ -70,4 +72,38 @@ pub fn _yaw_to_quat(yaw_rad: f32) -> Array<f32, Ix1> {
     let qw = f32::cos(0.5 * yaw_rad);
     let qz = f32::sin(0.5 * yaw_rad);
     Array::<f32, Ix1>::from_vec(vec![qw, 0.0, 0.0, qz])
+}
+
+/// Reflect orientation across the x-axis.
+/// (N,4) `quat_wxyz` orientation of `N` rigid objects.
+pub fn reflect_orientation_x(quat_wxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
+    let yaw_rad = quat_to_yaw(quat_wxyz);
+    let reflected_yaw_rad = -yaw_rad;
+    yaw_to_quat(&reflected_yaw_rad.view())
+}
+
+/// Reflect orientation across the y-axis.
+/// (N,4) `quat_wxyz` orientation of `N` rigid objects.
+pub fn reflect_orientation_y(quat_wxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
+    let yaw_rad = quat_to_yaw(quat_wxyz);
+    let reflected_yaw_rad = PI - yaw_rad;
+    yaw_to_quat(&reflected_yaw_rad.view())
+}
+
+/// Reflect translation across the x-axis.
+pub fn reflect_translation_x(xyz_m: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
+    let mut augmented_xyz_m = xyz_m.to_owned();
+    augmented_xyz_m
+        .slice_mut(s![.., 1])
+        .par_mapv_inplace(|y| -y);
+    augmented_xyz_m
+}
+
+/// Reflect translation across the y-axis.
+pub fn reflect_translation_y(xyz_m: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
+    let mut augmented_xyz_m = xyz_m.to_owned();
+    augmented_xyz_m
+        .slice_mut(s![.., 0])
+        .par_mapv_inplace(|x| -x);
+    augmented_xyz_m
 }

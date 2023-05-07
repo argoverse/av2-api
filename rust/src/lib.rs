@@ -15,7 +15,6 @@ pub mod share;
 pub mod structures;
 
 use data_loader::{DataLoader, Sweep};
-use geometry::augmentations::{reflect_pose_x, reflect_pose_y};
 use ndarray::{Dim, Ix1, Ix2};
 use numpy::PyReadonlyArray;
 use numpy::{IntoPyArray, PyArray};
@@ -85,26 +84,6 @@ fn py_yaw_to_quat<'py>(
     yaw_to_quat(&quat_wxyz.as_array().view()).into_pyarray(py)
 }
 
-#[pyfunction]
-#[pyo3(name = "reflect_pose_x")]
-#[allow(clippy::type_complexity)]
-fn py_reflect_pose_x<'py>(
-    py: Python<'py>,
-    quat_wxyz: PyReadonlyArray<f32, Ix2>,
-) -> &'py PyArray<f32, Ix2> {
-    reflect_pose_x(&quat_wxyz.as_array().view()).into_pyarray(py)
-}
-
-#[pyfunction]
-#[pyo3(name = "reflect_pose_y")]
-#[allow(clippy::type_complexity)]
-fn py_reflect_pose_y<'py>(
-    py: Python<'py>,
-    quat_wxyz: PyReadonlyArray<f32, Ix2>,
-) -> &'py PyArray<f32, Ix2> {
-    reflect_pose_y(&quat_wxyz.as_array().view()).into_pyarray(py)
-}
-
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _r(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -112,8 +91,6 @@ fn _r(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Sweep>()?;
     m.add_function(wrap_pyfunction!(py_quat_to_mat3, m)?)?;
     m.add_function(wrap_pyfunction!(py_quat_to_yaw, m)?)?;
-    m.add_function(wrap_pyfunction!(py_reflect_pose_x, m)?)?;
-    m.add_function(wrap_pyfunction!(py_reflect_pose_y, m)?)?;
     m.add_function(wrap_pyfunction!(py_voxelize, m)?)?;
     m.add_function(wrap_pyfunction!(py_yaw_to_quat, m)?)?;
     Ok(())

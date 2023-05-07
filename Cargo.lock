@@ -213,6 +213,8 @@ dependencies = [
  "polars",
  "pyo3",
  "pyo3-polars",
+ "rand",
+ "rand_distr",
  "rayon",
  "serde",
  "strum",
