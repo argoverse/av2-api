@@ -2,13 +2,11 @@
 //!
 //! Geometric augmentations.
 
-use std::ops::MulAssign;
-
 use itertools::Itertools;
-use ndarray::{concatenate, s, Axis};
+use ndarray::{azip, concatenate, s, Axis};
 use polars::{
     lazy::dsl::{col, cols, GetOutput},
-    prelude::{DataFrame, DataType, Float32Type, IntoLazy},
+    prelude::{DataFrame, DataType, IntoLazy},
     series::Series,
 };
 use rand_distr::{Bernoulli, Distribution, Uniform};
@@ -132,14 +130,18 @@ pub fn sample_random_object_scale(
     low_inclusive: f64,
     high_inclusive: f64,
 ) -> (DataFrame, DataFrame) {
-    let mut points = ndarray_from_frame(&lidar, cols(["x", "y", "z"]));
-    let distribution = Uniform::new_inclusive(low_inclusive, high_inclusive);
-
-    let mut cuboids_ndarray = cuboids.to_ndarray::<Float32Type>().unwrap();
+    let cuboid_column_names = [
+        "tx_m", "ty_m", "tz_m", "length_m", "width_m", "height_m", "qw", "qx", "qy", "qz",
+    ];
+    let mut lidar_ndarray = ndarray_from_frame(&lidar, cols(["x", "y", "z"]));
+    let mut cuboids_ndarray = ndarray_from_frame(&cuboids, cols(cuboid_column_names));
     let cuboid_vertices = cuboids_to_polygons(&cuboids_ndarray.view());
     let interior_points_mask =
-        compute_interior_points_mask(&points.view(), &cuboid_vertices.view());
-    for m in interior_points_mask.outer_iter() {
+        compute_interior_points_mask(&lidar_ndarray.view(), &cuboid_vertices.view());
+
+    let distribution = Uniform::new_inclusive(low_inclusive, high_inclusive);
+
+    azip!((mut c in cuboids_ndarray.outer_iter_mut(), m in interior_points_mask.outer_iter()) {
         let scale_factor = distribution.sample(&mut rand::thread_rng()) as f32;
         let indices = m
             .iter()
@@ -149,26 +151,28 @@ pub fn sample_random_object_scale(
                 _ => None,
             })
             .collect_vec();
-        let mut interior_points = points.select(Axis(0), &indices);
-        interior_points *= scale_factor;
+        let interior_points = lidar_ndarray.select(Axis(0), &indices);
 
-        for index in indices {
-            points
-                .slice_mut(s![index, ..])
-                .assign(&interior_points.slice(s![index, ..]));
+        // TODO: Handle with iterators.
+        for (i, j) in indices.into_iter().enumerate() {
+            let scaled_lidar_ndarray_object = (&interior_points.slice(s![i, ..])
+                - &c.slice(s![..3]))
+                * scale_factor;
+            let scaled_lidar_ndarray_egovehicle =
+                &scaled_lidar_ndarray_object + &c.slice(s![..3]);
+
+            lidar_ndarray
+                .slice_mut(s![j, ..])
+                .assign(&scaled_lidar_ndarray_egovehicle);
         }
-
-        cuboids_ndarray
-            .slice_mut(s![.., 3..6])
-            .par_mapv_inplace(|x| x * scale_factor);
-    }
+        c.slice_mut(s![3..6]).mapv_inplace(|x| x * scale_factor);
+    });
 
     let lidar_column_names = vec!["x", "y", "z"];
-    let series_vec = ndarray_to_expr_vec(points, lidar_column_names);
+    let series_vec = ndarray_to_expr_vec(lidar_ndarray, lidar_column_names);
     let augmented_lidar = lidar.lazy().with_columns(series_vec).collect().unwrap();
 
-    let cuboid_column_names = vec!["length_m", "width_m", "height_m"];
-    let series_vec = ndarray_to_expr_vec(cuboids_ndarray, cuboid_column_names);
+    let series_vec = ndarray_to_expr_vec(cuboids_ndarray, cuboid_column_names.to_vec());
     let augmented_cuboids = cuboids.lazy().with_columns(series_vec).collect().unwrap();
     (augmented_lidar, augmented_cuboids)
 }
