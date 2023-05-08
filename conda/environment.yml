@@ -15,6 +15,7 @@ dependencies:
   - numpy
   - openblas
   - opencv
+  - openssl
   - pandas
   - pip
   - polars
