@@ -123,6 +123,100 @@ pub fn sample_scene_reflection_y(
     }
 }
 
+/// Sample a scene global scale.
+/// This scales the lidar coordinates (x,y,z) and the cuboid centers (tx_m,ty_m,tz_m).
+pub fn sample_scene_global_scale(
+    lidar: DataFrame,
+    cuboids: DataFrame,
+    low_inclusive: f64,
+    upper_inclusive: f64,
+) -> (DataFrame, DataFrame) {
+    let distribution = Uniform::new_inclusive(low_inclusive, upper_inclusive);
+    let scale_factor = distribution.sample(&mut rand::thread_rng()) as f32;
+    let augmented_lidar = lidar
+        .lazy()
+        .with_column(col("x").map(
+            move |x| {
+                Ok(Some(
+                    x.f32()
+                        .unwrap()
+                        .into_no_null_iter()
+                        .map(|x| scale_factor * x)
+                        .collect::<Series>(),
+                ))
+            },
+            GetOutput::from_type(DataType::Float32),
+        ))
+        .with_column(col("y").map(
+            move |y| {
+                Ok(Some(
+                    y.f32()
+                        .unwrap()
+                        .into_no_null_iter()
+                        .map(|y| scale_factor * y)
+                        .collect::<Series>(),
+                ))
+            },
+            GetOutput::from_type(DataType::Float32),
+        ))
+        .with_column(col("z").map(
+            move |z| {
+                Ok(Some(
+                    z.f32()
+                        .unwrap()
+                        .into_no_null_iter()
+                        .map(|z| scale_factor * z)
+                        .collect::<Series>(),
+                ))
+            },
+            GetOutput::from_type(DataType::Float32),
+        ))
+        .collect()
+        .unwrap();
+
+    let augmented_cuboids = cuboids
+        .lazy()
+        .with_column(col("tx_m").map(
+            move |x| {
+                Ok(Some(
+                    x.f32()
+                        .unwrap()
+                        .into_no_null_iter()
+                        .map(|x| scale_factor * x)
+                        .collect::<Series>(),
+                ))
+            },
+            GetOutput::from_type(DataType::Float32),
+        ))
+        .with_column(col("ty_m").map(
+            move |y| {
+                Ok(Some(
+                    y.f32()
+                        .unwrap()
+                        .into_no_null_iter()
+                        .map(|y| scale_factor * y)
+                        .collect::<Series>(),
+                ))
+            },
+            GetOutput::from_type(DataType::Float32),
+        ))
+        .with_column(col("tz_m").map(
+            move |z| {
+                Ok(Some(
+                    z.f32()
+                        .unwrap()
+                        .into_no_null_iter()
+                        .map(|z| scale_factor * z)
+                        .collect::<Series>(),
+                ))
+            },
+            GetOutput::from_type(DataType::Float32),
+        ))
+        .collect()
+        .unwrap();
+    (augmented_lidar, augmented_cuboids)
+}
+
 /// Sample a scene with random object scaling.
 pub fn sample_random_object_scale(
     lidar: DataFrame,
