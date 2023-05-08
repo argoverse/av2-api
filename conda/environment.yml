@@ -13,6 +13,7 @@ dependencies:
   - nox
   - numba
   - numpy
+  - openblas
   - opencv
   - pandas
   - pip
