@@ -5,6 +5,7 @@
 use std::f32::consts::PI;
 
 use ndarray::{par_azip, s, Array, Array2, ArrayView, Ix1, Ix2, Ix3};
+use rand_distr::{Distribution, StandardNormal};
 
 /// Convert a quaternion in scalar-first format to a 3x3 rotation matrix.
 /// Parallelized for batch processing.
@@ -59,7 +60,7 @@ pub fn mat3_to_quat(mat3: &ArrayView<f32, Ix3>) -> Array<f32, Ix2> {
 /// Convert a 3x3 rotation matrix to a scalar-first quaternion.
 pub fn _mat3_to_quat(mat3: &ArrayView<f32, Ix2>) -> Array<f32, Ix1> {
     let trace = mat3[[0, 0]] + mat3[[1, 1]] + mat3[[2, 2]];
-    if trace > 0.0 {
+    let mut quat_wxyz = if trace > 0.0 {
         let s = 0.5 / f32::sqrt(trace + 1.0);
         let qw = 0.25 / s;
         let qx = (mat3[[2, 1]] - mat3[[1, 2]]) * s;
@@ -87,7 +88,13 @@ pub fn _mat3_to_quat(mat3: &ArrayView<f32, Ix2>) -> Array<f32, Ix1> {
         let qy = (mat3[[1, 2]] + mat3[[2, 1]]) / s;
         let qz = 0.25 * s;
         Array::<f32, Ix1>::from_vec(vec![qw, qx, qy, qz])
+    };
+
+    // Canonicalize the quaternion.
+    if quat_wxyz[0] < 0.0 {
+        quat_wxyz *= -1.0;
     }
+    quat_wxyz
 }
 
 /// Convert a scalar-first quaternion to yaw.
@@ -162,4 +169,39 @@ pub fn reflect_translation_y(xyz_m: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
         .slice_mut(s![.., 0])
         .par_mapv_inplace(|x| -x);
     augmented_xyz_m
+}
+
+/// Sample a random quaternion.
+pub fn sample_random_quat_wxyz() -> Array<f32, Ix1> {
+    let distribution = StandardNormal;
+    let qw: f32 = distribution.sample(&mut rand::thread_rng());
+    let qx: f32 = distribution.sample(&mut rand::thread_rng());
+    let qy: f32 = distribution.sample(&mut rand::thread_rng());
+    let qz: f32 = distribution.sample(&mut rand::thread_rng());
+    let quat_wxyz = Array::<f32, Ix1>::from_vec(vec![qw, qx, qy, qz]);
+    let norm = quat_wxyz.dot(&quat_wxyz).sqrt();
+    let mut versor_wxyz = quat_wxyz / norm;
+
+    // Canonicalize the quaternion.
+    if versor_wxyz[0] < 0.0 {
+        versor_wxyz *= -1.0;
+    }
+    versor_wxyz
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{_mat3_to_quat, _quat_to_mat3, sample_random_quat_wxyz};
+
+    #[test]
+    fn test_quat_to_mat3_round_trip() {
+        let num_trials = 100000;
+        let epsilon = 1e-6;
+        for _ in 0..num_trials {
+            let quat_wxyz = sample_random_quat_wxyz();
+            let mat3 = _quat_to_mat3(&quat_wxyz.view());
+            let _quat_wxyz = _mat3_to_quat(&mat3.view());
+            assert!(quat_wxyz.abs_diff_eq(&_quat_wxyz, epsilon));
+        }
+    }
 }
