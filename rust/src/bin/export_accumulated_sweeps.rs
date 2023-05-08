@@ -3,13 +3,16 @@
 //! Accumulates lidar sweeps across a contiguous temporal window.
 //! Defaults to a 5 frame window (~1 second of lidar data).
 
+#[cfg(feature = "blas")]
+extern crate blas_src;
+#[macro_use]
+extern crate log;
+
 use std::{fs, path::PathBuf};
 
 use av2::{data_loader::DataLoader, io::write_feather_eager};
 use indicatif::ProgressBar;
 
-#[macro_use]
-extern crate log;
 use once_cell::sync::Lazy;
 
 /// Constants can be changed to fit your directory structure.

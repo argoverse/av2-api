@@ -48,5 +48,5 @@ fn geometry_benchmark(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, geometry_benchmark);
+criterion_group!(benches, io_benchmark, geometry_benchmark);
 criterion_main!(benches);
