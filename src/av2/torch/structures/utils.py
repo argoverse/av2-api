@@ -14,7 +14,7 @@ from .. import QWXYZ_COLUMNS, TRANSLATION_COLUMNS
 
 
 def tensor_from_frame(frame: pd.DataFrame, columns: List[str]) -> torch.Tensor:
-    """Build lidar `torch` tensor from `pandas` dataframe.
+    """Build lidar `torch` tensor from a `pandas` dataframe.
 
     Notation:
         N: Number of rows.
@@ -27,8 +27,26 @@ def tensor_from_frame(frame: pd.DataFrame, columns: List[str]) -> torch.Tensor:
     Returns:
         (N,K) tensor containing the frame data.
     """
-    frame_npy = frame.loc[:, columns].to_numpy().astype(np.float32)
+    frame_npy = ndarray_from_frame(frame, columns)
     return torch.as_tensor(frame_npy)
+
+
+def ndarray_from_frame(frame: pd.DataFrame, columns: List[str]) -> torch.Tensor:
+    """Build lidar `numpy` ndarray from a `pandas` dataframe.
+
+    Notation:
+        N: Number of rows.
+        K: Number of columns.
+
+    Args:
+        frame: (N,K) Pandas DataFrame containing N rows with K columns.
+        columns: List of DataFrame columns.
+
+    Returns:
+        (N,K) ndarray containing the frame data.
+    """
+    frame_npy = frame.loc[:, columns].to_numpy().astype(np.float32)
+    return frame_npy
 
 
 def SE3_from_frame(frame: pd.DataFrame) -> Se3:

@@ -68,18 +68,18 @@ pub fn compute_interior_points_mask(
     is_interior
 }
 
-/// Convert (N,10) cuboids to polygons.
-pub fn cuboids_to_polygons(cuboids: &ArrayView<f32, Ix2>) -> Array<f32, Ix3> {
+/// Convert (N,10) cuboids to vertices (N,8,3).
+pub fn cuboids_to_vertices(cuboids: &ArrayView<f32, Ix2>) -> Array<f32, Ix3> {
     let num_cuboids = cuboids.shape()[0];
     let mut polygons = Array::<f32, Ix3>::zeros([num_cuboids, 8, 3]);
     par_azip!((mut p in polygons.outer_iter_mut(), c in cuboids.outer_iter()) {
-        p.assign(&_cuboid_to_polygon(&c))
+        p.assign(&_cuboid_to_vertices(&c))
     });
     polygons
 }
 
-/// Convert a single cuboid to a polygon.
-fn _cuboid_to_polygon(cuboid: &ArrayView<f32, Ix1>) -> Array<f32, Ix2> {
+/// Convert a single cuboid to vertices.
+fn _cuboid_to_vertices(cuboid: &ArrayView<f32, Ix1>) -> Array<f32, Ix2> {
     let center_xyz = cuboid.slice(s![0..3]);
     let dims_lwh = cuboid.slice(s![3..6]);
     let quat_wxyz = cuboid.slice(s![6..10]);

@@ -17,7 +17,7 @@ use crate::{
 };
 
 use super::{
-    polytope::{compute_interior_points_mask, cuboids_to_polygons},
+    polytope::{compute_interior_points_mask, cuboids_to_vertices},
     so3::{
         reflect_orientation_x, reflect_orientation_y, reflect_translation_x, reflect_translation_y,
     },
@@ -135,7 +135,7 @@ pub fn sample_random_object_scale(
     ];
     let mut lidar_ndarray = ndarray_from_frame(&lidar, cols(["x", "y", "z"]));
     let mut cuboids_ndarray = ndarray_from_frame(&cuboids, cols(cuboid_column_names));
-    let cuboid_vertices = cuboids_to_polygons(&cuboids_ndarray.view());
+    let cuboid_vertices = cuboids_to_vertices(&cuboids_ndarray.view());
     let interior_points_mask =
         compute_interior_points_mask(&lidar_ndarray.view(), &cuboid_vertices.view());
 
