@@ -13,7 +13,9 @@ dependencies:
   - nox
   - numba
   - numpy
+  - openblas
   - opencv
+  - openssl
   - pandas
   - pip
   - polars

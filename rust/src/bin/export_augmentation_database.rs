@@ -2,6 +2,11 @@
 //!
 //! Exports cropped annotations from the `train` dataset for augmentation during training.
 
+#[cfg(feature = "blas")]
+extern crate blas_src;
+#[macro_use]
+extern crate log;
+
 use std::{fs, path::PathBuf};
 
 use av2::{
@@ -11,8 +16,6 @@ use av2::{
 };
 use indicatif::ProgressBar;
 
-#[macro_use]
-extern crate log;
 use itertools::Itertools;
 use ndarray::{s, Array, Axis, Ix2};
 use once_cell::sync::Lazy;

@@ -10,4 +10,4 @@ conda install -y mamba -c conda-forge
 mamba env create -f ${SCRIPT_DIR}/${ENVIRONMENT_FILE} \
 && eval "$(conda shell.bash hook)" \
 && conda activate av2 \
-&& python -m pip install -e $SCRIPT_DIR/..
+&& OPENSSL_DIR=$CONDA_PREFIX python -m pip install -e $SCRIPT_DIR/..
