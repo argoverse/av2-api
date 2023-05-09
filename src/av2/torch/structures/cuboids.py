@@ -75,6 +75,7 @@ class Cuboids:
             _, _, yaw = euler_from_quaternion(w, x, y, z)
             return torch.concat([xyzlwh_qwxyz[:, :6], yaw[:, None]], dim=-1)
         elif cuboid_mode == CuboidMode.XYZLWH_QWXYZ:
+            xyzlwh_qwxyz = tensor_from_frame(self._frame, list(XYZLWH_QWXYZ_COLUMNS))
             return xyzlwh_qwxyz
         elif cuboid_mode == CuboidMode.XYZ_VERTICES:
             xyzlwh_qwxyz = ndarray_from_frame(self._frame, list(XYZLWH_QWXYZ_COLUMNS))
