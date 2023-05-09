@@ -20,7 +20,7 @@ use numpy::PyReadonlyArray;
 use numpy::{IntoPyArray, PyArray};
 use pyo3::prelude::*;
 
-use geometry::so3::{quat_to_mat3, quat_to_yaw, yaw_to_quat};
+use geometry::so3::{_quat_to_mat3, quat_to_yaw, yaw_to_quat};
 use numpy::PyReadonlyArray2;
 
 use crate::ops::voxelize;
@@ -61,7 +61,7 @@ fn py_quat_to_mat3<'py>(
     py: Python<'py>,
     quat_wxyz: PyReadonlyArray<f32, Ix1>,
 ) -> &'py PyArray<f32, Ix2> {
-    quat_to_mat3(&quat_wxyz.as_array().view()).into_pyarray(py)
+    _quat_to_mat3(&quat_wxyz.as_array().view()).into_pyarray(py)
 }
 
 #[pyfunction]

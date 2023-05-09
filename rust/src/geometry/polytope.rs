@@ -5,7 +5,7 @@
 use ndarray::{concatenate, par_azip, s, Array, ArrayView, Axis, Ix1, Ix2, Ix3, Slice};
 use once_cell::sync::Lazy;
 
-use super::so3::quat_to_mat3;
+use super::so3::_quat_to_mat3;
 
 // Safety: 24 elements (8 * 3 = 24) are defined.
 static VERTS: Lazy<Array<f32, Ix2>> = Lazy::new(|| unsafe {
@@ -83,7 +83,7 @@ fn _cuboid_to_polygon(cuboid: &ArrayView<f32, Ix1>) -> Array<f32, Ix2> {
     let center_xyz = cuboid.slice(s![0..3]);
     let dims_lwh = cuboid.slice(s![3..6]);
     let quat_wxyz = cuboid.slice(s![6..10]);
-    let mat = quat_to_mat3(&quat_wxyz);
+    let mat = _quat_to_mat3(&quat_wxyz);
     let verts = &VERTS.clone() * &dims_lwh / 2.;
     let verts = verts.dot(&mat.t()) + center_xyz;
     verts.as_standard_layout().to_owned()
