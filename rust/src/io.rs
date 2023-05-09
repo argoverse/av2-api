@@ -29,10 +29,10 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use crate::constants::POSE_COLUMNS;
-use crate::se3::SE3;
+use crate::geometry::se3::SE3;
 use image::io::Reader as ImageReader;
 
-use crate::so3::quat_to_mat3;
+use crate::geometry::so3::_quat_to_mat3;
 
 /// Read a feather file and load into a `polars` dataframe.
 pub fn read_feather_eager(path: &PathBuf, memory_mapped: bool) -> DataFrame {
@@ -41,6 +41,15 @@ pub fn read_feather_eager(path: &PathBuf, memory_mapped: bool) -> DataFrame {
     polars::io::ipc::IpcReader::new(file)
         .memory_mapped(memory_mapped)
         .finish()
+        .unwrap()
+}
+
+/// Write a feather file to disk using LZ4 compression.
+pub fn write_feather_eager(path: &PathBuf, mut data_frame: DataFrame) {
+    let file = File::create(path).expect("could not create file");
+    IpcWriter::new(file)
+        .with_compression(Some(IpcCompression::LZ4))
+        .finish(&mut data_frame)
         .unwrap()
 }
 
@@ -88,7 +97,7 @@ pub fn read_accumulate_lidar(
 
     let translation = pose_ref.slice(s![0, ..3]).as_standard_layout().to_owned();
     let quat_wxyz = pose_ref.slice(s![0, 3..]).as_standard_layout().to_owned();
-    let rotation = quat_to_mat3(&quat_wxyz.view());
+    let rotation = _quat_to_mat3(&quat_wxyz.view());
     let city_se3_ego = SE3 {
         rotation,
         translation,
@@ -244,7 +253,7 @@ pub fn data_frame_to_se3(data_frame: DataFrame) -> SE3 {
     let ty_m = extract_f32_from_data_frame(&data_frame, "ty_m");
     let tz_m = extract_f32_from_data_frame(&data_frame, "tz_m");
     let quat_wxyz = Array::<f32, Ix1>::from_vec(vec![qw, qx, qy, qz]);
-    let rotation = quat_to_mat3(&quat_wxyz.view());
+    let rotation = _quat_to_mat3(&quat_wxyz.view());
     let translation = Array::<f32, Ix1>::from_vec(vec![tx_m, ty_m, tz_m]);
     SE3 {
         rotation,

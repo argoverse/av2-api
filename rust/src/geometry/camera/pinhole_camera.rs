@@ -6,7 +6,10 @@ use polars::{
     prelude::{DataFrame, IntoLazy},
 };
 
-use crate::{geometry::utils::cart_to_hom, io::read_feather_eager, se3::SE3, so3::quat_to_mat3};
+use crate::{
+    geometry::se3::SE3, geometry::so3::_quat_to_mat3, geometry::utils::cart_to_hom,
+    io::read_feather_eager,
+};
 
 /// Pinhole camera intrinsics.
 #[derive(Clone, Debug)]
@@ -125,7 +128,7 @@ impl PinholeCamera {
         let tz_m = extract_f32_from_frame(&extrinsics, "tz_m");
 
         let quat_wxyz = Array::<f32, Ix1>::from_vec(vec![qw, qx, qy, qz]);
-        let rotation = quat_to_mat3(&quat_wxyz.view());
+        let rotation = _quat_to_mat3(&quat_wxyz.view());
         let translation = Array::<f32, Ix1>::from_vec(vec![tx_m, ty_m, tz_m]);
         let ego_se3_cam = SE3 {
             rotation,
