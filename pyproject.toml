@@ -4,10 +4,30 @@ build-backend = "maturin"
 
 [project]
 name = "av2"
+description = "Argoverse 2: Next generation datasets for self-driving perception and forecasting."
 requires-python = ">=3.8"
+license = { file = "LICENSE" }
+keywords = [
+  "argoverse",
+  "argoverse2",
+  "autonomous-driving",
+  "av1",
+  "av2",
+  "3d-object-detection",
+  "3d-scene-flow",
+  "4d-occupancy-forecasting",
+  "e2e-forecasting",
+  "motion-forecasting",
+]
 classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Rust",
-    "Programming Language :: Python :: Implementation :: CPython",
 ]
 
 dependencies = [
@@ -29,13 +49,10 @@ dependencies = [
     "torch",
     "tqdm",
     "universal_pathlib",
-    "trackeval @ git+https://github.com/JonathonLuiten/TrackEval.git"
 ]
 
 dynamic = [
     "authors",
-    "description",
-    "license",
     "version"
 ]
 
@@ -54,7 +71,7 @@ test = [
 ]
 
 [project.urls]
-homepage = "argoverse.org"
+homepage = "https://argoverse.org"
 repository = "https://github.com/argoverse/av2-api"
 
 [tool.maturin]
