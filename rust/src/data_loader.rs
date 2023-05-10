@@ -415,23 +415,15 @@ fn build_file_index(
     split_name: &str,
 ) -> DataFrame {
     let split_dir = root_dir.join(format!("{dataset_name}/{dataset_type}/{split_name}"));
-    let mut reference_frame = build_lidar_metadata(split_dir.clone(), "lidar");
-
-    reference_frame = reference_frame
-        .clone()
+    let mut reference_frame = build_lidar_metadata(split_dir.clone(), "lidar")
         .lazy()
         .sort_by_exprs(
             &[cols(["log_id", "timestamp_ns_lidar"])],
             vec![false],
             false,
-        )
-        .collect()
-        .unwrap();
-
+        );
     for camera_name in CameraNames::iter().map(|x| x.to_string()) {
-        let frame = build_camera_metadata(split_dir.clone(), &camera_name);
-        frame
-            .clone()
+        let frame = build_camera_metadata(split_dir.clone(), &camera_name)
             .lazy()
             .sort_by_exprs(
                 &[cols([
@@ -440,28 +432,28 @@ fn build_file_index(
                 ])],
                 vec![false],
                 false,
-            )
-            .collect()
-            .unwrap();
+            );
 
         reference_frame = reference_frame
-            .join_asof_by(
-                &frame,
-                "timestamp_ns_lidar",
-                format!("timestamp_ns_{}", camera_name).as_str(),
-                ["log_id"],
-                ["log_id"],
-                AsofStrategy::Forward,
-                Some(AnyValue::Float32(MAX_CAM_LIDAR_TOL_NS)),
-            )
-            .unwrap();
-
-        reference_frame = reference_frame.drop_many(&["city_name_right"]);
+            .join_builder()
+            .how(JoinType::AsOf(AsOfOptions {
+                strategy: AsofStrategy::Forward,
+                tolerance: Some(AnyValue::Float32(MAX_CAM_LIDAR_TOL_NS)),
+                tolerance_str: None,
+                left_by: Some(vec!["log_id".into()]),
+                right_by: Some(vec!["log_id".into()]),
+            }))
+            .left_on(&[col("timestamp_ns_lidar")])
+            .right_on(&[col(format!("timestamp_ns_{}", camera_name).as_str())])
+            .with(frame)
+            .finish()
+            .drop_columns(vec!["city_name_right"]);
     }
+
     reference_frame
-        .rename("timestamp_ns_lidar", "timestamp_ns")
-        .unwrap();
-    reference_frame
+        .rename(vec!["timestamp_ns_lidar"], vec!["timestamp_ns"])
+        .collect()
+        .unwrap()
 }
 
 fn build_lidar_metadata(split_dir: PathBuf, sensor_name: &str) -> DataFrame {
