@@ -1,9 +1,8 @@
 name: av2
 channels:
-  - pytorch
-  - conda-forge/label/rust_dev
   - conda-forge
 dependencies:
+  - conda-forge/label/rust_dev::rust
   - av
   - click
   - joblib
@@ -22,7 +21,6 @@ dependencies:
   - pyarrow
   - pyproj
   - rich
-  - rust
   - scipy
   - pytorch
   - tqdm

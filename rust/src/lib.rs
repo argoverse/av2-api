@@ -5,6 +5,9 @@
 #![warn(missing_docs)]
 #![warn(missing_doc_code_examples)]
 
+#[cfg(feature = "blas")]
+extern crate blas_src;
+
 pub mod constants;
 pub mod data_loader;
 pub mod geometry;
