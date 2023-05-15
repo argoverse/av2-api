@@ -58,13 +58,19 @@ impl Intrinsics {
             height_px,
         }
     }
+
+    #[getter]
+    #[pyo3(name = "k")]
+    fn py_k<'py>(&'py self, py: Python<'py>) -> &'py PyArray<f32, Ix2> {
+        self.k().to_pyarray(py)
+    }
 }
 
 /// Rust methods.
 impl Intrinsics {
     /// Camera intrinsic matrix.
     pub fn k(&self) -> Array<f32, Ix2> {
-        let mut k = Array::<f32, Ix2>::eye(3);
+        let mut k = Array::<f32, Ix2>::eye(4);
         k[[0, 0]] = self.fx_px;
         k[[1, 1]] = self.fy_px;
         k[[0, 2]] = self.cx_px;
@@ -120,6 +126,12 @@ impl PinholeCamera {
             points_hom_cam.to_pyarray(py),
             is_valid.to_pyarray(py),
         )
+    }
+
+    #[getter]
+    #[pyo3(name = "extrinsics")]
+    fn py_extrinsics<'py>(&'py self, py: Python<'py>) -> &'py PyArray<f32, Ix2> {
+        self.ego_se3_cam.inverse().transform_matrix().to_pyarray(py)
     }
 }
 

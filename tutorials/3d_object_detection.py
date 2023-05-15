@@ -48,7 +48,7 @@ def main(
         lidar_tensor = sweep.lidar.as_tensor()
 
         # Synchronized ring cameras.
-        synchronized_images = data_loader.get_synchronized_images(i)
+        time_stamped_image_list = data_loader.get_synchronized_images(i)
 
         # Transform the points to city coordinates.
         lidar_xyz_city = transform_points(city_SE3_ego_mat4, lidar_tensor[:, :3])
