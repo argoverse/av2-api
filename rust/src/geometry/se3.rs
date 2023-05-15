@@ -4,9 +4,11 @@
 
 use ndarray::ArrayView2;
 use ndarray::{s, Array1, Array2};
+use pyo3::prelude::*;
 
 /// Special Euclidean Group 3 (SE(3)).
 /// Rigid transformation parameterized by a rotation and translation in $R^3$.
+#[pyclass]
 #[derive(Clone, Debug)]
 pub struct SE3 {
     /// (3,3) Orthonormal rotation matrix.
@@ -15,6 +17,7 @@ pub struct SE3 {
     pub translation: Array1<f32>,
 }
 
+/// Rust methods.
 impl SE3 {
     /// Get the (4,4) homogeneous transformation matrix associated with the rigid transformation.
     pub fn transform_matrix(&self) -> Array2<f32> {
