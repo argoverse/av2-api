@@ -47,6 +47,9 @@ const NUM_ACCUMULATED_SWEEPS: usize = 1;
 /// Memory maps the sweeps for fast pre-processing. Requires .feather files to be uncompressed.
 const MEMORY_MAPPED: bool = false;
 
+/// Minimum number of points required to export an object.
+const MIN_NUM_PTS: usize = 5;
+
 static DST_DATASET_NAME: Lazy<String> =
     Lazy::new(|| format!("{DATASET_NAME}_{NUM_ACCUMULATED_SWEEPS}_database"));
 static SRC_PREFIX: Lazy<PathBuf> = Lazy::new(|| ROOT_DIR.join(DATASET_NAME).join(DATASET_TYPE));
@@ -113,6 +116,9 @@ pub fn main() {
                     .collect_vec();
 
                 let points_i = lidar_ndarray.select(Axis(0), &indices);
+                if points_i.shape()[0] < MIN_NUM_PTS {
+                    continue;
+                }
                 let data_frame_i = _build_data_frame(points_i, EXPORTED_COLUMN_NAMES.clone());
 
                 category_counter
