@@ -144,7 +144,6 @@ pub fn read_accumulate_lidar(
                 let pose_i = poses
                     .clone()
                     .unwrap()
-                    .clone()
                     .lazy()
                     .filter(col("timestamp_ns").eq(lit(timestamp_ns_i)))
                     .select(&[cols(POSE_COLUMNS)])
