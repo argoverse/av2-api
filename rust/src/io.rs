@@ -86,23 +86,29 @@ pub fn read_accumulate_lidar(
     let start_idx = i64::max(idx as i64 - num_accumulated_sweeps as i64 + 1, 0) as usize;
     let log_ids = file_index["log_id"].utf8().unwrap();
     let timestamps = file_index["timestamp_ns"].u64().unwrap();
-    let poses_path = log_dir.join("city_SE3_egovehicle.feather");
-    let poses = read_feather_eager(&poses_path, memory_mapped);
 
-    let pose_ref = ndarray_filtered_from_frame(
-        &poses,
-        cols(POSE_COLUMNS),
-        col("timestamp_ns").eq(timestamp_ns),
-    );
+    let (poses, ego_se3_city) = if num_accumulated_sweeps > 1 {
+        let poses_path = log_dir.join("city_SE3_egovehicle.feather");
+        let poses = read_feather_eager(&poses_path, memory_mapped);
 
-    let translation = pose_ref.slice(s![0, ..3]).as_standard_layout().to_owned();
-    let quat_wxyz = pose_ref.slice(s![0, 3..]).as_standard_layout().to_owned();
-    let rotation = _quat_to_mat3(&quat_wxyz.view());
-    let city_se3_ego = SE3 {
-        rotation,
-        translation,
+        let pose_ref = ndarray_filtered_from_frame(
+            &poses,
+            cols(POSE_COLUMNS),
+            col("timestamp_ns").eq(timestamp_ns),
+        );
+
+        let translation = pose_ref.slice(s![0, ..3]).as_standard_layout().to_owned();
+        let quat_wxyz = pose_ref.slice(s![0, 3..]).as_standard_layout().to_owned();
+        let rotation = _quat_to_mat3(&quat_wxyz.view());
+        let city_se3_ego = SE3 {
+            rotation,
+            translation,
+        };
+        let ego_se3_city = city_se3_ego.inverse();
+        (Some(poses), Some(ego_se3_city))
+    } else {
+        (None, None)
     };
-    let ego_se3_city = city_se3_ego.inverse();
     let indices: Vec<_> = (start_idx..=idx).collect();
     let mut lidar_list = indices
         .par_iter()
@@ -137,6 +143,8 @@ pub fn read_accumulate_lidar(
 
                 let pose_i = poses
                     .clone()
+                    .unwrap()
+                    .clone()
                     .lazy()
                     .filter(col("timestamp_ns").eq(lit(timestamp_ns_i)))
                     .select(&[cols(POSE_COLUMNS)])
@@ -144,7 +152,7 @@ pub fn read_accumulate_lidar(
                     .unwrap();
 
                 let city_se3_ego_i = data_frame_to_se3(pose_i);
-                let ego_ref_se3_ego_i = ego_se3_city.compose(&city_se3_ego_i);
+                let ego_ref_se3_ego_i = ego_se3_city.clone().unwrap().compose(&city_se3_ego_i);
                 let xyz_ref = ego_ref_se3_ego_i.transform_from(&xyz.view());
                 let x_ref = Series::new("x", xyz_ref.slice(s![.., 0]).to_owned().into_raw_vec());
                 let y_ref = Series::new("y", xyz_ref.slice(s![.., 1]).to_owned().into_raw_vec());
