@@ -201,7 +201,7 @@ def evaluate(
         accumulate_args_list.append(args)
 
     logger.info("Starting evaluation ...")
-    dts_list, gts_list = zip(*[accumulate(*args) for args in tqdm(accumulate_args_list[:100])])
+    dts_list, gts_list = zip(*[accumulate(*args) for args in tqdm(accumulate_args_list)])
 
     METRIC_COLUMN_NAMES = (
         cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
