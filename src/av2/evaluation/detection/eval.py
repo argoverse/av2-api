@@ -133,6 +133,7 @@ def evaluate(
     dts_pl = pl.from_pandas(dts)
     gts_pl = pl.from_pandas(gts)
 
+    logger.info("Grouping detections ...")
     uuid_to_dts = {
         k: v.select(DTS_COLUMNS).to_numpy().astype(float)
         for k, v in tqdm(
@@ -141,6 +142,8 @@ def evaluate(
             ).items()
         )
     }
+
+    logger.info("Grouping annotations ...")
     uuid_to_gts = {
         k: v.select(GTS_COLUMNS).to_numpy().astype(float)
         for k, v in tqdm(
