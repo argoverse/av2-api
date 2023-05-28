@@ -55,6 +55,7 @@ import logging
 import multiprocessing as mp
 import warnings
 from typing import Any, Dict, Final, List, Optional, Tuple, cast
+from joblib import Parallel, delayed
 
 import numpy as np
 import pandas as pd
@@ -133,16 +134,20 @@ def evaluate(
     gts_pl = pl.from_pandas(gts)
 
     uuid_to_dts = {
-        k: v[list(DTS_COLUMNS)].to_numpy().astype(float)
-        for k, v in dts_pl.partition_by(
-            DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True
-        ).items()
+        k: v.select(DTS_COLUMNS).to_numpy().astype(float)
+        for k, v in tqdm(
+            dts_pl.partition_by(
+                DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True
+            ).items()
+        )
     }
     uuid_to_gts = {
-        k: v[list(GTS_COLUMNS)].to_numpy().astype(float)
-        for k, v in gts_pl.partition_by(
-            DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True
-        ).items()
+        k: v.select(GTS_COLUMNS).to_numpy().astype(float)
+        for k, v in tqdm(
+            gts_pl.partition_by(
+                DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True
+            ).items()
+        )
     }
 
     log_id_to_avm: Optional[Dict[str, ArgoverseStaticMap]] = None
@@ -166,7 +171,9 @@ def evaluate(
         ]
     ] = []
     uuids = sorted(uuid_to_dts.keys() | uuid_to_gts.keys())
-    for uuid in uuids:
+
+    logger.info("Building jobs ...")
+    for uuid in tqdm(uuids):
         log_id, timestamp_ns, _ = uuid
         args: Tuple[
             NDArrayFloat,
@@ -191,10 +198,9 @@ def evaluate(
         accumulate_args_list.append(args)
 
     logger.info("Starting evaluation ...")
-    with mp.get_context("spawn").Pool(processes=n_jobs) as p:
-        outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = p.starmap(
-            accumulate, accumulate_args_list
-        )
+    outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = Parallel(n_jobs=-1)(
+        delayed(accumulate)(*args) for args in accumulate_args_list
+    )
 
     dts_list, gts_list = zip(*outputs)
 
