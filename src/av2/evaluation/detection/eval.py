@@ -201,11 +201,7 @@ def evaluate(
         accumulate_args_list.append(args)
 
     logger.info("Starting evaluation ...")
-    outputs: List[Tuple[NDArrayFloat, NDArrayFloat]] = Parallel(n_jobs=-1)(
-        delayed(accumulate)(*args) for args in accumulate_args_list
-    )
-
-    dts_list, gts_list = zip(*outputs)
+    dts_list, gts_list = zip(*[accumulate(*args) for args in tqdm(accumulate_args_list[:100])])
 
     METRIC_COLUMN_NAMES = (
         cfg.affinity_thresholds_m + TP_ERROR_COLUMNS + ("is_evaluated",)
