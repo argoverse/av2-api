@@ -2203,6 +2203,7 @@ dependencies = [
 [[package]]
 name = "pyo3-polars"
 version = "0.3.0"
+source = "git+https://github.com/benjaminrwilson/pyo3-polars?rev=23b2197e794061d9fb497831626758a22648b524#23b2197e794061d9fb497831626758a22648b524"
 dependencies = [
  "arrow2",
  "polars",

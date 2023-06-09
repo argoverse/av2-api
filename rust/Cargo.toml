@@ -44,7 +44,9 @@ polars = { version = "0.30.0", features = [
     "serde-lazy",
 ] }
 pyo3 = { version = "0.19.0", features = ["extension-module"] }
-pyo3-polars = { path = "../../pyo3-polars/pyo3-polars/", features = ["serde"] }
+pyo3-polars = { git = "https://github.com/benjaminrwilson/pyo3-polars", rev = "23b2197e794061d9fb497831626758a22648b524", features = [
+    "serde",
+] }
 rand = "0.8.5"
 rand_distr = "0.4.3"
 rayon = "1.7.0"
