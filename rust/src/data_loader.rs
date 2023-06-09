@@ -437,7 +437,7 @@ fn build_file_index(
         reference_frame = reference_frame
             .join_builder()
             .how(JoinType::AsOf(AsOfOptions {
-                strategy: AsofStrategy::Forward,
+                strategy: AsofStrategy::Nearest,
                 tolerance: Some(AnyValue::Float32(MAX_CAM_LIDAR_TOL_NS)),
                 tolerance_str: None,
                 left_by: Some(vec!["log_id".into()]),
