@@ -55,7 +55,7 @@ def make_mask_files(output_file: str, data_dir: str, name: str, split: str) -> N
 
 
 @click.command()
-@click.argument("output_dir", type=str)
+@click.argument("output_file", type=str)
 @click.argument("data_dir", type=str)
 @click.option(
     "--name",
