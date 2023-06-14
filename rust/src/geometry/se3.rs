@@ -2,11 +2,14 @@
 //!
 //! Special Euclidean Group 3.
 
-use ndarray::ArrayView2;
-use ndarray::{s, Array1, Array2};
+use ndarray::{s, Array1, Array2, Ix1};
+use ndarray::{ArrayView2, Ix2};
+use numpy::{IntoPyArray, PyArray};
+use pyo3::prelude::*;
 
-/// Special Euclidean Group 3 (SE(3)).
+/// Special Euclidean Group 3.
 /// Rigid transformation parameterized by a rotation and translation in $R^3$.
+#[pyclass]
 #[derive(Clone, Debug)]
 pub struct SE3 {
     /// (3,3) Orthonormal rotation matrix.
@@ -56,5 +59,20 @@ impl SE3 {
                 .as_standard_layout()
                 .to_owned(),
         }
+    }
+}
+
+#[pymethods]
+impl SE3 {
+    /// SE(3) rotation component (python).
+    #[getter(rotation)]
+    pub fn py_rotation<'py>(&self, py: Python<'py>) -> &'py PyArray<f32, Ix2> {
+        self.rotation.clone().into_pyarray(py)
+    }
+
+    /// SE(3) translation component (python).
+    #[getter(translation)]
+    pub fn py_translation<'py>(&self, py: Python<'py>) -> &'py PyArray<f32, Ix1> {
+        self.translation.clone().into_pyarray(py)
     }
 }

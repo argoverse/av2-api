@@ -1,10 +1,12 @@
 use std::{ops::DivAssign, path::Path};
 
 use ndarray::{par_azip, s, Array, ArrayView, Ix1, Ix2};
+use numpy::{IntoPyArray, PyArray};
 use polars::{
     lazy::dsl::{col, lit},
     prelude::{DataFrame, IntoLazy},
 };
+use pyo3::prelude::*;
 
 use crate::{
     geometry::se3::SE3, geometry::so3::_quat_to_mat3, geometry::utils::cart_to_hom,
@@ -12,19 +14,26 @@ use crate::{
 };
 
 /// Pinhole camera intrinsics.
+#[pyclass]
 #[derive(Clone, Debug)]
 pub struct Intrinsics {
     /// Horizontal focal length in pixels.
+    #[pyo3(get, set)]
     pub fx_px: f32,
     /// Vertical focal length in pixels.
+    #[pyo3(get, set)]
     pub fy_px: f32,
     /// Horizontal focal center in pixels.
+    #[pyo3(get, set)]
     pub cx_px: f32,
     /// Vertical focal center in pixels.
+    #[pyo3(get, set)]
     pub cy_px: f32,
     /// Width of image in pixels.
+    #[pyo3(get, set)]
     pub width_px: usize,
     /// Height of image in pixels.
+    #[pyo3(get, set)]
     pub height_px: usize,
 }
 
@@ -60,14 +69,27 @@ impl Intrinsics {
     }
 }
 
+#[pymethods]
+impl Intrinsics {
+    /// Camera intrinsic matrix (python).
+    #[pyo3(name = "k")]
+    pub fn py_k<'py>(&self, py: Python<'py>) -> &'py PyArray<f32, Ix2> {
+        self.k().into_pyarray(py)
+    }
+}
+
 /// Parameterizes a pinhole camera with zero skew.
+#[pyclass]
 #[derive(Clone, Debug)]
 pub struct PinholeCamera {
     /// Pose of camera in the egovehicle frame (inverse of extrinsics matrix).
+    #[pyo3(get, set)]
     pub ego_se3_cam: SE3,
     /// `Intrinsics` object containing intrinsic parameters and image dimensions.
+    #[pyo3(get, set)]
     pub intrinsics: Intrinsics,
     /// Associated camera name.
+    #[pyo3(get, set)]
     pub camera_name: String,
 }
 

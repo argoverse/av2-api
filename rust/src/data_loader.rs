@@ -8,10 +8,6 @@ use image::ImageBuffer;
 use image::Rgba;
 use io::{read_accumulate_lidar, read_timestamped_feather};
 use itertools::Itertools;
-use ndarray::Ix3;
-use nshare::ToNdarray3;
-use numpy::IntoPyArray;
-use numpy::PyArray;
 use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
 use rayon::prelude::IntoParallelRefIterator;
@@ -185,16 +181,9 @@ impl DataLoader {
 
     /// Get all synchronized images at the sweep index.
     #[pyo3(name = "get_synchronized_images")]
-    pub fn py_get_synchronized_images<'py>(
-        &self,
-        py: Python<'py>,
-        index: usize,
-    ) -> Vec<&'py PyArray<u8, Ix3>> {
+    pub fn py_get_synchronized_images(&self, py: Python, index: usize) -> Py<PyAny> {
         let images = self.get_synchronized_images(index);
-        images
-            .into_iter()
-            .map(|x| x.image.into_ndarray3().into_pyarray(py))
-            .collect_vec()
+        images.into_py(py)
     }
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
