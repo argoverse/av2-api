@@ -75,4 +75,10 @@ impl SE3 {
     pub fn py_translation<'py>(&self, py: Python<'py>) -> &'py PyArray<f32, Ix1> {
         self.translation.clone().into_pyarray(py)
     }
+
+    /// SE(3) transform matrix component (python).
+    #[getter(transform_matrix)]
+    pub fn py_transform_matrix<'py>(&self, py: Python<'py>) -> &'py PyArray<f32, Ix2> {
+        self.transform_matrix().into_pyarray(py)
+    }
 }

@@ -6,6 +6,8 @@ from typing import List, Optional, Tuple
 import numpy as np
 import polars as pl
 
+from av2.utils.typing import NDArrayByte, NDArrayFloat32
+
 @dataclass
 class DataLoader:
     root_dir: str
@@ -39,8 +41,8 @@ class Intrinsics:
 
 @dataclass
 class SE3:
-    rotation: np.array
-    translation: np.array
+    rotation: NDArrayFloat32
+    translation: NDArrayFloat32
 
 @dataclass
 class PinholeCamera:
@@ -50,6 +52,6 @@ class PinholeCamera:
 
 @dataclass
 class TimeStampedImage:
-    image: np.array
+    image: NDArrayByte
     camera_model: PinholeCamera
     timestamp_ns: int

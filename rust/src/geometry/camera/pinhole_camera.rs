@@ -1,7 +1,7 @@
 use std::{ops::DivAssign, path::Path};
 
 use ndarray::{par_azip, s, Array, ArrayView, Ix1, Ix2};
-use numpy::{IntoPyArray, PyArray};
+use numpy::{IntoPyArray, PyArray, PyReadonlyArray};
 use polars::{
     lazy::dsl::{col, lit},
     prelude::{DataFrame, IntoLazy},
@@ -111,9 +111,14 @@ impl PinholeCamera {
 
     /// Camera projection matrix.
     pub fn p(&self) -> Array<f32, Ix2> {
-        let mut p = Array::<f32, Ix2>::zeros([3, 4]);
+        let mut p = Array::<f32, Ix2>::zeros([4, 4]);
         p.slice_mut(s![..3, ..3]).assign(&self.intrinsics.k());
         p
+    }
+
+    /// Model matrix.
+    pub fn m(&self) -> Array<f32, Ix2> {
+        self.extrinsics()
     }
 
     /// Create a pinhole camera model from a feather file.
@@ -196,7 +201,7 @@ impl PinholeCamera {
     /// Project a collection of 3D points (provided in the egovehicle frame) to the image plane.
     pub fn project_ego_to_image(
         &self,
-        points_ego: Array<f32, Ix2>,
+        points_ego: ArrayView<f32, Ix2>,
     ) -> (Array<f32, Ix2>, Array<f32, Ix2>, Array<bool, Ix2>) {
         // Convert cartesian to homogeneous coordinates.
         let points_hom_ego = cart_to_hom(points_ego);
@@ -216,7 +221,7 @@ impl PinholeCamera {
     /// Project a collection of 3D points (provided in the egovehicle frame) to the image plane.
     pub fn project_ego_to_image_motion_compensated(
         &self,
-        points_ego: Array<f32, Ix2>,
+        points_ego: ArrayView<f32, Ix2>,
         city_se3_ego_camera_t: SE3,
         city_se3_ego_lidar_t: SE3,
     ) -> (Array<f32, Ix2>, Array<f32, Ix2>, Array<bool, Ix2>) {
@@ -226,7 +231,43 @@ impl PinholeCamera {
             .compose(&city_se3_ego_lidar_t);
 
         let points_ego = ego_cam_t_se3_ego_lidar_t.transform_from(&points_ego.view());
-        self.project_ego_to_image(points_ego)
+        self.project_ego_to_image(points_ego.view())
+    }
+}
+
+#[pymethods]
+impl PinholeCamera {
+    /// Camera projection matrix.
+    #[pyo3(name = "p")]
+    pub fn py_p<'py>(&self, py: Python<'py>) -> &'py PyArray<f32, Ix2> {
+        self.p().into_pyarray(py)
+    }
+
+    /// Camera projection matrix.
+    #[pyo3(name = "mvp")]
+    pub fn py_mvp<'py>(&self, py: Python<'py>) -> &'py PyArray<f32, Ix2> {
+        self.p().dot(&self.m()).into_pyarray(py)
+    }
+
+    /// Project a collection of 3D points (provided in the egovehicle frame) to the image plane.
+    #[allow(clippy::type_complexity)]
+    #[pyo3(name = "project_ego_to_image")]
+    pub fn py_project_ego_to_image<'py>(
+        &self,
+        py: Python<'py>,
+        points_ego: PyReadonlyArray<f32, Ix2>,
+    ) -> (
+        &'py PyArray<f32, Ix2>,
+        &'py PyArray<f32, Ix2>,
+        &'py PyArray<bool, Ix2>,
+    ) {
+        let (uvz, points_hom_cam, is_valid_points) =
+            self.project_ego_to_image(points_ego.as_array());
+        (
+            uvz.into_pyarray(py),
+            points_hom_cam.into_pyarray(py),
+            is_valid_points.into_pyarray(py),
+        )
     }
 }
 
