@@ -344,8 +344,6 @@ impl DataLoader {
             row.get(1).unwrap().try_extract::<u64>().unwrap(),
         );
 
-        println!("{:?}", camera_names);
-
         let images = camera_names
             .par_iter()
             .enumerate()

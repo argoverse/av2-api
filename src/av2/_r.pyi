@@ -3,7 +3,6 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
-import numpy as np
 import polars as pl
 
 from av2.utils.typing import NDArrayByte, NDArrayFloat32
@@ -16,6 +15,7 @@ class DataLoader:
     split_name: str
     num_accumulated_sweeps: int
     memory_map: bool
+    camera_names: Tuple[str, ...]
 
     file_index: pl.DataFrame = field(init=False)
 
