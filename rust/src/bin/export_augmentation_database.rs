@@ -81,6 +81,7 @@ pub fn main() {
             split_name,
             NUM_ACCUMULATED_SWEEPS,
             MEMORY_MAPPED,
+            vec![],
         );
 
         let mut category_counter: HashMap<String, u64> = HashMap::new();

@@ -10,13 +10,14 @@ use io::{read_accumulate_lidar, read_timestamped_feather};
 use itertools::Itertools;
 use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
+use rayon::prelude::IndexedParallelIterator;
 use rayon::prelude::IntoParallelRefIterator;
+use rayon::prelude::ParallelIterator;
 use serde::{Deserialize, Serialize};
 use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
-use strum::IntoEnumIterator;
 
 use bincode::{deserialize, serialize};
 use glob::glob;
@@ -25,16 +26,12 @@ use pyo3::types::PyBytes;
 
 use crate::io::read_image_rgba8;
 use crate::{
-    constants::{self, CameraNames},
-    geometry::camera::pinhole_camera::PinholeCamera,
-    io::{self},
+    constants, geometry::camera::pinhole_camera::PinholeCamera, io,
     structures::timestamped_image::TimeStampedImage,
 };
-use rayon::iter::IndexedParallelIterator;
-use rayon::iter::ParallelIterator;
 
 const MIN_NUM_LIDAR_PTS: u64 = 1;
-const MAX_CAM_LIDAR_TOL_NS: f32 = 50000000.;
+const _MAX_CAM_LIDAR_TOL_NS: f32 = 50000000.;
 
 /// Data associated with a single lidar sweep.
 #[pyclass]
@@ -102,6 +99,9 @@ pub struct DataLoader {
     /// Current index of the data-loader.
     #[pyo3(get, set)]
     pub current_index: usize,
+    /// List of camera names.
+    #[pyo3(get, set)]
+    pub camera_names: Vec<String>,
 }
 
 /// Pythod bound methods are found here.
@@ -116,6 +116,7 @@ impl DataLoader {
         split_name: &str,
         num_accumulated_sweeps: usize,
         memory_mapped: bool,
+        camera_names: Vec<String>,
     ) -> DataLoader {
         let root_dir = PathBuf::from_str(root_dir).unwrap();
         let file_index = PyDataFrame(build_file_index(
@@ -123,6 +124,7 @@ impl DataLoader {
             dataset_name,
             dataset_type,
             split_name,
+            camera_names.clone(),
         ));
 
         let dataset_name = dataset_name.to_string();
@@ -138,6 +140,7 @@ impl DataLoader {
             memory_mapped,
             file_index,
             current_index,
+            camera_names,
         }
     }
 
@@ -181,8 +184,13 @@ impl DataLoader {
 
     /// Get all synchronized images at the sweep index.
     #[pyo3(name = "get_synchronized_images")]
-    pub fn py_get_synchronized_images(&self, py: Python, index: usize) -> Py<PyAny> {
-        let images = self.get_synchronized_images(index);
+    pub fn py_get_synchronized_images(
+        &self,
+        py: Python,
+        index: usize,
+        camera_names: Vec<&str>,
+    ) -> Py<PyAny> {
+        let images = self.get_synchronized_images(index, camera_names);
         images.into_py(py)
     }
 
@@ -325,14 +333,19 @@ impl DataLoader {
     }
 
     /// Get the sweep at `index`.
-    pub fn get_synchronized_images(&self, index: usize) -> Vec<TimeStampedImage> {
+    pub fn get_synchronized_images(
+        &self,
+        index: usize,
+        camera_names: Vec<&str>,
+    ) -> Vec<TimeStampedImage> {
         let row = self.file_index.0.get_row(index).unwrap().0;
         let (log_id, _) = (
             row.get(0).unwrap().get_str().unwrap(),
             row.get(1).unwrap().try_extract::<u64>().unwrap(),
         );
 
-        let camera_names = CameraNames::iter().collect_vec();
+        println!("{:?}", camera_names);
+
         let images = camera_names
             .par_iter()
             .enumerate()
@@ -346,23 +359,27 @@ impl DataLoader {
                             camera_name.to_string().as_str(),
                             timestamp_ns_camera,
                         );
-                        let image = TimeStampedImage {
+
+                        let camera_name = camera_name.to_string();
+                        let camera_model = PinholeCamera::from_feather(
+                            &self.log_dir(log_id),
+                            camera_name.as_str(),
+                        );
+                        TimeStampedImage {
                             image: read_image_rgba8(&camera_path),
-                            camera_model: PinholeCamera::from_feather(
-                                &self.log_dir(log_id),
-                                camera_name.to_string().as_str(),
-                            ),
+                            camera_model,
                             timestamp_ns: timestamp_ns_camera as usize,
-                        };
-                        image
+                        }
                     }
                     _ => {
                         let camera_name = camera_name.to_string();
-                        let (width, height) = if camera_name == "ring_front_center" {
-                            (1550, 2048)
-                        } else {
-                            (2048, 1550)
-                        };
+                        let camera_model = PinholeCamera::from_feather(
+                            &self.log_dir(log_id),
+                            camera_name.as_str(),
+                        );
+
+                        let width = camera_model.width_px() as u32;
+                        let height = camera_model.height_px() as u32;
 
                         TimeStampedImage {
                             image: ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(
@@ -371,10 +388,7 @@ impl DataLoader {
                                 vec![0; 4 * height as usize * width as usize],
                             )
                             .unwrap(),
-                            camera_model: PinholeCamera::from_feather(
-                                &self.log_dir(log_id),
-                                camera_name.as_str(),
-                            ),
+                            camera_model,
                             timestamp_ns: usize::MAX,
                         }
                     }
@@ -402,6 +416,7 @@ fn build_file_index(
     dataset_name: &str,
     dataset_type: &str,
     split_name: &str,
+    camera_names: Vec<String>,
 ) -> DataFrame {
     let split_dir = root_dir.join(format!("{dataset_name}/{dataset_type}/{split_name}"));
     let mut reference_frame = build_lidar_metadata(split_dir.clone(), "lidar")
@@ -411,7 +426,8 @@ fn build_file_index(
             vec![false],
             false,
         );
-    for camera_name in CameraNames::iter().map(|x| x.to_string()) {
+
+    for camera_name in camera_names {
         let frame = build_camera_metadata(split_dir.clone(), &camera_name)
             .lazy()
             .sort_by_exprs(
@@ -427,7 +443,7 @@ fn build_file_index(
             .join_builder()
             .how(JoinType::AsOf(AsOfOptions {
                 strategy: AsofStrategy::Nearest,
-                tolerance: Some(AnyValue::Float32(MAX_CAM_LIDAR_TOL_NS)),
+                tolerance: None,
                 tolerance_str: None,
                 left_by: Some(vec!["log_id".into()]),
                 right_by: Some(vec!["log_id".into()]),
@@ -530,118 +546,3 @@ fn build_camera_metadata(split_dir: PathBuf, sensor_name: &str) -> DataFrame {
     )
     .unwrap()
 }
-
-// fn _fast_build(
-//     root_dir: &Path,
-//     dataset_name: &str,
-//     dataset_type: &str,
-//     split_name: &str,
-// ) -> DataFrame {
-//     let split_dir = root_dir.join(format!("{dataset_name}/{dataset_type}/{split_name}"));
-//     let synchronization_list = std::fs::read_dir(split_dir)
-//         .unwrap()
-//         .filter_map(|log_dir| match log_dir {
-//             Ok(log_dir) => {
-//                 let mut reference_frame = extract_lidar_metadata(&log_dir.path());
-//                 for camera_name in CameraNames::iter().map(|x| x.to_string()) {
-//                     let frame = extract_camera_metadata(&log_dir.path(), camera_name.as_str());
-//                     frame
-//                         .clone()
-//                         .lazy()
-//                         .sort_by_exprs(
-//                             &[cols([
-//                                 "log_id",
-//                                 format!("timestamp_ns_{camera_name}").as_str(),
-//                             ])],
-//                             vec![false],
-//                             false,
-//                         )
-//                         .collect()
-//                         .unwrap();
-
-//                     reference_frame = reference_frame
-//                         .join_asof_by(
-//                             &frame,
-//                             "timestamp_ns_lidar",
-//                             format!("timestamp_ns_{}", camera_name).as_str(),
-//                             ["log_id"],
-//                             ["log_id"],
-//                             AsofStrategy::Forward,
-//                             Some(AnyValue::Float32(MAX_CAM_LIDAR_TOL_NS)),
-//                         )
-//                         .unwrap();
-
-//                     reference_frame = reference_frame.drop_many(&["city_name_right"]);
-//                 }
-//                 reference_frame
-//                     .rename("timestamp_ns_lidar", "timestamp_ns")
-//                     .unwrap();
-//                 Some(reference_frame.lazy())
-//             }
-//             _ => None,
-//         })
-//         .collect_vec();
-//     concat(synchronization_list, true, true)
-//         .unwrap()
-//         .collect()
-//         .unwrap()
-// }
-
-// fn extract_lidar_metadata(log_dir: &Path) -> DataFrame {
-//     let lidar_pattern = log_dir.join("sensors/lidar/*.feather");
-//     let lidar_files = glob(lidar_pattern.to_str().unwrap())
-//         .expect("Failed to read glob pattern.")
-//         .filter_map(|path| match path {
-//             Ok(x) => Some(x),
-//             _ => None,
-//         })
-//         .collect_vec();
-//     let log_id = log_dir.file_stem().unwrap().to_str().unwrap();
-//     let timestamp_ns: Vec<_> = lidar_files
-//         .iter()
-//         .map(|x| {
-//             x.file_stem()
-//                 .unwrap()
-//                 .to_str()
-//                 .unwrap()
-//                 .parse::<u64>()
-//                 .unwrap()
-//         })
-//         .collect();
-//     df!(
-//         "log_id" => Series::new("log_id", vec![log_id; timestamp_ns.len()]),
-//         "timestamp_ns_lidar" => Series::new("timestamp_ns", timestamp_ns.clone()),
-//         "city_name" => Series::new("city_name", vec!["DEFAULT"; timestamp_ns.len()])
-//     )
-//     .unwrap()
-// }
-
-// fn extract_camera_metadata(log_dir: &Path, camera_name: &str) -> DataFrame {
-//     let camera_pattern = log_dir.join(format!("sensors/cameras/{camera_name}/*.jpg"));
-//     let camera_files = glob(camera_pattern.to_str().unwrap())
-//         .expect("Failed to read glob pattern.")
-//         .filter_map(|path| match path {
-//             Ok(x) => Some(x),
-//             _ => None,
-//         })
-//         .collect_vec();
-
-//     let log_id = log_dir.file_stem().unwrap().to_str().unwrap();
-//     let timestamp_ns: Vec<_> = camera_files
-//         .iter()
-//         .map(|x| {
-//             x.file_stem()
-//                 .unwrap()
-//                 .to_str()
-//                 .unwrap()
-//                 .parse::<u64>()
-//                 .unwrap()
-//         })
-//         .collect();
-//     df!(
-//         "log_id" => Series::new("log_id", vec![log_id; timestamp_ns.len()]),
-//         format!("timestamp_ns_{}", camera_name).as_str() => Series::new("timestamp_ns", timestamp_ns.clone()),
-//         "city_name" => Series::new("city_name", vec!["DEFAULT"; timestamp_ns.len()])
-//     )
-//     .unwrap()
-// }

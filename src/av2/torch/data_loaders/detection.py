@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple
 
 import torch
 from torch.utils.data import Dataset
@@ -43,6 +43,7 @@ class DetectionDataLoader(Dataset[Sweep]):  # type: ignore
     split_name: str
     num_accumulated_sweeps: int = 1
     memory_mapped: bool = False
+    camera_names: Tuple[str, ...] = ()
 
     _backend: rust.DataLoader = field(init=False)
     _current_sweep_index: int = 0
@@ -56,6 +57,7 @@ class DetectionDataLoader(Dataset[Sweep]):  # type: ignore
             self.split_name,
             self.num_accumulated_sweeps,
             self.memory_mapped,
+            list(self.camera_names),
         )
 
     def __getitem__(self, sweep_index: int) -> Sweep:

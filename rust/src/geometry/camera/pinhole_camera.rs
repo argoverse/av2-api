@@ -271,20 +271,18 @@ impl PinholeCamera {
     }
 }
 
-fn extract_f32_from_frame(series: &DataFrame, column: &str) -> f32 {
-    series
-        .column(column)
-        .unwrap()
+fn extract_f32_from_frame(series: &DataFrame, column_name: &str) -> f32 {
+    series[column_name]
         .get(0)
-        .unwrap()
+        .unwrap_or_else(|_| panic!("{column_name} does not exist."))
         .try_extract::<f32>()
         .unwrap()
 }
 
-fn extract_usize_from_frame(series: &DataFrame, column: &str) -> usize {
-    series[column]
+fn extract_usize_from_frame(series: &DataFrame, column_name: &str) -> usize {
+    series[column_name]
         .get(0)
-        .unwrap()
+        .unwrap_or_else(|_| panic!("{column_name} does not exist."))
         .try_extract::<usize>()
         .unwrap()
 }
