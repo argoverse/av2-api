@@ -237,6 +237,12 @@ impl PinholeCamera {
 
 #[pymethods]
 impl PinholeCamera {
+    /// Camera extrinsics.
+    #[pyo3(name = "extrinsics")]
+    pub fn py_extrinsics<'py>(&self, py: Python<'py>) -> &'py PyArray<f32, Ix2> {
+        self.extrinsics().into_pyarray(py)
+    }
+
     /// Camera projection matrix.
     #[pyo3(name = "p")]
     pub fn py_p<'py>(&self, py: Python<'py>) -> &'py PyArray<f32, Ix2> {

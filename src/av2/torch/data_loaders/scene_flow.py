@@ -39,6 +39,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):  #
     split_name: str
     num_accumulated_sweeps: int = 1
     memory_mapped: bool = False
+    camera_names: Tuple[str, ...] = ()
 
     _backend: rust.DataLoader = field(init=False)
     _current_idx: int = 0
@@ -52,6 +53,8 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):  #
             self.split_name,
             self.num_accumulated_sweeps,
             self.memory_mapped,
+            list(self.camera_names),
+
         )
         self.data_dir = (
             Path(self.root_dir) / self.dataset_name / "sensor" / self.split_name
