@@ -57,6 +57,7 @@ pub fn main() {
             split_name,
             NUM_ACCUMULATED_SWEEPS,
             MEMORY_MAPPED,
+            vec![],
         );
         let bar = ProgressBar::new(data_loader.len() as u64);
         for sweep in data_loader {
