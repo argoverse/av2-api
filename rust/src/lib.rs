@@ -18,7 +18,8 @@ pub mod share;
 pub mod structures;
 
 use data_loader::{DataLoader, Sweep};
-use ndarray::{Dim, Ix1, Ix2};
+use geometry::polytope::{compute_interior_points_mask, cuboids_to_vertices};
+use ndarray::{Dim, Ix1, Ix2, Ix3};
 use numpy::PyReadonlyArray;
 use numpy::{IntoPyArray, PyArray};
 use pyo3::prelude::*;
@@ -87,11 +88,35 @@ fn py_yaw_to_quat<'py>(
     yaw_to_quat(&quat_wxyz.as_array().view()).into_pyarray(py)
 }
 
+#[pyfunction]
+#[pyo3(name = "cuboids_to_vertices")]
+#[allow(clippy::type_complexity)]
+fn py_cuboids_to_vertices<'py>(
+    py: Python<'py>,
+    cuboids: PyReadonlyArray<f32, Ix2>,
+) -> &'py PyArray<f32, Ix3> {
+    cuboids_to_vertices(&cuboids.as_array().view()).into_pyarray(py)
+}
+
+#[pyfunction]
+#[pyo3(name = "compute_interior_points_mask")]
+#[allow(clippy::type_complexity)]
+fn py_compute_interior_points_mask<'py>(
+    py: Python<'py>,
+    points_m: PyReadonlyArray<f32, Ix2>,
+    cuboids: PyReadonlyArray<f32, Ix3>,
+) -> &'py PyArray<bool, Ix2> {
+    compute_interior_points_mask(&points_m.as_array().view(), &cuboids.as_array().view())
+        .into_pyarray(py)
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _r(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<DataLoader>()?;
     m.add_class::<Sweep>()?;
+    m.add_function(wrap_pyfunction!(py_compute_interior_points_mask, m)?)?;
+    m.add_function(wrap_pyfunction!(py_cuboids_to_vertices, m)?)?;
     m.add_function(wrap_pyfunction!(py_quat_to_mat3, m)?)?;
     m.add_function(wrap_pyfunction!(py_quat_to_yaw, m)?)?;
     m.add_function(wrap_pyfunction!(py_voxelize, m)?)?;

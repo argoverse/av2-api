@@ -7,7 +7,9 @@ from typing import Final
 from kornia.geometry.linalg import transform_points
 from tqdm import tqdm
 
+from av2.geometry.geometry import compute_interior_points_mask
 from av2.torch.data_loaders.detection import DetectionDataLoader
+from av2.torch.structures.cuboids import CuboidMode
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -46,6 +48,11 @@ def main(
 
         # Lidar (x,y,z) in meters and intensity (i).
         lidar_tensor = sweep.lidar.as_tensor()
+
+        # (N,M) Mask indicating which points (rows) are interior to each cuboid (columns).
+        interior_points_mask = sweep.cuboids.compute_interior_points_mask(
+            lidar_tensor[:, :3]
+        )
 
         # Synchronized ring cameras.
         synchronized_images = data_loader.get_synchronized_images(i)

@@ -11,7 +11,7 @@ use std::{fs, path::PathBuf};
 
 use av2::{
     data_loader::DataLoader,
-    geometry::polytope::{compute_interior_points_mask, cuboids_to_polygons},
+    geometry::polytope::{compute_interior_points_mask, cuboids_to_vertices},
     io::write_feather_eager,
 };
 use indicatif::ProgressBar;
@@ -99,7 +99,7 @@ pub fn main() {
                 .clone();
 
             let cuboids = cuboids.clone().to_ndarray::<Float32Type>().unwrap();
-            let cuboid_vertices = cuboids_to_polygons(&cuboids.view());
+            let cuboid_vertices = cuboids_to_vertices(&cuboids.view());
             let points = lidar_ndarray.slice(s![.., ..3]);
             let mask = compute_interior_points_mask(&points.view(), &cuboid_vertices.view());
             for (c, m) in category.into_iter().zip(mask.outer_iter()) {
