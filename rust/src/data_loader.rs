@@ -13,7 +13,7 @@ use pyo3_polars::PyDataFrame;
 use rayon::prelude::IndexedParallelIterator;
 use rayon::prelude::IntoParallelRefIterator;
 use rayon::prelude::ParallelIterator;
-use serde::{Deserialize, Serialize};
+// use serde::{Deserialize, Serialize};
 use std::{
     path::{Path, PathBuf},
     str::FromStr,
@@ -72,7 +72,6 @@ impl Sweep {
 }
 
 /// Sensor data-loader for `av2`.
-#[derive(Serialize, Deserialize)]
 #[pyclass(module = "av2._r")]
 pub struct DataLoader {
     /// Root dataset directory.
@@ -207,15 +206,15 @@ impl DataLoader {
     }
 
     /// Used for python pickling.
-    pub fn __setstate__(&mut self, state: &PyBytes) -> PyResult<()> {
-        *self = deserialize(state.as_bytes()).unwrap();
-        Ok(())
-    }
+    // pub fn __setstate__(&mut self, state: &PyBytes) -> PyResult<()> {
+    //     *self = deserialize(state.as_bytes()).unwrap();
+    //     Ok(())
+    // }
 
     /// Used for python pickling.
-    pub fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<&'py PyBytes> {
-        Ok(PyBytes::new(py, &serialize(&self).unwrap()))
-    }
+    // pub fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<&'py PyBytes> {
+    //     Ok(PyBytes::new(py, &serialize(&self).unwrap()))
+    // }
 
     /// Used for python pickling.
     pub fn __getnewargs__(&self) -> PyResult<(PathBuf, String, String, String, usize)> {
@@ -367,6 +366,7 @@ impl DataLoader {
                             image: read_image_rgba8(&camera_path),
                             camera_model,
                             timestamp_ns: timestamp_ns_camera as usize,
+                            city_pose: Some(self.read_city_pose_py(log_id, timestamp_ns_camera)),
                         }
                     }
                     _ => {
@@ -388,6 +388,7 @@ impl DataLoader {
                             .unwrap(),
                             camera_model,
                             timestamp_ns: usize::MAX,
+                            city_pose: None,
                         }
                     }
                 }
@@ -423,9 +424,10 @@ fn build_file_index(
             &[cols(["log_id", "timestamp_ns_lidar"])],
             vec![false],
             false,
+            true,
         );
 
-    for camera_name in camera_names {
+    for camera_name in camera_names.clone() {
         let frame = build_camera_metadata(split_dir.clone(), &camera_name)
             .lazy()
             .sort_by_exprs(
@@ -435,7 +437,11 @@ fn build_file_index(
                 ])],
                 vec![false],
                 false,
+                true,
             );
+
+        // println!("{}", frame.clone().collect().unwrap());
+        // println!("{}", reference_frame.clone().collect().unwrap());
 
         reference_frame = reference_frame
             .join_builder()
@@ -450,13 +456,29 @@ fn build_file_index(
             .right_on(&[col(format!("timestamp_ns_{}", camera_name).as_str())])
             .with(frame)
             .finish()
-            .drop_columns(vec!["city_name_right"]);
+            .drop_columns(vec!["city_name_right"])
+            .with_column(col(format!("timestamp_ns_{}", camera_name).as_str()));
+
+        // println!("{}", build_camera_metadata(split_dir.clone(), &camera_name));
+        // println!("{}", reference_frame.clone().collect().unwrap());
     }
 
     reference_frame
         .rename(vec!["timestamp_ns_lidar"], vec!["timestamp_ns"])
         .collect()
         .unwrap()
+
+    // let series = metadata["timestamp_ns"].clone();
+    // metadata
+    //     .with_column(series.cast(&DataType::UInt64).unwrap())
+    //     .unwrap();
+    // for camera_name in camera_names {
+    //     let series = metadata[format!("timestamp_ns_{}", camera_name).as_str()].clone();
+    //     metadata
+    //         .with_column(series.cast(&DataType::UInt64).unwrap())
+    //         .unwrap();
+    // }
+    // metadata
 }
 
 fn build_lidar_metadata(split_dir: PathBuf, sensor_name: &str) -> DataFrame {

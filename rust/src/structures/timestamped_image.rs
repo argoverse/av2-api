@@ -3,6 +3,7 @@ use ndarray::Ix3;
 use nshare::ToNdarray3;
 use numpy::{IntoPyArray, PyArray};
 use pyo3::prelude::*;
+use pyo3_polars::PyDataFrame;
 
 use crate::geometry::camera::pinhole_camera::PinholeCamera;
 
@@ -19,6 +20,9 @@ pub struct TimeStampedImage {
     /// Nanosecond timestamp.
     #[pyo3(get, set)]
     pub timestamp_ns: usize,
+    /// Ego-vehicle city pose.
+    #[pyo3(get, set)]
+    pub city_pose: Option<PyDataFrame>,
 }
 
 #[pymethods]

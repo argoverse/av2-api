@@ -7,6 +7,7 @@
 
 pub mod constants;
 pub mod data_loader;
+pub mod frame_utils;
 pub mod geometry;
 pub mod io;
 pub mod ops;
@@ -15,6 +16,7 @@ pub mod share;
 pub mod structures;
 
 use data_loader::{DataLoader, Sweep};
+use geometry::se3::SE3;
 use ndarray::{Dim, Ix1, Ix2};
 use numpy::PyReadonlyArray;
 use numpy::{IntoPyArray, PyArray};
@@ -31,14 +33,14 @@ use crate::ops::voxelize;
 fn py_voxelize<'py>(
     py: Python<'py>,
     indices: PyReadonlyArray2<usize>,
-    features: PyReadonlyArray2<f32>,
+    features: PyReadonlyArray2<f64>,
     length: usize,
     width: usize,
     height: usize,
 ) -> (
     &'py PyArray<usize, Dim<[usize; 2]>>,
-    &'py PyArray<f32, Dim<[usize; 2]>>,
-    &'py PyArray<f32, Dim<[usize; 2]>>,
+    &'py PyArray<f64, Dim<[usize; 2]>>,
+    &'py PyArray<f64, Dim<[usize; 2]>>,
 ) {
     let (indices, values, counts) = voxelize(
         &indices.as_array(),
@@ -59,8 +61,8 @@ fn py_voxelize<'py>(
 #[allow(clippy::type_complexity)]
 fn py_quat_to_mat3<'py>(
     py: Python<'py>,
-    quat_wxyz: PyReadonlyArray<f32, Ix1>,
-) -> &'py PyArray<f32, Ix2> {
+    quat_wxyz: PyReadonlyArray<f64, Ix1>,
+) -> &'py PyArray<f64, Ix2> {
     _quat_to_mat3(&quat_wxyz.as_array().view()).into_pyarray(py)
 }
 
@@ -69,8 +71,8 @@ fn py_quat_to_mat3<'py>(
 #[allow(clippy::type_complexity)]
 fn py_quat_to_yaw<'py>(
     py: Python<'py>,
-    quat_wxyz: PyReadonlyArray<f32, Ix2>,
-) -> &'py PyArray<f32, Ix2> {
+    quat_wxyz: PyReadonlyArray<f64, Ix2>,
+) -> &'py PyArray<f64, Ix2> {
     quat_to_yaw(&quat_wxyz.as_array().view()).into_pyarray(py)
 }
 
@@ -79,8 +81,8 @@ fn py_quat_to_yaw<'py>(
 #[allow(clippy::type_complexity)]
 fn py_yaw_to_quat<'py>(
     py: Python<'py>,
-    quat_wxyz: PyReadonlyArray<f32, Ix2>,
-) -> &'py PyArray<f32, Ix2> {
+    quat_wxyz: PyReadonlyArray<f64, Ix2>,
+) -> &'py PyArray<f64, Ix2> {
     yaw_to_quat(&quat_wxyz.as_array().view()).into_pyarray(py)
 }
 
@@ -88,6 +90,7 @@ fn py_yaw_to_quat<'py>(
 #[pymodule]
 fn _r(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<DataLoader>()?;
+    m.add_class::<SE3>()?;
     m.add_class::<Sweep>()?;
     m.add_function(wrap_pyfunction!(py_quat_to_mat3, m)?)?;
     m.add_function(wrap_pyfunction!(py_quat_to_yaw, m)?)?;

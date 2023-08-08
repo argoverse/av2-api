@@ -2,12 +2,12 @@
 //!
 //! Geometric augmentations.
 
-use std::f32::consts::PI;
+use std::f64::consts::PI;
 
 use crate::{
     geometry::so3::_mat3_to_quat,
     io::ndarray_from_frame,
-    share::{data_frame_to_ndarray_f32, ndarray_to_expr_vec},
+    share::{data_frame_to_ndarray_f64, ndarray_to_expr_vec},
 };
 use itertools::Itertools;
 use ndarray::{azip, concatenate, par_azip, s, Array, Axis, Ix1, Ix2};
@@ -41,7 +41,7 @@ pub fn sample_scene_reflection_x(
             .with_column(col("y").map(
                 move |x| {
                     Ok(Some(
-                        x.f32()
+                        x.f64()
                             .unwrap()
                             .into_no_null_iter()
                             .map(|y| -y)
@@ -54,12 +54,12 @@ pub fn sample_scene_reflection_x(
             .unwrap();
 
         let translation_column_names = vec!["tx_m", "ty_m", "tz_m"];
-        let txyz_m = data_frame_to_ndarray_f32(cuboids.clone(), translation_column_names.clone());
+        let txyz_m = data_frame_to_ndarray_f64(cuboids.clone(), translation_column_names.clone());
         let augmentation_translation = reflect_translation_x(&txyz_m.view());
 
         let orientation_column_names = vec!["qw", "qx", "qy", "qz"];
         let quat_wxyz =
-            data_frame_to_ndarray_f32(cuboids.clone(), orientation_column_names.clone());
+            data_frame_to_ndarray_f64(cuboids.clone(), orientation_column_names.clone());
         let augmented_orientation = reflect_orientation_x(&quat_wxyz.view());
         let augmented_poses =
             concatenate![Axis(1), augmentation_translation, augmented_orientation];
@@ -91,7 +91,7 @@ pub fn sample_scene_reflection_y(
             .with_column(col("x").map(
                 move |x| {
                     Ok(Some(
-                        x.f32()
+                        x.f64()
                             .unwrap()
                             .into_no_null_iter()
                             .map(|x| -x)
@@ -104,12 +104,12 @@ pub fn sample_scene_reflection_y(
             .unwrap();
 
         let translation_column_names = vec!["tx_m", "ty_m", "tz_m"];
-        let txyz_m = data_frame_to_ndarray_f32(cuboids.clone(), translation_column_names.clone());
+        let txyz_m = data_frame_to_ndarray_f64(cuboids.clone(), translation_column_names.clone());
         let augmentation_translation = reflect_translation_y(&txyz_m.view());
 
         let orientation_column_names = vec!["qw", "qx", "qy", "qz"];
         let quat_wxyz =
-            data_frame_to_ndarray_f32(cuboids.clone(), orientation_column_names.clone());
+            data_frame_to_ndarray_f64(cuboids.clone(), orientation_column_names.clone());
         let augmented_orientation = reflect_orientation_y(&quat_wxyz.view());
         let augmented_poses =
             concatenate![Axis(1), augmentation_translation, augmented_orientation];
@@ -135,13 +135,13 @@ pub fn sample_scene_global_scale(
     upper_inclusive: f64,
 ) -> (DataFrame, DataFrame) {
     let distribution = Uniform::new_inclusive(low_inclusive, upper_inclusive);
-    let scale_factor = distribution.sample(&mut rand::thread_rng()) as f32;
+    let scale_factor = distribution.sample(&mut rand::thread_rng()) as f64;
     let augmented_lidar = lidar
         .lazy()
         .with_column(col("x").map(
             move |x| {
                 Ok(Some(
-                    x.f32()
+                    x.f64()
                         .unwrap()
                         .into_no_null_iter()
                         .map(|x| scale_factor * x)
@@ -153,7 +153,7 @@ pub fn sample_scene_global_scale(
         .with_column(col("y").map(
             move |y| {
                 Ok(Some(
-                    y.f32()
+                    y.f64()
                         .unwrap()
                         .into_no_null_iter()
                         .map(|y| scale_factor * y)
@@ -165,7 +165,7 @@ pub fn sample_scene_global_scale(
         .with_column(col("z").map(
             move |z| {
                 Ok(Some(
-                    z.f32()
+                    z.f64()
                         .unwrap()
                         .into_no_null_iter()
                         .map(|z| scale_factor * z)
@@ -182,7 +182,7 @@ pub fn sample_scene_global_scale(
         .with_column(col("tx_m").map(
             move |x| {
                 Ok(Some(
-                    x.f32()
+                    x.f64()
                         .unwrap()
                         .into_no_null_iter()
                         .map(|x| scale_factor * x)
@@ -194,7 +194,7 @@ pub fn sample_scene_global_scale(
         .with_column(col("ty_m").map(
             move |y| {
                 Ok(Some(
-                    y.f32()
+                    y.f64()
                         .unwrap()
                         .into_no_null_iter()
                         .map(|y| scale_factor * y)
@@ -206,7 +206,7 @@ pub fn sample_scene_global_scale(
         .with_column(col("tz_m").map(
             move |z| {
                 Ok(Some(
-                    z.f32()
+                    z.f64()
                         .unwrap()
                         .into_no_null_iter()
                         .map(|z| scale_factor * z)
@@ -229,13 +229,13 @@ pub fn sample_scene_global_rotation(
     upper_inclusive: f64,
 ) -> (DataFrame, DataFrame) {
     let distribution = Uniform::new_inclusive(low_inclusive, upper_inclusive);
-    let theta = distribution.sample(&mut rand::thread_rng()) as f32;
-    let rotation = Array::<f32, Ix1>::from_vec(vec![
-        f32::cos(2.0 * PI * theta),
-        f32::sin(2.0 * PI * theta),
+    let theta = distribution.sample(&mut rand::thread_rng()) as f64;
+    let rotation = Array::<f64, Ix1>::from_vec(vec![
+        f64::cos(2.0 * PI * theta),
+        f64::sin(2.0 * PI * theta),
         0.0,
-        -f32::sin(2.0 * PI * theta),
-        f32::cos(2.0 * PI * theta),
+        -f64::sin(2.0 * PI * theta),
+        f64::cos(2.0 * PI * theta),
         0.0,
         0.0,
         0.0,
@@ -254,7 +254,7 @@ pub fn sample_scene_global_rotation(
     let cuboids_ndarray = ndarray_from_frame(&cuboids, cols(cuboid_column_names));
 
     let num_cuboids = cuboids_ndarray.shape()[0];
-    let mut augmented_cuboids = Array::<f32, Ix2>::zeros((num_cuboids, 7));
+    let mut augmented_cuboids = Array::<f64, Ix2>::zeros((num_cuboids, 7));
     par_azip!((mut ac in augmented_cuboids.outer_iter_mut(), c in cuboids_ndarray.outer_iter()) {
         let augmented_translation = c.slice(s![..3]).dot(&rotation);
         let augmented_mat3 = _quat_to_mat3(&c.slice(s![3..7])).dot(&rotation.t());
@@ -288,7 +288,7 @@ pub fn sample_random_object_scale(
     let distribution = Uniform::new_inclusive(low_inclusive, high_inclusive);
 
     azip!((mut c in cuboids_ndarray.outer_iter_mut(), m in interior_points_mask.outer_iter()) {
-        let scale_factor = distribution.sample(&mut rand::thread_rng()) as f32;
+        let scale_factor = distribution.sample(&mut rand::thread_rng()) as f64;
         let indices = m
             .iter()
             .enumerate()

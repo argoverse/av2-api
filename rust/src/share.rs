@@ -5,12 +5,12 @@
 use ndarray::{Array, Ix2};
 use polars::{
     lazy::dsl::{cols, lit, Expr},
-    prelude::{DataFrame, Float32Type, IntoLazy, NamedFrom},
+    prelude::{DataFrame, Float64Type, IndexOrder, IntoLazy, NamedFrom},
     series::Series,
 };
 
 /// Convert the columns of an `ndarray::Array` into a vector of `polars` expressions.
-pub fn ndarray_to_expr_vec(arr: Array<f32, Ix2>, column_names: Vec<&str>) -> Vec<Expr> {
+pub fn ndarray_to_expr_vec(arr: Array<f64, Ix2>, column_names: Vec<&str>) -> Vec<Expr> {
     let num_dims = arr.shape()[1];
     if num_dims != column_names.len() {
         panic!("Number of array columns and column names must match.");
@@ -27,16 +27,16 @@ pub fn ndarray_to_expr_vec(arr: Array<f32, Ix2>, column_names: Vec<&str>) -> Vec
     series_vec
 }
 
-/// Convert a data frame to an `ndarray::Array::<f32, Ix2>`.
-pub fn data_frame_to_ndarray_f32(
+/// Convert a data frame to an `ndarray::Array::<f64, Ix2>`.
+pub fn data_frame_to_ndarray_f64(
     data_frame: DataFrame,
     column_names: Vec<&str>,
-) -> Array<f32, Ix2> {
+) -> Array<f64, Ix2> {
     data_frame
         .lazy()
         .select(&[cols(column_names)])
         .collect()
         .unwrap()
-        .to_ndarray::<Float32Type>()
+        .to_ndarray::<Float64Type>(IndexOrder::C)
         .unwrap()
 }

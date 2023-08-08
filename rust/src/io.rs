@@ -132,7 +132,7 @@ pub fn read_accumulate_lidar(
                     .select(&[cols(["x", "y", "z"])])
                     .collect()
                     .unwrap()
-                    .to_ndarray::<Float32Type>()
+                    .to_ndarray::<Float64Type>(IndexOrder::C)
                     .unwrap();
 
                 let pose_i = poses
@@ -161,7 +161,7 @@ pub fn read_accumulate_lidar(
         .collect::<Vec<_>>();
 
     lidar_list.reverse();
-    concat(lidar_list, true, true).unwrap()
+    concat(lidar_list, UnionArgs::default()).unwrap()
 }
 
 /// Read a dataframe, but filter for the specified timestamp.
@@ -211,14 +211,14 @@ pub fn build_lidar_file_path(log_dir: PathBuf, timestamp_ns: u64) -> PathBuf {
 }
 
 /// Convert a dataframe to `ndarray`.
-pub fn ndarray_from_frame(frame: &DataFrame, exprs: Expr) -> Array2<f32> {
+pub fn ndarray_from_frame(frame: &DataFrame, exprs: Expr) -> Array2<f64> {
     frame
         .clone()
         .lazy()
         .select(&[exprs])
         .collect()
         .unwrap()
-        .to_ndarray::<Float32Type>()
+        .to_ndarray::<Float64Type>(IndexOrder::C)
         .unwrap()
         .as_standard_layout()
         .to_owned()
@@ -229,7 +229,7 @@ pub fn ndarray_filtered_from_frame(
     frame: &DataFrame,
     select_exprs: Expr,
     filter_exprs: Expr,
-) -> Array2<f32> {
+) -> Array2<f64> {
     frame
         .clone()
         .lazy()
@@ -237,7 +237,7 @@ pub fn ndarray_filtered_from_frame(
         .select(&[select_exprs])
         .collect()
         .unwrap()
-        .to_ndarray::<Float32Type>()
+        .to_ndarray::<Float64Type>(IndexOrder::C)
         .unwrap()
         .as_standard_layout()
         .to_owned()
@@ -245,16 +245,16 @@ pub fn ndarray_filtered_from_frame(
 
 /// Convert a data_frame with pose columns into an `se3` object.
 pub fn data_frame_to_se3(data_frame: DataFrame) -> SE3 {
-    let qw = extract_f32_from_data_frame(&data_frame, "qw");
-    let qx = extract_f32_from_data_frame(&data_frame, "qx");
-    let qy = extract_f32_from_data_frame(&data_frame, "qy");
-    let qz = extract_f32_from_data_frame(&data_frame, "qz");
-    let tx_m = extract_f32_from_data_frame(&data_frame, "tx_m");
-    let ty_m = extract_f32_from_data_frame(&data_frame, "ty_m");
-    let tz_m = extract_f32_from_data_frame(&data_frame, "tz_m");
-    let quat_wxyz = Array::<f32, Ix1>::from_vec(vec![qw, qx, qy, qz]);
+    let qw = extract_f64_from_data_frame(&data_frame, "qw");
+    let qx = extract_f64_from_data_frame(&data_frame, "qx");
+    let qy = extract_f64_from_data_frame(&data_frame, "qy");
+    let qz = extract_f64_from_data_frame(&data_frame, "qz");
+    let tx_m = extract_f64_from_data_frame(&data_frame, "tx_m");
+    let ty_m = extract_f64_from_data_frame(&data_frame, "ty_m");
+    let tz_m = extract_f64_from_data_frame(&data_frame, "tz_m");
+    let quat_wxyz = Array::<f64, Ix1>::from_vec(vec![qw, qx, qy, qz]);
     let rotation = _quat_to_mat3(&quat_wxyz.view());
-    let translation = Array::<f32, Ix1>::from_vec(vec![tx_m, ty_m, tz_m]);
+    let translation = Array::<f64, Ix1>::from_vec(vec![tx_m, ty_m, tz_m]);
     SE3 {
         rotation,
         translation,
@@ -262,13 +262,13 @@ pub fn data_frame_to_se3(data_frame: DataFrame) -> SE3 {
 }
 
 /// Extract an f32 field from a single row data frame.
-pub fn extract_f32_from_data_frame(data_frame: &DataFrame, column: &str) -> f32 {
+pub fn extract_f64_from_data_frame(data_frame: &DataFrame, column: &str) -> f64 {
     data_frame
         .column(column)
         .unwrap()
         .get(0)
         .unwrap()
-        .try_extract::<f32>()
+        .try_extract::<f64>()
         .unwrap()
 }
 

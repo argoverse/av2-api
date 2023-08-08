@@ -8,8 +8,8 @@ use once_cell::sync::Lazy;
 use super::so3::_quat_to_mat3;
 
 // Safety: 24 elements (8 * 3 = 24) are defined.
-static VERTS: Lazy<Array<f32, Ix2>> = Lazy::new(|| unsafe {
-    Array::<f32, Ix2>::from_shape_vec_unchecked(
+static VERTS: Lazy<Array<f64, Ix2>> = Lazy::new(|| unsafe {
+    Array::<f64, Ix2>::from_shape_vec_unchecked(
         (8, 3),
         vec![
             1., 1., 1., 1., -1., 1., 1., -1., -1., 1., 1., -1., -1., 1., 1., -1., -1., 1., -1.,
@@ -20,8 +20,8 @@ static VERTS: Lazy<Array<f32, Ix2>> = Lazy::new(|| unsafe {
 
 /// Compute a boolean mask indicating which points are interior to the cuboid geometry.
 pub fn compute_interior_points_mask(
-    points: &ArrayView<f32, Ix2>,
-    cuboid_vertices: &ArrayView<f32, Ix3>,
+    points: &ArrayView<f64, Ix2>,
+    cuboid_vertices: &ArrayView<f64, Ix3>,
 ) -> Array<bool, Ix2> {
     let num_points = points.shape()[0];
     let num_cuboids = cuboid_vertices.shape()[0];
@@ -38,10 +38,10 @@ pub fn compute_interior_points_mask(
     let uvw = reference_index.clone() - vertices.clone();
     let reference_index = reference_index.into_shape((num_cuboids, 3)).unwrap();
 
-    let mut dot_uvw_reference = Array::<f32, Ix2>::zeros((num_cuboids, 3));
+    let mut dot_uvw_reference = Array::<f64, Ix2>::zeros((num_cuboids, 3));
     par_azip!((mut a in dot_uvw_reference.outer_iter_mut(), b in uvw.outer_iter(), c in reference_index.outer_iter()) a.assign(&b.dot(&c.t())) );
 
-    let mut dot_uvw_vertices = Array::<f32, Ix2>::zeros((num_cuboids, 3));
+    let mut dot_uvw_vertices = Array::<f64, Ix2>::zeros((num_cuboids, 3));
     par_azip!((mut a in dot_uvw_vertices.outer_iter_mut(), b in uvw.outer_iter(), c in vertices.outer_iter()) a.assign(&b.dot(&c.t()).diag()) );
 
     let dot_uvw_points = uvw
@@ -69,9 +69,9 @@ pub fn compute_interior_points_mask(
 }
 
 /// Convert (N,10) cuboids to polygons.
-pub fn cuboids_to_polygons(cuboids: &ArrayView<f32, Ix2>) -> Array<f32, Ix3> {
+pub fn cuboids_to_polygons(cuboids: &ArrayView<f64, Ix2>) -> Array<f64, Ix3> {
     let num_cuboids = cuboids.shape()[0];
-    let mut polygons = Array::<f32, Ix3>::zeros([num_cuboids, 8, 3]);
+    let mut polygons = Array::<f64, Ix3>::zeros([num_cuboids, 8, 3]);
     par_azip!((mut p in polygons.outer_iter_mut(), c in cuboids.outer_iter()) {
         p.assign(&_cuboid_to_polygon(&c))
     });
@@ -79,7 +79,7 @@ pub fn cuboids_to_polygons(cuboids: &ArrayView<f32, Ix2>) -> Array<f32, Ix3> {
 }
 
 /// Convert a single cuboid to a polygon.
-fn _cuboid_to_polygon(cuboid: &ArrayView<f32, Ix1>) -> Array<f32, Ix2> {
+fn _cuboid_to_polygon(cuboid: &ArrayView<f64, Ix1>) -> Array<f64, Ix2> {
     let center_xyz = cuboid.slice(s![0..3]);
     let dims_lwh = cuboid.slice(s![3..6]);
     let quat_wxyz = cuboid.slice(s![6..10]);

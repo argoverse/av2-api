@@ -34,11 +34,11 @@ pub fn ravel_multi_index(unraveled_coords: &ArrayView2<usize>, size: Vec<usize>)
 /// Cluster a group of features into a set of voxels based on their indices.
 pub fn voxelize(
     indices: &ArrayView2<usize>,
-    features: &ArrayView2<f32>,
+    features: &ArrayView2<f64>,
     length: usize,
     width: usize,
     height: usize,
-) -> (Array2<usize>, Array2<f32>, Array2<f32>) {
+) -> (Array2<usize>, Array2<f64>, Array2<f64>) {
     let shape = vec![length, width, height];
     let raveled_indices = ravel_multi_index(&indices.view(), shape);
 
@@ -54,8 +54,8 @@ pub fn voxelize(
         .collect::<HashMap<_, _>>();
 
     let mut indices_buffer = Array2::<usize>::zeros([unique_indices.len(), 3]);
-    let mut values_buffer = Array2::<f32>::zeros([unique_indices.len(), num_features]);
-    let mut counts = Array2::<f32>::zeros([unique_indices.len(), 1]);
+    let mut values_buffer = Array2::<f64>::zeros([unique_indices.len(), num_features]);
+    let mut counts = Array2::<f64>::zeros([unique_indices.len(), 1]);
 
     azip!((idx in raveled_indices.rows(), index in indices.rows(), val in features.rows()) {
         let i = *unique_indices.get(&idx[0]).unwrap();
