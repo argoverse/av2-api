@@ -5,7 +5,7 @@
 use ndarray::{Array, Ix2};
 use polars::{
     lazy::dsl::{cols, lit, Expr},
-    prelude::{DataFrame, Float32Type, IntoLazy, NamedFrom},
+    prelude::{DataFrame, Float32Type, IndexOrder, IntoLazy, NamedFrom},
     series::Series,
 };
 
@@ -37,6 +37,6 @@ pub fn data_frame_to_ndarray_f32(
         .select(&[cols(column_names)])
         .collect()
         .unwrap()
-        .to_ndarray::<Float32Type>()
+        .to_ndarray::<Float32Type>(IndexOrder::C)
         .unwrap()
 }

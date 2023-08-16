@@ -15,17 +15,14 @@ use numpy::PyArray;
 use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
 use rayon::prelude::IntoParallelRefIterator;
-use serde::{Deserialize, Serialize};
 use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
 use strum::IntoEnumIterator;
 
-use bincode::{deserialize, serialize};
 use glob::glob;
 use polars::prelude::*;
-use pyo3::types::PyBytes;
 
 use crate::io::read_image_rgba8;
 use crate::{
@@ -79,7 +76,6 @@ impl Sweep {
 }
 
 /// Sensor data-loader for `av2`.
-#[derive(Serialize, Deserialize)]
 #[pyclass(module = "av2._r")]
 pub struct DataLoader {
     /// Root dataset directory.
@@ -207,28 +203,6 @@ impl DataLoader {
 
     fn __len__(slf: PyRef<'_, Self>) -> usize {
         slf.file_index.0.shape().0
-    }
-
-    /// Used for python pickling.
-    pub fn __setstate__(&mut self, state: &PyBytes) -> PyResult<()> {
-        *self = deserialize(state.as_bytes()).unwrap();
-        Ok(())
-    }
-
-    /// Used for python pickling.
-    pub fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<&'py PyBytes> {
-        Ok(PyBytes::new(py, &serialize(&self).unwrap()))
-    }
-
-    /// Used for python pickling.
-    pub fn __getnewargs__(&self) -> PyResult<(PathBuf, String, String, String, usize)> {
-        Ok((
-            self.root_dir.clone(),
-            self.dataset_type.clone(),
-            self.split_name.clone(),
-            self.dataset_name.clone(),
-            self.num_accumulated_sweeps,
-        ))
     }
 }
 
@@ -424,6 +398,7 @@ fn build_file_index(
             &[cols(["log_id", "timestamp_ns_lidar"])],
             vec![false],
             false,
+            true,
         )
         .collect()
         .unwrap();
@@ -440,6 +415,7 @@ fn build_file_index(
                 ])],
                 vec![false],
                 false,
+                true,
             )
             .collect()
             .unwrap();
@@ -451,7 +427,7 @@ fn build_file_index(
                 format!("timestamp_ns_{}", camera_name).as_str(),
                 ["log_id"],
                 ["log_id"],
-                AsofStrategy::Forward,
+                AsofStrategy::Nearest,
                 Some(AnyValue::Float32(MAX_CAM_LIDAR_TOL_NS)),
             )
             .unwrap();

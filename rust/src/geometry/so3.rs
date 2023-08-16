@@ -2,8 +2,6 @@
 //!
 //! Special Orthogonal Group 3 (SO(3)).
 
-use std::f32::consts::PI;
-
 use ndarray::{par_azip, s, Array, Array2, ArrayView, Ix1, Ix2, Ix3};
 use rand_distr::{Distribution, StandardNormal};
 
@@ -149,7 +147,7 @@ pub fn reflect_orientation_x(quat_wxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2>
 /// (N,4) `quat_wxyz` orientation of `N` rigid objects.
 pub fn reflect_orientation_y(quat_wxyz: &ArrayView<f32, Ix2>) -> Array<f32, Ix2> {
     let yaw_rad = quat_to_yaw(quat_wxyz);
-    let reflected_yaw_rad = PI - yaw_rad;
+    let reflected_yaw_rad = -yaw_rad;
     yaw_to_quat(&reflected_yaw_rad.view())
 }
 
