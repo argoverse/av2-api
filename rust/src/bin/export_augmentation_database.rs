@@ -98,7 +98,10 @@ pub fn main() {
                 .collect_vec()
                 .clone();
 
-            let cuboids = cuboids.clone().to_ndarray::<Float32Type>(IndexOrder::C).unwrap();
+            let cuboids = cuboids
+                .clone()
+                .to_ndarray::<Float32Type>(IndexOrder::C)
+                .unwrap();
             let cuboid_vertices = cuboids_to_polygons(&cuboids.view());
             let points = lidar_ndarray.slice(s![.., ..3]);
             let mask = compute_interior_points_mask(&points.view(), &cuboid_vertices.view());

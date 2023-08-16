@@ -11,11 +11,7 @@ use std::{
 
 /// Convert unraveled coordinates (i.e., multi-dimensional indices) to a linear index.
 pub fn ravel_multi_index(unraveled_coords: &ArrayView2<usize>, size: Vec<usize>) -> Array2<usize> {
-    let shape_arr = Array1::<usize>::from_vec(
-        size.into_iter()
-            .chain(vec![1].into_iter())
-            .collect::<Vec<_>>(),
-    );
+    let shape_arr = Array1::<usize>::from_vec(size.into_iter().chain(vec![1]).collect::<Vec<_>>());
 
     let mut coefs = shape_arr
         .slice(s![1..])
