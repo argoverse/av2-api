@@ -147,7 +147,7 @@ fn _build_data_frame(arr: Array<f32, Ix2>, column_names: Vec<&str>) -> DataFrame
     let series_vec = arr
         .columns()
         .into_iter()
-        .zip(column_names.into_iter())
+        .zip(column_names)
         .map(|(column, column_name)| match column_name {
             "x" => Series::new("x", column.to_owned().into_raw_vec()),
             "y" => Series::new("y", column.to_owned().into_raw_vec()),
