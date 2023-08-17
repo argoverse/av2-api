@@ -21,7 +21,7 @@ use ndarray::{s, Array, Axis, Ix2};
 use once_cell::sync::Lazy;
 use polars::{
     df,
-    prelude::{DataFrame, Float32Type, NamedFrom},
+    prelude::{DataFrame, Float32Type, IndexOrder, NamedFrom},
     series::Series,
 };
 use std::collections::HashMap;
@@ -87,7 +87,7 @@ pub fn main() {
         let bar = ProgressBar::new(data_loader.len() as u64);
         for sweep in data_loader {
             let lidar = &sweep.lidar.0;
-            let lidar_ndarray = lidar.to_ndarray::<Float32Type>().unwrap();
+            let lidar_ndarray = lidar.to_ndarray::<Float32Type>(IndexOrder::C).unwrap();
 
             let cuboids = sweep.cuboids.unwrap().0;
             let category = cuboids["category"]
@@ -98,7 +98,10 @@ pub fn main() {
                 .collect_vec()
                 .clone();
 
-            let cuboids = cuboids.clone().to_ndarray::<Float32Type>().unwrap();
+            let cuboids = cuboids
+                .clone()
+                .to_ndarray::<Float32Type>(IndexOrder::C)
+                .unwrap();
             let cuboid_vertices = cuboids_to_polygons(&cuboids.view());
             let points = lidar_ndarray.slice(s![.., ..3]);
             let mask = compute_interior_points_mask(&points.view(), &cuboid_vertices.view());
@@ -144,7 +147,7 @@ fn _build_data_frame(arr: Array<f32, Ix2>, column_names: Vec<&str>) -> DataFrame
     let series_vec = arr
         .columns()
         .into_iter()
-        .zip(column_names.into_iter())
+        .zip(column_names)
         .map(|(column, column_name)| match column_name {
             "x" => Series::new("x", column.to_owned().into_raw_vec()),
             "y" => Series::new("y", column.to_owned().into_raw_vec()),

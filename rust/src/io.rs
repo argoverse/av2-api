@@ -132,7 +132,7 @@ pub fn read_accumulate_lidar(
                     .select(&[cols(["x", "y", "z"])])
                     .collect()
                     .unwrap()
-                    .to_ndarray::<Float32Type>()
+                    .to_ndarray::<Float32Type>(IndexOrder::C)
                     .unwrap();
 
                 let pose_i = poses
@@ -161,7 +161,7 @@ pub fn read_accumulate_lidar(
         .collect::<Vec<_>>();
 
     lidar_list.reverse();
-    concat(lidar_list, true, true).unwrap()
+    concat(lidar_list, UnionArgs::default()).unwrap()
 }
 
 /// Read a dataframe, but filter for the specified timestamp.
@@ -218,7 +218,7 @@ pub fn ndarray_from_frame(frame: &DataFrame, exprs: Expr) -> Array2<f32> {
         .select(&[exprs])
         .collect()
         .unwrap()
-        .to_ndarray::<Float32Type>()
+        .to_ndarray::<Float32Type>(IndexOrder::C)
         .unwrap()
         .as_standard_layout()
         .to_owned()
@@ -237,7 +237,7 @@ pub fn ndarray_filtered_from_frame(
         .select(&[select_exprs])
         .collect()
         .unwrap()
-        .to_ndarray::<Float32Type>()
+        .to_ndarray::<Float32Type>(IndexOrder::C)
         .unwrap()
         .as_standard_layout()
         .to_owned()
