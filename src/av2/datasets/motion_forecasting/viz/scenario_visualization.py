@@ -305,7 +305,7 @@ def _plot_actor_bounding_box(
         (pivot_x, pivot_y),
         bbox_length,
         bbox_width,
-        np.degrees(heading),
+        angle=np.degrees(heading),
         color=color,
         zorder=_BOUNDING_BOX_ZORDER,
     )
