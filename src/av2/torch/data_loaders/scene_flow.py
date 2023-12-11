@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):  # type: ignore
+class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
     """PyTorch data-loader for the sensor dataset.
 
     Args:
