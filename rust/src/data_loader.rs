@@ -313,7 +313,7 @@ impl DataLoader {
     pub fn get_synchronized_images(&self, index: usize) -> Vec<TimeStampedImage> {
         let row = self.file_index.0.get_row(index).unwrap().0;
         let (log_id, _) = (
-            row.get(0).unwrap().get_str().unwrap(),
+            row.first().unwrap().get_str().unwrap(),
             row.get(1).unwrap().try_extract::<u64>().unwrap(),
         );
 
