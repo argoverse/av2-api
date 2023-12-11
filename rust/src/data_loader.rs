@@ -157,7 +157,7 @@ impl DataLoader {
     pub fn get(&self, index: usize) -> Sweep {
         let row = self.file_index.0.get_row(index).unwrap().0;
         let (log_id, timestamp_ns) = (
-            row.get(0).unwrap().get_str().unwrap(),
+            row.first().unwrap().get_str().unwrap(),
             row.get(1).unwrap().try_extract::<u64>().unwrap(),
         );
 
