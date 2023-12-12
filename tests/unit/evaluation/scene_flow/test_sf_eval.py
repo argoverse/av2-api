@@ -271,67 +271,65 @@ def test_average_metrics() -> None:
 
     Verify that the weighted average metric breakdown has the correct subset counts and values.
     """
-    with Path(tempfile.TemporaryDirectory().name) as test_dir:
-        test_dir.mkdir()
-        anno_dir = test_dir / "annotations"
-        anno_dir.mkdir()
+    test_dir = Path(tempfile.TemporaryDirectory().name)
+    test_dir.mkdir()
+    anno_dir = test_dir / "annotations"
+    anno_dir.mkdir()
 
-        pred_dir = test_dir / "predictions"
-        pred_dir.mkdir()
+    pred_dir = test_dir / "predictions"
+    pred_dir.mkdir()
 
-        timestamp_ns_1 = 111111111111111111
-        timestamp_ns_2 = 111111111111111112
+    timestamp_ns_1 = 111111111111111111
+    timestamp_ns_2 = 111111111111111112
 
-        write_annotation(
-            gts_classes,
-            gts_close,
-            gts_dynamic,
-            gts_valid,
-            gts,
-            ("log", timestamp_ns_1),
-            anno_dir,
-        )
-        write_annotation(
-            gts_classes,
-            gts_close,
-            gts_dynamic,
-            gts_valid,
-            gts,
-            ("log", timestamp_ns_2),
-            anno_dir,
-        )
+    write_annotation(
+        gts_classes,
+        gts_close,
+        gts_dynamic,
+        gts_valid,
+        gts,
+        ("log", timestamp_ns_1),
+        anno_dir,
+    )
+    write_annotation(
+        gts_classes,
+        gts_close,
+        gts_dynamic,
+        gts_valid,
+        gts,
+        ("log", timestamp_ns_2),
+        anno_dir,
+    )
 
-        write_annotation(
-            gts_classes,
-            gts_close,
-            gts_dynamic,
-            gts_valid,
-            gts,
-            ("log_missing", timestamp_ns_1),
-            anno_dir,
-        )
+    write_annotation(
+        gts_classes,
+        gts_close,
+        gts_dynamic,
+        gts_valid,
+        gts,
+        ("log_missing", timestamp_ns_1),
+        anno_dir,
+    )
 
-        write_output_file(dts_perfect, dts_dynamic, ("log", timestamp_ns_1), pred_dir)
-        write_output_file(dts_perfect, dts_dynamic, ("log", timestamp_ns_2), pred_dir)
+    write_output_file(dts_perfect, dts_dynamic, ("log", timestamp_ns_1), pred_dir)
+    write_output_file(dts_perfect, dts_dynamic, ("log", timestamp_ns_2), pred_dir)
 
-        results_df = eval.evaluate_directories(anno_dir, pred_dir)
+    results_df = eval.evaluate_directories(anno_dir, pred_dir)
 
-        assert len(results_df) == 16
-        assert results_df.Count.sum() == 18
+    assert len(results_df) == 16
+    assert results_df.Count.sum() == 18
 
-        assert np.allclose(results_df.EPE.mean(), 0.0)
-        assert np.allclose(results_df["ACCURACY_STRICT"].mean(), 1.0)
-        assert np.allclose(results_df["ACCURACY_RELAX"].mean(), 1.0)
-        assert np.allclose(results_df["ANGLE_ERROR"].mean(), 0.0)
+    assert np.allclose(results_df.EPE.mean(), 0.0)
+    assert np.allclose(results_df["ACCURACY_STRICT"].mean(), 1.0)
+    assert np.allclose(results_df["ACCURACY_RELAX"].mean(), 1.0)
+    assert np.allclose(results_df["ANGLE_ERROR"].mean(), 0.0)
 
-        assert results_df.TP.sum() == 2 * 2
-        assert results_df.TN.sum() == 2 * 2  # First true negative marked invalid
-        assert results_df.FP.sum() == 3 * 2
-        assert results_df.FN.sum() == 2 * 2
+    assert results_df.TP.sum() == 2 * 2
+    assert results_df.TN.sum() == 2 * 2  # First true negative marked invalid
+    assert results_df.FP.sum() == 3 * 2
+    assert results_df.FN.sum() == 2 * 2
 
-        assert (
-            results_df.groupby(["Class", "Motion"]).Count.sum().Background.Dynamic == 0
-        )
+    assert results_df.groupby(["Class", "Motion"]).Count.sum().Background.Dynamic == 0
     results_dict = eval.results_to_dict(results_df)
 
     assert len(results_dict) == 38
