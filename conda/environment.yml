@@ -20,7 +20,7 @@ dependencies:
   - polars
   - pyarrow
   - pyproj
-  - python=3.11
+  - python
   - rich
   - scipy
   - pytorch
