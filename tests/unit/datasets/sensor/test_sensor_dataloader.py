@@ -24,33 +24,33 @@ SENSOR_TIMESTAMPS_MS_DICT: Final[Dict[str, List[int]]] = {
 
 def _create_dummy_sensor_dataloader(log_id: str) -> SensorDataloader:
     """Create a dummy sensor dataloader."""
-    with Path(tempfile.TemporaryDirectory().name) as sensor_dataset_dir:
-        for sensor_name, timestamps_ms in SENSOR_TIMESTAMPS_MS_DICT.items():
-            for t in timestamps_ms:
-                if "ring" in sensor_name:
-                    fpath = Path(
-                        sensor_dataset_dir,
-                        "dummy",
-                        log_id,
-                        "sensors",
-                        "cameras",
-                        sensor_name,
-                        f"{int(t*1e6)}.jpg",
-                    )
-                    Path(fpath).parent.mkdir(exist_ok=True, parents=True)
-                    fpath.open("w").close()
-                elif "lidar" in sensor_name:
-                    fpath = Path(
-                        sensor_dataset_dir,
-                        "dummy",
-                        log_id,
-                        "sensors",
-                        sensor_name,
-                        f"{int(t*1e6)}.feather",
-                    )
-                    Path(fpath).parent.mkdir(exist_ok=True, parents=True)
-                    fpath.open("w").close()
-        return SensorDataloader(dataset_dir=sensor_dataset_dir, with_cache=False)
+    sensor_dataset_dir = Path(tempfile.TemporaryDirectory().name)
+    for sensor_name, timestamps_ms in SENSOR_TIMESTAMPS_MS_DICT.items():
+        for t in timestamps_ms:
+            if "ring" in sensor_name:
+                fpath = Path(
+                    sensor_dataset_dir,
+                    "dummy",
+                    log_id,
+                    "sensors",
+                    "cameras",
+                    sensor_name,
+                    f"{int(t*1e6)}.jpg",
+                )
+                Path(fpath).parent.mkdir(exist_ok=True, parents=True)
+                fpath.open("w").close()
+            elif "lidar" in sensor_name:
+                fpath = Path(
+                    sensor_dataset_dir,
+                    "dummy",
+                    log_id,
+                    "sensors",
+                    sensor_name,
+                    f"{int(t*1e6)}.feather",
+                )
+                Path(fpath).parent.mkdir(exist_ok=True, parents=True)
+                fpath.open("w").close()
+    return SensorDataloader(dataset_dir=sensor_dataset_dir, with_cache=False)
 
 
 def test_sensor_data_loader_milliseconds() -> None:

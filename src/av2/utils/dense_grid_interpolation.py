@@ -45,12 +45,12 @@ def interp_dense_grid_from_sparse(
     """
     if interp_method not in ["linear", "nearest"]:
         raise ValueError("Unknown interpolation method.")
+    if grid_img.dtype != values.dtype:
+        raise ValueError("Grid and values should be the same datatype.")
 
     if points.shape[0] < MIN_REQUIRED_POINTS_SIMPLEX:
         # return the empty grid, since we can't interpolate.
         return grid_img
-
-    output_dtype = values.dtype
 
     # get (x,y) tuples back
     grid_coords = mesh_grid.get_mesh_grid_as_point_cloud(
@@ -65,4 +65,4 @@ def interp_dense_grid_from_sparse(
     v = grid_coords[:, 1].astype(np.int32)
     # Now index in at (y,x) locations
     grid_img[v, u] = interp_vals
-    return grid_img.astype(output_dtype)
+    return grid_img

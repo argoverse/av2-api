@@ -142,12 +142,14 @@ class SynchronizationDB:
             self.per_log_cam_timestamps_index[log_id] = {}
             for cam_name in list(RingCameras) + list(StereoCameras):
                 sensor_folder_wildcard = (
-                    f"{dataset_dir}/{log_id}/sensors/cameras/{cam_name}/*.jpg"
+                    f"{dataset_dir}/{log_id}/sensors/cameras/{cam_name.value}/*.jpg"
                 )
                 cam_timestamps = get_timestamps_from_sensor_folder(
                     sensor_folder_wildcard
                 )
-                self.per_log_cam_timestamps_index[log_id][cam_name] = cam_timestamps
+                self.per_log_cam_timestamps_index[log_id][
+                    cam_name.value
+                ] = cam_timestamps
 
             sensor_folder_wildcard = f"{dataset_dir}/{log_id}/sensors/lidar/*.feather"
             lidar_timestamps = get_timestamps_from_sensor_folder(sensor_folder_wildcard)

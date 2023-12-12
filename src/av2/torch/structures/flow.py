@@ -97,7 +97,7 @@ class Flow:
                 c1_SE3_c0 = c1.dst_SE3_object.compose(c0.dst_SE3_object.inverse())
                 flow[obj_mask] = (
                     torch.as_tensor(
-                        c1_SE3_c0.transform_point_cloud(obj_pts.numpy()),
+                        c1_SE3_c0.transform_point_cloud(obj_pts_npy),
                         dtype=torch.float32,
                     )
                     - obj_pts
