@@ -8,6 +8,7 @@ dependencies:
   - click
   - joblib
   - kornia
+  - libtiff
   - matplotlib-base
   - maturin
   - nox
@@ -20,7 +21,7 @@ dependencies:
   - pip
   - polars
   - pyarrow
-  - pyproj==3.6
+  - pyproj
   - rich
   - scipy
   - pytorch
