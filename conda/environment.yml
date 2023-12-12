@@ -20,11 +20,11 @@ dependencies:
   - pip
   - polars
   - pyarrow
-  - pyproj
+  - pyproj==3.6
   - rich
   - scipy
   - pytorch
   - tqdm
   - universal_pathlib
   - pip:
-    - git+https://github.com/JonathonLuiten/TrackEval.git
+      - git+https://github.com/JonathonLuiten/TrackEval.git
