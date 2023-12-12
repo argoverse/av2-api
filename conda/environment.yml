@@ -1,4 +1,4 @@
-name: av2
+name: av2-py311
 channels:
   - conda-forge
 dependencies:
@@ -7,7 +7,6 @@ dependencies:
   - click
   - joblib
   - kornia
-  - libtiff
   - matplotlib-base
   - maturin
   - nox
@@ -21,6 +20,7 @@ dependencies:
   - polars
   - pyarrow
   - pyproj
+  - python=3.11
   - rich
   - scipy
   - pytorch
