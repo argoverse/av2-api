@@ -1,4 +1,4 @@
-name: av2-py311
+name: av2
 channels:
   - conda-forge
 dependencies:
