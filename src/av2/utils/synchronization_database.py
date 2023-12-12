@@ -221,8 +221,8 @@ class SynchronizationDB:
 
         cam_timestamps = self.per_log_cam_timestamps_index[log_id][cam_name]
         # catch case if no files were loaded for a particular sensor
-        # if not cam_timestamps.tolist():
-        #     return None
+        if not cam_timestamps.tolist():
+            return None
 
         closest_cam_ch_timestamp, timestamp_diff = find_closest_integer_in_ref_arr(
             lidar_timestamp, cam_timestamps

@@ -21,7 +21,6 @@ dependencies:
   - polars
   - pyarrow
   - pyproj
-  - python
   - rich
   - scipy
   - pytorch
