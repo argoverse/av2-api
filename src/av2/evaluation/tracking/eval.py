@@ -83,7 +83,10 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
 
         raw_data = {
             f"{source}_ids": [frame["track_id"] for frame in tracks],
-            f"{source}_classes": [frame["label"] for frame in tracks],
+            f"{source}_classes": [
+                np.array([self.full_class_list.index(n) for n in frame["name"]])
+                for frame in tracks
+            ],
             f"{source}_dets": [
                 np.concatenate((frame["translation_m"], frame["size"]), axis=-1)
                 for frame in tracks
