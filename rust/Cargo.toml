@@ -18,7 +18,7 @@ env_logger = "0.10.0"
 glob = "0.3.1"
 log = "0.4.17"
 ignore = "0.4.20"
-image = { git = "https://github.com/Shnatsel/image", branch = "zune-jpeg-sneaky" }
+image = { version = "0.24.8" }
 indicatif = "0.17.3"
 itertools = "0.10.5"
 ndarray = { version = "0.15.6", features = [
@@ -26,13 +26,11 @@ ndarray = { version = "0.15.6", features = [
     "matrixmultiply-threading",
     "rayon",
 ] }
-nshare = { git = "https://github.com/benjaminrwilson/nshare", rev = "e896e103dc6b6e449b760d1e6d639590a864a80b", features = [
-    "ndarray",
-] }
+nshare = { version = "0.9.0", features = ["ndarray"] }
 numpy = { version = "0.20.0" }
 once_cell = "1.17.1"
 openblas-src = { version = "0.10.8", optional = true }
-polars = { version = "0.35.4", features = [
+polars = { version = "0.37.0", features = [
     "asof_join",
     "dtype-u8",
     "dtype-u16",
@@ -42,8 +40,8 @@ polars = { version = "0.35.4", features = [
     "serde",
     "serde-lazy",
 ] }
-pyo3 = { version = "0.20.0", features = ["extension-module"] }
-pyo3-polars = "0.9.0"
+pyo3 = { version = "0.20.2", features = ["extension-module"] }
+pyo3-polars = "0.11.3"
 rand = "0.8.5"
 rand_distr = "0.4.3"
 rayon = "1.7.0"
