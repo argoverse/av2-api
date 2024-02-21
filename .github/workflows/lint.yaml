@@ -8,6 +8,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
+# Make sure CI fails on all warnings, including Clippy lints
+env:
+  RUSTFLAGS: "-Dwarnings"
+
 jobs:
   fmt:
     name: Rustfmt
@@ -17,6 +21,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
+          toolchain: nightly
       - name: cargo fmt
         run: cargo fmt --all -- --check
 
@@ -28,6 +33,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: clippy
+          toolchain: nightly
       - name: cargo clippy
         run: cargo clippy --tests --all-features -- -D warnings
 
