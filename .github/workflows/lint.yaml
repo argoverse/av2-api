@@ -18,10 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain
         with:
           components: rustfmt
-          toolchain: nightly
       - name: cargo fmt
         run: cargo fmt --all -- --check
 
@@ -30,10 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain
         with:
           components: clippy
-          toolchain: nightly
       - name: cargo clippy
         run: cargo clippy --tests --all-features -- -D warnings
 

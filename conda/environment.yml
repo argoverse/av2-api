@@ -3,7 +3,7 @@ channels:
   - pytorch
   - conda-forge
 dependencies:
-  - conda-forge/label/rust_dev::rust
+  - conda-forge/label/main::rust
   - av
   - click
   - joblib
