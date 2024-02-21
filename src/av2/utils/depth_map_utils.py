@@ -10,9 +10,9 @@ import numpy as np
 
 from av2.utils.typing import NDArrayByte, NDArrayFloat
 
-MIN_DISTANCE_AWAY_M: Final[
-    float
-] = 30.0  # assume max noise starting at this distance (meters)
+MIN_DISTANCE_AWAY_M: Final[float] = (
+    30.0  # assume max noise starting at this distance (meters)
+)
 MAX_ALLOWED_NOISE_M: Final[float] = 3.0  # meters
 
 

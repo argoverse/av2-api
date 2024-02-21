@@ -84,7 +84,7 @@ pub fn read_accumulate_lidar(
     memory_mapped: bool,
 ) -> LazyFrame {
     let start_idx = i64::max(idx as i64 - num_accumulated_sweeps as i64 + 1, 0) as usize;
-    let log_ids = file_index["log_id"].utf8().unwrap();
+    let log_ids = file_index["log_id"].str().unwrap();
     let timestamps = file_index["timestamp_ns"].u64().unwrap();
     let poses_path = log_dir.join("city_SE3_egovehicle.feather");
     let poses = read_feather_eager(&poses_path, memory_mapped);

@@ -262,5 +262,8 @@ def read_all_annotations(dataset_dir: Path, split: str) -> pd.DataFrame:
     annotations_list: List[pd.DataFrame] = []
     for annotations_path in annotations_path_list:
         annotations = read_feather(annotations_path)
+
+        log_id = annotations_path.parent.stem
+        annotations["log_id"] = log_id
         annotations_list.append(annotations)
     return pd.concat(annotations_list).reset_index(drop=True)
