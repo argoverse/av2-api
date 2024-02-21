@@ -3,7 +3,6 @@ channels:
   - pytorch
   - conda-forge
 dependencies:
-  - conda-forge/label/main::rust
   - av
   - click
   - joblib
@@ -22,6 +21,7 @@ dependencies:
   - pyarrow
   - pyproj
   - rich
+  - rust
   - scipy
   - pytorch
   - tqdm
