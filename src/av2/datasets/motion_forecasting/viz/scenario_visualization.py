@@ -39,9 +39,9 @@ _LANE_SEGMENT_COLOR: Final[str] = "#E0E0E0"
 _DEFAULT_ACTOR_COLOR: Final[str] = "#D3E8EF"
 _FOCAL_AGENT_COLOR: Final[str] = "#ECA25B"
 _AV_COLOR: Final[str] = "#007672"
-_BOUNDING_BOX_ZORDER: Final[
-    int
-] = 100  # Ensure actor bounding boxes are plotted on top of all map elements
+_BOUNDING_BOX_ZORDER: Final[int] = (
+    100  # Ensure actor bounding boxes are plotted on top of all map elements
+)
 
 _STATIC_OBJECT_TYPES: Set[ObjectType] = {
     ObjectType.STATIC,

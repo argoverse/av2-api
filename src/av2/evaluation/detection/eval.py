@@ -281,9 +281,9 @@ def summarize_metrics(
             )
 
             # Record the average precision.
-            average_precisions.loc[
-                category, affinity_threshold_m
-            ] = threshold_average_precision
+            average_precisions.loc[category, affinity_threshold_m] = (
+                threshold_average_precision
+            )
 
         mean_average_precisions: NDArrayFloat = (
             average_precisions.loc[category].to_numpy().mean()
