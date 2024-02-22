@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple
 
 import torch
+from kornia.geometry.camera.pinhole import PinholeCamera, PinholeCamerasList
 from torch.utils.data import Dataset
 
 import av2._r as rust
+from av2.torch.structures.time_stamped_image import TimeStampedImage
 from av2.utils.typing import PathType
 
 from ..structures.sweep import Sweep
@@ -79,7 +81,26 @@ class DetectionDataLoader(Dataset[Sweep]):  # type: ignore
         self._current_sweep_index += 1
         return datum
 
-    def get_synchronized_images(self, sweep_index: int) -> List[torch.Tensor]:
-        """Get the synchronized ring images associated with the sweep index.."""
-        synchronized_images_list = self._backend.get_synchronized_images(sweep_index)
-        return [torch.as_tensor(x) for x in synchronized_images_list]
+    def get_synchronized_images(self, sweep_index: int) -> List[TimeStampedImage]:
+        """Get the synchronized ring images associated with the sweep index."""
+        time_stamped_images = self._backend.get_synchronized_images(sweep_index)
+        time_stamped_image_list = []
+        for ts_image in time_stamped_images:
+            image = torch.as_tensor(ts_image.image)
+            camera_model_rs = ts_image.camera_model
+
+            intrinsics = torch.as_tensor(camera_model_rs.intrinsics.k)
+            extrinsics = torch.as_tensor(camera_model_rs.extrinsics)
+
+            height = torch.as_tensor([image.shape[1]])
+            width = torch.as_tensor([image.shape[2]])
+            camera_model = PinholeCamera(
+                intrinsics=intrinsics, extrinsics=extrinsics, height=height, width=width
+            )
+
+            timestamp_ns = ts_image.timestamp_ns
+            time_stamped_image = TimeStampedImage(
+                image=image, camera_model=camera_model, timestamp_ns=timestamp_ns
+            )
+            time_stamped_image_list.append(time_stamped_image)
+        return time_stamped_image_list

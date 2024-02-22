@@ -1,6 +1,7 @@
 use std::{ops::DivAssign, path::Path};
 
 use ndarray::{par_azip, s, Array, ArrayView, Ix1, Ix2};
+use numpy::{PyArray, PyReadonlyArray, ToPyArray};
 use polars::{
     lazy::dsl::{col, lit},
     prelude::{DataFrame, IntoLazy},
@@ -10,24 +11,33 @@ use crate::{
     geometry::se3::SE3, geometry::so3::_quat_to_mat3, geometry::utils::cart_to_hom,
     io::read_feather_eager,
 };
+use pyo3::prelude::*;
 
 /// Pinhole camera intrinsics.
+#[pyclass]
 #[derive(Clone, Debug)]
 pub struct Intrinsics {
     /// Horizontal focal length in pixels.
+    #[pyo3(get, set)]
     pub fx_px: f32,
     /// Vertical focal length in pixels.
+    #[pyo3(get, set)]
     pub fy_px: f32,
     /// Horizontal focal center in pixels.
+    #[pyo3(get, set)]
     pub cx_px: f32,
     /// Vertical focal center in pixels.
+    #[pyo3(get, set)]
     pub cy_px: f32,
     /// Width of image in pixels.
+    #[pyo3(get, set)]
     pub width_px: usize,
     /// Height of image in pixels.
+    #[pyo3(get, set)]
     pub height_px: usize,
 }
 
+#[pymethods]
 impl Intrinsics {
     /// Construct a new `Intrinsics` instance.
     pub fn new(
@@ -49,9 +59,18 @@ impl Intrinsics {
         }
     }
 
+    #[getter]
+    #[pyo3(name = "k")]
+    fn py_k<'py>(&'py self, py: Python<'py>) -> &'py PyArray<f32, Ix2> {
+        self.k().to_pyarray(py)
+    }
+}
+
+/// Rust methods.
+impl Intrinsics {
     /// Camera intrinsic matrix.
     pub fn k(&self) -> Array<f32, Ix2> {
-        let mut k = Array::<f32, Ix2>::eye(3);
+        let mut k = Array::<f32, Ix2>::eye(4);
         k[[0, 0]] = self.fx_px;
         k[[1, 1]] = self.fy_px;
         k[[0, 2]] = self.cx_px;
@@ -61,16 +80,21 @@ impl Intrinsics {
 }
 
 /// Parameterizes a pinhole camera with zero skew.
+#[pyclass]
 #[derive(Clone, Debug)]
 pub struct PinholeCamera {
     /// Pose of camera in the egovehicle frame (inverse of extrinsics matrix).
+    #[pyo3(get, set)]
     pub ego_se3_cam: SE3,
     /// `Intrinsics` object containing intrinsic parameters and image dimensions.
+    #[pyo3(get, set)]
     pub intrinsics: Intrinsics,
     /// Associated camera name.
+    #[pyo3(get, set)]
     pub camera_name: String,
 }
 
+#[pymethods]
 impl PinholeCamera {
     /// Return the width of the image in pixels.
     pub fn width_px(&self) -> usize {
@@ -82,6 +106,37 @@ impl PinholeCamera {
         self.intrinsics.height_px
     }
 
+    /// Project a collection of 3D points (provided in the egovehicle frame) to the image plane.
+    #[pyo3(name = "project_ego_to_image_motion_compensated")]
+    #[allow(clippy::type_complexity)]
+    pub fn py_project_ego_to_image_motion_compensated<'py>(
+        &'py self,
+        py: Python<'py>,
+        points_ego: PyReadonlyArray<f32, Ix2>,
+        city_se3_ego_camera_t: SE3,
+        city_se3_ego_lidar_t: SE3,
+    ) -> (&PyArray<f32, Ix2>, &PyArray<f32, Ix2>, &PyArray<bool, Ix2>) {
+        let (uvz, points_hom_cam, is_valid) = self.project_ego_to_image_motion_compensated(
+            points_ego.as_array().view().to_owned(),
+            city_se3_ego_camera_t,
+            city_se3_ego_lidar_t,
+        );
+        (
+            uvz.to_pyarray(py),
+            points_hom_cam.to_pyarray(py),
+            is_valid.to_pyarray(py),
+        )
+    }
+
+    #[getter]
+    #[pyo3(name = "extrinsics")]
+    fn py_extrinsics<'py>(&'py self, py: Python<'py>) -> &'py PyArray<f32, Ix2> {
+        self.ego_se3_cam.inverse().transform_matrix().to_pyarray(py)
+    }
+}
+
+/// Rust methods.
+impl PinholeCamera {
     /// Return the camera extrinsics.
     pub fn extrinsics(&self) -> Array<f32, Ix2> {
         self.ego_se3_cam.inverse().transform_matrix()
@@ -92,55 +147,6 @@ impl PinholeCamera {
         let mut p = Array::<f32, Ix2>::zeros([3, 4]);
         p.slice_mut(s![..3, ..3]).assign(&self.intrinsics.k());
         p
-    }
-
-    /// Create a pinhole camera model from a feather file.
-    pub fn from_feather(log_dir: &Path, camera_name: &str) -> PinholeCamera {
-        let intrinsics_path = log_dir.join("calibration/intrinsics.feather");
-        let intrinsics = read_feather_eager(&intrinsics_path, false)
-            .lazy()
-            .filter(col("sensor_name").eq(lit(camera_name)))
-            .collect()
-            .unwrap();
-
-        let intrinsics = Intrinsics {
-            fx_px: extract_f32_from_frame(&intrinsics, "fx_px"),
-            fy_px: extract_f32_from_frame(&intrinsics, "fy_px"),
-            cx_px: extract_f32_from_frame(&intrinsics, "cx_px"),
-            cy_px: extract_f32_from_frame(&intrinsics, "cy_px"),
-            width_px: extract_usize_from_frame(&intrinsics, "width_px"),
-            height_px: extract_usize_from_frame(&intrinsics, "height_px"),
-        };
-
-        let extrinsics_path = log_dir.join("calibration/egovehicle_SE3_sensor.feather");
-        let extrinsics = read_feather_eager(&extrinsics_path, false)
-            .lazy()
-            .filter(col("sensor_name").eq(lit(camera_name)))
-            .collect()
-            .unwrap();
-
-        let qw = extract_f32_from_frame(&extrinsics, "qw");
-        let qx = extract_f32_from_frame(&extrinsics, "qx");
-        let qy = extract_f32_from_frame(&extrinsics, "qy");
-        let qz = extract_f32_from_frame(&extrinsics, "qz");
-        let tx_m = extract_f32_from_frame(&extrinsics, "tx_m");
-        let ty_m = extract_f32_from_frame(&extrinsics, "ty_m");
-        let tz_m = extract_f32_from_frame(&extrinsics, "tz_m");
-
-        let quat_wxyz = Array::<f32, Ix1>::from_vec(vec![qw, qx, qy, qz]);
-        let rotation = _quat_to_mat3(&quat_wxyz.view());
-        let translation = Array::<f32, Ix1>::from_vec(vec![tx_m, ty_m, tz_m]);
-        let ego_se3_cam = SE3 {
-            rotation,
-            translation,
-        };
-
-        let camera_name_string = camera_name.to_string();
-        Self {
-            ego_se3_cam,
-            intrinsics,
-            camera_name: camera_name_string,
-        }
     }
 
     /// Cull 3D points to camera view frustum.
@@ -154,7 +160,7 @@ impl PinholeCamera {
     /// in the range [0,height_px), and a positive z-coordinate (lying in
     /// front of the camera frustum).
     pub fn cull_to_view_frustum(
-        self,
+        &self,
         uv: &ArrayView<f32, Ix2>,
         points_camera: &ArrayView<f32, Ix2>,
     ) -> Array<bool, Ix2> {
@@ -205,6 +211,55 @@ impl PinholeCamera {
 
         let points_ego = ego_cam_t_se3_ego_lidar_t.transform_from(&points_ego.view());
         self.project_ego_to_image(points_ego)
+    }
+
+    /// Create a pinhole camera model from a feather file.
+    pub fn from_feather(log_dir: &Path, camera_name: &str) -> PinholeCamera {
+        let intrinsics_path = log_dir.join("calibration/intrinsics.feather");
+        let intrinsics = read_feather_eager(&intrinsics_path, false)
+            .lazy()
+            .filter(col("sensor_name").eq(lit(camera_name)))
+            .collect()
+            .unwrap();
+
+        let intrinsics = Intrinsics {
+            fx_px: extract_f32_from_frame(&intrinsics, "fx_px"),
+            fy_px: extract_f32_from_frame(&intrinsics, "fy_px"),
+            cx_px: extract_f32_from_frame(&intrinsics, "cx_px"),
+            cy_px: extract_f32_from_frame(&intrinsics, "cy_px"),
+            width_px: extract_usize_from_frame(&intrinsics, "width_px"),
+            height_px: extract_usize_from_frame(&intrinsics, "height_px"),
+        };
+
+        let extrinsics_path = log_dir.join("calibration/egovehicle_SE3_sensor.feather");
+        let extrinsics = read_feather_eager(&extrinsics_path, false)
+            .lazy()
+            .filter(col("sensor_name").eq(lit(camera_name)))
+            .collect()
+            .unwrap();
+
+        let qw = extract_f32_from_frame(&extrinsics, "qw");
+        let qx = extract_f32_from_frame(&extrinsics, "qx");
+        let qy = extract_f32_from_frame(&extrinsics, "qy");
+        let qz = extract_f32_from_frame(&extrinsics, "qz");
+        let tx_m = extract_f32_from_frame(&extrinsics, "tx_m");
+        let ty_m = extract_f32_from_frame(&extrinsics, "ty_m");
+        let tz_m = extract_f32_from_frame(&extrinsics, "tz_m");
+
+        let quat_wxyz = Array::<f32, Ix1>::from_vec(vec![qw, qx, qy, qz]);
+        let rotation = _quat_to_mat3(&quat_wxyz.view());
+        let translation = Array::<f32, Ix1>::from_vec(vec![tx_m, ty_m, tz_m]);
+        let ego_se3_cam = SE3 {
+            rotation,
+            translation,
+        };
+
+        let camera_name_string = camera_name.to_string();
+        Self {
+            ego_se3_cam,
+            intrinsics,
+            camera_name: camera_name_string,
+        }
     }
 }
 

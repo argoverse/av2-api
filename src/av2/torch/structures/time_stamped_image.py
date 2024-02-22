@@ -1,23 +1,21 @@
-# <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
-
 """Timestamped image class with camera model for synchronization."""
 
 from dataclasses import dataclass
 
-from av2.geometry.camera.pinhole_camera import PinholeCamera
-from av2.utils.typing import NDArrayByte
+import torch
+from kornia.geometry.camera import PinholeCamera
 
 
-@dataclass(frozen=True)
-class TimestampedImage:
+@dataclass
+class TimeStampedImage:
     """Timestamped image with an accompanying camera model.
 
     Args:
-        img: (H,W,C) image.
+        image: (H,W,C) image.
         camera_model: Pinhole camera model with intrinsics and extrinsics.
         timestamp_ns: Nanosecond timestamp.
     """
 
-    img: NDArrayByte
+    image: torch.Tensor
     camera_model: PinholeCamera
     timestamp_ns: int
