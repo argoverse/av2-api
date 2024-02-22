@@ -1,6 +1,6 @@
 use std::{ops::DivAssign, path::Path};
 
-use ndarray::{par_azip, s, Array, ArrayView, Ix1, Ix2};
+use ndarray::{par_azip, s, Array, ArrayView, Axis, Ix1, Ix2};
 use polars::{
     lazy::dsl::{col, lit},
     prelude::{DataFrame, IntoLazy},
@@ -156,16 +156,16 @@ impl PinholeCamera {
     pub fn cull_to_view_frustum(
         self,
         uv: &ArrayView<f32, Ix2>,
-        points_camera: &ArrayView<f32, Ix2>,
+        z: &ArrayView<f32, Ix1>,
     ) -> Array<bool, Ix2> {
         let num_points = uv.shape()[0];
         let mut is_within_frustum = Array::<bool, Ix1>::from_vec(vec![false; num_points])
             .into_shape([num_points, 1])
             .unwrap();
-        par_azip!((mut is_within_frustum_i in is_within_frustum.outer_iter_mut(), uv_row in uv.outer_iter(), point_cam in points_camera.outer_iter()) {
+        par_azip!((mut is_within_frustum_i in is_within_frustum.outer_iter_mut(), uv_row in uv.outer_iter(), z_i in z) {
             let is_within_frustum_x = (uv_row[0] >= 0.) && (uv_row[0] < self.width_px() as f32);
             let is_within_frustum_y = (uv_row[1] >= 0.) && (uv_row[1] < self.height_px() as f32);
-            let is_within_frustum_z = point_cam[2] > 0.;
+            let is_within_frustum_z = z_i > &0.;
             is_within_frustum_i[0] = is_within_frustum_x & is_within_frustum_y & is_within_frustum_z;
         });
         is_within_frustum
@@ -175,20 +175,17 @@ impl PinholeCamera {
     pub fn project_ego_to_image(
         &self,
         points_ego: Array<f32, Ix2>,
-    ) -> (Array<f32, Ix2>, Array<f32, Ix2>, Array<bool, Ix2>) {
+    ) -> (Array<f32, Ix2>, Array<bool, Ix2>) {
         // Convert cartesian to homogeneous coordinates.
         let points_hom_ego = cart_to_hom(points_ego);
-        let points_hom_cam = points_hom_ego.dot(&self.extrinsics().t());
-
-        let mut uvz = points_hom_cam
-            .slice(s![.., ..3])
-            .dot(&self.intrinsics.k().t());
-        let z = uvz.slice(s![.., 2..3]).clone().to_owned();
-        uvz.slice_mut(s![.., ..2]).div_assign(&z);
-        let is_valid_points = self
-            .clone()
-            .cull_to_view_frustum(&uvz.view(), &points_hom_cam.view());
-        (uvz.to_owned(), points_hom_cam.to_owned(), is_valid_points)
+        let pvm = self.p().dot(&self.extrinsics());
+        let mut uvz = points_hom_ego.dot(&pvm.t()).slice(s![.., ..3]).to_owned();
+        let z: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<[usize; 1]>> =
+            uvz.slice(s![.., 2]).clone().to_owned();
+        uvz.slice_mut(s![.., ..2])
+            .div_assign(&z.clone().insert_axis(Axis(1)));
+        let is_valid_points = self.clone().cull_to_view_frustum(&uvz.view(), &z.view());
+        (uvz.to_owned(), is_valid_points)
     }
 
     /// Project a collection of 3D points (provided in the egovehicle frame) to the image plane.
@@ -197,7 +194,7 @@ impl PinholeCamera {
         points_ego: Array<f32, Ix2>,
         city_se3_ego_camera_t: SE3,
         city_se3_ego_lidar_t: SE3,
-    ) -> (Array<f32, Ix2>, Array<f32, Ix2>, Array<bool, Ix2>) {
+    ) -> (Array<f32, Ix2>, Array<bool, Ix2>) {
         // Convert cartesian to homogeneous coordinates.
         let ego_cam_t_se3_ego_lidar_t = city_se3_ego_camera_t
             .inverse()

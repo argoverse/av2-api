@@ -34,7 +34,7 @@ static SPLIT_NAMES: Lazy<Vec<&str>> = Lazy::new(|| vec!["train", "val", "test"])
 const NUM_ACCUMULATED_SWEEPS: usize = 5;
 
 /// Memory maps the sweeps for fast pre-processing. Requires .feather files to be uncompressed.
-const MEMORY_MAPPED: bool = false;
+const MEMORY_MAPPED: bool = true;
 
 static DST_DATASET_NAME: Lazy<String> =
     Lazy::new(|| format!("{DATASET_NAME}_{NUM_ACCUMULATED_SWEEPS}_sweep"));
