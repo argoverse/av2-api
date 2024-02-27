@@ -97,34 +97,39 @@ jobs:
           name: wheels
           path: dist
 
-  # test_release:
-  #   name: Test release.
-  #   needs: [linux, windows, macos, sdist]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: wheels
-  #         path: dist
-  #     - name: Publish distribution 📦 to Test PyPI
-  #       uses: pypa/gh-action-pypi-publish@release/v1
-  #       with:
-  #         password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-  #         repository-url: https://test.pypi.org/legacy/
-
-  release:
+  test_release:
     name: Release
     runs-on: ubuntu-latest
+    environment: release
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [linux, macos, sdist]
+    permissions:
+      id-token: write
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: wheels
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          command: upload
+          args: --skip-existing *
+          repository-url: https://test.pypi.org/legacy/
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    environment: release
+    if: "startsWith(github.ref, 'refs/tags/')"
+    needs: [linux, macos, sdist]
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: wheels
+      - name: Publish to PyPI
+        uses: PyO3/maturin-action@v1
         with:
           command: upload
           args: --skip-existing *
