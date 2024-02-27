@@ -112,7 +112,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           command: upload
-          args: --skip-existing *
+          args: --non-interactive --skip-existing *
           repository-url: https://test.pypi.org/legacy/
 
   release:
@@ -131,4 +131,4 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           command: upload
-          args: --skip-existing *
+          args: --non-interactive --skip-existing *
