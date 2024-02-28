@@ -112,7 +112,7 @@ jobs:
       - name: Publish
         run: |
           pip install maturin
-          maturin upload --repository-url testpypi --skip-existing *
+          maturin upload --repository testpypi --skip-existing *
 
   release:
     name: Release
