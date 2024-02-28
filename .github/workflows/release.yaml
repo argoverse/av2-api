@@ -112,7 +112,7 @@ jobs:
       - name: Publish
         run: |
           pip install maturin
-          maturin upload --repository-url https://test.pypi.org/legacy/ --skip-existing *
+          maturin upload --repository-url testpypi --skip-existing *
 
   release:
     name: Release
