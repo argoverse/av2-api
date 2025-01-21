@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 class LaneType(str, Enum):
     """Describes the sorts of objects that may use the lane for travel."""
 
-    VEHICLE: str = "VEHICLE"
-    BIKE: str = "BIKE"
-    BUS: str = "BUS"
+    VEHICLE = "VEHICLE"
+    BIKE = "BIKE"
+    BUS = "BUS"
 
 
 @unique
@@ -36,21 +36,21 @@ class LaneMarkType(str, Enum):
     The `NONE` type indicates that lane boundary is not marked by any paint; its extent should be implicitly inferred.
     """
 
-    DASH_SOLID_YELLOW: str = "DASH_SOLID_YELLOW"
-    DASH_SOLID_WHITE: str = "DASH_SOLID_WHITE"
-    DASHED_WHITE: str = "DASHED_WHITE"
-    DASHED_YELLOW: str = "DASHED_YELLOW"
-    DOUBLE_SOLID_YELLOW: str = "DOUBLE_SOLID_YELLOW"
-    DOUBLE_SOLID_WHITE: str = "DOUBLE_SOLID_WHITE"
-    DOUBLE_DASH_YELLOW: str = "DOUBLE_DASH_YELLOW"
-    DOUBLE_DASH_WHITE: str = "DOUBLE_DASH_WHITE"
-    SOLID_YELLOW: str = "SOLID_YELLOW"
-    SOLID_WHITE: str = "SOLID_WHITE"
-    SOLID_DASH_WHITE: str = "SOLID_DASH_WHITE"
-    SOLID_DASH_YELLOW: str = "SOLID_DASH_YELLOW"
-    SOLID_BLUE: str = "SOLID_BLUE"
-    NONE: str = "NONE"
-    UNKNOWN: str = "UNKNOWN"
+    DASH_SOLID_YELLOW = "DASH_SOLID_YELLOW"
+    DASH_SOLID_WHITE = "DASH_SOLID_WHITE"
+    DASHED_WHITE = "DASHED_WHITE"
+    DASHED_YELLOW = "DASHED_YELLOW"
+    DOUBLE_SOLID_YELLOW = "DOUBLE_SOLID_YELLOW"
+    DOUBLE_SOLID_WHITE = "DOUBLE_SOLID_WHITE"
+    DOUBLE_DASH_YELLOW = "DOUBLE_DASH_YELLOW"
+    DOUBLE_DASH_WHITE = "DOUBLE_DASH_WHITE"
+    SOLID_YELLOW = "SOLID_YELLOW"
+    SOLID_WHITE = "SOLID_WHITE"
+    SOLID_DASH_WHITE = "SOLID_DASH_WHITE"
+    SOLID_DASH_YELLOW = "SOLID_DASH_YELLOW"
+    SOLID_BLUE = "SOLID_BLUE"
+    NONE = "NONE"
+    UNKNOWN = "UNKNOWN"
 
 
 @dataclass

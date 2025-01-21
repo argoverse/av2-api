@@ -53,24 +53,6 @@ pub fn write_feather_eager(path: &PathBuf, mut data_frame: DataFrame) {
         .unwrap()
 }
 
-/// Read a feather file and load into a `polars` dataframe.
-/// TODO: Implement once upstream half-type is fixed.
-// pub fn read_feather_lazy(path: &PathBuf, memory_mapped: bool) -> DataFrame {
-//     LazyFrame::scan_ipc(
-//         path,
-//         ScanArgsIpc {
-//             n_rows: None,
-//             cache: true,
-//             rechunk: true,
-//             row_count: None,
-//             memmap: memory_mapped,
-//         },
-//     )
-//     .unwrap()
-//     .collect()
-//     .unwrap()
-// }
-
 /// Read and accumulate lidar sweeps.
 /// Accumulation will only occur if `num_accumulated_sweeps` > 1.
 /// Sweeps are motion-compensated to the most recent sweep (i.e., at `timestamp_ns`).
