@@ -273,7 +273,7 @@ impl DataLoader {
     pub fn read_annotations(&self, log_id: &str, timestamp_ns: u64) -> DataFrame {
         read_timestamped_feather(
             &self.annotations_path(log_id),
-            &ANNOTATION_COLUMNS.to_vec(),
+            ANNOTATION_COLUMNS.as_ref(),
             &timestamp_ns,
             self.memory_mapped,
         )
@@ -286,7 +286,7 @@ impl DataLoader {
     pub fn read_city_pose(&self, log_id: &str, timestamp_ns: u64) -> DataFrame {
         read_timestamped_feather(
             &self.city_pose_path(log_id),
-            &POSE_COLUMNS.to_vec(),
+            POSE_COLUMNS.as_ref(),
             &timestamp_ns,
             self.memory_mapped,
         )

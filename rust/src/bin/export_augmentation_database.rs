@@ -28,7 +28,6 @@ use std::collections::HashMap;
 
 /// Constants can be changed to fit your directory structure.
 /// However, it's recommend to place the datasets in the default folders.
-
 /// Root directory to datasets.
 static ROOT_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::home_dir().unwrap().join("data/datasets/"));
 
@@ -122,7 +121,7 @@ pub fn main() {
                     .entry(c.to_string())
                     .and_modify(|count| *count += 1)
                     .or_insert(0);
-                let count = category_counter.get(&c.to_string()).unwrap();
+                let count = category_counter.get(c).unwrap();
 
                 let dst = DST_PREFIX.join(c).join(format!("{count:08}.feather"));
                 fs::create_dir_all(dst.parent().unwrap()).unwrap();

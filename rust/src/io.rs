@@ -188,7 +188,7 @@ pub fn read_timestamped_feather(
     read_feather_eager(path, memory_mapped)
         .lazy()
         .filter(col("timestamp_ns").eq(*timestamp_ns))
-        .select(&[cols(columns.clone())])
+        .select(&[cols(columns.to_vec())])
 }
 
 /// Read an image into an RGBA u8 image.
