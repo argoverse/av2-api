@@ -25,14 +25,14 @@ log = "0.4.25"
 ignore = "0.4.23"
 image = { version = "0.25.5" }
 indicatif = "0.17.9"
-itertools = "0.14.0"
+itertools = "0.12.1"
 ndarray = { version = "0.16.1", features = [
     "approx",
     "matrixmultiply-threading",
     "rayon",
 ] }
 nshare = { version = "0.10.0", features = ["ndarray"] }
-numpy = { version = "0.22.1" }
+numpy = { version = "0.22.1", features = ["gil-refs"] }
 once_cell = "1.20.2"
 openblas-src = { version = "0.10.11", optional = true }
 polars = { version = "0.45.1", features = [
@@ -55,7 +55,7 @@ strum = "0.26.3"
 strum_macros = "0.26.4"
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.5.1", features = ["html_reports"] }
 
 [[bench]]
 name = "benchmark"
