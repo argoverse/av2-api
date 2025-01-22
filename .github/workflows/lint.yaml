@@ -53,10 +53,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: '3.x'
-      - run: pip install mypy numpy
+          activate-environment: av2
+          environment-file: conda/environment.yml
+          mamba-version: "*"
+          miniforge-version: latest
+      - run: mamba install mypy -y
       - run: mypy .
 
   # spell_check:
