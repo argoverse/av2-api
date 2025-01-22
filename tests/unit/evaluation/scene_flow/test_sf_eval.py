@@ -9,7 +9,7 @@ import av2.evaluation.scene_flow.constants as constants
 import av2.evaluation.scene_flow.eval as eval
 from av2.evaluation.scene_flow.make_annotation_files import write_annotation
 from av2.evaluation.scene_flow.utils import write_output_file
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
+from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayByte
 
 gts: NDArrayFloat = np.array(
     [
@@ -35,7 +35,7 @@ dts_zero: NDArrayFloat = np.zeros_like(gts).astype(np.float64)
 gts_dynamic: NDArrayBool = np.array(
     [False, False, False, False, True, True, True, True, False, False]
 )
-gts_classes: NDArrayInt = np.array([0, 0, 0, 0, 17, 17, 1, 11, 0, 23])
+gts_classes: NDArrayByte = np.array([0, 0, 0, 0, 17, 17, 1, 11, 0, 23], dtype=np.uint8)
 gts_valid: NDArrayBool = np.array(
     [False, True, True, True, True, True, True, True, True, True]
 )

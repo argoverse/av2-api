@@ -9,6 +9,7 @@ import cv2
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.axes import Axes
 from matplotlib.path import Path as MPath
 
 from av2.geometry.camera.pinhole_camera import PinholeCamera
@@ -18,7 +19,7 @@ from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayInt, NDArrayNumbe
 
 
 def draw_polygon_mpl(
-    ax: plt.Axes,
+    ax: Axes,
     polygon: NDArrayFloat,
     color: Union[Tuple[float, float, float], str],
     linewidth: Optional[float] = None,
@@ -41,7 +42,7 @@ def draw_polygon_mpl(
 
 def plot_polygon_patch_mpl(
     polygon_pts: NDArrayFloat,
-    ax: plt.Axes,
+    ax: Axes,
     color: Union[Tuple[float, float, float], str] = "y",
     alpha: float = 0.3,
     zorder: int = 1,

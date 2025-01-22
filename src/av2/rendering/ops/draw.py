@@ -11,8 +11,8 @@ import numpy as np
 from av2.utils.constants import NAN
 from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayInt
 
-UINT8_MAX: Final[np.uint8] = np.uint8(np.iinfo(np.uint8).max)
-UINT8_BITS: Final[np.uint8] = np.log2(UINT8_MAX + 1).astype(np.uint8)
+UINT8_MAX: Final = np.iinfo(np.uint8).max
+UINT8_BITS: Final = np.log2(UINT8_MAX + 1).astype(np.uint8)
 
 
 @nb.njit
