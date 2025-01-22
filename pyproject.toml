@@ -65,10 +65,10 @@ repository = "https://github.com/argoverse/av2-api"
 features = ["pyo3/extension-module"]
 module-name = "av2._r"
 
-[tool.ruff]
+[tool.ruff.lint]
 select = ["D"]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.mypy]

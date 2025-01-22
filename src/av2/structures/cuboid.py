@@ -264,7 +264,7 @@ class CuboidList:
         """
         if idx < 0 or idx >= len(self):
             raise IndexError(
-                f"Attempted to access cuboid {idx}, but only indices [0,{len(self)-1}] are valid"
+                f"Attempted to access cuboid {idx}, but only indices [0,{len(self) - 1}] are valid"
             )
         return self.cuboids[idx]
 

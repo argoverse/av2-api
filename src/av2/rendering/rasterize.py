@@ -1,6 +1,7 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
 
 """Raster visualization tools."""
+
 from typing import Dict, Final, Tuple
 
 import numpy as np

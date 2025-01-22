@@ -228,9 +228,9 @@ def evaluate_tracking(
         (frame["seq_id"], frame["timestamp_ns"])
         for frame in utils.ungroup_frames(track_predictions)
     )
-    assert (
-        labels_id_ts == predictions_id_ts
-    ), "sequences ids and timestamp_ns in labels and predictions don't match"
+    assert labels_id_ts == predictions_id_ts, (
+        "sequences ids and timestamp_ns in labels and predictions don't match"
+    )
     metrics_config = {
         "METRICS": ["HOTA", "CLEAR"],
         "THRESHOLD": iou_threshold,

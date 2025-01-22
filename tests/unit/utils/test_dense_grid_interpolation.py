@@ -1,6 +1,7 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
 
 """Unit tests on utilities that perform dense 2d grid interpolation from sparse values."""
+
 from typing import Final, Tuple
 
 import numpy as np

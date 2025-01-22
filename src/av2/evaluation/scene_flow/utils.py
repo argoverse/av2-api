@@ -45,7 +45,7 @@ def get_eval_point_mask(sweep_uuid: Tuple[str, int], mask_file: Path) -> BoolTen
 
 
 def compute_eval_point_mask(
-    datum: Tuple[Sweep, Sweep, Se3, Optional[Flow]]
+    datum: Tuple[Sweep, Sweep, Se3, Optional[Flow]],
 ) -> BoolTensor:
     """Compute for a given sweep, a boolean mask indicating which points are evaluated on.
 

@@ -59,9 +59,9 @@ def verify_log_contents(data_root: Path, log_id: str, check_image_sizes: bool) -
     for camera_enum in list(RingCameras):
         cam_images_dir = data_root / log_id / "sensors" / "cameras" / camera_enum.value
         img_fpaths = list(cam_images_dir.glob("*.jpg"))
-        assert (
-            len(img_fpaths) >= MIN_NUM_IMAGES_PER_CAMERA
-        ), "There should be at last 80 images for each camera, per log."
+        assert len(img_fpaths) >= MIN_NUM_IMAGES_PER_CAMERA, (
+            "There should be at last 80 images for each camera, per log."
+        )
 
         # this check is expensive, and can be skipped.
         if not check_image_sizes:

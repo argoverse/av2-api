@@ -142,7 +142,7 @@ def test_benchmark_draw_points_kernel_aliased(benchmark: Callable[..., Any]) -> 
 
 
 def test_benchmark_draw_points_kernel_anti_aliased(
-    benchmark: Callable[..., Any]
+    benchmark: Callable[..., Any],
 ) -> None:
     """Benchmark the draw points kernel _with_ anti-aliasing."""
     img: NDArrayByte = np.zeros((2048, 2048, 3), dtype=np.uint8)

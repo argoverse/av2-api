@@ -2,7 +2,6 @@
 
 """Unit tests for the DrivableArea class."""
 
-
 import unittest
 
 from av2.map.drivable_area import DrivableArea

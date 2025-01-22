@@ -2,7 +2,6 @@
 
 """Utility functions for dilation of a binary mask."""
 
-
 import cv2
 import numpy as np
 
