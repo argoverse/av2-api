@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 import cv2
 import numpy as np
+from cv2.typing import MatLike
 
 import av2.utils.raster as raster_utils
 from av2.utils.typing import NDArrayByte, NDArrayFloat
@@ -130,7 +131,7 @@ def test_benchmark_blend_images_cv2(benchmark: Callable[..., Any]) -> None:
 
     def blend_images(
         img0: NDArrayByte, img1: NDArrayByte, alpha: float = 0.7
-    ) -> NDArrayByte:
+    ) -> MatLike:
         """Alpha-blend two images together using OpenCV `addWeighted`.
 
         Args:
@@ -141,7 +142,7 @@ def test_benchmark_blend_images_cv2(benchmark: Callable[..., Any]) -> None:
         Returns:
             uint8 array of shape (H,W,3)
         """
-        blended: NDArrayByte = cv2.addWeighted(img0, alpha, img1, (1 - alpha), gamma=0)
+        blended = cv2.addWeighted(img0, alpha, img1, (1 - alpha), gamma=0)
         return blended
 
     size = (2048, 1550, 3)

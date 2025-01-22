@@ -66,7 +66,7 @@ class Flow:
             current_sweep.city_SE3_ego,
             next_sweep.city_SE3_ego,
         )
-        ego1_SE3_ego0 = city_SE3_ego1.inverse() * city_SE3_ego0
+        ego1_SE3_ego0 = city_SE3_ego1.inverse()._mul_se3(city_SE3_ego0)
 
         current_cuboid_map = cuboids_to_id_cuboid_map(current_cuboids)
         next_cuboid_map = cuboids_to_id_cuboid_map(next_cuboids)

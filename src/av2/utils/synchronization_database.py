@@ -147,9 +147,9 @@ class SynchronizationDB:
                 cam_timestamps = get_timestamps_from_sensor_folder(
                     sensor_folder_wildcard
                 )
-                self.per_log_cam_timestamps_index[log_id][cam_name.value] = (
-                    cam_timestamps
-                )
+                self.per_log_cam_timestamps_index[log_id][
+                    cam_name.value
+                ] = cam_timestamps
 
             sensor_folder_wildcard = f"{dataset_dir}/{log_id}/sensors/lidar/*.feather"
             lidar_timestamps = get_timestamps_from_sensor_folder(sensor_folder_wildcard)
@@ -227,8 +227,9 @@ class SynchronizationDB:
         closest_cam_ch_timestamp, timestamp_diff = find_closest_integer_in_ref_arr(
             lidar_timestamp, cam_timestamps
         )
-        if timestamp_diff > self.MAX_LIDAR_RING_CAM_TIMESTAMP_DIFF and cam_name in list(
-            RingCameras
+        if (
+            timestamp_diff > self.MAX_LIDAR_RING_CAM_TIMESTAMP_DIFF
+            and cam_name in list(RingCameras)
         ):
             # convert to nanoseconds->milliseconds for readability
             logger.warning(

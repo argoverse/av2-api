@@ -29,7 +29,9 @@ expected_fde_stationary_k6 = np.full((6,), np.sqrt(2))
 # Case 3: K=1 forecast in straight line on X axis
 forecasted_trajectories_straight_k1 = np.stack(
     [np.arange(test_N), np.zeros(test_N)], axis=1
-)[np.newaxis, ...]  # 1xNx2
+)[
+    np.newaxis, ...
+]  # 1xNx2
 expected_ade_straight_k1 = np.full((1,), np.arange(test_N).mean())
 expected_fde_straight_k1 = np.full((1,), test_N - 1)
 
@@ -43,7 +45,9 @@ expected_fde_straight_k6 = np.full((6,), test_N - 1)
 # Case 5: K=1 forecast in diagonal line
 forecasted_trajectories_diagonal_k1 = np.stack(
     [np.arange(test_N), np.arange(test_N)], axis=1
-)[np.newaxis, ...]  # 1xNx2
+)[
+    np.newaxis, ...
+]  # 1xNx2
 expected_ade_diagonal_k1 = np.full((1,), 6.36396103)
 expected_fde_diagonal_k1 = np.full((1,), np.hypot(test_N - 1, test_N - 1))
 

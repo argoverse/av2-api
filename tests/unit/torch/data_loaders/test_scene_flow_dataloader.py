@@ -67,9 +67,7 @@ def test_scene_flow_dataloader() -> None:
     label_err_val = flow_labels[FLOW_COLS].to_numpy()[max_err_ind]
     assert np.allclose(
         flow.flow.numpy(), flow_labels[FLOW_COLS].to_numpy(), atol=1e-3
-    ), (
-        f"max-diff {err[max_err_ind]} ind: {max_err_ind} flow: {flow_err_val} label: {label_err_val}"
-    )
+    ), f"max-diff {err[max_err_ind]} ind: {max_err_ind} flow: {flow_err_val} label: {label_err_val}"
     assert np.allclose(flow.category_indices.numpy(), flow_labels.classes.to_numpy())
     assert np.allclose(flow.is_dynamic.numpy(), flow_labels.dynamic.to_numpy())
     assert sweep_0.is_ground is not None

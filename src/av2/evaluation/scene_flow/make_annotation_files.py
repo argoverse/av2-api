@@ -10,7 +10,7 @@ from rich.progress import track
 
 from av2.evaluation.scene_flow.utils import get_eval_point_mask, get_eval_subset
 from av2.torch.data_loaders.scene_flow import SceneFlowDataloader
-from av2.utils.typing import NDArrayBool, NDArrayHalf, NDArrayByte
+from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayNumber
 
 CLOSE_DISTANCE_THRESHOLD: Final = 35.0
 
@@ -20,7 +20,7 @@ def write_annotation(
     is_close: NDArrayBool,
     is_dynamic: NDArrayBool,
     is_valid: NDArrayBool,
-    flow: NDArrayHalf,
+    flow: NDArrayNumber,
     sweep_uuid: Tuple[str, int],
     output_dir: Path,
 ) -> None:

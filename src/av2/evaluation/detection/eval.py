@@ -134,13 +134,13 @@ def evaluate(
     gts_pl = pl.from_pandas(gts)
 
     uuid_to_dts = {
-        k: v[list(DTS_COLUMNS)].to_numpy().astype(float)
+        cast(Tuple[str, int, int], k): v[list(DTS_COLUMNS)].to_numpy().astype(float)
         for k, v in dts_pl.partition_by(
             DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True
         ).items()
     }
     uuid_to_gts = {
-        k: v[list(GTS_COLUMNS)].to_numpy().astype(float)
+        cast(Tuple[str, int, int], k): v[list(GTS_COLUMNS)].to_numpy().astype(float)
         for k, v in gts_pl.partition_by(
             DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True
         ).items()

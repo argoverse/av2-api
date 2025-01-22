@@ -60,7 +60,7 @@ class EgoViewMapRenderer:
         img_bgr: NDArrayByte,
         lane_segment: LaneSegment,
         side: str,
-        line_width_px: float,
+        line_width_px: int,
     ) -> NDArrayByte:
         """Draw left or right lane boundary (only one is rendered here).
 
@@ -196,7 +196,7 @@ class EgoViewMapRenderer:
         polyline: NDArrayFloat,
         img_bgr: NDArrayByte,
         bound_color: Tuple[int, int, int],
-        thickness_px: float,
+        thickness_px: int,
         dash_interval_m: float,
         dash_frequency: int = 3,
     ) -> None:
@@ -239,7 +239,7 @@ class EgoViewMapRenderer:
         polyline_city_frame: NDArrayFloat,
         img_bgr: NDArrayByte,
         bound_color: Tuple[int, int, int],
-        thickness_px: float,
+        thickness_px: int,
     ) -> None:
         """Rasterize a polygon onto an image canvas, as if seen from a particular camera.
 
@@ -293,9 +293,9 @@ class EgoViewMapRenderer:
 def draw_visible_polyline_segments_cv2(
     line_segments_arr: Union[NDArrayFloat, NDArrayInt],
     valid_pts_bool: NDArrayBool,
-    image: NDArrayByte,
+    image: cv2.typing.NumPyArrayNumeric,
     color: Tuple[int, int, int],
-    thickness_px: float = 1,
+    thickness_px: int = 1,
 ) -> None:
     """Draw a polyline onto an image using given line segments.
 

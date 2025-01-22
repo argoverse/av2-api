@@ -70,9 +70,9 @@ def test_parquet_scenario_serialization_roundtrip(tmpdir: Path) -> None:
     loaded_test_scenario = scenario_serialization.load_argoverse_scenario_parquet(
         scenario_path
     )
-    assert loaded_test_scenario == _TEST_SCENARIO, (
-        "Deserialized Argoverse scenario did not match original object."
-    )
+    assert (
+        loaded_test_scenario == _TEST_SCENARIO
+    ), "Deserialized Argoverse scenario did not match original object."
 
 
 def test_load_argoverse_scenario_parquet(test_data_root_dir: Path) -> None:

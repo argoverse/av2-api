@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 import cv2
 import numpy as np
+from cv2.typing import MatLike
 
 from av2.rendering.ops.draw import (
     alpha_blend_kernel,
@@ -16,12 +17,12 @@ from av2.utils.typing import NDArrayByte, NDArrayInt
 
 
 def _draw_points_cv2(
-    img: NDArrayByte,
+    img: MatLike,
     points_xy: NDArrayInt,
     colors: NDArrayByte,
     radius: int,
     with_anti_alias: bool = True,
-) -> NDArrayByte:
+) -> MatLike:
     """Draw points in an image using OpenCV functionality.
 
     Args:
@@ -34,11 +35,11 @@ def _draw_points_cv2(
     Returns:
         The image with points overlaid.
     """
-    line_type = cv2.LINE_AA if with_anti_alias else None
+    line_type = cv2.LINE_AA if with_anti_alias else 0
     for i, (x, y) in enumerate(points_xy):
         rgb = colors[i]
         rgb = tuple([int(intensity) for intensity in rgb])
-        cv2.circle(img, (x, y), radius, (0, 0, 0), -1, line_type)
+        img = cv2.circle(img, (x, y), radius, (0, 0, 0), -1, line_type)
     return img
 
 

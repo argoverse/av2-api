@@ -9,7 +9,7 @@ import numba as nb
 import numpy as np
 
 from av2.utils.constants import NAN
-from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayInt
+from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayInt, NDArrayNumber
 
 UINT8_MAX: Final = np.iinfo(np.uint8).max
 UINT8_BITS: Final = np.log2(UINT8_MAX + 1).astype(np.uint8)
@@ -90,14 +90,14 @@ def gaussian_kernel(x: float, mu: float, sigma: float) -> float:
 
 @nb.njit
 def draw_points_kernel(
-    img: NDArrayByte,
+    img: NDArrayNumber,
     points_uv: NDArrayInt,
     colors: NDArrayByte,
     diameter: int = 1,
     alpha: float = 1.0,
     with_anti_alias: bool = False,
     sigma: float = 1.0,
-) -> NDArrayByte:
+) -> NDArrayNumber:
     """Draw points onto an image canvas.
 
     NOTE: Anti-aliasing will apply a Gaussian kernel at each uv -- parameterized

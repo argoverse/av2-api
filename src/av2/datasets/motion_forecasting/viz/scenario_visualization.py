@@ -107,7 +107,7 @@ def visualize_scenario(
         frames.append(frame)
 
     # Write buffered frames to MP4V-encoded video
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # type: ignore
     vid_path = str(save_path.parents[0] / f"{save_path.stem}.mp4")
     video = cv2.VideoWriter(vid_path, fourcc, fps=10, frameSize=frames[0].size)
     for i in range(len(frames)):

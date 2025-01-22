@@ -127,7 +127,7 @@ class BEVGrid(NDGrid):
         points: NDArrayFloat,
         color: Tuple[int, int, int] = GRAY_BGR,
         diameter: int = 2,
-    ) -> NDArrayByte:
+    ) -> NDArrayNumber:
         """Convert a set of points in Cartesian space to a bird's-eye-view image.
 
         Args:
@@ -159,10 +159,10 @@ class BEVGrid(NDGrid):
 
         C = len(color)
         shape = (H, W, C)
-        img: NDArrayByte = np.zeros(shape, dtype=np.uint8)
+        img = np.zeros(shape, dtype=np.uint8)
 
         colors: NDArrayByte = np.array(
             [color for _ in range(len(points_xy))], dtype=np.uint8
         )
-        img = draw_points_xy_in_img(img, uv, colors, diameter=diameter)
-        return img
+        img_with_points = draw_points_xy_in_img(img, uv, colors, diameter=diameter)
+        return img_with_points

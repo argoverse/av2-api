@@ -9,12 +9,13 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import cv2
 import numpy as np
 import pandas as pd
+from cv2.typing import MatLike
 from pyarrow import feather
 from upath import UPath
 
 import av2.geometry.geometry as geometry_utils
 from av2.geometry.se3 import SE3
-from av2.utils.typing import NDArrayByte, NDArrayFloat, PathType
+from av2.utils.typing import NDArrayFloat, PathType
 
 # Mapping from egovehicle time in nanoseconds to egovehicle pose.
 TimestampedCitySE3EgoPoses = Dict[int, SE3]
@@ -174,7 +175,7 @@ def read_city_SE3_ego(log_dir: Union[Path, UPath]) -> TimestampedCitySE3EgoPoses
     return timestamp_city_SE3_ego_dict
 
 
-def read_img(img_path: Path, channel_order: str = "RGB") -> NDArrayByte:
+def read_img(img_path: Path, channel_order: str = "RGB") -> MatLike:
     """Return a RGB or BGR image array, given an image file path.
 
     Args:
@@ -190,15 +191,15 @@ def read_img(img_path: Path, channel_order: str = "RGB") -> NDArrayByte:
     if channel_order not in ["RGB", "BGR"]:
         raise ValueError("Unsupported channel order (must be BGR or RGB).")
 
-    img_bgr: NDArrayByte = cv2.imread(str(img_path))
+    img_bgr = cv2.imread(str(img_path))
     if channel_order == "BGR":
         return img_bgr
 
-    img_rgb: NDArrayByte = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     return img_rgb
 
 
-def write_img(img_path: Path, img: NDArrayByte, channel_order: str = "RGB") -> None:
+def write_img(img_path: Path, img: MatLike, channel_order: str = "RGB") -> None:
     """Save image to disk.
 
     Args:

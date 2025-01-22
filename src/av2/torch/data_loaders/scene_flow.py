@@ -93,7 +93,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
         if sweep.cuboids is not None:
             flow = Flow.from_sweep_pair((sweep, next_sweep))
 
-        ego_1_SE3_ego_0 = next_sweep.city_SE3_ego.inverse() * sweep.city_SE3_ego
+        ego_1_SE3_ego_0 = next_sweep.city_SE3_ego.inverse()._mul_se3(sweep.city_SE3_ego)
         ego_1_SE3_ego_0.rotation._q.requires_grad_(False)
         ego_1_SE3_ego_0.translation.requires_grad_(False)
 
