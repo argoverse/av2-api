@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest]
-        target: [x86_64, x86, aarch64]
+        target: [x86_64, aarch64]
         # os: [macos-latest]
         # target: [x86_64]
     steps:
