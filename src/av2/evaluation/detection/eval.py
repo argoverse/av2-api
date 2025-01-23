@@ -253,7 +253,7 @@ def summarize_metrics(
         # Get valid detections and sort them in descending order.
         category_dts = (
             dts.loc[is_valid_dts]
-            .sort_values(by="score", ascending=False)
+            .sort_values(by="score", ascending=False, kind="stable")
             .reset_index(drop=True)
         )
 

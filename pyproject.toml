@@ -68,7 +68,7 @@ module-name = "av2._r"
 [tool.ruff]
 select = ["D"]
 
-[tool.ruff.lint.pydocstyle]
+[tool.ruff.pydocstyle]
 convention = "google"
 
 [tool.mypy]
