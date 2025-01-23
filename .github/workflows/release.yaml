@@ -44,7 +44,7 @@ jobs:
           path: dist/
       - name: Upload sdist artifact (only on Ubuntu)
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sdist-artifact
           path: dist/*.tar.gz
