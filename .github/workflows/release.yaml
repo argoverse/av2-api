@@ -29,9 +29,8 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
-          target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
-          sccache: "true"
+          command: build
+          args: --release
       - name: Build sdist.
         uses: PyO3/maturin-action@v1
         with:
