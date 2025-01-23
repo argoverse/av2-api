@@ -44,8 +44,8 @@ jobs:
       - name: Upload sdist.
         uses: actions/upload-artifact@v4
         with:
-          name: python-package-distributions
-          path: dist/
+          name: sdist
+          path: dist/*.tar.gz
 
   # test_release:
   #   name: Test release.
