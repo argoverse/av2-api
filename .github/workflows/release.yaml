@@ -32,7 +32,7 @@ jobs:
           command: build
           args: --release
       - name: Build sdist.
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64'
         uses: PyO3/maturin-action@v1
         with:
           command: sdist
@@ -43,7 +43,7 @@ jobs:
           name: python-package-distributions-${{ matrix.os }}-${{ matrix.target }}
           path: dist/
       - name: Upload sdist artifact (only on Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64'
         uses: actions/upload-artifact@v4
         with:
           name: sdist-artifact
