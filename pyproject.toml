@@ -1,12 +1,14 @@
 [build-system]
-requires = ["maturin>=0.14,<0.15"]
+requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
 name = "av2"
 description = "Argoverse 2: Next generation datasets for self-driving perception and forecasting."
-requires-python = ">=3.8"
+readme = "README.md"
 license = { file = "LICENSE" }
+requires-python = ">=3.8"
+
 keywords = [
     "argoverse",
     "argoverse2",
@@ -51,7 +53,7 @@ dependencies = [
     "universal_pathlib",
 ]
 
-dynamic = ["authors", "description", "license", "readme", "version"]
+dynamic = ["authors", "description", "version"]
 
 [project.optional-dependencies]
 lint = ["black[jupyter]", "mypy", "ruff"]

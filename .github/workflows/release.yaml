@@ -43,13 +43,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wheels-artifact-${{ matrix.os }}-${{ matrix.target }}
-          path: wheels/*.whl
+          path: target/wheels/*.whl
       - name: Upload sdist artifact (only on Ubuntu).
         if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64'
         uses: actions/upload-artifact@v4
         with:
           name: sdist-artifact
-          path: dist/*.tar.gz
+          path: target/wheels/*.tar.gz
 
   publish-to-testpypi:
     name: Test release.
