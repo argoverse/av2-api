@@ -61,6 +61,10 @@ jobs:
     steps:
     - name: Download all the dists.
       uses: actions/download-artifact@v4
+    - name: Organize artifacts into a directory
+      run: |
+        mkdir -p dist
+        mv **/* dist/
       # with:
         # merge-multiple: true
     - name: Display structure of downloaded files
@@ -69,7 +73,6 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         repository-url: https://test.pypi.org/legacy/
-        # packages-dir: target/wheels
 
     # steps:
     #   - uses: actions/download-artifact@v4
