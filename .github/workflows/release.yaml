@@ -61,6 +61,8 @@ jobs:
     steps:
     - name: Download all the dists.
       uses: actions/download-artifact@v4
+    - name: Display structure of downloaded files
+      run: ls -R
     - name: Organize artifacts into a directory
       run: |
         mkdir -p dist
