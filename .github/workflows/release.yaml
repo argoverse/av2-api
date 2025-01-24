@@ -61,15 +61,15 @@ jobs:
     steps:
     - name: Download all the dists.
       uses: actions/download-artifact@v4
-      with:
-        merge-multiple: true
+      # with:
+        # merge-multiple: true
     - name: Display structure of downloaded files
       run: ls -R
     - name: Publish distribution to TestPyPI.
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         repository-url: https://test.pypi.org/legacy/
-        packages-dir: target/wheels
+        # packages-dir: target/wheels
 
     # steps:
     #   - uses: actions/download-artifact@v4
