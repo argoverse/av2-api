@@ -32,49 +32,49 @@ jobs:
       - name: Build wheels.
         uses: PyO3/maturin-action@v1
         with:
-          command: build
-          args: --release
-      - name: Build sdist.
-        if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64'
-        uses: PyO3/maturin-action@v1
-        with:
-          command: sdist
-      - name: Upload wheels.
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-artifact-${{ matrix.os }}-${{ matrix.target }}
-          path: target/wheels/*.whl
-      - name: Upload sdist artifact (only on Ubuntu).
-        if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64'
-        uses: actions/upload-artifact@v4
-        with:
-          name: sdist-artifact
-          path: target/wheels/*.tar.gz
+          command: publish
+          args: --no-password
+      # - name: Build sdist.
+      #   if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64'
+      #   uses: PyO3/maturin-action@v1
+      #   with:
+      #     command: sdist
+      # - name: Upload wheels.
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: wheels-artifact-${{ matrix.os }}-${{ matrix.target }}
+      #     path: target/wheels/*.whl
+      # - name: Upload sdist artifact (only on Ubuntu).
+      #   if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64'
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: sdist-artifact
+      #     path: target/wheels/*.tar.gz
 
-  publish-to-testpypi:
-    name: Test release.
-    needs: [build]
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write  # IMPORTANT: mandatory for trusted publishing
+  # publish-to-testpypi:
+  #   name: Test release.
+  #   needs: [build]
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     id-token: write  # IMPORTANT: mandatory for trusted publishing
 
-    steps:
-    - name: Download all the dists.
-      uses: actions/download-artifact@v4
-    - name: Display structure of downloaded files
-      run: ls -R
-    - name: Organize artifacts into a directory
-      run: |
-        mkdir -p dist
-        mv **/* dist/
-      # with:
-        # merge-multiple: true
-    - name: Display structure of downloaded files
-      run: ls -R
-    - name: Publish distribution to TestPyPI.
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        repository-url: https://test.pypi.org/legacy/
+  #   steps:
+  #   - name: Download all the dists.
+  #     uses: actions/download-artifact@v4
+  #   - name: Display structure of downloaded files
+  #     run: ls -R
+  #   - name: Organize artifacts into a directory
+  #     run: |
+  #       mkdir -p dist
+  #       mv **/* dist/
+  #     # with:
+  #       # merge-multiple: true
+  #   - name: Display structure of downloaded files
+  #     run: ls -R
+  #   - name: Publish distribution to TestPyPI.
+  #     uses: pypa/gh-action-pypi-publish@release/v1
+  #     with:
+  #       repository-url: https://test.pypi.org/legacy/
 
     # steps:
     #   - uses: actions/download-artifact@v4
