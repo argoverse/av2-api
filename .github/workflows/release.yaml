@@ -19,7 +19,8 @@ jobs:
     runs-on: ${{ matrix.os }} 
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        # os: [macos-latest, ubuntu-latest]
+        os: [ubuntu-latest]
         target: [x86_64, aarch64]
         # os: [macos-latest]
         # target: [x86_64]
@@ -64,6 +65,7 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         repository-url: https://test.pypi.org/legacy/
+        packages-dir: target/wheels
 
     # steps:
     #   - uses: actions/download-artifact@v4
