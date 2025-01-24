@@ -28,7 +28,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - name: Build wheels
+      - name: Build wheels.
         uses: PyO3/maturin-action@v1
         with:
           command: build
@@ -43,8 +43,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wheels-artifact-${{ matrix.os }}-${{ matrix.target }}
-          path: dist/*.whl
-      - name: Upload sdist artifact (only on Ubuntu)
+          path: wheels/*.whl
+      - name: Upload sdist artifact (only on Ubuntu).
         if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64'
         uses: actions/upload-artifact@v4
         with:
