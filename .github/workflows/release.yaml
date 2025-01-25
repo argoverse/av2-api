@@ -282,4 +282,4 @@ jobs:
         #   MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
           command: upload
-          args: --repository-url='https://test.pypi.org/project/av2/' --non-interactive --skip-existing wheels-*/*
+          args: --repository-url='https://test.pypi.org/project/av2-api/' --non-interactive --skip-existing wheels-*/*
