@@ -275,11 +275,16 @@ jobs:
         uses: actions/attest-build-provenance@v1
         with:
           subject-path: 'wheels-*/*'
-      - name: Publish to PyPI
+      # - name: Publish to PyPI
         # if: ${{ startsWith(github.ref, 'refs/tags/') }}
-        uses: PyO3/maturin-action@v1
+        # uses: PyO3/maturin-action@v1
         # env:
         #   MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        # with:
+        #   command: upload
+        #   args: --repository-url='https://test.pypi.org/project/av2-api/' --non-interactive --skip-existing wheels-*/*
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          command: upload
-          args: --repository-url='https://test.pypi.org/project/av2-api/' --non-interactive --skip-existing wheels-*/*
+          repository-url: https://test.pypi.org/legacy/
+          # packages-dir: wh/
