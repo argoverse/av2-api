@@ -106,7 +106,7 @@
 #   #         command: upload
 #   #         args: --skip-existing *
 
-name: CI
+name: release
 
 on:
   push:
@@ -139,11 +139,13 @@ jobs:
           #   target: s390x
           # - runner: ubuntu-22.04
           #   target: ppc64le
+        python_version:
+          ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.x
+      # - uses: actions/setup-python@v5
+      #   with:
+      #     python-version: 3.x
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -275,14 +277,6 @@ jobs:
         uses: actions/attest-build-provenance@v1
         with:
           subject-path: 'wheels-*/*'
-      # - name: Publish to PyPI
-        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
-        # uses: PyO3/maturin-action@v1
-        # env:
-        #   MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        # with:
-        #   command: upload
-        #   args: --repository-url='https://test.pypi.org/project/av2-api/' --non-interactive --skip-existing wheels-*/*
       - name: Display structure of downloaded files
         run: ls -R
       - name: Create 'wheels' directory
@@ -292,7 +286,7 @@ jobs:
           find wheels-* -type f -name "*.whl" -exec cp {} wheels/ \;
       - name: Display structure of downloaded files
         run: ls -R
-      - name: Publish package distributions to PyPI
+      - name: Publish package distributions to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
