@@ -297,3 +297,4 @@ jobs:
         with:
           repository-url: https://test.pypi.org/legacy/
           packages-dir: wheels/
+          verbose: true
