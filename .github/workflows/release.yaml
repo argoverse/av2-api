@@ -285,9 +285,11 @@ jobs:
         #   args: --repository-url='https://test.pypi.org/project/av2-api/' --non-interactive --skip-existing wheels-*/*
       - name: Display structure of downloaded files
         run: ls -R
+      - name: Create 'wheels' directory
+        run: mkdir -p wheels
       - name: Copy wheels artifacts
         run: |
-          find dist -type f -name "wheels-*" -exec cp {} wheels/ \;
+          find wheels-* -type f -name "*.whl" -exec cp {} wheels/ \;
       - name: Display structure of downloaded files
         run: ls -R
       - name: Publish package distributions to PyPI
