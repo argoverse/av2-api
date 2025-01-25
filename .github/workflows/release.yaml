@@ -283,8 +283,10 @@ jobs:
         # with:
         #   command: upload
         #   args: --repository-url='https://test.pypi.org/project/av2-api/' --non-interactive --skip-existing wheels-*/*
+      - name: Display structure of downloaded files
+        run: ls -R
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-          # packages-dir: wh/
+          packages-dir: wheels/
