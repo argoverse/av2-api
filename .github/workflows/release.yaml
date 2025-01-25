@@ -285,8 +285,13 @@ jobs:
         #   args: --repository-url='https://test.pypi.org/project/av2-api/' --non-interactive --skip-existing wheels-*/*
       - name: Display structure of downloaded files
         run: ls -R
+      - name: Copy wheels artifacts
+        run: |
+          find dist -type f -name "wheels-*" -exec cp {} wheels/ \;
+      - name: Display structure of downloaded files
+        run: ls -R
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-          packages-dir: wheels-*/**
+          packages-dir: wheels/
