@@ -1,6 +1,6 @@
 [package]
 name = "av2"
-version = "0.3.2"
+version = "0.3.1234"
 edition = "2021"
 homepage = "https://github.com/argoverse/av2-api"
 readme = "../README.md"
