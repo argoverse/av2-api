@@ -24,6 +24,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: av2
+          conda-remove-defaults: true
           environment-file: conda/environment.yml
           mamba-version: "*"
           miniforge-version: latest
