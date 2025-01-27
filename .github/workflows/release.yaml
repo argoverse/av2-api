@@ -25,10 +25,10 @@ jobs:
             target: x86
           - runner: ubuntu-22.04
             target: aarch64
-          - runner: ubuntu-22.04
-            target: armv7
-          - runner: ubuntu-22.04
-            target: ppc64le
+          # - runner: ubuntu-22.04
+          #   target: armv7
+          # - runner: ubuntu-22.04
+          #   target: ppc64le
         python_version:
           ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
@@ -153,7 +153,7 @@ jobs:
           name: wheels-sdist
           path: dist
 
-  release:
+  test_release:
     name: Test Release
     runs-on: ubuntu-latest
     environment: release
@@ -183,5 +183,35 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          packages-dir: wheels/
+          verbose: true
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    environment: release
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    needs: [linux, macos, windows, sdist]
+    permissions:
+      # Use to sign the release artifacts
+      id-token: write
+      # Used to upload release artifacts
+      contents: write
+      # Used to generate artifact attestation
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v4
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: 'wheels-*/*'
+      - name: Create 'wheels' directory
+        run: mkdir -p wheels
+      - name: Copy wheels artifacts
+        run: |
+          find wheels-* -type f -name "*.whl" -exec cp {} wheels/ \;
+      - name: Publish package distributions to Test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
           packages-dir: wheels/
           verbose: true
