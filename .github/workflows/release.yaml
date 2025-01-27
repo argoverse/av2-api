@@ -1,111 +1,3 @@
-# name: release
-
-# on:
-#   push:
-#     branches:
-#       - main
-#     tags:
-#       - '*'
-#   pull_request:
-#   workflow_dispatch:
-
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || github.sha }}
-#   cancel-in-progress: true
-
-# jobs:
-
-#   build:
-#     runs-on: ${{ matrix.os }} 
-#     strategy:
-#       matrix:
-#         # os: [macos-latest, ubuntu-latest]
-#         os: [ubuntu-latest]
-#         target: [x86_64, aarch64]
-#         # os: [macos-latest]
-#         # target: [x86_64]
-#     steps:
-#       - uses: actions/checkout@v4
-#       - uses: actions/setup-python@v5
-#         with:
-#           python-version: '3.13'
-#       - name: Build wheels.
-#         uses: PyO3/maturin-action@v1
-#         with:
-#           command: publish
-#           args: --no-password
-#       # - name: Build sdist.
-#       #   if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64'
-#       #   uses: PyO3/maturin-action@v1
-#       #   with:
-#       #     command: sdist
-#       # - name: Upload wheels.
-#       #   uses: actions/upload-artifact@v4
-#       #   with:
-#       #     name: wheels-artifact-${{ matrix.os }}-${{ matrix.target }}
-#       #     path: target/wheels/*.whl
-#       # - name: Upload sdist artifact (only on Ubuntu).
-#       #   if: matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64'
-#       #   uses: actions/upload-artifact@v4
-#       #   with:
-#       #     name: sdist-artifact
-#       #     path: target/wheels/*.tar.gz
-
-#   # publish-to-testpypi:
-#   #   name: Test release.
-#   #   needs: [build]
-#   #   runs-on: ubuntu-latest
-#   #   permissions:
-#   #     id-token: write  # IMPORTANT: mandatory for trusted publishing
-
-#   #   steps:
-#   #   - name: Download all the dists.
-#   #     uses: actions/download-artifact@v4
-#   #   - name: Display structure of downloaded files
-#   #     run: ls -R
-#   #   - name: Organize artifacts into a directory
-#   #     run: |
-#   #       mkdir -p dist
-#   #       mv **/* dist/
-#   #     # with:
-#   #       # merge-multiple: true
-#   #   - name: Display structure of downloaded files
-#   #     run: ls -R
-#   #   - name: Publish distribution to TestPyPI.
-#   #     uses: pypa/gh-action-pypi-publish@release/v1
-#   #     with:
-#   #       repository-url: https://test.pypi.org/legacy/
-
-#     # steps:
-#     #   - uses: actions/download-artifact@v4
-#     #     with:
-#     #       name: python-package-distributions
-#     #       path: dist/
-#     #   - name: Publish distribution to Test PyPI.
-#     #     uses: pypa/gh-action-pypi-publish@release/v1
-#     #     with:
-#     #       password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-#     #       repository-url: https://test.pypi.org/legacy/
-#     #       skip-existing: true
-
-#   # release:
-#   #   name: Release
-#   #   runs-on: ubuntu-latest
-#   #   if: "startsWith(github.ref, 'refs/tags/')"
-#   #   needs: [linux, macos, sdist]
-#   #   steps:
-#   #     - uses: actions/download-artifact@v4
-#   #       with:
-#   #         name: python-package-distributions
-#   #         path: dist/
-#   #     - name: Publish to PyPI
-#   #       uses: PyO3/maturin-action@v1
-#   #       env:
-#   #         MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-#   #       with:
-#   #         command: upload
-#   #         args: --skip-existing *
-
 name: release
 
 on:
@@ -129,18 +21,16 @@ jobs:
         platform:
           - runner: ubuntu-22.04
             target: x86_64
-          # - runner: ubuntu-22.04
-          #   target: x86
-          # - runner: ubuntu-22.04
-          #   target: aarch64
-          # - runner: ubuntu-22.04
-          #   target: armv7
-          # - runner: ubuntu-22.04
-          #   target: s390x
-          # - runner: ubuntu-22.04
-          #   target: ppc64le
+          - runner: ubuntu-22.04
+            target: x86
+          - runner: ubuntu-22.04
+            target: aarch64
+          - runner: ubuntu-22.04
+            target: armv7
+          - runner: ubuntu-22.04
+            target: ppc64le
         python_version:
-          ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+          ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -217,31 +107,34 @@ jobs:
   #         name: wheels-windows-${{ matrix.platform.target }}
   #         path: dist
 
-  # macos:
-  #   runs-on: ${{ matrix.platform.runner }}
-  #   strategy:
-  #     matrix:
-  #       platform:
-  #         - runner: macos-13
-  #           target: x86_64
-  #         - runner: macos-14
-  #           target: aarch64
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-python@v5
-  #       with:
-  #         python-version: 3.x
-  #     - name: Build wheels
-  #       uses: PyO3/maturin-action@v1
-  #       with:
-  #         target: ${{ matrix.platform.target }}
-  #         args: --release --out dist --find-interpreter
-  #         sccache: 'true'
-  #     - name: Upload wheels
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: wheels-macos-${{ matrix.platform.target }}
-  #         path: dist
+  macos:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: macos-13
+            target: x86_64
+          - runner: macos-14
+            target: aarch64
+          python_version:
+            ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python_version }}
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+          manylinux: auto
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.python_version }}-linux-${{ matrix.platform.target }}
+          path: dist
 
   sdist:
     runs-on: ubuntu-latest
@@ -259,7 +152,7 @@ jobs:
           path: dist
 
   release:
-    name: Release
+    name: Test Release
     runs-on: ubuntu-latest
     environment: release
     # if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
@@ -277,15 +170,13 @@ jobs:
         uses: actions/attest-build-provenance@v1
         with:
           subject-path: 'wheels-*/*'
-      - name: Display structure of downloaded files
-        run: ls -R
+      # - name: Display structure of downloaded files
+      #   run: ls -R
       - name: Create 'wheels' directory
         run: mkdir -p wheels
       - name: Copy wheels artifacts
         run: |
           find wheels-* -type f -name "*.whl" -exec cp {} wheels/ \;
-      - name: Display structure of downloaded files
-        run: ls -R
       - name: Publish package distributions to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
