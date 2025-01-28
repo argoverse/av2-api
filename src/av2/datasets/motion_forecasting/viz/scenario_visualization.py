@@ -9,7 +9,9 @@ from typing import Final, List, Optional, Sequence, Set, Tuple
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.axes import Axes
 from matplotlib.patches import Rectangle
+from matplotlib.ticker import NullLocator
 from PIL import Image as img
 from PIL.Image import Image
 
@@ -93,8 +95,8 @@ def visualize_scenario(
         plt.gca().set_axis_off()
         plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
         plt.margins(0, 0)
-        plt.gca().xaxis.set_major_locator(plt.NullLocator())
-        plt.gca().yaxis.set_major_locator(plt.NullLocator())
+        plt.gca().xaxis.set_major_locator(NullLocator())
+        plt.gca().yaxis.set_major_locator(NullLocator())
 
         # Save plotted frame to in-memory buffer
         buf = io.BytesIO()
@@ -105,7 +107,7 @@ def visualize_scenario(
         frames.append(frame)
 
     # Write buffered frames to MP4V-encoded video
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # type: ignore
     vid_path = str(save_path.parents[0] / f"{save_path.stem}.mp4")
     video = cv2.VideoWriter(vid_path, fourcc, fps=10, frameSize=frames[0].size)
     for i in range(len(frames)):
@@ -149,7 +151,7 @@ def _plot_static_map_elements(
 
 
 def _plot_actor_tracks(
-    ax: plt.Axes, scenario: ArgoverseScenario, timestep: int
+    ax: Axes, scenario: ArgoverseScenario, timestep: int
 ) -> Optional[_PlotBounds]:
     """Plot all actor tracks (up to a particular time step) associated with an Argoverse scenario.
 
@@ -278,7 +280,7 @@ def _plot_polygons(
 
 
 def _plot_actor_bounding_box(
-    ax: plt.Axes,
+    ax: Axes,
     cur_location: NDArrayFloat,
     heading: float,
     color: str,

@@ -25,6 +25,7 @@ from av2.utils.typing import (
     NDArrayByte,
     NDArrayFloat,
     NDArrayInt,
+    NDArrayNumber,
     NDArrayObject,
 )
 
@@ -264,7 +265,7 @@ class CuboidList:
         """
         if idx < 0 or idx >= len(self):
             raise IndexError(
-                f"Attempted to access cuboid {idx}, but only indices [0,{len(self)-1}] are valid"
+                f"Attempted to access cuboid {idx}, but only indices [0,{len(self) - 1}] are valid"
             )
         return self.cuboids[idx]
 
@@ -296,11 +297,11 @@ class CuboidList:
 
     def project_to_cam(
         self,
-        img: NDArrayByte,
+        img: NDArrayNumber,
         cam_model: PinholeCamera,
         city_SE3_ego_cam_t: Optional[SE3] = None,
         city_SE3_ego_lidar_t: Optional[SE3] = None,
-    ) -> NDArrayByte:
+    ) -> NDArrayNumber:
         """Project the cuboids to the camera by clipping cuboid line segments against the camera view frustum.
 
         NOTE: The front face of each cuboid is drawn in yellow, and all other line segments are drawn in blue.

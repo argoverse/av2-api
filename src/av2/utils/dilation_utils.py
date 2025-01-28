@@ -2,14 +2,14 @@
 
 """Utility functions for dilation of a binary mask."""
 
-
 import cv2
 import numpy as np
+from cv2.typing import MatLike
 
-from av2.utils.typing import NDArrayByte, NDArrayFloat
+from av2.utils.typing import NDArrayByte
 
 
-def dilate_by_l2(img: NDArrayByte, dilation_thresh: float = 5.0) -> NDArrayByte:
+def dilate_by_l2(img: NDArrayByte, dilation_thresh: float = 5.0) -> MatLike:
     """Dilate a mask using the L2 distance from a zero pixel.
 
     OpenCV's distance transform calculates the DISTANCE TO THE CLOSEST ZERO PIXEL for each
@@ -34,7 +34,7 @@ def dilate_by_l2(img: NDArrayByte, dilation_thresh: float = 5.0) -> NDArrayByte:
         raise ValueError("Input to distance transform must be a uint8 array.")
 
     mask_diff: NDArrayByte = np.ones_like(img, dtype=np.uint8) - img
-    distance_mask: NDArrayFloat = cv2.distanceTransform(
+    distance_mask = cv2.distanceTransform(
         mask_diff, distanceType=cv2.DIST_L2, maskSize=cv2.DIST_MASK_PRECISE
     )
     dilated_img: NDArrayByte = np.less_equal(

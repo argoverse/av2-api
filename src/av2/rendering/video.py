@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from enum import Enum, unique
 from pathlib import Path
-from typing import Dict, Final, Mapping, Optional, Set, Union
+from typing import Dict, Final, Mapping, Optional, Set, Union, cast
 
 import av
 import numpy as np
@@ -159,12 +159,12 @@ def write_video(
 
     dst.parent.mkdir(parents=True, exist_ok=True)
     with av.open(str(dst), "w") as output:
-        stream = output.add_stream(codec, fps)
+        stream = cast(av.VideoStream, output.add_stream(codec, fps))
         if codec in HIGH_EFFICIENCY_VIDEO_CODECS:
-            stream.codec_tag = "hvc1"
+            stream.codec_context.codec_tag = "hvc1"
         stream.width = W
         stream.height = H
-        stream.options = {
+        stream.codec_context.options = {
             "crf": str(crf),
             "hwaccel": "auto",
             "movflags": "+faststart",

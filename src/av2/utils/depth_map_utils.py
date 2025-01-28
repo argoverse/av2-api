@@ -7,6 +7,7 @@ from typing import Final
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from cv2.typing import MatLike
 
 from av2.utils.typing import NDArrayByte, NDArrayFloat
 
@@ -42,7 +43,7 @@ def compute_allowed_noise_per_point(points_cam: NDArrayFloat) -> NDArrayFloat:
 
 def vis_depth_map(
     img_rgb: NDArrayByte,
-    depth_map: NDArrayFloat,
+    depth_map: MatLike,
     interp_depth_map: bool,
     num_dilation_iters: int = 10,
 ) -> None:

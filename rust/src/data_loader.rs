@@ -9,9 +9,9 @@ use image::Rgba;
 use io::{read_accumulate_lidar, read_timestamped_feather};
 use itertools::Itertools;
 use ndarray::Ix3;
-use nshare::ToNdarray3;
-use numpy::IntoPyArray;
+use nshare::AsNdarray3;
 use numpy::PyArray;
+use numpy::ToPyArray;
 use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
 use rayon::prelude::IntoParallelRefIterator;
@@ -185,11 +185,11 @@ impl DataLoader {
         &self,
         py: Python<'py>,
         index: usize,
-    ) -> Vec<&'py PyArray<u8, Ix3>> {
+    ) -> Vec<pyo3::Bound<'py, PyArray<u8, Ix3>>> {
         let images = self.get_synchronized_images(index);
         images
             .into_iter()
-            .map(|x| x.image.into_ndarray3().into_pyarray(py))
+            .map(|x| x.image.as_ndarray3().to_pyarray_bound(py))
             .collect_vec()
     }
 
@@ -273,7 +273,7 @@ impl DataLoader {
     pub fn read_annotations(&self, log_id: &str, timestamp_ns: u64) -> DataFrame {
         read_timestamped_feather(
             &self.annotations_path(log_id),
-            &ANNOTATION_COLUMNS.to_vec(),
+            ANNOTATION_COLUMNS.as_ref(),
             &timestamp_ns,
             self.memory_mapped,
         )
@@ -286,7 +286,7 @@ impl DataLoader {
     pub fn read_city_pose(&self, log_id: &str, timestamp_ns: u64) -> DataFrame {
         read_timestamped_feather(
             &self.city_pose_path(log_id),
-            &POSE_COLUMNS.to_vec(),
+            POSE_COLUMNS.as_ref(),
             &timestamp_ns,
             self.memory_mapped,
         )
@@ -396,9 +396,10 @@ fn build_file_index(
         .lazy()
         .sort_by_exprs(
             &[cols(["log_id", "timestamp_ns_lidar"])],
-            vec![false],
-            false,
-            true,
+            SortMultipleOptions {
+                maintain_order: true,
+                ..SortMultipleOptions::default()
+            },
         )
         .collect()
         .unwrap();
@@ -413,9 +414,10 @@ fn build_file_index(
                     "log_id",
                     format!("timestamp_ns_{camera_name}").as_str(),
                 ])],
-                vec![false],
-                false,
-                true,
+                SortMultipleOptions {
+                    maintain_order: true,
+                    ..SortMultipleOptions::default()
+                },
             )
             .collect()
             .unwrap();
@@ -432,10 +434,10 @@ fn build_file_index(
             )
             .unwrap();
 
-        reference_frame = reference_frame.drop_many(&["city_name_right"]);
+        reference_frame = reference_frame.drop_many(vec!["city_name_right"]);
     }
     reference_frame
-        .rename("timestamp_ns_lidar", "timestamp_ns")
+        .rename("timestamp_ns_lidar", "timestamp_ns".into())
         .unwrap();
     reference_frame
 }
@@ -476,9 +478,9 @@ fn build_lidar_metadata(split_dir: PathBuf, sensor_name: &str) -> DataFrame {
         })
         .collect();
     df!(
-        "log_id" => Series::new("log_id", log_id),
-        format!("timestamp_ns_{}", sensor_name).as_str() => Series::new("timestamp_ns", timestamp_ns.clone()),
-        "city_name" => Series::new("city_name", vec!["DEFAULT"; timestamp_ns.len()])
+        "log_id" => Series::new("log_id".into(), log_id),
+        format!("timestamp_ns_{}", sensor_name).as_str() => Series::new("timestamp_ns".into(), timestamp_ns.clone()),
+        "city_name" => Series::new("city_name".into(), vec!["DEFAULT"; timestamp_ns.len()])
     )
     .unwrap()
 }
@@ -519,9 +521,9 @@ fn build_camera_metadata(split_dir: PathBuf, sensor_name: &str) -> DataFrame {
         })
         .collect();
     df!(
-        "log_id" => Series::new("log_id", log_id),
-        format!("timestamp_ns_{}", sensor_name).as_str() => Series::new("timestamp_ns", timestamp_ns.clone()),
-        "city_name" => Series::new("city_name", vec!["DEFAULT"; timestamp_ns.len()])
+        "log_id" => Series::new("log_id".into(), log_id),
+        format!("timestamp_ns_{}", sensor_name).as_str() => Series::new("timestamp_ns".into(), timestamp_ns.clone()),
+        "city_name" => Series::new("city_name".into(), vec!["DEFAULT"; timestamp_ns.len()])
     )
     .unwrap()
 }

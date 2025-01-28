@@ -5,7 +5,7 @@
 from dataclasses import dataclass
 
 from av2.geometry.camera.pinhole_camera import PinholeCamera
-from av2.utils.typing import NDArrayByte
+from av2.utils.typing import NDArrayNumber
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,6 @@ class TimestampedImage:
 
     """
 
-    img: NDArrayByte
+    img: NDArrayNumber
     camera_model: PinholeCamera
     timestamp_ns: int

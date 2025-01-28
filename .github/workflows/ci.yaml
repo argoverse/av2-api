@@ -12,18 +12,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
         python_version:
-          ["3.9", "3.10", "3.11"]
+          ["3.9", "3.10", "3.11", "3.12"]
     defaults:
       run:
         shell: bash -l {0}
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: av2
+          conda-remove-defaults: true
           environment-file: conda/environment.yml
           mamba-version: "*"
           miniforge-version: latest

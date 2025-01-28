@@ -10,7 +10,7 @@ use ndarray::Array2;
 use ndarray::Array3;
 use ndarray::Ix1;
 
-use nshare::ToNdarray3;
+use nshare::IntoNdarray3;
 use polars::lazy::dsl::lit;
 use polars::lazy::dsl::Expr;
 use polars::lazy::dsl::GetOutput;
@@ -30,7 +30,7 @@ use std::path::PathBuf;
 
 use crate::constants::POSE_COLUMNS;
 use crate::geometry::se3::SE3;
-use image::io::Reader as ImageReader;
+use image::ImageReader;
 
 use crate::geometry::so3::_quat_to_mat3;
 
@@ -38,8 +38,14 @@ use crate::geometry::so3::_quat_to_mat3;
 pub fn read_feather_eager(path: &PathBuf, memory_mapped: bool) -> DataFrame {
     let file =
         File::open(path).unwrap_or_else(|_| panic!("{path} not found.", path = path.display()));
+
+    let mmap_path = if memory_mapped {
+        Some(path.to_path_buf())
+    } else {
+        None
+    };
     polars::io::ipc::IpcReader::new(file)
-        .memory_mapped(memory_mapped)
+        .memory_mapped(mmap_path)
         .finish()
         .unwrap()
 }
@@ -52,24 +58,6 @@ pub fn write_feather_eager(path: &PathBuf, mut data_frame: DataFrame) {
         .finish(&mut data_frame)
         .unwrap()
 }
-
-/// Read a feather file and load into a `polars` dataframe.
-/// TODO: Implement once upstream half-type is fixed.
-// pub fn read_feather_lazy(path: &PathBuf, memory_mapped: bool) -> DataFrame {
-//     LazyFrame::scan_ipc(
-//         path,
-//         ScanArgsIpc {
-//             n_rows: None,
-//             cache: true,
-//             rechunk: true,
-//             row_count: None,
-//             memmap: memory_mapped,
-//         },
-//     )
-//     .unwrap()
-//     .collect()
-//     .unwrap()
-// }
 
 /// Read and accumulate lidar sweeps.
 /// Accumulation will only occur if `num_accumulated_sweeps` > 1.
@@ -121,7 +109,12 @@ pub fn read_accumulate_lidar(
                 .with_column(
                     col("x")
                         .map(
-                            |x| Ok(Some(Series::from_vec("timedelta_ns", vec![0_f32; x.len()]))),
+                            |x| {
+                                Ok(Some(
+                                    Series::from_vec("timedelta_ns".into(), vec![0_f32; x.len()])
+                                        .into(),
+                                ))
+                            },
                             GetOutput::float_type(),
                         )
                         .alias("timedelta_ns"),
@@ -146,11 +139,32 @@ pub fn read_accumulate_lidar(
                 let city_se3_ego_i = data_frame_to_se3(pose_i);
                 let ego_ref_se3_ego_i = ego_se3_city.compose(&city_se3_ego_i);
                 let xyz_ref = ego_ref_se3_ego_i.transform_from(&xyz.view());
-                let x_ref = Series::new("x", xyz_ref.slice(s![.., 0]).to_owned().into_raw_vec());
-                let y_ref = Series::new("y", xyz_ref.slice(s![.., 1]).to_owned().into_raw_vec());
-                let z_ref = Series::new("z", xyz_ref.slice(s![.., 2]).to_owned().into_raw_vec());
+                let x_ref = Series::new(
+                    "x".into(),
+                    xyz_ref
+                        .slice(s![.., 0])
+                        .to_owned()
+                        .into_raw_vec_and_offset()
+                        .0,
+                );
+                let y_ref = Series::new(
+                    "y".into(),
+                    xyz_ref
+                        .slice(s![.., 1])
+                        .to_owned()
+                        .into_raw_vec_and_offset()
+                        .0,
+                );
+                let z_ref = Series::new(
+                    "z".into(),
+                    xyz_ref
+                        .slice(s![.., 2])
+                        .to_owned()
+                        .into_raw_vec_and_offset()
+                        .0,
+                );
                 let timedelta_ns = Series::new(
-                    "timedelta_ns",
+                    "timedelta_ns".into(),
                     vec![(timestamp_ns - timestamp_ns_i) as f32 * 1e-9; xyz.shape()[0]],
                 );
                 lidar =
@@ -167,14 +181,14 @@ pub fn read_accumulate_lidar(
 /// Read a dataframe, but filter for the specified timestamp.
 pub fn read_timestamped_feather(
     path: &PathBuf,
-    columns: &Vec<&str>,
+    columns: &[&str],
     timestamp_ns: &u64,
     memory_mapped: bool,
 ) -> LazyFrame {
     read_feather_eager(path, memory_mapped)
         .lazy()
         .filter(col("timestamp_ns").eq(*timestamp_ns))
-        .select(&[cols(columns)])
+        .select(&[cols(columns.to_vec())])
 }
 
 /// Read an image into an RGBA u8 image.

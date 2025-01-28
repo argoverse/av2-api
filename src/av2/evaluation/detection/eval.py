@@ -51,6 +51,7 @@ Results:
     in addition to the mean statistics average across all classes, and P refers to the number of included statistics,
     e.g. AP, ATE, ASE, AOE, CDS by default.
 """
+
 import logging
 import multiprocessing as mp
 import warnings
@@ -133,13 +134,13 @@ def evaluate(
     gts_pl = pl.from_pandas(gts)
 
     uuid_to_dts = {
-        k: v[list(DTS_COLUMNS)].to_numpy().astype(float)
+        cast(Tuple[str, int, int], k): v[list(DTS_COLUMNS)].to_numpy().astype(float)
         for k, v in dts_pl.partition_by(
             DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True
         ).items()
     }
     uuid_to_gts = {
-        k: v[list(GTS_COLUMNS)].to_numpy().astype(float)
+        cast(Tuple[str, int, int], k): v[list(GTS_COLUMNS)].to_numpy().astype(float)
         for k, v in gts_pl.partition_by(
             DETECTION_UUID_COLUMNS, maintain_order=True, as_dict=True
         ).items()
@@ -252,7 +253,7 @@ def summarize_metrics(
         # Get valid detections and sort them in descending order.
         category_dts = (
             dts.loc[is_valid_dts]
-            .sort_values(by="score", ascending=False)
+            .sort_values(by="score", ascending=False, kind="stable")
             .reset_index(drop=True)
         )
 

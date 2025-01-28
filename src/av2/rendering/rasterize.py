@@ -1,6 +1,7 @@
 # <Copyright 2022, Argo AI, LLC. Released under the MIT license.>
 
 """Raster visualization tools."""
+
 from typing import Dict, Final, Tuple
 
 import numpy as np
@@ -120,14 +121,14 @@ def xyz_to_bev(
 
 
 def draw_points_xy_in_img(
-    img: NDArrayByte,
+    img: NDArrayNumber,
     points_xy: NDArrayInt,
     colors: NDArrayByte,
     diameter: int = 1,
     alpha: float = 1.0,
     with_anti_alias: bool = False,
     sigma: float = 1.0,
-) -> NDArrayByte:
+) -> NDArrayNumber:
     """Draw a set of points over an image.
 
     Args:

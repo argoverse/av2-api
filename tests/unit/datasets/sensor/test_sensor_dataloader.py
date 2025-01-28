@@ -35,7 +35,7 @@ def _create_dummy_sensor_dataloader(log_id: str) -> SensorDataloader:
                     "sensors",
                     "cameras",
                     sensor_name,
-                    f"{int(t*1e6)}.jpg",
+                    f"{int(t * 1e6)}.jpg",
                 )
                 Path(fpath).parent.mkdir(exist_ok=True, parents=True)
                 fpath.open("w").close()
@@ -46,7 +46,7 @@ def _create_dummy_sensor_dataloader(log_id: str) -> SensorDataloader:
                     log_id,
                     "sensors",
                     sensor_name,
-                    f"{int(t*1e6)}.feather",
+                    f"{int(t * 1e6)}.feather",
                 )
                 Path(fpath).parent.mkdir(exist_ok=True, parents=True)
                 fpath.open("w").close()

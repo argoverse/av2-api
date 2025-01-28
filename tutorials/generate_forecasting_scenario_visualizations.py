@@ -23,8 +23,8 @@ _DEFAULT_N_JOBS: Final[int] = -2  # Use all but one CPUs
 class SelectionCriteria(str, Enum):
     """Valid criteria used to select Argoverse scenarios for visualization."""
 
-    FIRST: str = "first"
-    RANDOM: str = "random"
+    FIRST = "first"
+    RANDOM = "random"
 
 
 def generate_scenario_visualizations(

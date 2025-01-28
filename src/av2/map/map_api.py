@@ -31,7 +31,13 @@ from av2.map.drivable_area import DrivableArea
 from av2.map.lane_segment import LaneSegment
 from av2.map.pedestrian_crossing import PedestrianCrossing
 from av2.utils import io
-from av2.utils.typing import NDArrayBool, NDArrayByte, NDArrayFloat, NDArrayInt
+from av2.utils.typing import (
+    NDArrayBool,
+    NDArrayByte,
+    NDArrayFloat,
+    NDArrayInt,
+    NDArrayNumber,
+)
 
 # 1 meter resolution is insufficient for the online-generated drivable area and ROI raster grids
 # these grids can be generated at an arbitrary resolution, from vector (polygon) objects.
@@ -60,7 +66,7 @@ class RasterLayerType(str, Enum):
 class RasterMapLayer:
     """Data sampled at points along a regular grid, and a mapping from city coordinates to grid array coordinates."""
 
-    array: Union[NDArrayByte, NDArrayFloat]
+    array: NDArrayNumber
     array_Sim2_city: Sim2
 
     def get_raster_values_at_coords(
