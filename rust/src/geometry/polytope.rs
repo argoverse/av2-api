@@ -36,7 +36,7 @@ pub fn compute_interior_points_mask(
         .to_owned();
 
     let uvw = reference_index.clone() - vertices.clone();
-    let reference_index = reference_index.into_shape((num_cuboids, 3)).unwrap();
+    let reference_index = reference_index.to_shape((num_cuboids, 3)).unwrap();
 
     let mut dot_uvw_reference = Array::<f32, Ix2>::zeros((num_cuboids, 3));
     par_azip!((mut a in dot_uvw_reference.outer_iter_mut(), b in uvw.outer_iter(), c in reference_index.outer_iter()) a.assign(&b.dot(&c.t())) );
@@ -45,11 +45,11 @@ pub fn compute_interior_points_mask(
     par_azip!((mut a in dot_uvw_vertices.outer_iter_mut(), b in uvw.outer_iter(), c in vertices.outer_iter()) a.assign(&b.dot(&c.t()).diag()) );
 
     let dot_uvw_points = uvw
-        .into_shape((num_cuboids * 3, 3))
+        .into_shape_with_order((num_cuboids * 3, 3))
         .unwrap()
         .as_standard_layout()
         .dot(&points.t().as_standard_layout())
-        .into_shape((num_cuboids, 3, num_points))
+        .into_shape_with_order((num_cuboids, 3, num_points))
         .unwrap();
 
     let shape = (num_cuboids, num_points);

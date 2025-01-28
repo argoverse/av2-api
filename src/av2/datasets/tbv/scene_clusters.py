@@ -8,6 +8,7 @@ Note:
    - Each cluster has at least one log in the val or test set.
    - Logs within each cluster are provided in chronological order.
 """
+
 from typing import Dict, Final, Tuple
 
 ATX_CLUSTERS: Final[Dict[int, Tuple[str, ...]]] = {

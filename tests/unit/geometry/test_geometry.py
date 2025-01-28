@@ -370,7 +370,7 @@ def test_compute_interior_points_mask(
 
 
 def test_benchmark_compute_interior_points_mask_optimized(
-    benchmark: Callable[..., Any]
+    benchmark: Callable[..., Any],
 ) -> None:
     """Benchmark compute_interior_pts on 100000 random points."""
     rotation: NDArrayFloat = np.eye(3)
@@ -393,7 +393,7 @@ def test_benchmark_compute_interior_points_mask_optimized(
 
 
 def test_benchmark_compute_interior_points_mask_slow(
-    benchmark: Callable[..., Any]
+    benchmark: Callable[..., Any],
 ) -> None:
     """Benchmark compute_interior_points_mask on 100000 random points."""
     rotation: NDArrayFloat = np.eye(3)

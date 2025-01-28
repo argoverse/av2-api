@@ -25,10 +25,10 @@ class TrackCategory(Enum):
         FOCAL_TRACK: The track used to generate a particular scenario - scored in the single-agent prediction challenge.
     """
 
-    TRACK_FRAGMENT: int = 0
-    UNSCORED_TRACK: int = 1
-    SCORED_TRACK: int = 2
-    FOCAL_TRACK: int = 3
+    TRACK_FRAGMENT = 0
+    UNSCORED_TRACK = 1
+    SCORED_TRACK = 2
+    FOCAL_TRACK = 3
 
 
 @unique
@@ -36,20 +36,20 @@ class ObjectType(str, Enum):
     """All tracks are assigned one of the following object type labels."""
 
     # Dynamic movers
-    VEHICLE: str = "vehicle"
-    PEDESTRIAN: str = "pedestrian"
-    MOTORCYCLIST: str = "motorcyclist"
-    CYCLIST: str = "cyclist"
-    BUS: str = "bus"
+    VEHICLE = "vehicle"
+    PEDESTRIAN = "pedestrian"
+    MOTORCYCLIST = "motorcyclist"
+    CYCLIST = "cyclist"
+    BUS = "bus"
 
     # Static objects
-    STATIC: str = "static"
-    BACKGROUND: str = "background"
-    CONSTRUCTION: str = "construction"
-    RIDERLESS_BICYCLE: str = "riderless_bicycle"
+    STATIC = "static"
+    BACKGROUND = "background"
+    CONSTRUCTION = "construction"
+    RIDERLESS_BICYCLE = "riderless_bicycle"
 
     # Catch-all type for other/unknown objects
-    UNKNOWN: str = "unknown"
+    UNKNOWN = "unknown"
 
 
 @dataclass

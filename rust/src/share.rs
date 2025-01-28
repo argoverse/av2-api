@@ -19,8 +19,12 @@ pub fn ndarray_to_expr_vec(arr: Array<f32, Ix2>, column_names: Vec<&str>) -> Vec
     let mut series_vec = vec![];
     for (column, column_name) in arr.columns().into_iter().zip(column_names) {
         let series = Series::new(
-            column_name,
-            column.as_standard_layout().to_owned().into_raw_vec(),
+            column_name.into(),
+            column
+                .as_standard_layout()
+                .to_owned()
+                .into_raw_vec_and_offset()
+                .0,
         );
         series_vec.push(lit(series));
     }

@@ -6,9 +6,10 @@ from typing import List
 
 import cv2
 import numpy as np
+from cv2.typing import MatLike
 from PIL import Image, ImageDraw
 
-from av2.utils.typing import NDArrayByte, NDArrayFloat
+from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayNumber
 
 
 def get_mask_from_polygons(
@@ -37,17 +38,17 @@ def get_mask_from_polygons(
 
 
 def blend_images(
-    img0: NDArrayByte, img1: NDArrayByte, alpha: float = 0.7
-) -> NDArrayByte:
+    img0: NDArrayNumber, img1: NDArrayNumber, alpha: float = 0.7
+) -> NDArrayNumber:
     """Alpha-blend two images together.
 
     Args:
-        img0: uint8 array of shape (H,W,3)
-        img1: uint8 array of shape (H,W,3)
+        img0: Array of shape (H,W,3).
+        img1: Array of shape (H,W,3).
         alpha: Alpha blending coefficient.
 
     Returns:
-        uint8 array of shape (H,W,3)
+        Array of shape (H,W,3).
     """
-    blended: NDArrayByte = cv2.addWeighted(img0, alpha, img1, (1 - alpha), gamma=0)
+    blended = cv2.addWeighted(img0, alpha, img1, (1 - alpha), gamma=0)
     return blended

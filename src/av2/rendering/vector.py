@@ -7,18 +7,19 @@ from typing import Optional, Tuple, Union
 
 import cv2
 import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
 import numpy as np
+from cv2.typing import MatLike
+from matplotlib.axes import Axes
 from matplotlib.path import Path as MPath
 
 from av2.geometry.camera.pinhole_camera import PinholeCamera
 from av2.rendering.color import BLUE_BGR
 from av2.rendering.ops.draw import clip_line_frustum
-from av2.utils.typing import NDArrayByte, NDArrayFloat, NDArrayInt, NDArrayNumber
+from av2.utils.typing import NDArrayFloat, NDArrayInt, NDArrayNumber
 
 
 def draw_polygon_mpl(
-    ax: plt.Axes,
+    ax: Axes,
     polygon: NDArrayFloat,
     color: Union[Tuple[float, float, float], str],
     linewidth: Optional[float] = None,
@@ -41,7 +42,7 @@ def draw_polygon_mpl(
 
 def plot_polygon_patch_mpl(
     polygon_pts: NDArrayFloat,
-    ax: plt.Axes,
+    ax: Axes,
     color: Union[Tuple[float, float, float], str] = "y",
     alpha: float = 0.3,
     zorder: int = 1,
@@ -72,13 +73,13 @@ def plot_polygon_patch_mpl(
 
 
 def draw_line_in_img(
-    img: NDArrayByte,
-    p1: NDArrayNumber,
-    p2: NDArrayNumber,
+    img: MatLike,
+    p1: Tuple[int, int],
+    p2: Tuple[int, int],
     color: Tuple[int, int, int] = BLUE_BGR,
     thickness: int = 3,
-    line_type: Enum = cv2.LINE_AA,
-) -> NDArrayByte:
+    line_type: int = cv2.LINE_AA,
+) -> MatLike:
     """Draw a line on an image.
 
     Args:
@@ -92,7 +93,7 @@ def draw_line_in_img(
     Returns:
         The image with a line drawn.
     """
-    img_line: NDArrayByte = cv2.line(
+    img_line = cv2.line(
         img,
         p1,
         p2,
@@ -104,14 +105,14 @@ def draw_line_in_img(
 
 
 def draw_line_frustum(
-    img: NDArrayByte,
-    p1: NDArrayNumber,
-    p2: NDArrayNumber,
+    img: MatLike,
+    p1: Tuple[int, int],
+    p2: Tuple[int, int],
     cam_model: PinholeCamera,
     color: Tuple[int, int, int],
     thickness: int = 3,
-    line_type: Enum = cv2.LINE_AA,
-) -> NDArrayByte:
+    line_type: int = cv2.LINE_AA,
+) -> MatLike:
     """Draw a line inside of the camera frustum.
 
     Args:

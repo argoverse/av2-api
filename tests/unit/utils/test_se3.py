@@ -172,7 +172,7 @@ def test_SE3_chaining_transforms() -> None:
 
 
 def test_benchmark_SE3_transform_point_cloud_optimized(
-    benchmark: Callable[..., Any]
+    benchmark: Callable[..., Any],
 ) -> None:
     """Ensure that our transform_point_cloud() implementation is faster than a naive implementation."""
     num_pts = 100000
@@ -191,7 +191,7 @@ def test_benchmark_SE3_transform_point_cloud_optimized(
 
 
 def test_benchmark_SE3_transform_point_cloud_unoptimized(
-    benchmark: Callable[..., Any]
+    benchmark: Callable[..., Any],
 ) -> None:
     """Benchmark unoptimized SE(3) transformation."""
 

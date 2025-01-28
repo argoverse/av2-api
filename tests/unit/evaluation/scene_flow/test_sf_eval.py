@@ -9,9 +9,8 @@ import av2.evaluation.scene_flow.constants as constants
 import av2.evaluation.scene_flow.eval as eval
 from av2.evaluation.scene_flow.make_annotation_files import write_annotation
 from av2.evaluation.scene_flow.utils import write_output_file
-from av2.utils.typing import NDArrayBool, NDArrayFloat, NDArrayInt
 
-gts: NDArrayFloat = np.array(
+gts = np.array(
     [
         [0.0, 0.0, 0.0],
         [1e-3, 0.0, 0.0],
@@ -27,24 +26,25 @@ gts: NDArrayFloat = np.array(
     dtype=np.float64,
 )
 
-dts_perfect: NDArrayFloat = gts.copy()
-dts_very_close: NDArrayFloat = gts + 0.01
-dts_close: NDArrayFloat = gts + 0.05
-dts_zero: NDArrayFloat = np.zeros_like(gts).astype(np.float64)
+dts_perfect = gts.copy()
+dts_very_close = gts + 0.01
+dts_close = gts + 0.05
+dts_zero = np.zeros_like(gts).astype(np.float64)
 
-gts_dynamic: NDArrayBool = np.array(
-    [False, False, False, False, True, True, True, True, False, False]
+gts_dynamic = np.array(
+    [False, False, False, False, True, True, True, True, False, False], dtype=np.bool
 )
-gts_classes: NDArrayInt = np.array([0, 0, 0, 0, 17, 17, 1, 11, 0, 23])
-gts_valid: NDArrayBool = np.array(
-    [False, True, True, True, True, True, True, True, True, True]
+gts_classes = np.array([0, 0, 0, 0, 17, 17, 1, 11, 0, 23], dtype=int)
+gts_valid = np.array(
+    [False, True, True, True, True, True, True, True, True, True], dtype=np.bool
 )
-gts_close: NDArrayBool = np.array(
-    [True, True, False, False, True, True, False, False, True, True]
+gts_close = np.array(
+    [True, True, False, False, True, True, False, False, True, True], dtype=np.bool
 )
 
-dts_dynamic: NDArrayBool = np.array(
-    [False, True, False, True, False, True, False, True, False, True]
+dts_dynamic = np.array(
+    [False, True, False, True, False, True, False, True, False, True],
+    dtype=np.bool,
 )
 
 

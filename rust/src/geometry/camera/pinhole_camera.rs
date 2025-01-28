@@ -159,16 +159,15 @@ impl PinholeCamera {
         points_camera: &ArrayView<f32, Ix2>,
     ) -> Array<bool, Ix2> {
         let num_points = uv.shape()[0];
-        let mut is_within_frustum = Array::<bool, Ix1>::from_vec(vec![false; num_points])
-            .into_shape([num_points, 1])
-            .unwrap();
+        let binding = Array::<bool, Ix1>::from_vec(vec![false; num_points]);
+        let mut is_within_frustum = binding.to_shape([num_points, 1]).unwrap();
         par_azip!((mut is_within_frustum_i in is_within_frustum.outer_iter_mut(), uv_row in uv.outer_iter(), point_cam in points_camera.outer_iter()) {
             let is_within_frustum_x = (uv_row[0] >= 0.) && (uv_row[0] < self.width_px() as f32);
             let is_within_frustum_y = (uv_row[1] >= 0.) && (uv_row[1] < self.height_px() as f32);
             let is_within_frustum_z = point_cam[2] > 0.;
             is_within_frustum_i[0] = is_within_frustum_x & is_within_frustum_y & is_within_frustum_z;
         });
-        is_within_frustum
+        is_within_frustum.to_owned()
     }
 
     /// Project a collection of 3D points (provided in the egovehicle frame) to the image plane.

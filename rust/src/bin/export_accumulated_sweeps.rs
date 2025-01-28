@@ -17,7 +17,6 @@ use once_cell::sync::Lazy;
 
 /// Constants can be changed to fit your directory structure.
 /// However, it's recommend to place the datasets in the default folders.
-
 /// Root directory to datasets.
 static ROOT_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::home_dir().unwrap().join("data/datasets/"));
 

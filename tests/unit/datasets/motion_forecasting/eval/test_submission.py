@@ -68,7 +68,8 @@ mismatched_submission_predictions = {
     ids=["valid", "wrong_shape_trajectory", "mismatched_trajectory_probability_shape"],
 )
 def test_challenge_submission_data_validation(
-    test_submission_dict: Dict[str, ScenarioPredictions], expectation: AbstractContextManager  # type: ignore
+    test_submission_dict: Dict[str, ScenarioPredictions],
+    expectation: AbstractContextManager,  # type: ignore
 ) -> None:
     """Test that validation of submitted trajectories works as expected during challenge submission initialization.
 

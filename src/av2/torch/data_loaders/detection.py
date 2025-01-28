@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class DetectionDataLoader(Dataset[Sweep]):  # type: ignore
+class DetectionDataLoader(Dataset[Sweep]):
     """PyTorch data-loader for the sensor dataset.
 
     The sensor dataset should exist somewhere such as `~/data/datasets/{dataset_name}/{dataset_type}/{split_name}`,

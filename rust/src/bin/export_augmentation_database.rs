@@ -28,7 +28,6 @@ use std::collections::HashMap;
 
 /// Constants can be changed to fit your directory structure.
 /// However, it's recommend to place the datasets in the default folders.
-
 /// Root directory to datasets.
 static ROOT_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::home_dir().unwrap().join("data/datasets/"));
 
@@ -91,7 +90,7 @@ pub fn main() {
 
             let cuboids = sweep.cuboids.unwrap().0;
             let category = cuboids["category"]
-                .utf8()
+                .str()
                 .unwrap()
                 .into_iter()
                 .map(|x| x.unwrap())
@@ -122,7 +121,7 @@ pub fn main() {
                     .entry(c.to_string())
                     .and_modify(|count| *count += 1)
                     .or_insert(0);
-                let count = category_counter.get(&c.to_string()).unwrap();
+                let count = category_counter.get(c).unwrap();
 
                 let dst = DST_PREFIX.join(c).join(format!("{count:08}.feather"));
                 fs::create_dir_all(dst.parent().unwrap()).unwrap();
@@ -149,22 +148,37 @@ fn _build_data_frame(arr: Array<f32, Ix2>, column_names: Vec<&str>) -> DataFrame
         .into_iter()
         .zip(column_names)
         .map(|(column, column_name)| match column_name {
-            "x" => Series::new("x", column.to_owned().into_raw_vec()),
-            "y" => Series::new("y", column.to_owned().into_raw_vec()),
-            "z" => Series::new("z", column.to_owned().into_raw_vec()),
+            "x" => Series::new("x".into(), column.to_owned().into_raw_vec_and_offset().0),
+            "y" => Series::new("y".into(), column.to_owned().into_raw_vec_and_offset().0),
+            "z" => Series::new("z".into(), column.to_owned().into_raw_vec_and_offset().0),
             "intensity" => Series::new(
-                "intensity",
-                column.to_owned().mapv(|x| x as u8).into_raw_vec(),
+                "intensity".into(),
+                column
+                    .to_owned()
+                    .mapv(|x| x as u8)
+                    .into_raw_vec_and_offset()
+                    .0,
             ),
             "laser_number" => Series::new(
-                "laser_number",
-                column.to_owned().mapv(|x| x as u8).into_raw_vec(),
+                "laser_number".into(),
+                column
+                    .to_owned()
+                    .mapv(|x| x as u8)
+                    .into_raw_vec_and_offset()
+                    .0,
             ),
             "offset_ns" => Series::new(
-                "offset_ns",
-                column.to_owned().mapv(|x| x as u32).into_raw_vec(),
+                "offset_ns".into(),
+                column
+                    .to_owned()
+                    .mapv(|x| x as u32)
+                    .into_raw_vec_and_offset()
+                    .0,
             ),
-            "timedelta_ns" => Series::new("timedelta_ns", column.to_owned().into_raw_vec()),
+            "timedelta_ns" => Series::new(
+                "timedelta_ns".into(),
+                column.to_owned().into_raw_vec_and_offset().0,
+            ),
             _ => panic!(),
         })
         .collect_vec();

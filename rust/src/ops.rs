@@ -42,7 +42,8 @@ pub fn voxelize(
 
     let unique_indices = raveled_indices
         .clone()
-        .into_raw_vec()
+        .into_raw_vec_and_offset()
+        .0
         .into_iter()
         .unique()
         .enumerate()

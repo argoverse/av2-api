@@ -24,7 +24,7 @@ from av2.datasets.sensor.constants import RingCameras
 from av2.map.map_api import ArgoverseStaticMap
 from av2.rendering.color import BLUE_BGR
 from av2.rendering.map import EgoViewMapRenderer
-from av2.utils.typing import NDArrayByte
+from av2.utils.typing import NDArrayByte, NDArrayNumber
 
 RING_CAMERA_FPS: Final[int] = 20
 
@@ -132,7 +132,7 @@ def render_egoview(
     log_id: str,
     max_range_m: float,
     dump_single_frames: bool,
-) -> NDArrayByte:
+) -> NDArrayNumber:
     """Synthetically manipulate a vector map, render the map in the ego-view, and save rendering to disk.
 
     Args:
@@ -160,12 +160,12 @@ def render_egoview(
 
     if save_fpath.exists():
         logger.info("Rendered image already exists, skipping")
-        img: NDArrayByte = io_utils.read_img(save_fpath)
+        img = io_utils.read_img(save_fpath)
         return img
 
     start = time.time()
 
-    img_rgb: NDArrayByte = io_utils.read_img(img_fpath)
+    img_rgb = io_utils.read_img(img_fpath)
 
     # to prevent washing out, can pass in black image, and get just mask back, or can overlay directly.
     img_h, img_w, _ = img_rgb.shape

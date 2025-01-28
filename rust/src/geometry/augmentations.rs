@@ -45,7 +45,8 @@ pub fn sample_scene_reflection_x(
                             .unwrap()
                             .into_no_null_iter()
                             .map(|y| -y)
-                            .collect::<Series>(),
+                            .collect::<Series>()
+                            .into(),
                     ))
                 },
                 GetOutput::from_type(DataType::Float32),
@@ -95,7 +96,8 @@ pub fn sample_scene_reflection_y(
                             .unwrap()
                             .into_no_null_iter()
                             .map(|x| -x)
-                            .collect::<Series>(),
+                            .collect::<Series>()
+                            .into(),
                     ))
                 },
                 GetOutput::from_type(DataType::Float32),
@@ -145,7 +147,8 @@ pub fn sample_scene_global_scale(
                         .unwrap()
                         .into_no_null_iter()
                         .map(|x| scale_factor * x)
-                        .collect::<Series>(),
+                        .collect::<Series>()
+                        .into(),
                 ))
             },
             GetOutput::from_type(DataType::Float32),
@@ -157,7 +160,8 @@ pub fn sample_scene_global_scale(
                         .unwrap()
                         .into_no_null_iter()
                         .map(|y| scale_factor * y)
-                        .collect::<Series>(),
+                        .collect::<Series>()
+                        .into(),
                 ))
             },
             GetOutput::from_type(DataType::Float32),
@@ -169,7 +173,8 @@ pub fn sample_scene_global_scale(
                         .unwrap()
                         .into_no_null_iter()
                         .map(|z| scale_factor * z)
-                        .collect::<Series>(),
+                        .collect::<Series>()
+                        .into(),
                 ))
             },
             GetOutput::from_type(DataType::Float32),
@@ -186,7 +191,8 @@ pub fn sample_scene_global_scale(
                         .unwrap()
                         .into_no_null_iter()
                         .map(|x| scale_factor * x)
-                        .collect::<Series>(),
+                        .collect::<Series>()
+                        .into(),
                 ))
             },
             GetOutput::from_type(DataType::Float32),
@@ -198,7 +204,8 @@ pub fn sample_scene_global_scale(
                         .unwrap()
                         .into_no_null_iter()
                         .map(|y| scale_factor * y)
-                        .collect::<Series>(),
+                        .collect::<Series>()
+                        .into(),
                 ))
             },
             GetOutput::from_type(DataType::Float32),
@@ -210,7 +217,8 @@ pub fn sample_scene_global_scale(
                         .unwrap()
                         .into_no_null_iter()
                         .map(|z| scale_factor * z)
-                        .collect::<Series>(),
+                        .collect::<Series>()
+                        .into(),
                 ))
             },
             GetOutput::from_type(DataType::Float32),
@@ -241,7 +249,7 @@ pub fn sample_scene_global_rotation(
         0.0,
         1.0,
     ])
-    .into_shape((3, 3))
+    .into_shape_with_order((3, 3))
     .unwrap();
 
     let column_names = ["x", "y", "z"];
