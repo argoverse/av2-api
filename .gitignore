@@ -138,21 +138,24 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-*.pkl
 
 .vscode/
 outputs/
 condaenv*
 
+#Data
 /data/
+data/
+*.pkl
 
 *.jpg
 *.png
+*.mp4
 *.svg
+*.csv
 
 .DS_Store
 */**/.DS_Store
 experiments
 
 *.pt
-*.mp4
