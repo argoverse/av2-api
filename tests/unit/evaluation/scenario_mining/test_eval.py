@@ -5,7 +5,7 @@ import sys
 if sys.stdout is None:
     sys.stdout = open('stdout.log', 'w')
 
-from av2.evaluation.scenario_mining.eval import evaluate
+from av2.evaluation.scenario_mining.eval import evaluate, load
 
 
 def test_evaluate() -> None:
@@ -18,6 +18,9 @@ def test_evaluate() -> None:
     max_range_m = 100
     dataset_dir = None
     out = 'tests/unit/evaluation/scenario_mining/data/eval_results'
+
+    predictions = load(predictions)
+    ground_truth = load(ground_truth)
 
     evaluate(predictions, ground_truth, objective_metric, max_range_m, dataset_dir, out)
 

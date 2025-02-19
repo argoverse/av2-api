@@ -24,6 +24,7 @@ from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 from trackeval.datasets._base_dataset import _BaseDataset
 import matplotlib.pyplot as plt
+from urllib.request import urlopen
 
 from av2.evaluation.detection.utils import (
     compute_objects_in_roi_mask,
@@ -832,7 +833,7 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
     return tracks
 
 
-def referred_full_tracks(pkl_file_path):
+def referred_full_tracks(sequences: Sequences):
     """
     Reconstructs a mining pkl file by propagating referred object labels across all instances
     of the same track_id and removing all other objects.
@@ -846,8 +847,6 @@ def referred_full_tracks(pkl_file_path):
     import pickle
     
     # Load the pkl file
-    with open(pkl_file_path, 'rb') as f:
-        sequences = pickle.load(f)
     
     reconstructed_sequences = {}
     
@@ -934,8 +933,8 @@ def evaluate_mining(
 
 
 def evaluate(
-    pred_pkl:str,
-    gt_pkl:str,
+    track_predictions:Sequences,
+    labels:Sequences,
     objective_metric: str,
     max_range_m: int,
     dataset_dir: Any,
@@ -956,9 +955,6 @@ def evaluate(
         partial_track_metric: The tracking metric for the tracks that contain only the timestamps for which the description applies.
     """
 
-    track_predictions = pickle.load(open(pred_pkl, "rb"))
-    labels = pickle.load(open(gt_pkl, "rb"))
-
     output_dir = ""
     if out:
         output_dir = out + '/partial_tracks'
@@ -969,8 +965,8 @@ def evaluate(
         dataset_dir=dataset_dir, out=output_dir)
     TempLocAP = res['TrackEvalDataset']['TRACKER']['COMBINED_SEQ']['REFERRED_OBJECT']['HOTA']['TempLocAP']
     
-    full_track_preds = referred_full_tracks(pred_pkl)
-    full_track_labels = referred_full_tracks(gt_pkl)
+    full_track_preds = referred_full_tracks(track_predictions)
+    full_track_labels = referred_full_tracks(labels)
 
     output_dir = ""
     if out:
@@ -986,6 +982,14 @@ def evaluate(
 
     return f1_score, full_track_hota, partial_track_hota, TempLocAP
     
+    
+def load(filepath: str):
+    if filepath.startswith("https://") or filepath.startswith("http://"):
+        return pickle.load(urlopen(filepath))
+    else:
+        with open(filepath, "rb") as f:
+            return pickle.load(f)
+
 
 def evaluate_scenario_mining(
     track_predictions: Sequences,
@@ -1066,11 +1070,13 @@ def runner(
     objective_metric: str,
     out: str,
 ) -> None:
-    """Standalone evaluation function."""
-    track_predictions = pickle.load(open(predictions, "rb"))
-    labels = pickle.load(open(ground_truth, "rb"))
+    
 
-    _, _, mean_metric_values, _ = evaluate_scenario_mining(
+    """Standalone evaluation function."""
+    track_predictions = load(predictions)
+    labels = load(ground_truth)
+
+    _, _, mean_metric_values, _ = evaluate(
         track_predictions, labels, objective_metric, max_range_m, dataset_dir, out
     )
 
