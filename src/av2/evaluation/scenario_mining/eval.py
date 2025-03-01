@@ -954,10 +954,11 @@ def evaluate(
         full_track_metric: The tracking metric for the full track of any objects that the description ever applies to. 
         partial_track_metric: The tracking metric for the tracks that contain only the timestamps for which the description applies.
     """
-
     output_dir = ""
     if out:
         output_dir = out + '/partial_tracks'
+        print('Making the dir!')
+        Path(output_dir).mkdir(exist_ok=True)
 
     res, partial_track_metrics, _, f1_score = evaluate_scenario_mining(
         track_predictions, labels, 
@@ -971,6 +972,7 @@ def evaluate(
     output_dir = ""
     if out:
         output_dir = out + '/full_tracks'
+        Path(output_dir).mkdir(exist_ok=True)
 
     _, full_track_metrics, _, _ = evaluate_scenario_mining(
         full_track_preds, full_track_labels, 
