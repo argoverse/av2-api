@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.optimize import linear_sum_assignment
 from trackeval.metrics._base_metric import _BaseMetric
 from trackeval import _timing
@@ -15,7 +16,7 @@ class HOTA(_BaseMetric):
         self.plottable = True
         self.array_labels = np.arange(0.05, 0.99, 0.05)
         self.integer_array_fields = ['HOTA_TP', 'HOTA_FN', 'HOTA_FP']
-        self.float_array_fields = ['HOTA', 'DetA', 'AssA', 'DetRe', 'DetPr', 'AssRe', 'AssPr', 'LocA', 'TempLocPr', 'TempLocRe', 'OWTA']
+        self.float_array_fields = ['HOTA', 'DetA', 'AssA', 'DetRe', 'DetPr', 'AssRe', 'AssPr', 'LocA', 'OWTA']
         self.float_fields = ['HOTA(0)', 'LocA(0)', 'HOTALocA(0)', 'TempLocAP']
         self.fields = self.float_array_fields + self.integer_array_fields + self.float_fields
         self.summary_fields = self.float_array_fields + self.float_fields
@@ -32,8 +33,14 @@ class HOTA(_BaseMetric):
             res[field] = 0
 
         tlap, precisions, recalls = self.calculate_TempLocAP(data)
-        res['TempLocPr'] = precisions
-        res['TempLocRe'] = recalls
+        tlap2, precisions2, recalls2 = self.calculate_TempLocAP_concat(data)
+        tlap3, precisions3, recalls3 = self.calculate_TempLocAP_merge(data)
+        self.plot_precision_recall_curve([recalls, recalls2, recalls3], 
+                                         [precisions, precisions2, precisions3], 
+                                         [tlap, tlap2, tlap3], 
+                                         ['1 to 1', 'concat', 'merge'],
+                                         ['blue', 'green', 'red'])
+
         res['TempLocAP'] = tlap
 
         # Return result quickly if tracker or gt sequence is empty
@@ -92,6 +99,7 @@ class HOTA(_BaseMetric):
             match_rows, match_cols = linear_sum_assignment(-score_mat)
 
             # Calculate and accumulate basic statistics
+
             for a, alpha in enumerate(self.array_labels):
                 actually_matched_mask = similarity[match_rows, match_cols] >= alpha - np.finfo('float').eps
                 alpha_match_rows = match_rows[actually_matched_mask]
@@ -130,16 +138,19 @@ class HOTA(_BaseMetric):
                 precisions = np.array([1, 1])
                 recalls = np.array([0, 1])
                 TempLocAP = 1
+                print(1)
                 return TempLocAP, precisions, recalls
             else:
                 precisions = np.array([0, 0])
                 recalls = np.array([0, 1])
                 TempLocAP = 0
+                print(0)
                 return TempLocAP, precisions, recalls
         if data['num_gt_dets'] == 0:
             precisions = np.array([0, 0])
             recalls = np.array([0, 1])
             TempLocAP = 0
+            print(0)
             return TempLocAP, precisions, recalls
 
         TEMPORAL_IOU_THRESH  = 0.5 #iou
@@ -172,7 +183,7 @@ class HOTA(_BaseMetric):
                 pred_tracks[track_id]['timestamps'].append(t)
 
         # 1 to 1 match of predicted and ground truth tracks
-        pred_tracks = dict(sorted(pred_tracks, key=lambda item: item[1]['confidence'], reverse=True))
+        sorted_keys = sorted(pred_tracks.keys(), key=lambda key: pred_tracks[key]['confidence'], reverse=True)
 
         #keys are track_ids, values are gt_ids
         matched_ids = {} 
@@ -182,7 +193,8 @@ class HOTA(_BaseMetric):
         unmatched_gt_ids = list(gt_tracks.keys())
         unmatched_track_ids = []
 
-        for track_id, track_stats in pred_tracks.items():
+        for track_id in sorted_keys:
+            track_stats = pred_tracks[track_id]
 
             track_traj = track_stats['xy_pos']
             track_timestamps = track_stats['timestamps']
@@ -201,6 +213,9 @@ class HOTA(_BaseMetric):
                 union = len(set(gt_timestamps).union((set(track_timestamps))))
                 iou = intersection/union
 
+                if iou < TEMPORAL_IOU_THRESH:
+                    continue
+
                 total_distance = 0.0
                 for timestamp in track_timestamps:
                     if timestamp in gt_timestamps:
@@ -208,11 +223,11 @@ class HOTA(_BaseMetric):
                             track_traj[track_timestamps.index(timestamp)] - gt_traj[gt_timestamps.index(timestamp)])
 
 
-                similarity_score = iou * max(0.0, 1 - (total_distance/(MATCHING_DIST_THRESH*intersection)))
+                similarity_score = iou * max(0.0, 
+                    1 - (total_distance/(MATCHING_DIST_THRESH*(intersection+np.finfo(np.float64).eps))))
                 if similarity_score > max_similarity:
                     max_similarity = similarity_score
                     best_match = gt_id
-                    corresponding_iou = iou
 
             if max_similarity > 0:
                 matched_ids[track_id] = best_match
@@ -226,7 +241,7 @@ class HOTA(_BaseMetric):
         fp = np.zeros(len(pred_tracks))
         for i, (track_id, track_stats) in enumerate(pred_tracks.items()):
 
-            if track_id in matched_ids and matched_ious[track_id] >= TEMPORAL_IOU_THRESH:
+            if track_id in matched_ids:
                 tp[i] = 1
             else:
                 fp[i] = 1
@@ -241,6 +256,417 @@ class HOTA(_BaseMetric):
         TempLocAP = self.get_ap(recalls, precisions)
 
         return TempLocAP, precisions, recalls
+    
+
+    def calculate_TempLocAP_concat(self, data):
+
+        # Return result quickly if tracker or gt sequence is empty
+        if data['num_tracker_dets'] == 0:
+            if data['num_gt_dets'] == 0:
+                precisions = np.array([1, 1])
+                recalls = np.array([0, 1])
+                TempLocAP = 1
+                print(1)
+                return TempLocAP, precisions, recalls
+            else:
+                precisions = np.array([0, 0])
+                recalls = np.array([0, 1])
+                TempLocAP = 0
+                print(0)
+                return TempLocAP, precisions, recalls
+        if data['num_gt_dets'] == 0:
+            precisions = np.array([0, 0])
+            recalls = np.array([0, 1])
+            TempLocAP = 0
+            print(0)
+            return TempLocAP, precisions, recalls
+
+        TEMPORAL_IOU_THRESH  = 0.5 #iou
+        MATCHING_DIST_THRESH = 2.0 #m
+
+        pred_tracks = {}
+        gt_tracks = {}
+
+        #Accumulate predicted and ground truth tracks from data
+        for t in range(data['num_timesteps']):
+            for i, gt_id in enumerate(data['gt_ids'][t]):
+                if gt_id not in gt_tracks:
+                    gt_tracks[gt_id] = {}
+                    gt_tracks[gt_id]['xy_pos'] = []
+                    gt_tracks[gt_id]['timestamps'] = []
+                    gt_tracks[gt_id]['category'] = data['gt_classes'][t][i]
+
+                gt_tracks[gt_id]['xy_pos'].append(data['gt_dets'][t][i][:2])
+                gt_tracks[gt_id]['timestamps'].append(t)
+
+            for i, track_id in enumerate(data['tracker_ids'][t]):
+                if track_id not in pred_tracks:
+                    pred_tracks[track_id] = {}
+                    pred_tracks[track_id]['confidence'] = data['tracker_confidences'][t][i]
+                    pred_tracks[track_id]['category'] = data['tracker_classes'][t][i]
+                    pred_tracks[track_id]['xy_pos'] = []
+                    pred_tracks[track_id]['timestamps'] = []
+
+                pred_tracks[track_id]['xy_pos'].append(data['tracker_dets'][t][i][:2])
+                pred_tracks[track_id]['timestamps'].append(t)
+
+        # 1 to 1 match of predicted and ground truth tracks
+        pred_ids_by_conf = sorted(pred_tracks.keys(), key=lambda key: pred_tracks[key]['confidence'], reverse=True)
+
+        #Keys are match_id, values are dict of gt_id, pred_ids, gt_traj, pred_traj, category and confidence 
+        matched_predictions = {}
+
+        #keys are track_ids, values are the iou of the timestamps of the matched predicted and ground truth timestamps
+        unmatched_gt_ids = list(gt_tracks.keys())
+        unmatched_track_ids = []
+
+        for track_id in pred_ids_by_conf:
+            track_stats = pred_tracks[track_id]
+            track_confidence = track_stats['confidence']
+            track_traj = track_stats['xy_pos']
+            track_timestamps = track_stats['timestamps']
+            
+            max_similarity = 0
+            best_match_stats = None
+            best_match = None
+            for gt_id, gt_stats in gt_tracks.items():
+                if gt_id not in unmatched_gt_ids or gt_stats['category'] != track_stats['category']:
+                    continue
+
+                gt_traj = gt_stats['xy_pos']
+                gt_timestamps = gt_stats['timestamps']
+
+                intersection = len(set(gt_timestamps).intersection((set(track_timestamps))))
+                union = len(set(gt_timestamps).union((set(track_timestamps))))
+                iou = intersection/union
+
+                if iou < TEMPORAL_IOU_THRESH:
+                    continue
+
+                distances = []
+                for timestamp in track_timestamps:
+                    if timestamp in gt_timestamps:
+                        distances.append(np.linalg.norm(
+                            track_traj[track_timestamps.index(timestamp)] - gt_traj[gt_timestamps.index(timestamp)]))
+
+
+                similarity_score = iou * max(0, 
+                    1 - (np.mean(np.array(distances))/MATCHING_DIST_THRESH))
+
+                if similarity_score > max_similarity:
+                    max_similarity = similarity_score
+                    best_match = gt_id
+                    best_match_stats = {
+                        'gt_id': gt_id,
+                        'gt_timestamps': gt_timestamps,
+                        'gt_traj': gt_traj,
+                        'pred_ids': [track_id],
+                        'pred_traj': track_traj,
+                        'pred_timestamps': track_timestamps,
+                        'category': gt_stats['category'],
+                        'confidence': track_confidence,
+                        'similarity': similarity_score
+                    }
+
+            for match_id, match_stats in matched_predictions.items():
+
+                gt_id = match_stats['gt_id']
+                gt_timestamps = match_stats['gt_timestamps']
+                gt_traj = match_stats['gt_traj']
+
+                pred_ids = match_stats['pred_ids']
+                pred_timestamps = match_stats['pred_timestamps']
+                pred_traj = match_stats['pred_traj']
+
+                category = match_stats['category']
+                confidence = match_stats['confidence']
+                match_similarity = match_stats['similarity']
+
+                if (len(set(pred_timestamps).intersection(set(track_timestamps))) > 0
+                or track_stats['category'] != category):
+                    continue
+                
+                concat_pred_ids = pred_ids + track_id
+                concat_timestamps = pred_timestamps + track_timestamps
+                concat_traj = pred_traj + track_traj
+                concat_confidence = confidence*len(pred_timestamps)+track_confidence*len(track_timestamps)
+                concat_confidence /= len(concat_timestamps)
+
+                intersection = len(set(gt_timestamps).intersection(set(concat_timestamps)))
+                union = len(set(gt_timestamps).union(set(concat_timestamps)))
+                iou = intersection/union
+
+                if iou < TEMPORAL_IOU_THRESH:
+                    continue
+
+                distances = []
+                for timestamp in concat_timestamps:
+                    if timestamp in gt_timestamps:
+                        distances.append(np.linalg.norm(
+                            concat_traj[concat_timestamps.index(timestamp)] - gt_traj[gt_timestamps.index(timestamp)]))
+
+                similarity_score = iou * max(0, 
+                    1 - (np.mean(np.array(distances))/MATCHING_DIST_THRESH))
+
+                if similarity_score > max_similarity and similarity_score > match_similarity:
+                    max_similarity = similarity_score
+                    best_match = match_id
+                    best_match_stats = {
+                        'pred_ids': concat_pred_ids,
+                        'pred_traj': concat_traj,
+                        'pred_timestamps': concat_timestamps,
+                        'confidence': concat_confidence,
+                        'similarity': similarity_score
+                        }
+                
+            if max_similarity > 0:
+                if best_match < 0:
+                    matched_predictions[best_match].update(best_match_stats)
+                elif best_match is not None:
+                    matched_predictions[-best_match-1] = best_match_stats
+                    unmatched_gt_ids.remove(best_match)
+            else:
+                unmatched_track_ids.append(track_id)
+
+        concat_preds_by_conf = {}
+        preds = list(matched_predictions.keys()) + unmatched_track_ids
+        for pred in preds:
+            if pred < 0:
+                concat_preds_by_conf[pred] = matched_predictions[pred]['confidence']
+            else:
+                concat_preds_by_conf[pred] = pred_tracks[pred]['confidence']
+
+        concat_ids_by_conf = sorted(concat_preds_by_conf.keys(), key=lambda key: concat_preds_by_conf[key], reverse=True)
+
+        #Compute precision and recall at all confidence thresholds.
+        tp = np.zeros(len(concat_ids_by_conf))
+        fp = np.zeros(len(concat_ids_by_conf))
+
+        for i, concat_id in enumerate(concat_ids_by_conf):
+
+            if concat_id < 0:
+                tp[i] = 1
+            else:
+                fp[i] = 1
+
+        tp = np.cumsum(tp)
+        fp = np.cumsum(fp)
+
+        recalls = tp/len(gt_tracks)
+        precisions = tp/np.maximum(tp+fp, np.finfo(np.float64).eps)
+
+        assert np.all(0 <= precisions) & np.all(precisions <= 1)
+        TempLocAP = self.get_ap(recalls, precisions)
+
+        return TempLocAP, precisions, recalls
+    
+    
+    def calculate_TempLocAP_merge(self, data):
+
+        # Return result quickly if tracker or gt sequence is empty
+        if data['num_tracker_dets'] == 0:
+            if data['num_gt_dets'] == 0:
+                precisions = np.array([1, 1])
+                recalls = np.array([0, 1])
+                TempLocAP = 1
+                print(1)
+                return TempLocAP, precisions, recalls
+            else:
+                precisions = np.array([0, 0])
+                recalls = np.array([0, 1])
+                TempLocAP = 0
+                print(0)
+                return TempLocAP, precisions, recalls
+        if data['num_gt_dets'] == 0:
+            precisions = np.array([0, 0])
+            recalls = np.array([0, 1])
+            TempLocAP = 0
+            print(0)
+            return TempLocAP, precisions, recalls
+
+        TEMPORAL_IOU_THRESH  = 0.5 #iou
+        MATCHING_DIST_THRESH = 2.0 #m
+
+        pred_tracks = {}
+        gt_tracks = {}
+
+        #Accumulate predicted and ground truth tracks from data
+        for t in range(data['num_timesteps']):
+            for i, gt_id in enumerate(data['gt_ids'][t]):
+                if gt_id not in gt_tracks:
+                    gt_tracks[gt_id] = {}
+                    gt_tracks[gt_id]['xy_pos'] = []
+                    gt_tracks[gt_id]['timestamps'] = []
+                    gt_tracks[gt_id]['category'] = data['gt_classes'][t][i]
+
+                gt_tracks[gt_id]['xy_pos'].append(data['gt_dets'][t][i][:2])
+                gt_tracks[gt_id]['timestamps'].append(t)
+
+            for i, track_id in enumerate(data['tracker_ids'][t]):
+                if track_id not in pred_tracks:
+                    pred_tracks[track_id] = {}
+                    pred_tracks[track_id]['confidence'] = data['tracker_confidences'][t][i]
+                    pred_tracks[track_id]['category'] = data['tracker_classes'][t][i]
+                    pred_tracks[track_id]['xy_pos'] = []
+                    pred_tracks[track_id]['timestamps'] = []
+
+                pred_tracks[track_id]['xy_pos'].append(data['tracker_dets'][t][i][:2])
+                pred_tracks[track_id]['timestamps'].append(t)
+
+        # 1 to 1 match of predicted and ground truth tracks
+        pred_ids_by_conf = sorted(pred_tracks.keys(), key=lambda key: pred_tracks[key]['confidence'], reverse=True)
+
+        #keys are gt_id, values are list of corresponding pred_ids
+        matched_ids = {}
+
+        #keys are track_ids, values are the iou of the timestamps of the matched predicted and ground truth timestamps
+        unmatched_track_ids = []
+
+        for track_id in pred_ids_by_conf:
+            track_stats = pred_tracks[track_id]
+            track_confidence = track_stats['confidence']
+            track_traj = track_stats['xy_pos']
+            track_timestamps = track_stats['timestamps']
+            
+            max_similarity = 0
+            best_match_stats = None
+            best_match = None
+            for gt_id, gt_stats in gt_tracks.items():
+                if gt_stats['category'] != track_stats['category']:
+                    continue
+
+                gt_traj = gt_stats['xy_pos']
+                gt_timestamps = gt_stats['timestamps']
+
+                intersection = len(set(gt_timestamps).intersection((set(track_timestamps))))
+                iol = intersection/len(track_timestamps)
+
+                if iol < TEMPORAL_IOU_THRESH:
+                    continue
+
+                distances = []
+                for timestamp in track_timestamps:
+                    if timestamp in gt_timestamps:
+                        distances.append(np.linalg.norm(
+                            track_traj[track_timestamps.index(timestamp)] - gt_traj[gt_timestamps.index(timestamp)]))
+
+
+                similarity_score = iol * max(0, 
+                    1 - (np.mean(np.array(distances))/MATCHING_DIST_THRESH))
+
+                if similarity_score > max_similarity:
+                    max_similarity = similarity_score
+                    best_match = gt_id
+
+            if max_similarity > 0:
+                if best_match not in matched_ids:
+                    matched_ids[best_match] = [track_id]
+                else:
+                    matched_ids[best_match].append(track_id)
+            else:
+                unmatched_track_ids.append(track_id)
+
+        merged_predictions = {}
+        for gt_id, pred_ids in matched_ids.items():
+            merged_traj = []
+            merged_timestamps = []
+            merged_confidences = []
+            merged_catetory = None
+
+            for pred_id in pred_ids:
+                track_timestamps = pred_tracks[pred_id]['timestamps']
+                track_trajectory = pred_tracks[pred_id]['xy_pos']
+                track_confidence = pred_tracks[pred_id]['confidence']
+                track_category = pred_tracks[pred_id]['category']
+                
+                if len(merged_timestamps) == 0:
+                    merged_timestamps.extend(track_timestamps)
+                    merged_traj.extend(track_trajectory)
+                    merged_catetory = track_category
+                    merged_confidences.extend([track_confidence]*len(track_timestamps))
+                    continue
+
+                for i, timestamp in enumerate(track_timestamps):
+                    if timestamp not in merged_timestamps:
+                        insertion_index = 0
+                        for merge_timestamp in merged_timestamps:
+                            if merge_timestamp > timestamp:
+                                insertion_index += 1
+
+                        merged_timestamps.insert(insertion_index, timestamp)
+                        merged_traj.insert(insertion_index, track_trajectory[i])
+                        merged_confidences.insert(insertion_index, track_confidence)
+                    else:
+                        insertion_index = merged_timestamps.index(timestamp)
+                        if track_confidence > merged_confidences[insertion_index]:
+                            merged_confidences[insertion_index] = track_confidence
+                            merged_traj[insertion_index] = track_trajectory[i]
+
+            merged_predictions[gt_id] = {
+                'xy_pos': merged_traj,
+                'timestamps': merged_timestamps,
+                'confidence': np.mean(np.array(merged_confidences)),
+                'category': merged_catetory
+            }
+
+        merged_ids_by_conf = sorted(merged_predictions.keys(), key=lambda key: merged_predictions[key]['confidence'], reverse=True)
+        matched_gt_ids = []
+
+        #Compute precision and recall at all confidence thresholds.
+        tp = np.zeros(len(merged_ids_by_conf) + len(unmatched_track_ids))
+        fp = np.zeros(len(merged_ids_by_conf) + len(unmatched_track_ids))
+
+        for i, track_id in enumerate(merged_ids_by_conf):
+            track_stats = pred_tracks[track_id]
+            track_confidence = track_stats['confidence']
+            track_traj = track_stats['xy_pos']
+            track_timestamps = track_stats['timestamps']
+            
+            max_similarity = 0
+            best_match = None
+            for gt_id, gt_stats in gt_tracks.items():
+                if gt_id in matched_gt_ids or gt_stats['category'] != track_stats['category']:
+                    continue
+
+                gt_traj = gt_stats['xy_pos']
+                gt_timestamps = gt_stats['timestamps']
+
+                intersection = len(set(gt_timestamps).intersection((set(track_timestamps))))
+                union = len(set(gt_timestamps).union((set(track_timestamps))))
+                iou = intersection/union
+
+                if iou < TEMPORAL_IOU_THRESH:
+                    continue
+
+                distances = []
+                for timestamp in track_timestamps:
+                    if timestamp in gt_timestamps:
+                        distances.append(np.linalg.norm(
+                            track_traj[track_timestamps.index(timestamp)] - gt_traj[gt_timestamps.index(timestamp)]))
+
+                similarity_score = iou * max(0, 
+                    1 - (np.mean(np.array(distances))/MATCHING_DIST_THRESH))
+
+                if similarity_score > max_similarity:
+                    max_similarity = similarity_score
+                    best_match = gt_id
+
+            if max_similarity > 0:
+                matched_gt_ids.append(best_match)
+                tp[i] = 1
+                fp[i] = 0
+
+        tp = np.cumsum(tp)
+        fp = np.cumsum(fp)
+
+        recalls = tp/len(gt_tracks)
+        precisions = tp/np.maximum(tp+fp, np.finfo(np.float64).eps)
+
+        assert np.all(0 <= precisions) & np.all(precisions <= 1)
+        TempLocAP = self.get_ap(recalls, precisions)
+
+        return TempLocAP, precisions, recalls    
+
 
     def get_envelope(self, precisions):
         """Compute the precision envelope.
@@ -256,43 +682,110 @@ class HOTA(_BaseMetric):
         return precisions
     
     def get_ap(self, recalls, precisions):
-        """Calculate average precision.
-
-        Args:
-        recalls:
-        precisions: Returns (float): average precision.
-
-        Returns:
-
         """
-        # correct AP calculation
+        Calculate average precision.
+        
+        Args:
+            recalls: Array of recall values
+            precisions: Array of precision values
+            
+        Returns:
+            float: average precision.
+        """
         # first append sentinel values at the end
         recalls = np.concatenate(([0.0], recalls, [1.0]))
         precisions = np.concatenate(([0.0], precisions, [0.0]))
-
+        
+        # get envelope (maximum precision for each recall value)
         precisions = self.get_envelope(precisions)
-
+        
         # to calculate area under PR curve, look for points where X axis (recall) changes value
         i = np.where(recalls[1:] != recalls[:-1])[0]
-
+        
         # and sum (\Delta recall) * prec
         ap = np.sum((recalls[i + 1] - recalls[i]) * precisions[i + 1])
-        return ap       
+        
+        return ap
     
+    def plot_precision_recall_curve(self, recalls_list, precisions_list, ap_values=None, labels=None, 
+                                colors=['blue', 'green'], save_path=None):
+        """
+        Plot precision-recall curves for one or two sets of data.
+        
+        Args:
+            recalls_list: List of recall arrays to plot
+            precisions_list: List of precision arrays to plot
+            ap_values: Optional list of AP values to display in the title
+            labels: Optional list of labels for the legend
+            colors: List of colors for the plots (default: blue and green)
+            save_path: Optional path to save the plot
+        """
+        plt.figure(figsize=(8, 6))
+        
+        if not isinstance(recalls_list, list):
+            recalls_list = [recalls_list]
+        if not isinstance(precisions_list, list):
+            precisions_list = [precisions_list]
+        
+        if labels is None:
+            labels = [f"Curve {i+1}" for i in range(len(recalls_list))]
+        
+        for i, (recalls, precisions) in enumerate(zip(recalls_list, precisions_list)):
+            color = colors[i % len(colors)]
+            
+            # Prepare data for plotting (add sentinel values)
+            plot_recalls = np.concatenate(([0.0], recalls, [1.0]))
+            plot_precisions = np.concatenate(([0.0], precisions, [0.0]))
+            plot_precisions = self.get_envelope(plot_precisions.copy())
+            
+            # Plot the curve
+            plt.plot(plot_recalls, plot_precisions, color=color, linestyle='-', 
+                    linewidth=2, label=labels[i])
+            plt.fill_between(plot_recalls, 0, plot_precisions, alpha=0.1, color=color)
+        
+        # Set title
+        if ap_values:
+            ap_text = ", ".join([f"{label}: AP = {ap:.3f}" for label, ap in zip(labels, ap_values)])
+            plt.title(f'Precision-Recall Curves ({ap_text})', fontsize=16)
+        else:
+            plt.title('Precision-Recall Curves', fontsize=16)
+        
+        # Set labels and limits
+        plt.xlabel('Recall', fontsize=14)
+        plt.ylabel('Precision', fontsize=14)
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.grid(True)
+        
+        # Add legend if multiple curves
+        if len(recalls_list) > 1:
+            plt.legend(loc='lower left')
+        
+        # Save if path provided
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        
+        plt.show()
+
 
     def combine_sequences(self, all_res):
         """Combines metrics across all sequences"""
         res = {}
         for field in self.integer_array_fields:
             res[field] = self._combine_sum(all_res, field)
-        for field in ['AssRe', 'AssPr', 'AssA', 'TempLocPr', 'TempLocRe']:
+        for field in ['AssRe', 'AssPr', 'AssA']:
             res[field] = self._combine_weighted_av(all_res, field, res, weight_field='HOTA_TP')
+        for field in ['TempLocAP']:
+            summed_TempLocAP = 0
+            for seq_id, seq_res in all_res.items():
+                summed_TempLocAP += seq_res[field]
+            res[field] = summed_TempLocAP / len(all_res)
 
         loca_weighted_sum = sum([all_res[k]['LocA'] * all_res[k]['HOTA_TP'] for k in all_res.keys()])
         res['LocA'] = np.maximum(1e-10, loca_weighted_sum) / np.maximum(1e-10, res['HOTA_TP'])
         res = self._compute_final_fields(res)
         return res
-
+    
     def combine_classes_class_averaged(self, all_res, ignore_empty_classes=False):
         """Combines metrics across all classes by averaging over the class values.
         If 'ignore_empty_classes' is True, then it only sums over classes with at least one gt or predicted detection.
@@ -320,8 +813,13 @@ class HOTA(_BaseMetric):
         res = {}
         for field in self.integer_array_fields:
             res[field] = self._combine_sum(all_res, field)
-        for field in ['AssRe', 'AssPr', 'AssA', 'TempLocRe', 'TempLocPr']:
+        for field in ['AssRe', 'AssPr', 'AssA']:
             res[field] = self._combine_weighted_av(all_res, field, res, weight_field='HOTA_TP')
+        for field in ['TempLocAP']:
+            summed_TempLocAP = 0
+            for seq_id, seq_res in all_res.items():
+                summed_TempLocAP += seq_res[field]
+            res[field] = summed_TempLocAP / len(all_res)
 
 
         loca_weighted_sum = sum([all_res[k]['LocA'] * all_res[k]['HOTA_TP'] for k in all_res.keys()])

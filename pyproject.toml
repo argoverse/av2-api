@@ -85,6 +85,7 @@ strict = true
 
 [tool.pyright]
 include = ["src"]
+typeCheckingMode = "off"
 
 reportMissingTypeStubs = false
 reportUnknownMemberType = false

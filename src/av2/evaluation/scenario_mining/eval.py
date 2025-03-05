@@ -24,7 +24,6 @@ from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 from trackeval.datasets._base_dataset import _BaseDataset
 import matplotlib.pyplot as plt
-from urllib.request import urlopen
 
 from av2.evaluation.detection.utils import (
     compute_objects_in_roi_mask,
@@ -273,6 +272,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         self.output_fol = config["OUTPUT_FOLDER"]
         self.output_sub_fol = config["OUTPUT_SUB_FOLDER"]
         self.zero_distance = config["ZERO_DISTANCE"]
+        self.should_classes_combine = config["SHOULD_CLASSES_COMBINE"]
         print(f"Using zero_distance={self.zero_distance}m")
 
     @staticmethod
@@ -291,6 +291,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
             "OUTPUT_FOLDER": None,  # Where to save eval results (if None, same as TRACKERS_FOLDER)
             "OUTPUT_SUB_FOLDER": "",  # Output files are saved in OUTPUT_FOLDER/tracker_name/OUTPUT_SUB_FOLDER
             "ZERO_DISTANCE": 2,
+            "SHOULD_CLASSES_COMBINE": True,
         }
         return default_config
 
@@ -514,12 +515,15 @@ def evaluate_tracking(
         "CLASSES_TO_EVAL": classes,
         "TRACKERS_TO_EVAL": [tracker_name],
         "OUTPUT_FOLDER": output_dir,
+        "SHOULD_CLASSES_COMBINE": False
     }
 
     evaluator = Evaluator(
         {
             **Evaluator.get_default_eval_config(),
-            "TIME_PROGRESS": False,
+            "TIME_PROGRESS": True,
+            "PLOT_CURVES": True,
+            'OUTPUT_SUMMARY': True,
         }
     )
     full_result, _ = evaluator.evaluate(
@@ -759,6 +763,14 @@ def filter_max_dist(tracks: Any, max_range_m: int) -> Any:
     )
 
 
+def load(pkl_path):
+    
+    with open(pkl_path, 'rb') as f:
+        data = pickle.load(f)
+
+    return data
+
+
 def yaw_to_quaternion3d(yaw: float) -> NDArrayFloat:
     """Convert a rotation angle in the xy plane (i.e. about the z axis) to a quaternion.
 
@@ -833,7 +845,7 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
     return tracks
 
 
-def referred_full_tracks(sequences: Sequences):
+def referred_full_tracks(pkl_file_path):
     """
     Reconstructs a mining pkl file by propagating referred object labels across all instances
     of the same track_id and removing all other objects.
@@ -847,6 +859,8 @@ def referred_full_tracks(sequences: Sequences):
     import pickle
     
     # Load the pkl file
+    with open(pkl_file_path, 'rb') as f:
+        sequences = pickle.load(f)
     
     reconstructed_sequences = {}
     
@@ -931,10 +945,27 @@ def evaluate_mining(
 
     return f1_score, acc
 
+def relabel_seq_ids(data):
+    new_data = {}
+    
+    for seq_id, frames in data.items():
+        if isinstance(seq_id, tuple):
+            new_seq_id = str(seq_id)
+            new_data[new_seq_id] = frames
+        else:
+            new_data[seq_id] = frames
+    
+    for seq_id, frames in new_data.items():
+        for frame in frames:
+            if 'seq_id' in frame and isinstance(frame['seq_id'], tuple):
+                frame['seq_id'] = str(frame['seq_id'])
+    
+    return new_data
+
 
 def evaluate(
-    track_predictions:Sequences,
-    labels:Sequences,
+    pred_pkl:str,
+    gt_pkl:str,
     objective_metric: str,
     max_range_m: int,
     dataset_dir: Any,
@@ -954,10 +985,16 @@ def evaluate(
         full_track_metric: The tracking metric for the full track of any objects that the description ever applies to. 
         partial_track_metric: The tracking metric for the tracks that contain only the timestamps for which the description applies.
     """
+
+    track_predictions = pickle.load(open(pred_pkl, "rb"))
+    labels = pickle.load(open(gt_pkl, "rb"))
+
+    track_predictions = relabel_seq_ids(track_predictions)
+    labels = relabel_seq_ids(labels)
+
     output_dir = ""
     if out:
         output_dir = out + '/partial_tracks'
-        print('Making the dir!')
         Path(output_dir).mkdir(exist_ok=True)
 
     res, partial_track_metrics, _, f1_score = evaluate_scenario_mining(
@@ -966,8 +1003,10 @@ def evaluate(
         dataset_dir=dataset_dir, out=output_dir)
     TempLocAP = res['TrackEvalDataset']['TRACKER']['COMBINED_SEQ']['REFERRED_OBJECT']['HOTA']['TempLocAP']
     
-    full_track_preds = referred_full_tracks(track_predictions)
-    full_track_labels = referred_full_tracks(labels)
+    full_track_preds = referred_full_tracks(pred_pkl)
+    full_track_labels = referred_full_tracks(gt_pkl)
+    full_track_preds = relabel_seq_ids(full_track_preds)
+    full_track_labels = relabel_seq_ids(full_track_labels)
 
     output_dir = ""
     if out:
@@ -977,21 +1016,13 @@ def evaluate(
     _, full_track_metrics, _, _ = evaluate_scenario_mining(
         full_track_preds, full_track_labels, 
         objective_metric=objective_metric, max_range_m=max_range_m, 
-        dataset_dir=dataset_dir, out=output_dir,full_tracks=True)
+        dataset_dir=dataset_dir, out=output_dir, full_tracks=True)
     
     full_track_hota = full_track_metrics["REFERRED_OBJECT"]
     partial_track_hota = partial_track_metrics["REFERRED_OBJECT"]
 
     return f1_score, full_track_hota, partial_track_hota, TempLocAP
     
-    
-def load(filepath: str):
-    if filepath.startswith("https://") or filepath.startswith("http://"):
-        return pickle.load(urlopen(filepath))
-    else:
-        with open(filepath, "rb") as f:
-            return pickle.load(f)
-
 
 def evaluate_scenario_mining(
     track_predictions: Sequences,
@@ -1032,7 +1063,7 @@ def evaluate_scenario_mining(
         track_predictions,
         objective_metric,
         classes,
-        num_thresholds=10,
+        num_thresholds = 3,
         match_distance_m=2,
     )
     filtered_track_predictions = sm_utils.filter_by_class_thresholds(
@@ -1072,13 +1103,11 @@ def runner(
     objective_metric: str,
     out: str,
 ) -> None:
-    
-
     """Standalone evaluation function."""
-    track_predictions = load(predictions)
-    labels = load(ground_truth)
+    track_predictions = pickle.load(open(predictions, "rb"))
+    labels = pickle.load(open(ground_truth, "rb"))
 
-    _, _, mean_metric_values, _ = evaluate(
+    _, _, mean_metric_values, _ = evaluate_scenario_mining(
         track_predictions, labels, objective_metric, max_range_m, dataset_dir, out
     )
 
