@@ -22,7 +22,7 @@ class HOTA(_BaseMetric):
         self.summary_fields = self.float_array_fields + self.float_fields
 
     @_timing.time
-    def eval_sequence(self, data):
+    def eval_sequence(self, data) -> dict[Any]:
         """Calculates the HOTA metrics for one sequence"""
 
         # Initialise results
@@ -32,16 +32,8 @@ class HOTA(_BaseMetric):
         for field in self.float_fields:
             res[field] = 0
 
-        tlap, precisions, recalls = self.calculate_TempLocAP(data)
-        tlap2, precisions2, recalls2 = self.calculate_TempLocAP_concat(data)
-        tlap3, precisions3, recalls3 = self.calculate_TempLocAP_merge(data)
-        self.plot_precision_recall_curve([recalls, recalls2, recalls3], 
-                                         [precisions, precisions2, precisions3], 
-                                         [tlap, tlap2, tlap3], 
-                                         ['1 to 1', 'concat', 'merge'],
-                                         ['blue', 'green', 'red'])
-
-        res['TempLocAP'] = tlap
+        TempLocAP, _, _ = self.calculate_TempLocAP_merge(data)
+        res['TempLocAP'] = TempLocAP
 
         # Return result quickly if tracker or gt sequence is empty
         if data['num_tracker_dets'] == 0:
@@ -127,7 +119,6 @@ class HOTA(_BaseMetric):
         res['LocA'] = np.maximum(1e-10, res['LocA']) / np.maximum(1e-10, res['HOTA_TP'])
         res = self._compute_final_fields(res)
 
-
         return res
     
     def calculate_TempLocAP(self, data):
@@ -138,19 +129,16 @@ class HOTA(_BaseMetric):
                 precisions = np.array([1, 1])
                 recalls = np.array([0, 1])
                 TempLocAP = 1
-                print(1)
                 return TempLocAP, precisions, recalls
             else:
                 precisions = np.array([0, 0])
                 recalls = np.array([0, 1])
                 TempLocAP = 0
-                print(0)
                 return TempLocAP, precisions, recalls
         if data['num_gt_dets'] == 0:
             precisions = np.array([0, 0])
             recalls = np.array([0, 1])
             TempLocAP = 0
-            print(0)
             return TempLocAP, precisions, recalls
 
         TEMPORAL_IOU_THRESH  = 0.5 #iou
@@ -265,20 +253,16 @@ class HOTA(_BaseMetric):
             if data['num_gt_dets'] == 0:
                 precisions = np.array([1, 1])
                 recalls = np.array([0, 1])
-                TempLocAP = 1
-                print(1)
                 return TempLocAP, precisions, recalls
             else:
                 precisions = np.array([0, 0])
                 recalls = np.array([0, 1])
                 TempLocAP = 0
-                print(0)
                 return TempLocAP, precisions, recalls
         if data['num_gt_dets'] == 0:
             precisions = np.array([0, 0])
             recalls = np.array([0, 1])
             TempLocAP = 0
-            print(0)
             return TempLocAP, precisions, recalls
 
         TEMPORAL_IOU_THRESH  = 0.5 #iou
@@ -469,19 +453,16 @@ class HOTA(_BaseMetric):
                 precisions = np.array([1, 1])
                 recalls = np.array([0, 1])
                 TempLocAP = 1
-                print(1)
                 return TempLocAP, precisions, recalls
             else:
                 precisions = np.array([0, 0])
                 recalls = np.array([0, 1])
                 TempLocAP = 0
-                print(0)
                 return TempLocAP, precisions, recalls
         if data['num_gt_dets'] == 0:
             precisions = np.array([0, 0])
             recalls = np.array([0, 1])
             TempLocAP = 0
-            print(0)
             return TempLocAP, precisions, recalls
 
         TEMPORAL_IOU_THRESH  = 0.5 #iou
@@ -529,7 +510,6 @@ class HOTA(_BaseMetric):
             track_timestamps = track_stats['timestamps']
             
             max_similarity = 0
-            best_match_stats = None
             best_match = None
             for gt_id, gt_stats in gt_tracks.items():
                 if gt_stats['category'] != track_stats['category']:
@@ -602,22 +582,25 @@ class HOTA(_BaseMetric):
                             merged_confidences[insertion_index] = track_confidence
                             merged_traj[insertion_index] = track_trajectory[i]
 
-            merged_predictions[gt_id] = {
+            merged_predictions[-gt_id-1] = {
                 'xy_pos': merged_traj,
                 'timestamps': merged_timestamps,
                 'confidence': np.mean(np.array(merged_confidences)),
                 'category': merged_catetory
             }
 
+        for unmatched_track_id in unmatched_track_ids:
+            merged_predictions.update({unmatched_track_id: pred_tracks[unmatched_track_id]})
+
         merged_ids_by_conf = sorted(merged_predictions.keys(), key=lambda key: merged_predictions[key]['confidence'], reverse=True)
         matched_gt_ids = []
 
         #Compute precision and recall at all confidence thresholds.
-        tp = np.zeros(len(merged_ids_by_conf) + len(unmatched_track_ids))
-        fp = np.zeros(len(merged_ids_by_conf) + len(unmatched_track_ids))
+        tp = np.zeros(len(merged_ids_by_conf))
+        fp = np.zeros(len(merged_ids_by_conf))
 
         for i, track_id in enumerate(merged_ids_by_conf):
-            track_stats = pred_tracks[track_id]
+            track_stats = merged_predictions[track_id]
             track_confidence = track_stats['confidence']
             track_traj = track_stats['xy_pos']
             track_timestamps = track_stats['timestamps']
@@ -654,7 +637,8 @@ class HOTA(_BaseMetric):
             if max_similarity > 0:
                 matched_gt_ids.append(best_match)
                 tp[i] = 1
-                fp[i] = 0
+            else:
+                fp[i] = 1
 
         tp = np.cumsum(tp)
         fp = np.cumsum(fp)
@@ -775,14 +759,14 @@ class HOTA(_BaseMetric):
             res[field] = self._combine_sum(all_res, field)
         for field in ['AssRe', 'AssPr', 'AssA']:
             res[field] = self._combine_weighted_av(all_res, field, res, weight_field='HOTA_TP')
-        for field in ['TempLocAP']:
-            summed_TempLocAP = 0
-            for seq_id, seq_res in all_res.items():
-                summed_TempLocAP += seq_res[field]
-            res[field] = summed_TempLocAP / len(all_res)
+
 
         loca_weighted_sum = sum([all_res[k]['LocA'] * all_res[k]['HOTA_TP'] for k in all_res.keys()])
         res['LocA'] = np.maximum(1e-10, loca_weighted_sum) / np.maximum(1e-10, res['HOTA_TP'])
+
+        tlap_weighted_sum = sum([all_res[k]['TempLocAP'] * (all_res[k]['HOTA_TP'][0] + all_res[k]['HOTA_FN'][0]) for k in all_res.keys()])
+        res['TempLocAP'] = np.maximum(1e-10, tlap_weighted_sum) / np.maximum(1e-10, res['HOTA_TP'][0]+res['HOTA_FN'][0])
+
         res = self._compute_final_fields(res)
         return res
     
@@ -815,15 +799,13 @@ class HOTA(_BaseMetric):
             res[field] = self._combine_sum(all_res, field)
         for field in ['AssRe', 'AssPr', 'AssA']:
             res[field] = self._combine_weighted_av(all_res, field, res, weight_field='HOTA_TP')
-        for field in ['TempLocAP']:
-            summed_TempLocAP = 0
-            for seq_id, seq_res in all_res.items():
-                summed_TempLocAP += seq_res[field]
-            res[field] = summed_TempLocAP / len(all_res)
-
 
         loca_weighted_sum = sum([all_res[k]['LocA'] * all_res[k]['HOTA_TP'] for k in all_res.keys()])
         res['LocA'] = np.maximum(1e-10, loca_weighted_sum) / np.maximum(1e-10, res['HOTA_TP'])
+
+        tlap_weighted_sum = sum([all_res[k]['TempLocAP'] * (all_res[k]['HOTA_TP'][0] + all_res[k]['HOTA_FN'][0]) for k in all_res.keys()])
+        res['TempLocAP'] = np.maximum(1e-10, tlap_weighted_sum) / np.maximum(1e-10, res['HOTA_TP'][0]+res['HOTA_FN'][0])
+
         res = self._compute_final_fields(res)
         return res
 

@@ -1,9 +1,6 @@
 """Scenario mining evaluation unit tests."""
-
-
-import sys
-if sys.stdout is None:
-    sys.stdout = open('stdout.log', 'w')
+import matplotlib
+matplotlib.use('Agg')
 
 from av2.evaluation.scenario_mining.eval import evaluate
 
