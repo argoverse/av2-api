@@ -195,9 +195,10 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
 def _plot_confusion_matrix(
     gt_classes: NDArrayInt, pred_classes: NDArrayInt, output_dir: str
 ) -> None:
-    """Plots the confusion matrix for scenario mining. A true label
-    indicates that the scenario matches the description. A false label
-    indicates the scenario does not match the description.
+    """Plots the confusion matrix for scenario mining. 
+    
+    A true label indicates that the scenario matches the description. 
+    A false label indicates the scenario does not match the description.
     """
     # Create confusion matrix (2x2 for binary classification)
     cm = np.zeros((2, 2), dtype=int)
@@ -535,7 +536,7 @@ def _recall_to_scores(
 
 def calculate_TempLocAP_merge(
     data: dict[str, Any],
-) -> tuple[float, np.ndarray, np.ndarray]:
+) -> Tuple[float, NDArrayFloat, NDArrayFloat]:
     """Calculates temporal localization average precision."""
     # Return result quickly if tracker or gt sequence is empty
     if data["num_tracker_dets"] == 0:
@@ -558,8 +559,8 @@ def calculate_TempLocAP_merge(
     TEMPORAL_IOU_THRESH = 0.5  # iou
     MATCHING_DIST_THRESH = 2.0  # m
 
-    pred_tracks = {}
-    gt_tracks = {}
+    pred_tracks:dict[int, Any] = {}
+    gt_tracks:dict[int, Any] = {}
 
     # Accumulate predicted and ground truth tracks from data
     for t in range(data["num_timesteps"]):
@@ -628,7 +629,7 @@ def calculate_TempLocAP_merge(
                         )
                     )
 
-            similarity_score = iol * max(
+            similarity_score = iol * np.maximum(
                 0, 1 - (np.mean(np.array(distances)) / MATCHING_DIST_THRESH)
             )
 
@@ -647,7 +648,7 @@ def calculate_TempLocAP_merge(
     merged_predictions = {}
     for gt_id, pred_ids in matched_ids.items():
         merged_traj = []
-        merged_timestamps = []
+        merged_timestamps:list[int] = []
         merged_confidences = []
         merged_catetory = None
 
@@ -736,7 +737,7 @@ def calculate_TempLocAP_merge(
                         )
                     )
 
-            similarity_score = iou * max(
+            similarity_score = iou * np.maximum(
                 0, 1 - (np.mean(np.array(distances)) / MATCHING_DIST_THRESH)
             )
 
@@ -762,7 +763,7 @@ def calculate_TempLocAP_merge(
     return TempLocAP, precisions, recalls
 
 
-def _get_envelope(precisions: np.ndarray) -> np.ndarray:
+def _get_envelope(precisions:NDArrayFloat) -> NDArrayFloat:
     """Compute the precision envelope.
 
     Args:
@@ -777,7 +778,7 @@ def _get_envelope(precisions: np.ndarray) -> np.ndarray:
     return precisions
 
 
-def get_ap(recalls, precisions):
+def get_ap(recalls:NDArrayFloat, precisions:NDArrayFloat)->float:
     """Calculate average precision.
 
     Args:
@@ -792,24 +793,24 @@ def get_ap(recalls, precisions):
     precisions = np.concatenate(([0.0], precisions, [0.0]))
 
     # get envelope (maximum precision for each recall value)
-    precisions = get_envelope(precisions)
+    precisions = _get_envelope(precisions)
 
     # to calculate area under PR curve, look for points where X axis (recall) changes value
     i = np.where(recalls[1:] != recalls[:-1])[0]
 
     # and sum (\Delta recall) * prec
-    ap = np.sum((recalls[i + 1] - recalls[i]) * precisions[i + 1])
+    ap = np.sum((recalls[i + 1] - recalls[i]) * precisions[i + 1]).__float__()
 
     return ap
 
 
 def plot_precision_recall_curve(
-    recalls_list,
-    precisions_list,
-    ap_values=None,
-    labels=None,
-    colors=["blue", "green"],
-    save_path=None,
+    recalls_list:list[NDArrayFloat],
+    precisions_list:list[NDArrayFloat],
+    ap_values:Union[list[float],None]=None,
+    labels:Union[list[str],None]=None,
+    colors:list[str]=["blue", "green"],
+    save_path:Union[str,None]=None,
 ) -> None:
     """Plot precision-recall curves for one or two sets of data.
 
@@ -837,7 +838,7 @@ def plot_precision_recall_curve(
         # Prepare data for plotting (add sentinel values)
         plot_recalls = np.concatenate(([0.0], recalls, [1.0]))
         plot_precisions = np.concatenate(([0.0], precisions, [0.0]))
-        plot_precisions = get_envelope(plot_precisions.copy())
+        plot_precisions = _get_envelope(plot_precisions.copy())
 
         # Plot the curve
         plt.plot(
@@ -916,7 +917,7 @@ def filter_max_dist(tracks: Any, max_range_m: int) -> Any:
     )
 
 
-def load(pkl_path: Path) -> Sequences:
+def load(pkl_path: Path) -> Any:
     """Loads a pkl file as a dict."""
     with open(pkl_path, "rb") as f:
         data = pickle.load(f)
@@ -1001,7 +1002,9 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
 
 
 def referred_full_tracks(sequences: Sequences) -> Sequences:
-    """Reconstructs a mining pkl file by propagating referred object labels across all instances
+    """Expands the predicted partial tracks to the whole length of the track_id.
+    
+    Reconstructs a mining pkl file by propagating referred object labels across all instances
     of the same track_id and removing all other objects.
 
     Args:
@@ -1055,7 +1058,7 @@ def referred_full_tracks(sequences: Sequences) -> Sequences:
 
 
 def evaluate_mining(
-    track_predictions: Sequences, labels: Sequences, output_dir
+    track_predictions: Sequences, labels: Sequences, output_dir:str
 ) -> tuple[float, float]:
     """Calculates the F1 score.
 
