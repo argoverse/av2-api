@@ -45,6 +45,7 @@ from trackeval.utils import TrackEvalException
 from trackeval import _timing
 from trackeval.metrics import Count
 
+
 class TrackEvalDataset(_BaseDataset):  # type: ignore
     """Dataset class to support tracking evaluation using the TrackEval library."""
 
@@ -70,7 +71,6 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         Returns:
             dictionary of the default config
         """
-
         default_config = {
             "GT_TRACKS": None,  # tracker_name -> seq id -> frames
             "PREDICTED_TRACKS": None,  # tracker_name -> seq id -> frames
@@ -170,7 +170,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         data["num_gt_ids"] = len(unique_gt_ids)
 
         # Ensure again that ids are unique per timestep after preproc.
-        self._check_unique_ids(data, after_preproc=True)        
+        self._check_unique_ids(data, after_preproc=True)
 
         return data
 
@@ -197,8 +197,8 @@ def _plot_confusion_matrix(
 ) -> None:
     """Plots the confusion matrix for scenario mining. A true label
     indicates that the scenario matches the description. A false label
-    indicates the scenario does not match the description."""
-
+    indicates the scenario does not match the description.
+    """
     # Create confusion matrix (2x2 for binary classification)
     cm = np.zeros((2, 2), dtype=int)
 
@@ -291,7 +291,9 @@ def evaluate_tracking(
         "THRESHOLD": iou_threshold,
     }
     metric_names = cast(List[str], metrics_config["METRICS"])
-    metrics_list = [getattr(trackeval.metrics, metric)(metrics_config) for metric in metric_names]
+    metrics_list = [
+        getattr(trackeval.metrics, metric)(metrics_config) for metric in metric_names
+    ]
     dataset_config = {
         **TrackEvalDataset.get_default_dataset_config(),
         "GT_TRACKS": {tracker_name: labels},
@@ -318,25 +320,26 @@ def evaluate_tracking(
         metrics_list,
     )
 
-    trackers, seq_ids, classes = dataset.get_eval_info()
+    trackers, _, classes = dataset.get_eval_info()
     tracker = trackers[0]
 
     tlap_by_seq = np.zeros((len(labels), len(classes)))
     num_gt_by_seq = np.zeros((len(labels), len(classes)))
 
     for i, seq_id in enumerate(labels.keys()):
-        raw_data =  dataset.get_raw_seq_data(tracker, seq_id)
+        raw_data = dataset.get_raw_seq_data(tracker, seq_id)
         for j, clas in enumerate(classes):
             data = dataset.get_preprocessed_seq_data(raw_data, clas)
 
-            num_gt_ids = len(data['gt_ids'])
+            num_gt_ids = len(data["gt_ids"])
             tlap, precisions, recalls = calculate_TempLocAP_merge(data)
-            tlap_by_seq[i,j] = tlap
-            num_gt_by_seq[i,j] = num_gt_ids
+            tlap_by_seq[i, j] = tlap
+            num_gt_by_seq[i, j] = num_gt_ids
 
     combined_tlap = np.average(tlap_by_seq, axis=1, weights=num_gt_by_seq)
-    referred_tlap = float(combined_tlap[np.where(np.array(classes) == 'REFERRED_OBJECT')])
-
+    referred_tlap = float(
+        combined_tlap[np.where(np.array(classes) == "REFERRED_OBJECT")]
+    )
 
     return cast(Dict[str, Any], full_result), referred_tlap
 
@@ -530,8 +533,10 @@ def _recall_to_scores(
     return score_thresholds
 
 
-def calculate_TempLocAP_merge(data: dict[str, Any])->tuple[float, np.ndarray, np.ndarray]:
-    """Calculates temporal localization average precision. """
+def calculate_TempLocAP_merge(
+    data: dict[str, Any],
+) -> tuple[float, np.ndarray, np.ndarray]:
+    """Calculates temporal localization average precision."""
     # Return result quickly if tracker or gt sequence is empty
     if data["num_tracker_dets"] == 0:
         if data["num_gt_dets"] == 0:
@@ -571,9 +576,7 @@ def calculate_TempLocAP_merge(data: dict[str, Any])->tuple[float, np.ndarray, np
         for i, track_id in enumerate(data["tracker_ids"][t]):
             if track_id not in pred_tracks:
                 pred_tracks[track_id] = {}
-                pred_tracks[track_id]["confidence"] = data["tracker_confidences"][
-                    t
-                ][i]
+                pred_tracks[track_id]["confidence"] = data["tracker_confidences"][t][i]
                 pred_tracks[track_id]["category"] = data["tracker_classes"][t][i]
                 pred_tracks[track_id]["xy_pos"] = []
                 pred_tracks[track_id]["timestamps"] = []
@@ -609,9 +612,7 @@ def calculate_TempLocAP_merge(data: dict[str, Any])->tuple[float, np.ndarray, np
             gt_traj = gt_stats["xy_pos"]
             gt_timestamps = gt_stats["timestamps"]
 
-            intersection = len(
-                set(gt_timestamps).intersection((set(track_timestamps)))
-            )
+            intersection = len(set(gt_timestamps).intersection((set(track_timestamps))))
             iol = intersection / len(track_timestamps)
 
             if iol < TEMPORAL_IOU_THRESH:
@@ -660,9 +661,7 @@ def calculate_TempLocAP_merge(data: dict[str, Any])->tuple[float, np.ndarray, np
                 merged_timestamps.extend(track_timestamps)
                 merged_traj.extend(track_trajectory)
                 merged_catetory = track_category
-                merged_confidences.extend(
-                    [track_confidence] * len(track_timestamps)
-                )
+                merged_confidences.extend([track_confidence] * len(track_timestamps))
                 continue
 
             for i, timestamp in enumerate(track_timestamps):
@@ -689,9 +688,7 @@ def calculate_TempLocAP_merge(data: dict[str, Any])->tuple[float, np.ndarray, np
         }
 
     for unmatched_track_id in unmatched_track_ids:
-        merged_predictions.update(
-            {unmatched_track_id: pred_tracks[unmatched_track_id]}
-        )
+        merged_predictions.update({unmatched_track_id: pred_tracks[unmatched_track_id]})
 
     merged_ids_by_conf = sorted(
         merged_predictions.keys(),
@@ -722,9 +719,7 @@ def calculate_TempLocAP_merge(data: dict[str, Any])->tuple[float, np.ndarray, np
             gt_traj = gt_stats["xy_pos"]
             gt_timestamps = gt_stats["timestamps"]
 
-            intersection = len(
-                set(gt_timestamps).intersection((set(track_timestamps)))
-            )
+            intersection = len(set(gt_timestamps).intersection((set(track_timestamps))))
             union = len(set(gt_timestamps).union((set(track_timestamps))))
             iou = intersection / union
 
@@ -766,22 +761,24 @@ def calculate_TempLocAP_merge(data: dict[str, Any])->tuple[float, np.ndarray, np
 
     return TempLocAP, precisions, recalls
 
-def get_envelope(precisions):
+
+def _get_envelope(precisions: np.ndarray) -> np.ndarray:
     """Compute the precision envelope.
 
     Args:
-    precisions:
+        precisions: A set of precision values <= 1
 
     Returns:
+        The monotonically non-increasing precision values
 
     """
     for i in range(precisions.size - 1, 0, -1):
         precisions[i - 1] = np.maximum(precisions[i - 1], precisions[i])
     return precisions
 
+
 def get_ap(recalls, precisions):
-    """
-    Calculate average precision.
+    """Calculate average precision.
 
     Args:
         recalls: Array of recall values
@@ -805,6 +802,7 @@ def get_ap(recalls, precisions):
 
     return ap
 
+
 def plot_precision_recall_curve(
     recalls_list,
     precisions_list,
@@ -812,9 +810,8 @@ def plot_precision_recall_curve(
     labels=None,
     colors=["blue", "green"],
     save_path=None,
-):
-    """
-    Plot precision-recall curves for one or two sets of data.
+) -> None:
+    """Plot precision-recall curves for one or two sets of data.
 
     Args:
         recalls_list: List of recall arrays to plot
@@ -919,9 +916,8 @@ def filter_max_dist(tracks: Any, max_range_m: int) -> Any:
     )
 
 
-def load(pkl_path:Path) -> Sequences:
+def load(pkl_path: Path) -> Sequences:
     """Loads a pkl file as a dict."""
-
     with open(pkl_path, "rb") as f:
         data = pickle.load(f)
 
@@ -1005,7 +1001,7 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
 
 
 def referred_full_tracks(sequences: Sequences) -> Sequences:
-    """ Reconstructs a mining pkl file by propagating referred object labels across all instances
+    """Reconstructs a mining pkl file by propagating referred object labels across all instances
     of the same track_id and removing all other objects.
 
     Args:
@@ -1014,7 +1010,6 @@ def referred_full_tracks(sequences: Sequences) -> Sequences:
     Returns:
         reconstructed_sequences: Dictionary containing the reconstructed sequences
     """
-
     reconstructed_sequences = {}
 
     # Process each sequence
@@ -1062,10 +1057,12 @@ def referred_full_tracks(sequences: Sequences) -> Sequences:
 def evaluate_mining(
     track_predictions: Sequences, labels: Sequences, output_dir
 ) -> tuple[float, float]:
-    """Calculates the F1 score for classifying if anything in the scenario
-    matches the prompt.
-    """
+    """Calculates the F1 score.
 
+    F1 is a binary classification metric. A true postive when both
+    the ground-truth and predictions sequences contains no tracks
+    or both contain at least one track corresponding to the prediction.
+    """
     gt_class = np.zeros(len(labels), dtype=np.int64)
     pred_class = np.zeros(len(labels), dtype=np.int64)
 
@@ -1103,9 +1100,8 @@ def evaluate_mining(
     return f1_score, acc
 
 
-def _relabel_seq_ids(data:Sequences)->Sequences:
-    """Turns the (log_id, prompt) tuple format into a string for HOTA summarization """
-
+def _relabel_seq_ids(data: Sequences) -> Sequences:
+    """Turns the (log_id, prompt) tuple format into a string for HOTA summarization."""
     new_data = {}
 
     for seq_id, frames in data.items():
@@ -1134,19 +1130,20 @@ def evaluate(
     """Run scenario mining evaluation on the supplied prediction and label pkl files.
 
     Args:
-        pred_pkl: Path to track predictions.
-        gt_pkl: Path to track labels.
+        track_predictions: Prediction sequences.
+        labels: Ground truth sequences.
         objective_metric: Metric to optimize.
         max_range_m: Maximum evaluation range.
         dataset_dir: Path to dataset. Required for ROI pruning.
         out: Output path.
 
     Returns:
-        class_acc: The classification accuracy of if the scenario matches the description
-        full_track_metric: The tracking metric for the full track of any objects that the description ever applies to.
-        partial_track_metric: The tracking metric for the tracks that contain only the timestamps for which the description applies.
+        F1_score: The F1 score for if the scenario matches the description
+        full_track_HOTA: The tracking metric for the full track of any objects that the description ever applies to.
+        partial_track_HOTA: The tracking metric for the tracks that contain only the timestamps for which the description applies.
+        tlap: Temporal localization average precision calculates how well predictions are temporally localized,
+            with some built in give for ambiguous annotations
     """
-
     output_dir = ""
     if out:
         output_dir = out + "/partial_tracks"
@@ -1182,7 +1179,9 @@ def evaluate(
     full_track_hota = full_track_metrics["REFERRED_OBJECT"]
     partial_track_hota = partial_track_metrics["REFERRED_OBJECT"]
 
-    print(f'F1: {f1_score}, HOTA: {partial_track_hota}, HOTA_full: {full_track_hota}, TLAP: {TempLocAP}')
+    print(
+        f"F1: {f1_score}, HOTA: {partial_track_hota}, HOTA_full: {full_track_hota}, TLAP: {TempLocAP}"
+    )
     return f1_score, full_track_hota, partial_track_hota, TempLocAP
 
 
