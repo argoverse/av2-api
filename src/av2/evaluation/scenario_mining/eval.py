@@ -195,9 +195,9 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
 def _plot_confusion_matrix(
     gt_classes: NDArrayInt, pred_classes: NDArrayInt, output_dir: str
 ) -> None:
-    """Plots the confusion matrix for scenario mining. 
-    
-    A true label indicates that the scenario matches the description. 
+    """Plots the confusion matrix for scenario mining.
+
+    A true label indicates that the scenario matches the description.
     A false label indicates the scenario does not match the description.
     """
     # Create confusion matrix (2x2 for binary classification)
@@ -559,8 +559,8 @@ def calculate_TempLocAP_merge(
     TEMPORAL_IOU_THRESH = 0.5  # iou
     MATCHING_DIST_THRESH = 2.0  # m
 
-    pred_tracks:dict[int, Any] = {}
-    gt_tracks:dict[int, Any] = {}
+    pred_tracks: dict[int, Any] = {}
+    gt_tracks: dict[int, Any] = {}
 
     # Accumulate predicted and ground truth tracks from data
     for t in range(data["num_timesteps"]):
@@ -648,7 +648,7 @@ def calculate_TempLocAP_merge(
     merged_predictions = {}
     for gt_id, pred_ids in matched_ids.items():
         merged_traj = []
-        merged_timestamps:list[int] = []
+        merged_timestamps: list[int] = []
         merged_confidences = []
         merged_catetory = None
 
@@ -763,7 +763,7 @@ def calculate_TempLocAP_merge(
     return TempLocAP, precisions, recalls
 
 
-def _get_envelope(precisions:NDArrayFloat) -> NDArrayFloat:
+def _get_envelope(precisions: NDArrayFloat) -> NDArrayFloat:
     """Compute the precision envelope.
 
     Args:
@@ -778,7 +778,7 @@ def _get_envelope(precisions:NDArrayFloat) -> NDArrayFloat:
     return precisions
 
 
-def get_ap(recalls:NDArrayFloat, precisions:NDArrayFloat)->float:
+def get_ap(recalls: NDArrayFloat, precisions: NDArrayFloat) -> float:
     """Calculate average precision.
 
     Args:
@@ -799,18 +799,18 @@ def get_ap(recalls:NDArrayFloat, precisions:NDArrayFloat)->float:
     i = np.where(recalls[1:] != recalls[:-1])[0]
 
     # and sum (\Delta recall) * prec
-    ap = np.sum((recalls[i + 1] - recalls[i]) * precisions[i + 1]).__float__()
+    ap = float(np.sum((recalls[i + 1] - recalls[i]) * precisions[i + 1]))
 
     return ap
 
 
 def plot_precision_recall_curve(
-    recalls_list:list[NDArrayFloat],
-    precisions_list:list[NDArrayFloat],
-    ap_values:Union[list[float],None]=None,
-    labels:Union[list[str],None]=None,
-    colors:list[str]=["blue", "green"],
-    save_path:Union[str,None]=None,
+    recalls_list: list[NDArrayFloat],
+    precisions_list: list[NDArrayFloat],
+    ap_values: Union[list[float], None] = None,
+    labels: Union[list[str], None] = None,
+    colors: list[str] = ["blue", "green"],
+    save_path: Union[str, None] = None,
 ) -> None:
     """Plot precision-recall curves for one or two sets of data.
 
@@ -1003,7 +1003,7 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
 
 def referred_full_tracks(sequences: Sequences) -> Sequences:
     """Expands the predicted partial tracks to the whole length of the track_id.
-    
+
     Reconstructs a mining pkl file by propagating referred object labels across all instances
     of the same track_id and removing all other objects.
 
@@ -1058,7 +1058,7 @@ def referred_full_tracks(sequences: Sequences) -> Sequences:
 
 
 def evaluate_mining(
-    track_predictions: Sequences, labels: Sequences, output_dir:str
+    track_predictions: Sequences, labels: Sequences, output_dir: str
 ) -> tuple[float, float]:
     """Calculates the F1 score.
 
