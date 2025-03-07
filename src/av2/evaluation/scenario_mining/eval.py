@@ -18,7 +18,6 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, 
 
 import click
 import numpy as np
-import trackeval
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
@@ -416,16 +415,16 @@ def _plot_confusion_matrix(
 
     # Fill the confusion matrix
     for true, pred in zip(gt_classes, pred_classes):
-        cm[true, pred] += 1
+        cm[1-true, 1-pred] += 1
 
     # Plot the confusion matrix
     fig, ax = plt.subplots(figsize=(4, 4))
-    cax = ax.imshow(cm, cmap="viridis", interpolation="nearest")
+    cax = ax.imshow(cm, cmap="Wistia", interpolation="nearest")
 
     # Add text annotations (True Positives, False Positives, etc.)
     for i in range(2):
         for j in range(2):
-            ax.text(j, i, cm[i, j], ha="center", va="center", color="white", fontsize=14)
+            ax.text(j, i, cm[i, j], ha="center", va="center", color="black", fontsize=16)
 
     # Set axis labels and ticks
     ax.set_xlabel("Predicted Label")
@@ -433,14 +432,11 @@ def _plot_confusion_matrix(
     ax.set_title("Scenario Mining - Description Matches")
     ax.set_xticks([0, 1])
     ax.set_yticks([0, 1])
-    ax.set_xticklabels(["Negative", "Positive"])
-    ax.set_yticklabels(["Negative", "Positive"])
-
-    # Show colorbar
-    fig.colorbar(cax)
+    ax.set_xticklabels(["Positive", "Negative"])
+    ax.set_yticklabels(["Positive", "Negative"])
+    plt.setp(ax.get_yticklabels(), rotation=90, ha='right')
 
     #Display the plot
-    plt.tight_layout()
     if output_dir:
         plt.savefig(output_dir + '/eval_cm.png')
     plt.close()
@@ -797,15 +793,17 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
     if dataset_dir is None:
         return tracks
 
-    log_ids = list(tracks.keys())
+    log_prompt_pairs = list(tracks.keys())
+    log_ids = [log_prompt_pair[0] for log_prompt_pair in log_prompt_pairs]
+
     log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(
         log_ids, Path(dataset_dir)
     )
 
-    for log_id in log_ids:
+    for i, log_id in enumerate(log_ids):
         avm = log_id_to_avm[log_id]
 
-        for frame in tracks[log_id]:
+        for frame in tracks[log_prompt_pairs[i]]:
             timestamp_ns = frame["timestamp_ns"]
             city_SE3_ego = log_id_to_timestamped_poses[log_id][int(timestamp_ns)]
             translation_m = frame["translation_m"] - frame["ego_translation_m"]
@@ -845,7 +843,7 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
     return tracks
 
 
-def referred_full_tracks(pkl_file_path):
+def referred_full_tracks(sequences: Sequences):
     """
     Reconstructs a mining pkl file by propagating referred object labels across all instances
     of the same track_id and removing all other objects.
@@ -856,11 +854,7 @@ def referred_full_tracks(pkl_file_path):
     Returns:
         reconstructed_sequences: Dictionary containing the reconstructed sequences
     """
-    import pickle
     
-    # Load the pkl file
-    with open(pkl_file_path, 'rb') as f:
-        sequences = pickle.load(f)
     
     reconstructed_sequences = {}
     
@@ -964,8 +958,8 @@ def relabel_seq_ids(data):
 
 
 def evaluate(
-    pred_pkl:str,
-    gt_pkl:str,
+    track_predictions:Sequences,
+    labels:Sequences,
     objective_metric: str,
     max_range_m: int,
     dataset_dir: Any,
@@ -986,16 +980,10 @@ def evaluate(
         partial_track_metric: The tracking metric for the tracks that contain only the timestamps for which the description applies.
     """
 
-    track_predictions = pickle.load(open(pred_pkl, "rb"))
-    labels = pickle.load(open(gt_pkl, "rb"))
-
-    track_predictions = relabel_seq_ids(track_predictions)
-    labels = relabel_seq_ids(labels)
-
     output_dir = ""
     if out:
         output_dir = out + '/partial_tracks'
-        Path(output_dir).mkdir(exist_ok=True)
+        Path(output_dir).mkdir(parents=True,exist_ok=True)
 
     res, partial_track_metrics, _, f1_score = evaluate_scenario_mining(
         track_predictions, labels, 
@@ -1003,15 +991,13 @@ def evaluate(
         dataset_dir=dataset_dir, out=output_dir)
     TempLocAP = res['TrackEvalDataset']['TRACKER']['COMBINED_SEQ']['REFERRED_OBJECT']['HOTA']['TempLocAP']
     
-    full_track_preds = referred_full_tracks(pred_pkl)
-    full_track_labels = referred_full_tracks(gt_pkl)
-    full_track_preds = relabel_seq_ids(full_track_preds)
-    full_track_labels = relabel_seq_ids(full_track_labels)
+    full_track_preds = referred_full_tracks(track_predictions)
+    full_track_labels = referred_full_tracks(labels)
 
     output_dir = ""
     if out:
         output_dir = out + '/full_tracks'
-        Path(output_dir).mkdir(exist_ok=True)
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     _, full_track_metrics, _, _ = evaluate_scenario_mining(
         full_track_preds, full_track_labels, 
@@ -1057,6 +1043,9 @@ def evaluate_scenario_mining(
     if dataset_dir is not None:
         labels = filter_drivable_area(labels, dataset_dir)
         track_predictions = filter_drivable_area(track_predictions, dataset_dir)
+
+    track_predictions = relabel_seq_ids(track_predictions)
+    labels = relabel_seq_ids(labels)
 
     score_thresholds, tuned_metric_values, mean_metric_values = _tune_score_thresholds(
         labels,

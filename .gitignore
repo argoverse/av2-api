@@ -145,8 +145,6 @@ condaenv*
 
 #Data
 /data/
-data/
-*.pkl
 
 *.jpg
 *.png
