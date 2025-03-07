@@ -18,6 +18,15 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, 
 
 import click
 import numpy as np
+from packaging import version
+
+#Replacing deprecated numpy types in TrackEval
+if version.parse(np.__version__) >= version.parse("1.24.0"):
+    print('hi')
+    np.float = np.float32
+    np.int = np.int32
+    np.bool = bool
+
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
