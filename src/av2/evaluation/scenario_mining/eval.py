@@ -543,17 +543,17 @@ def calculate_TempLocAP_merge(
         if data["num_gt_dets"] == 0:
             precisions = np.array([1, 1])
             recalls = np.array([0, 1])
-            TempLocAP = 1
+            TempLocAP = 1.0
             return TempLocAP, precisions, recalls
         else:
             precisions = np.array([0, 0])
             recalls = np.array([0, 1])
-            TempLocAP = 0
+            TempLocAP = 0.0
             return TempLocAP, precisions, recalls
     if data["num_gt_dets"] == 0:
         precisions = np.array([0, 0])
         recalls = np.array([0, 1])
-        TempLocAP = 0
+        TempLocAP = 0.0
         return TempLocAP, precisions, recalls
 
     TEMPORAL_IOU_THRESH = 0.5  # iou
