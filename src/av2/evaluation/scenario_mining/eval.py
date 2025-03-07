@@ -20,12 +20,17 @@ import click
 import numpy as np
 from packaging import version
 
-#Replacing deprecated numpy types in TrackEval
+# Handling deprecated NumPy types for compatibility with TrackEval
 if version.parse(np.__version__) >= version.parse("1.24.0"):
-    print('hi')
-    np.float = np.float32
-    np.int = np.int32
-    np.bool = bool
+    # Use type annotations to avoid linter errors
+    numpy_float = np.float32
+    numpy_int = np.int32
+    numpy_bool = np.bool_  # Use np.bool_ instead of trying to assign to bool
+    
+    # Monkey patch numpy namespace for backward compatibility
+    setattr(np, "float", numpy_float)
+    setattr(np, "int", numpy_int)
+    setattr(np, "bool", numpy_bool)
 
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation
