@@ -15,6 +15,7 @@ from itertools import chain
 from pathlib import Path
 from pprint import pprint
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, cast
+from copy import deepcopy
 
 import click
 import numpy as np
@@ -27,7 +28,7 @@ if version.parse(np.__version__) >= version.parse("1.24.0"):
     numpy_int = np.int32
     numpy_bool = np.bool_  # Use np.bool_ instead of trying to assign to bool
 
-    # Monkey patch numpy namespace for backward compatibility
+    # Hotfix numpy namespace for backward compatibility
     setattr(np, "float", numpy_float)
     setattr(np, "int", numpy_int)
     setattr(np, "bool", numpy_bool)
@@ -347,7 +348,7 @@ def evaluate_tracking(
             data = dataset.get_preprocessed_seq_data(raw_data, clas)
 
             num_gt_ids = len(data["gt_ids"])
-            tlap, precisions, recalls = calculate_TempLocAP_merge(data)
+            tlap, precisions, recalls = calculate_TempLocAP(data)
             tlap_by_seq[i, j] = tlap
             num_gt_by_seq[i, j] = num_gt_ids
 
@@ -548,7 +549,7 @@ def _recall_to_scores(
     return score_thresholds
 
 
-def calculate_TempLocAP_merge(
+def calculate_TempLocAP(
     data: dict[str, Any],
 ) -> Tuple[float, NDArrayFloat, NDArrayFloat]:
     """Calculates temporal localization average precision."""
@@ -1042,28 +1043,16 @@ def referred_full_tracks(sequences: Sequences) -> Sequences:
         for frame in frames:
             # Create mask for referred track_ids
             mask = np.isin(frame["track_id"], list(referred_track_ids))
+            new_frame = deepcopy(frame)
 
-            # Create new frame with only referred objects
-            new_frame = {
-                "seq_id": frame["seq_id"],
-                "timestamp_ns": frame["timestamp_ns"],
-                "ego_translation_m": frame["ego_translation_m"],
-                "description": frame["description"],
-                "translation_m": frame["translation_m"][mask],
-                "size": frame["size"][mask],
-                "yaw": frame["yaw"][mask],
-                "velocity_m_per_s": frame["velocity_m_per_s"][mask],
-                "label": np.zeros(
-                    mask.sum(), dtype=np.int32
-                ),  # All are referred objects
-                "name": np.array(["REFERRED_OBJECT"] * mask.sum(), dtype="<U31"),
-                "track_id": frame["track_id"][mask],
-            }
+            new_names = np.zeros(len(frame["name"]), dtype="<U31")
+            for i in range(len(frame["name"])):
+                if mask[i]:
+                    new_names[i] = "REFERRED_OBJECT"
+                else:
+                    new_names[i] = frame["name"][i]
 
-            # If score exists in the original frame (for predictions), include it
-            if "score" in frame:
-                new_frame["score"] = frame["score"][mask]
-
+            new_frame["name"] = new_names
             new_frames.append(new_frame)
 
         reconstructed_sequences[seq_name] = new_frames
