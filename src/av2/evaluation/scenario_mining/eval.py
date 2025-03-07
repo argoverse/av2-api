@@ -33,7 +33,7 @@ from av2.evaluation.scenario_mining import utils as sm_utils
 from av2.evaluation.scenario_mining.constants import SUBMETRIC_TO_METRIC_CLASS_NAME
 from av2.utils.typing import NDArrayFloat, NDArrayInt
 from av2.evaluation.typing import Sequences
-import av2.evaluation.scenario_mining.metrics as metrics
+import trackeval
 
 import time
 import traceback
@@ -44,299 +44,6 @@ from trackeval import utils
 from trackeval.utils import TrackEvalException
 from trackeval import _timing
 from trackeval.metrics import Count
-
-
-class Evaluator:
-    """Evaluator class for evaluating different metrics for different datasets"""
-
-    @staticmethod
-    def get_default_eval_config():
-        """Returns the default config values for evaluation"""
-        code_path = utils.get_code_path()
-        default_config = {
-            "USE_PARALLEL": True,
-            "NUM_PARALLEL_CORES": max(int(0.9 * os.cpu_count()), 1),
-            "BREAK_ON_ERROR": True,  # Raises exception and exits with error
-            "RETURN_ON_ERROR": False,  # if not BREAK_ON_ERROR, then returns from function on error
-            "LOG_ON_ERROR": os.path.join(
-                code_path, "error_log.txt"
-            ),  # if not None, save any errors into a log file.
-            "PRINT_RESULTS": True,
-            "PRINT_ONLY_COMBINED": False,
-            "PRINT_CONFIG": True,
-            "TIME_PROGRESS": True,
-            "DISPLAY_LESS_PROGRESS": True,
-            "OUTPUT_SUMMARY": False,
-            "OUTPUT_EMPTY_CLASSES": False,  # If False, summary files are not output for classes with no detections
-            "OUTPUT_DETAILED": False,
-            "PLOT_CURVES": False,
-        }
-        return default_config
-
-    def __init__(self, config=None):
-        """Initialise the evaluator with a config file"""
-        self.config = utils.init_config(config, self.get_default_eval_config(), "Eval")
-        # Only run timing analysis if not run in parallel.
-        if self.config["TIME_PROGRESS"] and not self.config["USE_PARALLEL"]:
-            _timing.DO_TIMING = True
-            if self.config["DISPLAY_LESS_PROGRESS"]:
-                _timing.DISPLAY_LESS_PROGRESS = True
-
-    @_timing.time
-    def evaluate(self, dataset_list, metrics_list, show_progressbar=True):
-        """Evaluate a set of metrics on a set of datasets"""
-        config = self.config
-        metrics_list = metrics_list + [Count()]  # Count metrics are always run
-        metric_names = utils.validate_metrics_list(metrics_list)
-        dataset_names = [dataset.get_name() for dataset in dataset_list]
-        output_res = {}
-        output_msg = {}
-
-        for dataset, dataset_name in zip(dataset_list, dataset_names):
-            # Get dataset info about what to evaluate
-            output_res[dataset_name] = {}
-            output_msg[dataset_name] = {}
-            tracker_list, seq_list, class_list = dataset.get_eval_info()
-            print(
-                "\nEvaluating %i tracker(s) on %i sequence(s) for %i class(es) on %s dataset using the following "
-                "metrics: %s\n"
-                % (
-                    len(tracker_list),
-                    len(seq_list),
-                    len(class_list),
-                    dataset_name,
-                    ", ".join(metric_names),
-                )
-            )
-
-            # Evaluate each tracker
-            for tracker in tracker_list:
-                # if not config['BREAK_ON_ERROR'] then go to next tracker without breaking
-                try:
-                    # Evaluate each sequence in parallel or in series.
-                    # returns a nested dict (res), indexed like: res[seq][class][metric_name][sub_metric field]
-                    # e.g. res[seq_0001][pedestrian][hota][DetA]
-                    print("\nEvaluating %s\n" % tracker)
-                    time_start = time.time()
-                    if config["USE_PARALLEL"]:
-                        if show_progressbar:
-                            seq_list_sorted = sorted(seq_list)
-
-                            with Pool(config["NUM_PARALLEL_CORES"]) as pool, tqdm(
-                                total=len(seq_list)
-                            ) as pbar:
-                                _eval_sequence = partial(
-                                    eval_sequence,
-                                    dataset=dataset,
-                                    tracker=tracker,
-                                    class_list=class_list,
-                                    metrics_list=metrics_list,
-                                    metric_names=metric_names,
-                                )
-                                results = []
-                                for r in pool.imap(
-                                    _eval_sequence, seq_list_sorted, chunksize=20
-                                ):
-                                    results.append(r)
-                                    pbar.update()
-                                res = dict(zip(seq_list_sorted, results))
-
-                        else:
-                            with Pool(config["NUM_PARALLEL_CORES"]) as pool:
-                                _eval_sequence = partial(
-                                    eval_sequence,
-                                    dataset=dataset,
-                                    tracker=tracker,
-                                    class_list=class_list,
-                                    metrics_list=metrics_list,
-                                    metric_names=metric_names,
-                                )
-                                results = pool.map(_eval_sequence, seq_list)
-                                res = dict(zip(seq_list, results))
-                    else:
-                        res = {}
-                        if show_progressbar:
-                            seq_list_sorted = sorted(seq_list)
-                            for curr_seq in tqdm(seq_list_sorted):
-                                res[curr_seq] = eval_sequence(
-                                    curr_seq,
-                                    dataset,
-                                    tracker,
-                                    class_list,
-                                    metrics_list,
-                                    metric_names,
-                                )
-                        else:
-                            for curr_seq in sorted(seq_list):
-                                res[curr_seq] = eval_sequence(
-                                    curr_seq,
-                                    dataset,
-                                    tracker,
-                                    class_list,
-                                    metrics_list,
-                                    metric_names,
-                                )
-
-                    # Combine results over all sequences and then over all classes
-
-                    # collecting combined cls keys (cls averaged, det averaged, super classes)
-                    combined_cls_keys = []
-                    res["COMBINED_SEQ"] = {}
-                    # combine sequences for each class
-                    for c_cls in class_list:
-                        res["COMBINED_SEQ"][c_cls] = {}
-                        for metric, metric_name in zip(metrics_list, metric_names):
-                            curr_res = {
-                                seq_key: seq_value[c_cls][metric_name]
-                                for seq_key, seq_value in res.items()
-                                if seq_key != "COMBINED_SEQ"
-                            }
-                            res["COMBINED_SEQ"][c_cls][metric_name] = (
-                                metric.combine_sequences(curr_res)
-                            )
-                    # combine classes
-                    if dataset.should_classes_combine:
-                        combined_cls_keys += [
-                            "cls_comb_cls_av",
-                            "cls_comb_det_av",
-                            "all",
-                        ]
-                        res["COMBINED_SEQ"]["cls_comb_cls_av"] = {}
-                        res["COMBINED_SEQ"]["cls_comb_det_av"] = {}
-                        for metric, metric_name in zip(metrics_list, metric_names):
-                            cls_res = {
-                                cls_key: cls_value[metric_name]
-                                for cls_key, cls_value in res["COMBINED_SEQ"].items()
-                                if cls_key not in combined_cls_keys
-                            }
-                            res["COMBINED_SEQ"]["cls_comb_cls_av"][metric_name] = (
-                                metric.combine_classes_class_averaged(cls_res)
-                            )
-                            res["COMBINED_SEQ"]["cls_comb_det_av"][metric_name] = (
-                                metric.combine_classes_det_averaged(cls_res)
-                            )
-                    # combine classes to super classes
-                    if dataset.use_super_categories:
-                        for cat, sub_cats in dataset.super_categories.items():
-                            combined_cls_keys.append(cat)
-                            res["COMBINED_SEQ"][cat] = {}
-                            for metric, metric_name in zip(metrics_list, metric_names):
-                                cat_res = {
-                                    cls_key: cls_value[metric_name]
-                                    for cls_key, cls_value in res[
-                                        "COMBINED_SEQ"
-                                    ].items()
-                                    if cls_key in sub_cats
-                                }
-                                res["COMBINED_SEQ"][cat][metric_name] = (
-                                    metric.combine_classes_det_averaged(cat_res)
-                                )
-
-                    # Print and output results in various formats
-                    if config["TIME_PROGRESS"]:
-                        print(
-                            "\nAll sequences for %s finished in %.2f seconds"
-                            % (tracker, time.time() - time_start)
-                        )
-                    output_fol = dataset.get_output_fol(tracker)
-                    tracker_display_name = dataset.get_display_name(tracker)
-                    for c_cls in res[
-                        "COMBINED_SEQ"
-                    ].keys():  # class_list + combined classes if calculated
-                        summaries = []
-                        details = []
-                        num_dets = res["COMBINED_SEQ"][c_cls]["Count"]["Dets"]
-                        if config["OUTPUT_EMPTY_CLASSES"] or num_dets > 0:
-                            for metric, metric_name in zip(metrics_list, metric_names):
-                                # for combined classes there is no per sequence evaluation
-                                if c_cls in combined_cls_keys:
-                                    table_res = {
-                                        "COMBINED_SEQ": res["COMBINED_SEQ"][c_cls][
-                                            metric_name
-                                        ]
-                                    }
-                                else:
-                                    table_res = {
-                                        seq_key: seq_value[c_cls][metric_name]
-                                        for seq_key, seq_value in res.items()
-                                    }
-
-                                if (
-                                    config["PRINT_RESULTS"]
-                                    and config["PRINT_ONLY_COMBINED"]
-                                ):
-                                    dont_print = (
-                                        dataset.should_classes_combine
-                                        and c_cls not in combined_cls_keys
-                                    )
-                                    if not dont_print:
-                                        metric.print_table(
-                                            {"COMBINED_SEQ": table_res["COMBINED_SEQ"]},
-                                            tracker_display_name,
-                                            c_cls,
-                                        )
-                                elif config["PRINT_RESULTS"]:
-                                    metric.print_table(
-                                        table_res, tracker_display_name, c_cls
-                                    )
-                                if config["OUTPUT_SUMMARY"]:
-                                    summaries.append(metric.summary_results(table_res))
-                                if config["OUTPUT_DETAILED"]:
-                                    details.append(metric.detailed_results(table_res))
-                                if config["PLOT_CURVES"]:
-                                    metric.plot_single_tracker_results(
-                                        table_res,
-                                        tracker_display_name,
-                                        c_cls,
-                                        output_fol,
-                                    )
-                            if config["OUTPUT_SUMMARY"]:
-                                utils.write_summary_results(
-                                    summaries, c_cls, output_fol
-                                )
-                            if config["OUTPUT_DETAILED"]:
-                                utils.write_detailed_results(details, c_cls, output_fol)
-
-                    # Output for returning from function
-                    output_res[dataset_name][tracker] = res
-                    output_msg[dataset_name][tracker] = "Success"
-
-                except Exception as err:
-                    output_res[dataset_name][tracker] = None
-                    if type(err) == TrackEvalException:
-                        output_msg[dataset_name][tracker] = str(err)
-                    else:
-                        output_msg[dataset_name][tracker] = "Unknown error occurred."
-                    print("Tracker %s was unable to be evaluated." % tracker)
-                    print(err)
-                    traceback.print_exc()
-                    if config["LOG_ON_ERROR"] is not None:
-                        with open(config["LOG_ON_ERROR"], "a") as f:
-                            print(dataset_name, file=f)
-                            print(tracker, file=f)
-                            print(traceback.format_exc(), file=f)
-                            print("\n\n\n", file=f)
-                    if config["BREAK_ON_ERROR"]:
-                        raise err
-                    elif config["RETURN_ON_ERROR"]:
-                        return output_res, output_msg
-
-        return output_res, output_msg
-
-
-@_timing.time
-def eval_sequence(seq, dataset, tracker, class_list, metrics_list, metric_names):
-    """Function for evaluating a single sequence"""
-
-    raw_data = dataset.get_raw_seq_data(tracker, seq)
-    seq_res = {}
-    for cls in class_list:
-        seq_res[cls] = {}
-        data = dataset.get_preprocessed_seq_data(raw_data, cls)
-        for metric, met_name in zip(metrics_list, metric_names):
-            seq_res[cls][met_name] = metric.eval_sequence(data)
-    return seq_res
-
 
 class TrackEvalDataset(_BaseDataset):  # type: ignore
     """Dataset class to support tracking evaluation using the TrackEval library."""
@@ -363,6 +70,7 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         Returns:
             dictionary of the default config
         """
+
         default_config = {
             "GT_TRACKS": None,  # tracker_name -> seq id -> frames
             "PREDICTED_TRACKS": None,  # tracker_name -> seq id -> frames
@@ -462,7 +170,8 @@ class TrackEvalDataset(_BaseDataset):  # type: ignore
         data["num_gt_ids"] = len(unique_gt_ids)
 
         # Ensure again that ids are unique per timestep after preproc.
-        self._check_unique_ids(data, after_preproc=True)
+        self._check_unique_ids(data, after_preproc=True)        
+
         return data
 
     def _map_ids(self, ids: List[Any], unique_ids: Iterable[Any]) -> List[NDArrayInt]:
@@ -531,7 +240,7 @@ def evaluate_tracking(
     tracker_name: str,
     output_dir: str,
     iou_threshold: float = 0.5,
-) -> Dict[str, Any]:
+) -> Tuple[Dict[str, Any], float]:
     """Evaluate a set of tracks against ground truth annotations using the TrackEval evaluation suite.
 
     Each sequences/log is evaluated separately.
@@ -582,7 +291,7 @@ def evaluate_tracking(
         "THRESHOLD": iou_threshold,
     }
     metric_names = cast(List[str], metrics_config["METRICS"])
-    metrics_list = [getattr(metrics, metric)(metrics_config) for metric in metric_names]
+    metrics_list = [getattr(trackeval.metrics, metric)(metrics_config) for metric in metric_names]
     dataset_config = {
         **TrackEvalDataset.get_default_dataset_config(),
         "GT_TRACKS": {tracker_name: labels},
@@ -594,20 +303,42 @@ def evaluate_tracking(
         "SHOULD_CLASSES_COMBINE": False,
     }
 
-    evaluator = Evaluator(
+    evaluator = trackeval.Evaluator(
         {
-            **Evaluator.get_default_eval_config(),
+            **trackeval.Evaluator.get_default_eval_config(),
             "TIME_PROGRESS": True,
             "PLOT_CURVES": True,
             "OUTPUT_SUMMARY": True,
         }
     )
+
+    dataset = TrackEvalDataset(dataset_config)
     full_result, _ = evaluator.evaluate(
-        [TrackEvalDataset(dataset_config)],
+        [dataset],
         metrics_list,
     )
 
-    return cast(Dict[str, Any], full_result)
+    trackers, seq_ids, classes = dataset.get_eval_info()
+    tracker = trackers[0]
+
+    tlap_by_seq = np.zeros((len(labels), len(classes)))
+    num_gt_by_seq = np.zeros((len(labels), len(classes)))
+
+    for i, seq_id in enumerate(labels.keys()):
+        raw_data =  dataset.get_raw_seq_data(tracker, seq_id)
+        for j, clas in enumerate(classes):
+            data = dataset.get_preprocessed_seq_data(raw_data, clas)
+
+            num_gt_ids = len(data['gt_ids'])
+            tlap, precisions, recalls = calculate_TempLocAP_merge(data)
+            tlap_by_seq[i,j] = tlap
+            num_gt_by_seq[i,j] = num_gt_ids
+
+    combined_tlap = np.average(tlap_by_seq, axis=1, weights=num_gt_by_seq)
+    referred_tlap = float(combined_tlap[np.where(np.array(classes) == 'REFERRED_OBJECT')])
+
+
+    return cast(Dict[str, Any], full_result), referred_tlap
 
 
 def _tune_score_thresholds(
@@ -644,7 +375,7 @@ def _tune_score_thresholds(
         "PRINT_CONFIG": False,
     }
     metrics_list = [
-        getattr(metrics, metric_name)(metrics_config)
+        getattr(trackeval.metrics, metric_name)(metrics_config)
         for metric_name in cast(List[str], metrics_config["METRICS"])
     ]
     dataset_config = {
@@ -656,9 +387,9 @@ def _tune_score_thresholds(
         "TRACKERS_TO_EVAL": ["tracker"],
         "OUTPUT_FOLDER": "tmp",
     }
-    evaluator = Evaluator(
+    evaluator = trackeval.Evaluator(
         {
-            **Evaluator.get_default_eval_config(),
+            **trackeval.Evaluator.get_default_eval_config(),
             "PRINT_RESULTS": False,
             "PRINT_CONFIG": False,
             "TIME_PROGRESS": False,
@@ -799,6 +530,356 @@ def _recall_to_scores(
     return score_thresholds
 
 
+def calculate_TempLocAP_merge(data: dict[str, Any])->tuple[float, np.ndarray, np.ndarray]:
+    """Calculates temporal localization average precision. """
+    # Return result quickly if tracker or gt sequence is empty
+    if data["num_tracker_dets"] == 0:
+        if data["num_gt_dets"] == 0:
+            precisions = np.array([1, 1])
+            recalls = np.array([0, 1])
+            TempLocAP = 1
+            return TempLocAP, precisions, recalls
+        else:
+            precisions = np.array([0, 0])
+            recalls = np.array([0, 1])
+            TempLocAP = 0
+            return TempLocAP, precisions, recalls
+    if data["num_gt_dets"] == 0:
+        precisions = np.array([0, 0])
+        recalls = np.array([0, 1])
+        TempLocAP = 0
+        return TempLocAP, precisions, recalls
+
+    TEMPORAL_IOU_THRESH = 0.5  # iou
+    MATCHING_DIST_THRESH = 2.0  # m
+
+    pred_tracks = {}
+    gt_tracks = {}
+
+    # Accumulate predicted and ground truth tracks from data
+    for t in range(data["num_timesteps"]):
+        for i, gt_id in enumerate(data["gt_ids"][t]):
+            if gt_id not in gt_tracks:
+                gt_tracks[gt_id] = {}
+                gt_tracks[gt_id]["xy_pos"] = []
+                gt_tracks[gt_id]["timestamps"] = []
+                gt_tracks[gt_id]["category"] = data["gt_classes"][t][i]
+
+            gt_tracks[gt_id]["xy_pos"].append(data["gt_dets"][t][i][:2])
+            gt_tracks[gt_id]["timestamps"].append(t)
+
+        for i, track_id in enumerate(data["tracker_ids"][t]):
+            if track_id not in pred_tracks:
+                pred_tracks[track_id] = {}
+                pred_tracks[track_id]["confidence"] = data["tracker_confidences"][
+                    t
+                ][i]
+                pred_tracks[track_id]["category"] = data["tracker_classes"][t][i]
+                pred_tracks[track_id]["xy_pos"] = []
+                pred_tracks[track_id]["timestamps"] = []
+
+            pred_tracks[track_id]["xy_pos"].append(data["tracker_dets"][t][i][:2])
+            pred_tracks[track_id]["timestamps"].append(t)
+
+    # 1 to 1 match of predicted and ground truth tracks
+    pred_ids_by_conf = sorted(
+        pred_tracks.keys(),
+        key=lambda key: pred_tracks[key]["confidence"],
+        reverse=True,
+    )
+
+    # keys are gt_id, values are list of corresponding pred_ids
+    matched_ids = {}
+
+    # keys are track_ids, values are the iou of the timestamps of the matched predicted and ground truth timestamps
+    unmatched_track_ids = []
+
+    for track_id in pred_ids_by_conf:
+        track_stats = pred_tracks[track_id]
+        track_confidence = track_stats["confidence"]
+        track_traj = track_stats["xy_pos"]
+        track_timestamps = track_stats["timestamps"]
+
+        max_similarity = 0
+        best_match = None
+        for gt_id, gt_stats in gt_tracks.items():
+            if gt_stats["category"] != track_stats["category"]:
+                continue
+
+            gt_traj = gt_stats["xy_pos"]
+            gt_timestamps = gt_stats["timestamps"]
+
+            intersection = len(
+                set(gt_timestamps).intersection((set(track_timestamps)))
+            )
+            iol = intersection / len(track_timestamps)
+
+            if iol < TEMPORAL_IOU_THRESH:
+                continue
+
+            distances = []
+            for timestamp in track_timestamps:
+                if timestamp in gt_timestamps:
+                    distances.append(
+                        np.linalg.norm(
+                            track_traj[track_timestamps.index(timestamp)]
+                            - gt_traj[gt_timestamps.index(timestamp)]
+                        )
+                    )
+
+            similarity_score = iol * max(
+                0, 1 - (np.mean(np.array(distances)) / MATCHING_DIST_THRESH)
+            )
+
+            if similarity_score > max_similarity:
+                max_similarity = similarity_score
+                best_match = gt_id
+
+        if max_similarity > 0:
+            if best_match not in matched_ids:
+                matched_ids[best_match] = [track_id]
+            else:
+                matched_ids[best_match].append(track_id)
+        else:
+            unmatched_track_ids.append(track_id)
+
+    merged_predictions = {}
+    for gt_id, pred_ids in matched_ids.items():
+        merged_traj = []
+        merged_timestamps = []
+        merged_confidences = []
+        merged_catetory = None
+
+        for pred_id in pred_ids:
+            track_timestamps = pred_tracks[pred_id]["timestamps"]
+            track_trajectory = pred_tracks[pred_id]["xy_pos"]
+            track_confidence = pred_tracks[pred_id]["confidence"]
+            track_category = pred_tracks[pred_id]["category"]
+
+            if len(merged_timestamps) == 0:
+                merged_timestamps.extend(track_timestamps)
+                merged_traj.extend(track_trajectory)
+                merged_catetory = track_category
+                merged_confidences.extend(
+                    [track_confidence] * len(track_timestamps)
+                )
+                continue
+
+            for i, timestamp in enumerate(track_timestamps):
+                if timestamp not in merged_timestamps:
+                    insertion_index = 0
+                    for merge_timestamp in merged_timestamps:
+                        if merge_timestamp > timestamp:
+                            insertion_index += 1
+
+                    merged_timestamps.insert(insertion_index, timestamp)
+                    merged_traj.insert(insertion_index, track_trajectory[i])
+                    merged_confidences.insert(insertion_index, track_confidence)
+                else:
+                    insertion_index = merged_timestamps.index(timestamp)
+                    if track_confidence > merged_confidences[insertion_index]:
+                        merged_confidences[insertion_index] = track_confidence
+                        merged_traj[insertion_index] = track_trajectory[i]
+
+        merged_predictions[-gt_id - 1] = {
+            "xy_pos": merged_traj,
+            "timestamps": merged_timestamps,
+            "confidence": np.mean(np.array(merged_confidences)),
+            "category": merged_catetory,
+        }
+
+    for unmatched_track_id in unmatched_track_ids:
+        merged_predictions.update(
+            {unmatched_track_id: pred_tracks[unmatched_track_id]}
+        )
+
+    merged_ids_by_conf = sorted(
+        merged_predictions.keys(),
+        key=lambda key: merged_predictions[key]["confidence"],
+        reverse=True,
+    )
+    matched_gt_ids = []
+
+    # Compute precision and recall at all confidence thresholds.
+    tp = np.zeros(len(merged_ids_by_conf))
+    fp = np.zeros(len(merged_ids_by_conf))
+
+    for i, track_id in enumerate(merged_ids_by_conf):
+        track_stats = merged_predictions[track_id]
+        track_confidence = track_stats["confidence"]
+        track_traj = track_stats["xy_pos"]
+        track_timestamps = track_stats["timestamps"]
+
+        max_similarity = 0
+        best_match = None
+        for gt_id, gt_stats in gt_tracks.items():
+            if (
+                gt_id in matched_gt_ids
+                or gt_stats["category"] != track_stats["category"]
+            ):
+                continue
+
+            gt_traj = gt_stats["xy_pos"]
+            gt_timestamps = gt_stats["timestamps"]
+
+            intersection = len(
+                set(gt_timestamps).intersection((set(track_timestamps)))
+            )
+            union = len(set(gt_timestamps).union((set(track_timestamps))))
+            iou = intersection / union
+
+            if iou < TEMPORAL_IOU_THRESH:
+                continue
+
+            distances = []
+            for timestamp in track_timestamps:
+                if timestamp in gt_timestamps:
+                    distances.append(
+                        np.linalg.norm(
+                            track_traj[track_timestamps.index(timestamp)]
+                            - gt_traj[gt_timestamps.index(timestamp)]
+                        )
+                    )
+
+            similarity_score = iou * max(
+                0, 1 - (np.mean(np.array(distances)) / MATCHING_DIST_THRESH)
+            )
+
+            if similarity_score > max_similarity:
+                max_similarity = similarity_score
+                best_match = gt_id
+
+        if max_similarity > 0:
+            matched_gt_ids.append(best_match)
+            tp[i] = 1
+        else:
+            fp[i] = 1
+
+    tp = np.cumsum(tp)
+    fp = np.cumsum(fp)
+
+    recalls = tp / len(gt_tracks)
+    precisions = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
+
+    assert np.all(0 <= precisions) & np.all(precisions <= 1)
+    TempLocAP = get_ap(recalls, precisions)
+
+    return TempLocAP, precisions, recalls
+
+def get_envelope(precisions):
+    """Compute the precision envelope.
+
+    Args:
+    precisions:
+
+    Returns:
+
+    """
+    for i in range(precisions.size - 1, 0, -1):
+        precisions[i - 1] = np.maximum(precisions[i - 1], precisions[i])
+    return precisions
+
+def get_ap(recalls, precisions):
+    """
+    Calculate average precision.
+
+    Args:
+        recalls: Array of recall values
+        precisions: Array of precision values
+
+    Returns:
+        float: average precision.
+    """
+    # first append sentinel values at the end
+    recalls = np.concatenate(([0.0], recalls, [1.0]))
+    precisions = np.concatenate(([0.0], precisions, [0.0]))
+
+    # get envelope (maximum precision for each recall value)
+    precisions = get_envelope(precisions)
+
+    # to calculate area under PR curve, look for points where X axis (recall) changes value
+    i = np.where(recalls[1:] != recalls[:-1])[0]
+
+    # and sum (\Delta recall) * prec
+    ap = np.sum((recalls[i + 1] - recalls[i]) * precisions[i + 1])
+
+    return ap
+
+def plot_precision_recall_curve(
+    recalls_list,
+    precisions_list,
+    ap_values=None,
+    labels=None,
+    colors=["blue", "green"],
+    save_path=None,
+):
+    """
+    Plot precision-recall curves for one or two sets of data.
+
+    Args:
+        recalls_list: List of recall arrays to plot
+        precisions_list: List of precision arrays to plot
+        ap_values: Optional list of AP values to display in the title
+        labels: Optional list of labels for the legend
+        colors: List of colors for the plots (default: blue and green)
+        save_path: Optional path to save the plot
+    """
+    plt.figure(figsize=(8, 6))
+
+    if not isinstance(recalls_list, list):
+        recalls_list = [recalls_list]
+    if not isinstance(precisions_list, list):
+        precisions_list = [precisions_list]
+
+    if labels is None:
+        labels = [f"Curve {i+1}" for i in range(len(recalls_list))]
+
+    for i, (recalls, precisions) in enumerate(zip(recalls_list, precisions_list)):
+        color = colors[i % len(colors)]
+
+        # Prepare data for plotting (add sentinel values)
+        plot_recalls = np.concatenate(([0.0], recalls, [1.0]))
+        plot_precisions = np.concatenate(([0.0], precisions, [0.0]))
+        plot_precisions = get_envelope(plot_precisions.copy())
+
+        # Plot the curve
+        plt.plot(
+            plot_recalls,
+            plot_precisions,
+            color=color,
+            linestyle="-",
+            linewidth=2,
+            label=labels[i],
+        )
+        plt.fill_between(plot_recalls, 0, plot_precisions, alpha=0.1, color=color)
+
+    # Set title
+    if ap_values:
+        ap_text = ", ".join(
+            [f"{label}: AP = {ap:.3f}" for label, ap in zip(labels, ap_values)]
+        )
+        plt.title(f"Precision-Recall Curves ({ap_text})", fontsize=16)
+    else:
+        plt.title("Precision-Recall Curves", fontsize=16)
+
+    # Set labels and limits
+    plt.xlabel("Recall", fontsize=14)
+    plt.ylabel("Precision", fontsize=14)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.grid(True)
+
+    # Add legend if multiple curves
+    if len(recalls_list) > 1:
+        plt.legend(loc="lower left")
+
+    # Save if path provided
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+
+    plt.show()
+
+
 def _xy_center_similarity(
     centers1: NDArrayFloat, centers2: NDArrayFloat, zero_distance: float
 ) -> NDArrayFloat:
@@ -838,7 +919,8 @@ def filter_max_dist(tracks: Any, max_range_m: int) -> Any:
     )
 
 
-def load(pkl_path):
+def load(pkl_path:Path) -> Sequences:
+    """Loads a pkl file as a dict."""
 
     with open(pkl_path, "rb") as f:
         data = pickle.load(f)
@@ -922,13 +1004,12 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
     return tracks
 
 
-def referred_full_tracks(sequences: Sequences):
-    """
-    Reconstructs a mining pkl file by propagating referred object labels across all instances
+def referred_full_tracks(sequences: Sequences) -> Sequences:
+    """ Reconstructs a mining pkl file by propagating referred object labels across all instances
     of the same track_id and removing all other objects.
 
     Args:
-        pkl_file_path: Path to the pkl file
+        sequences: Sequences for either the labels or ground truth
 
     Returns:
         reconstructed_sequences: Dictionary containing the reconstructed sequences
@@ -981,6 +1062,9 @@ def referred_full_tracks(sequences: Sequences):
 def evaluate_mining(
     track_predictions: Sequences, labels: Sequences, output_dir
 ) -> tuple[float, float]:
+    """Calculates the F1 score for classifying if anything in the scenario
+    matches the prompt.
+    """
 
     gt_class = np.zeros(len(labels), dtype=np.int64)
     pred_class = np.zeros(len(labels), dtype=np.int64)
@@ -1019,7 +1103,9 @@ def evaluate_mining(
     return f1_score, acc
 
 
-def relabel_seq_ids(data):
+def _relabel_seq_ids(data:Sequences)->Sequences:
+    """Turns the (log_id, prompt) tuple format into a string for HOTA summarization """
+
     new_data = {}
 
     for seq_id, frames in data.items():
@@ -1066,7 +1152,7 @@ def evaluate(
         output_dir = out + "/partial_tracks"
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    res, partial_track_metrics, _, f1_score = evaluate_scenario_mining(
+    res, partial_track_metrics, TempLocAP, f1_score = evaluate_scenario_mining(
         track_predictions,
         labels,
         objective_metric=objective_metric,
@@ -1074,9 +1160,6 @@ def evaluate(
         dataset_dir=dataset_dir,
         out=output_dir,
     )
-    TempLocAP = res["TrackEvalDataset"]["TRACKER"]["COMBINED_SEQ"]["REFERRED_OBJECT"][
-        "HOTA"
-    ]["TempLocAP"]
 
     full_track_preds = referred_full_tracks(track_predictions)
     full_track_labels = referred_full_tracks(labels)
@@ -1099,6 +1182,7 @@ def evaluate(
     full_track_hota = full_track_metrics["REFERRED_OBJECT"]
     partial_track_hota = partial_track_metrics["REFERRED_OBJECT"]
 
+    print(f'F1: {f1_score}, HOTA: {partial_track_hota}, HOTA_full: {full_track_hota}, TLAP: {TempLocAP}')
     return f1_score, full_track_hota, partial_track_hota, TempLocAP
 
 
@@ -1110,7 +1194,7 @@ def evaluate_scenario_mining(
     dataset_dir: Any,
     out: str,
     full_tracks: bool = False,
-) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], float]:
+) -> Tuple[Dict[str, Any], Dict[str, Any], float, float]:
     """Run evaluation.
 
     Args:
@@ -1136,8 +1220,8 @@ def evaluate_scenario_mining(
         labels = filter_drivable_area(labels, dataset_dir)
         track_predictions = filter_drivable_area(track_predictions, dataset_dir)
 
-    track_predictions = relabel_seq_ids(track_predictions)
-    labels = relabel_seq_ids(labels)
+    track_predictions = _relabel_seq_ids(track_predictions)
+    labels = _relabel_seq_ids(labels)
 
     score_thresholds, tuned_metric_values, mean_metric_values = _tune_score_thresholds(
         labels,
@@ -1150,7 +1234,7 @@ def evaluate_scenario_mining(
     filtered_track_predictions = sm_utils.filter_by_class_thresholds(
         track_predictions, score_thresholds
     )
-    res = evaluate_tracking(
+    res, tlap = evaluate_tracking(
         labels,
         filtered_track_predictions,
         classes,
@@ -1160,9 +1244,9 @@ def evaluate_scenario_mining(
 
     if not full_tracks:
         f1_score, acc = evaluate_mining(filtered_track_predictions, labels, out)
-        return res, tuned_metric_values, mean_metric_values, f1_score
+        return res, tuned_metric_values, tlap, f1_score
 
-    return res, tuned_metric_values, mean_metric_values, 0
+    return res, tuned_metric_values, tlap, 0
 
 
 @click.command()
