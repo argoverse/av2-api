@@ -26,7 +26,7 @@ if version.parse(np.__version__) >= version.parse("1.24.0"):
     numpy_float = np.float32
     numpy_int = np.int32
     numpy_bool = np.bool_  # Use np.bool_ instead of trying to assign to bool
-    
+
     # Monkey patch numpy namespace for backward compatibility
     setattr(np, "float", numpy_float)
     setattr(np, "int", numpy_int)
