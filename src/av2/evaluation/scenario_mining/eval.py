@@ -45,7 +45,12 @@ from av2.evaluation.typing import Sequences
 
 
 def _plot_confusion_matrix(
-    tp:int, fn:int, fp:int, tn:int, title: str = "scenario", output_dir: Union[str, None] = None
+    tp: int,
+    fn: int,
+    fp: int,
+    tn: int,
+    title: str = "scenario",
+    output_dir: Union[str, None] = None,
 ) -> None:
     """Plots the confusion matrix for scenario mining.
 
