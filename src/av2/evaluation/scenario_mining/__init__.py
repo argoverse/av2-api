@@ -13,3 +13,12 @@ class ScenarioMiningCategories(str, Enum):
     REFERRED_OBJECT = "REFERRED_OBJECT"
     RELATED_OBJECT = "RELATED_OBJECT"
     OTHER_OBJECT = "OTHER_OBJECT"
+
+
+"""Constants for scenario mining challenge."""
+SUBMETRIC_TO_METRIC_CLASS_NAME: Final = {
+    "MOTA": "CLEAR",
+    "HOTA": "HOTA",
+}
+
+AV2_CATEGORIES: Final = tuple(x.value for x in ScenarioMiningCategories)
