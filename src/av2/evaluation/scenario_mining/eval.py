@@ -54,8 +54,19 @@ def _plot_confusion_matrix(
 ) -> None:
     """Plots the confusion matrix for scenario mining.
 
-    A true label indicates that the scenario matches the description.
-    A false label indicates the scenario does not match the description.
+    A true label indicates that the scenario matches the prompt/description.
+    A false label indicates the scenario does not match the prompt/description.
+
+    Args:
+        tp: The number of classification true positives.
+        fn: The number of classification false negatives.
+        fp: The number of classification false positives.
+        tn: The number of classification true negatives.
+        title: A string description indicating the granularity of classification.
+        output_dir: The directory to save the confusion matrix plot.
+
+    Returns:
+        None
     """
     if output_dir is None:
         return
@@ -88,14 +99,6 @@ def _plot_confusion_matrix(
     if output_dir:
         plt.savefig(output_dir + f"/{title}_level_confusion_matrix.png")
     plt.close()
-
-
-def load(pkl_path: Path) -> Any:
-    """Loads a pkl file as a dict."""
-    with open(pkl_path, "rb") as f:
-        data = pickle.load(f)
-
-    return data
 
 
 def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Sequences:
@@ -239,8 +242,19 @@ def compute_temporal_metrics(
     """Calculates the F1 score.
 
     F1 is a binary classification metric. A true postive when both
-    the ground-truth and predictions sequences contains no tracks
-    or both contain at least one track corresponding to the prediction.
+    the ground-truth and prediction sequence/timestamp contain no tracks
+    or both contain at least one track corresponding to the prompt.
+
+    Args:
+        track_predictions: Prediction sequences.
+        labels: Ground truth sequences.
+        output_dir: The directory to save the plotted confusion matrices.
+
+    Returns:
+        timestamp_f1: The F1 score where each timestamp counts as a prediction to evaluate.
+        scenario_f1: The F1 score where each log-prompt pair counts as a prediction to evaluate.
+
+
     """
     scenario_gt = np.zeros(len(labels), dtype=bool)
     scenario_pred = np.zeros(len(labels), dtype=bool)
@@ -294,19 +308,21 @@ def compute_temporal_metrics(
         output_dir=output_dir,
     )
 
-    num_correct = 0
-    for i in range(len(scenario_gt)):
-        if scenario_gt[i] == scenario_pred[i]:
-            num_correct += 1
-
     return scenario_f1, timestamp_f1
 
 
-def _relabel_seq_ids(data: Sequences) -> Sequences:
-    """Turns the (log_id, prompt) tuple format into a string for HOTA summarization."""
+def _relabel_seq_ids(sequences: Sequences) -> Sequences:
+    """Turns the (log_id, prompt) tuple format into a string for HOTA summarization.
+
+    Args:
+        sequences: The 'sequences' where each top level key is a tuple of (log_id, prompt)
+
+    Returns:
+        Sequences where each top level key is a string of '(log_id, prompt)'
+    """
     new_data = {}
 
-    for seq_id, frames in data.items():
+    for seq_id, frames in sequences.items():
         if isinstance(seq_id, tuple):
             new_seq_id = str(seq_id)
             new_data[new_seq_id] = frames
@@ -340,16 +356,15 @@ def evaluate(
         out: Output path.
 
     Returns:
-        F1_score: The F1 score for if the scenario matches the description
-        full_track_HOTA: The tracking metric for the full track of any objects that the description ever applies to.
         partial_track_HOTA: The tracking metric for the tracks that contain only the timestamps for which the description applies.
-        tlap: Temporal localization average precision calculates how well predictions are temporally localized,
-            with some built in give for ambiguous annotations
+        full_track_HOTA: The tracking metric for the full track of any objects that the description ever applies to.
+        timestamp_f1: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
+        scenario_f1: A retrieval/classification metric for determining if each data log contains any instance of the prompt.
     """
     output_dir = out + "/partial_tracks"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    res, partial_track_metrics, timestamp_f1, scenario_f1 = evaluate_scenario_mining(
+    partial_track_hota, timestamp_f1, scenario_f1 = evaluate_scenario_mining(
         track_predictions,
         labels,
         objective_metric=objective_metric,
@@ -364,7 +379,7 @@ def evaluate(
     output_dir = out + "/full_tracks"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    _, full_track_metrics, _, _ = evaluate_scenario_mining(
+    full_track_hota, _, _ = evaluate_scenario_mining(
         full_track_preds,
         full_track_labels,
         objective_metric=objective_metric,
@@ -373,9 +388,6 @@ def evaluate(
         out=output_dir,
         full_tracks=True,
     )
-
-    full_track_hota = full_track_metrics["REFERRED_OBJECT"]
-    partial_track_hota = partial_track_metrics["REFERRED_OBJECT"]
 
     return (
         partial_track_hota,
@@ -393,7 +405,7 @@ def evaluate_scenario_mining(
     dataset_dir: Any,
     out: str,
     full_tracks: bool = False,
-) -> Tuple[Dict[str, Any], Dict[str, Any], float, float]:
+) -> Tuple[float, float, float]:
     """Run evaluation.
 
     Args:
@@ -408,7 +420,9 @@ def evaluate_scenario_mining(
         when the description applies.
 
     Returns:
-        Dictionary of per-category metrics.
+        referred_hota: The HOTA tracking metric applied to all objects with the category REFERRED_OBJECT
+        timestamp_f1: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
+        scenario_f1: A retrieval/classification metric for determining if each data log contains any instance of the prompt.
     """
     classes = list(AV2_CATEGORIES)
 
@@ -442,13 +456,17 @@ def evaluate_scenario_mining(
         output_dir=out,
     )
 
+    referrred_hota = tuned_metric_values["REFERRED_OBJECT"]
+
     if not full_tracks:
         scenario_f1, timestamp_f1 = compute_temporal_metrics(
             filtered_track_predictions, labels, out
         )
-        return res, tuned_metric_values, scenario_f1, timestamp_f1
+    else:
+        scenario_f1 = 0
+        timestamp_f1 = 0
 
-    return res, tuned_metric_values, 0, 0
+    return referrred_hota, scenario_f1, timestamp_f1
 
 
 @click.command()
@@ -476,8 +494,10 @@ def runner(
     out: str,
 ) -> None:
     """Standalone evaluation function."""
-    track_predictions = pickle.load(open(predictions, "rb"))
-    labels = pickle.load(open(ground_truth, "rb"))
+    with open(predictions, "rb") as f:
+        track_predictions = pickle.load(f)
+    with open(ground_truth, "rb") as f:
+        labels = pickle.load(f)
 
     partial_track_hota, full_track_hota, timestamp_f1, scenario_f1 = evaluate(
         track_predictions, labels, objective_metric, max_range_m, dataset_dir, out

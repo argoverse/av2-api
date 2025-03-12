@@ -4,8 +4,9 @@ import matplotlib
 from pathlib import Path
 from typing import Final
 import sys
+import pickle
 
-from av2.evaluation.scenario_mining.eval import evaluate, load
+from av2.evaluation.scenario_mining.eval import evaluate
 
 
 matplotlib.use("Agg")
@@ -25,10 +26,13 @@ def test_evaluate() -> None:
     dataset_dir = TEST_DATA_DIR
     out = str(TEST_DATA_DIR / "eval_results")
 
-    predictions = load(pred_pkl)
-    ground_truth = load(gt_pkl)
+    with open(pred_pkl, "rb") as f:
+        predictions = pickle.load(f)
+    with open(gt_pkl, "rb") as f:
+        ground_truth = pickle.load(f)
 
-    evaluate(predictions, ground_truth, objective_metric, max_range_m, dataset_dir, out)
+    metrics = evaluate(predictions, ground_truth, objective_metric, max_range_m, dataset_dir, out)
+    print(metrics)
 
 
 test_evaluate()
