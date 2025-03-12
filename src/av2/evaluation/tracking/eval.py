@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, 
 
 import click
 import numpy as np
+
 import trackeval
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation

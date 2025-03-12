@@ -83,7 +83,7 @@ def test_challenge_submission_data_validation(
 
 @pytest.mark.parametrize(
     "test_submission_dict",
-    [(valid_submission_predictions)],
+    [valid_submission_predictions],
     ids=["valid_submission"],
 )
 def test_challenge_submission_serialization(
