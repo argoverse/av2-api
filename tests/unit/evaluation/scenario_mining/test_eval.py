@@ -31,7 +31,9 @@ def test_evaluate() -> None:
     with open(gt_pkl, "rb") as f:
         ground_truth = pickle.load(f)
 
-    metrics = evaluate(predictions, ground_truth, objective_metric, max_range_m, dataset_dir, out)
+    metrics = evaluate(
+        predictions, ground_truth, objective_metric, max_range_m, dataset_dir, out
+    )
     print(metrics)
 
 
