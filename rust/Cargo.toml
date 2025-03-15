@@ -35,6 +35,7 @@ nshare = { version = "0.10.0", features = ["ndarray"] }
 numpy = { version = "0.22.1", features = ["gil-refs"] }
 once_cell = "1.21.1"
 openblas-src = { version = "0.10.11", optional = true }
+openssl = "0.10.71"
 polars = { version = "0.45.1", features = [
     "asof_join",
     "dtype-u8",
