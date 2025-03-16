@@ -30,7 +30,7 @@ jobs:
           # - runner: ubuntu-22.04
           #   target: ppc64le
         python_version:
-          ["3.8", "3.9", "3.10", "3.11", "3.12"]
+          ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,7 +40,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --skip pypy3
+          args: --release --out dist --find-interpreter
           sccache: 'true'
           manylinux: auto
       - name: Upload wheels
@@ -90,7 +90,7 @@ jobs:
           - runner: windows-latest
             target: x86
         python_version:
-          ["3.8", "3.9", "3.10", "3.11", "3.12"]
+          ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -100,7 +100,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --skip pypy3
+          args: --release --out dist --find-interpreter
           sccache: 'true'
           manylinux: auto
       - name: Upload wheels
@@ -119,7 +119,7 @@ jobs:
           - runner: macos-14
             target: aarch64
         python_version:
-          ["3.8", "3.9", "3.10", "3.11", "3.12"]
+          ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -129,7 +129,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --skip pypy3
+          args: --release --out dist --find-interpreter
           sccache: 'true'
           manylinux: auto
       - name: Upload wheels
