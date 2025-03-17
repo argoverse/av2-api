@@ -40,7 +40,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter ${{ matrix.platform.target }}
+          args: --release --out dist --interpreter ${{ matrix.platform.target }}
           sccache: 'true'
           manylinux: auto
       - name: Upload wheels
@@ -71,7 +71,7 @@ jobs:
   #       uses: PyO3/maturin-action@v1
   #       with:
   #         target: ${{ matrix.platform.target }}
-  #         args: --release --out dist --find-interpreter ${{ matrix.platform.target }}
+  #         args: --release --out dist --interpreter ${{ matrix.platform.target }}
   #         sccache: 'true'
   #         manylinux: musllinux_1_2
   #     - name: Upload wheels
@@ -100,7 +100,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter ${{ matrix.platform.target }}
+          args: --release --out dist --interpreter ${{ matrix.platform.target }}
           sccache: 'true'
           manylinux: auto
       - name: Upload wheels
@@ -129,7 +129,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter ${{ matrix.platform.target }}
+          args: --release --out dist --interpreter ${{ matrix.platform.target }}
           sccache: 'true'
           manylinux: auto
       - name: Upload wheels
