@@ -34,6 +34,7 @@ Please see the [Argoverse User Guide](https://argoverse.github.io/user-guide/).
   - [4D Occupancy Forecasting](https://argoverse.github.io/user-guide/tasks/4d_occupancy_forecasting.html)
   - [End-to-End Forecasting](https://argoverse.github.io/user-guide/tasks/e2e_forecasting.html)
   - [Motion Forecasting](https://argoverse.github.io/user-guide/tasks/motion_forecasting.html)
+  - [Scenario Mining](https://argoverse.github.io/user-guide/tasks/scenario_mining.html)
 
 
 ## Citing
