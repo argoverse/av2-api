@@ -364,7 +364,7 @@ def evaluate(
     output_dir = out + "/partial_tracks"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    partial_track_hota, timestamp_f1, scenario_f1 = evaluate_scenario_mining(
+    partial_track_hota, scenario_f1, timestamp_f1 = evaluate_scenario_mining(
         track_predictions,
         labels,
         objective_metric=objective_metric,
