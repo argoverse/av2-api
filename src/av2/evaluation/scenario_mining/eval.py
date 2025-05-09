@@ -2,8 +2,8 @@
 
 Evaluation Metrics:
     HOTA: see https://arxiv.org/abs/2009.07736
-    scenario-level F1: see https://jivp-eurasipjournals.springeropen.com/articles/10.1155/2008/246309
-    timestamp-level F1: see https://arxiv.org/abs/2008.08063
+    scenario-level F1
+    timestamp-level F1
 """
 
 from pathlib import Path
@@ -251,8 +251,8 @@ def compute_temporal_metrics(
         output_dir: The directory to save the plotted confusion matrices.
 
     Returns:
-        timestamp_f1: The F1 score where each timestamp counts as a prediction to evaluate.
         scenario_f1: The F1 score where each log-prompt pair counts as a prediction to evaluate.
+        timestamp_f1: The F1 score where each timestamp counts as a prediction to evaluate.
 
 
     """
@@ -364,7 +364,7 @@ def evaluate(
     output_dir = out + "/partial_tracks"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    partial_track_hota, timestamp_f1, scenario_f1 = evaluate_scenario_mining(
+    partial_track_hota, scenario_f1, timestamp_f1 = evaluate_scenario_mining(
         track_predictions,
         labels,
         objective_metric=objective_metric,
@@ -421,8 +421,8 @@ def evaluate_scenario_mining(
 
     Returns:
         referred_hota: The HOTA tracking metric applied to all objects with the category REFERRED_OBJECT
-        timestamp_f1: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
         scenario_f1: A retrieval/classification metric for determining if each data log contains any instance of the prompt.
+        timestamp_f1: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
     """
     classes = list(AV2_CATEGORIES)
 
