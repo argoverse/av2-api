@@ -446,10 +446,7 @@ fn build_lidar_metadata(split_dir: PathBuf, sensor_name: &str) -> DataFrame {
     let pattern = split_dir.join(format!("*/sensors/{sensor_name}/*.feather"));
     let files = glob(pattern.to_str().unwrap())
         .expect("Failed to read glob pattern.")
-        .filter_map(|path| match path {
-            Ok(x) => Some(x),
-            _ => None,
-        })
+        .filter_map(|path| path.ok())
         .collect_vec();
 
     let log_id: Vec<_> = files
@@ -489,10 +486,7 @@ fn build_camera_metadata(split_dir: PathBuf, sensor_name: &str) -> DataFrame {
     let pattern = split_dir.join(format!("*/sensors/cameras/{sensor_name}/*.jpg"));
     let files = glob(pattern.to_str().unwrap())
         .expect("Failed to read glob pattern.")
-        .filter_map(|path| match path {
-            Ok(x) => Some(x),
-            _ => None,
-        })
+        .filter_map(|path| path.ok())
         .collect_vec();
 
     let log_id: Vec<_> = files
