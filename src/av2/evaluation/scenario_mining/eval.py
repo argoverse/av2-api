@@ -136,10 +136,12 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
             frame["translation_m"] = frame["translation_m"][is_evaluated]
             frame["size"] = frame["size"][is_evaluated]
             frame["yaw"] = frame["yaw"][is_evaluated]
-            frame["velocity_m_per_s"] = frame["velocity_m_per_s"][is_evaluated]
             frame["label"] = frame["label"][is_evaluated]
             frame["name"] = frame["name"][is_evaluated]
             frame["track_id"] = frame["track_id"][is_evaluated]
+
+            if "velocity_m_per_s" in frame:
+                frame["velocity_m_per_s"] = frame["velocity_m_per_s"][is_evaluated]
 
             if "score" in frame:
                 frame["score"] = frame["score"][is_evaluated]
