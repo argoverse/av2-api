@@ -49,13 +49,13 @@ class NDGrid:
         """Size of the grid _after_ bucketing."""
         range_m: NDArrayFloat = np.array(self.range_m)
         dims = self.scale_and_quantize_points(range_m)
-        return tuple(dims.tolist())
+        return tuple(int(x) for x in dims)
 
     @cached_property
     def range_m(self) -> Tuple[float, ...]:
         """Size of the grid _before_ bucketing."""
         range_m = np.subtract(self.max_range_m, self.min_range_m)
-        return tuple(range_m.tolist())
+        return tuple(float(x) for x in range_m)
 
     def scale_points(self, points: NDArrayNumber) -> NDArrayNumber:
         """Scale points by the (1/`resolution_m_per_cell`).

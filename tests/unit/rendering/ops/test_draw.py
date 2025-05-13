@@ -36,7 +36,8 @@ def _draw_points_cv2(
         The image with points overlaid.
     """
     line_type = cv2.LINE_AA if with_anti_alias else 0
-    for i, (x, y) in enumerate(points_xy):
+    points_list = [(int(x), int(y)) for x, y in points_xy]
+    for i, (x, y) in enumerate(points_list):
         rgb = colors[i]
         rgb = tuple([int(intensity) for intensity in rgb])
         img = cv2.circle(img, (x, y), radius, (0, 0, 0), -1, line_type)

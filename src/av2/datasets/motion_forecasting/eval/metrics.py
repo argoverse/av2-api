@@ -170,6 +170,10 @@ def compute_world_fde(
     Returns:
         (K,) Mean final displacement error for each of the predicted worlds.
     """
+    M, K, N, _ = forecasted_world_trajectories.shape
+    forecasted_world_trajectories = forecasted_world_trajectories.reshape(M, K, N, 2)
+    gt_world_trajectories = gt_world_trajectories.reshape(M, N, 2)
+
     actor_fdes = [
         compute_fde(forecasted_actor_trajectories, gt_actor_trajectory)
         for forecasted_actor_trajectories, gt_actor_trajectory in zip(
@@ -193,6 +197,10 @@ def compute_world_ade(
     Returns:
         (K,) Mean average displacement error for each of the predicted worlds.
     """
+    M, K, N, _ = forecasted_world_trajectories.shape
+    forecasted_world_trajectories = forecasted_world_trajectories.reshape(M, K, N, 2)
+    gt_world_trajectories = gt_world_trajectories.reshape(M, N, 2)
+
     actor_ades = [
         compute_ade(forecasted_actor_trajectories, gt_actor_trajectory)
         for forecasted_actor_trajectories, gt_actor_trajectory in zip(
@@ -219,6 +227,10 @@ def compute_world_misses(
     Returns:
         (M, K) bools indicating whether prediction missed for actor in each world.
     """
+    M, K, N, _ = forecasted_world_trajectories.shape
+    forecasted_world_trajectories = forecasted_world_trajectories.reshape(M, K, N, 2)
+    gt_world_trajectories = gt_world_trajectories.reshape(M, N, 2)
+
     actor_fdes = [
         compute_fde(forecasted_actor_trajectories, gt_actor_trajectory)
         for forecasted_actor_trajectories, gt_actor_trajectory in zip(
@@ -247,6 +259,10 @@ def compute_world_brier_fde(
     Returns:
         (K,) Mean probability-weighted final displacement error for each of the predicted worlds.
     """
+    M, K, N, _ = forecasted_world_trajectories.shape
+    forecasted_world_trajectories = forecasted_world_trajectories.reshape(M, K, N, 2)
+    gt_world_trajectories = gt_world_trajectories.reshape(M, N, 2)
+    
     actor_brier_fdes = [
         compute_brier_fde(
             forecasted_actor_trajectories,
