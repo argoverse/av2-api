@@ -606,7 +606,7 @@ def test_interpolate_pose() -> None:
 
     t0 = 0
     t1 = 10
-    for query_timestamp in np.arange(11):
+    for query_timestamp in np.arange(11, dtype=int):
         pose = interp_utils.interpolate_pose(
             key_timestamps=(t0, t1),
             key_poses=(city_SE3_egot0, city_SE3_egot1),
