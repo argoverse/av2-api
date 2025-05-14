@@ -42,7 +42,6 @@ jobs:
       - uses: psf/black@stable
         with:
           jupyter: true
-          use_pyproject: true
 
   ruff:
     name: Ruff
