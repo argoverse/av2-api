@@ -22,9 +22,7 @@ from av2.rendering.vector import draw_line_frustum
 from av2.utils.io import read_feather
 from av2.utils.typing import (
     NDArrayBool,
-    NDArrayByte,
     NDArrayFloat,
-    NDArrayInt,
     NDArrayNumber,
     NDArrayObject,
 )
@@ -63,7 +61,7 @@ class Cuboid:
     width_m: float
     height_m: float
     timestamp_ns: Optional[int] = None
-    category: Optional[Enum] = None
+    category: Optional[str] = None
 
     @property
     def xyz_center_m(self) -> NDArrayFloat:
@@ -160,8 +158,8 @@ class Cuboid:
     @classmethod
     def from_numpy(
         cls,
-        params: NDArrayObject,
-        category: Optional[Enum] = None,
+        params: NDArrayFloat,
+        category: Optional[str] = None,
         timestamp_ns: Optional[int] = None,
     ) -> Cuboid:
         """Convert a set of cuboid parameters to a `Cuboid` object.
@@ -350,9 +348,9 @@ class CuboidList:
 
         # Sort by z-order to respect visibility in the scene.
         # i.e, closer objects cuboids should be drawn on top of farther objects.
-        z_orders: NDArrayInt = np.argsort(-z_buffer)
+        z_orders = np.argsort(-z_buffer)
 
-        cuboids_vertices_cam = cuboids_vertices_cam[z_orders]
+        cuboids_vertices_cam = cuboids_vertices_cam[z_orders].reshape(N, V, D)
         front_face_indices = [0, 1, 2, 3, 0]
         back_face_indices = [4, 5, 6, 7, 4]
         line_segment_indices_list = [[0, 4], [1, 5], [2, 6], [3, 7]]
@@ -438,11 +436,16 @@ class CuboidList:
         Returns:
             Constructed cuboids.
         """
-        cuboids_parameters: NDArrayFloat = data.loc[
-            :, ORDERED_CUBOID_COL_NAMES
-        ].to_numpy()
-        categories: NDArrayObject = data.loc[:, "category"].to_numpy()
-        timestamps_ns: NDArrayInt = data.loc[:, "timestamp_ns"].to_numpy()
+        cuboids_parameters = (
+            data.loc[:, ORDERED_CUBOID_COL_NAMES]
+            .to_numpy()
+            .reshape(-1, len(ORDERED_CUBOID_COL_NAMES))
+            .astype(np.float64)
+        )
+        categories = [str(x) for x in data.loc[:, "category"].to_numpy().reshape(-1, 1)]
+        timestamps_ns = [
+            int(x) for x in data.loc[:, "timestamp_ns"].to_numpy().reshape(-1, 1)
+        ]
 
         cuboid_list = [
             Cuboid.from_numpy(params, category, timestamp_ns)
