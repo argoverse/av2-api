@@ -173,7 +173,8 @@ def write_video(
         }
 
         format = COLOR_FORMAT_TO_PYAV_COLOR_FORMAT[color_format]
-        for _, img in enumerate(video):
+        for _, img_ in enumerate(video):
+            img = cast(NDArrayByte, img_)
             frame = av.VideoFrame.from_ndarray(img, format=format)
             output.mux(stream.encode(frame))
         output.mux(stream.encode(None))

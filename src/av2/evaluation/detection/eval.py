@@ -409,19 +409,19 @@ def evaluate_hierarchy(
     uuids: List[Tuple[str, int]] = sorted(uuid_to_dts.keys() | uuid_to_gts.keys())
     for uuid in uuids:
         log_id, timestamp_ns = uuid
-        sweep_dts: NDArrayFloat = np.zeros((0, 10))
-        sweep_gts: NDArrayFloat = np.zeros((0, 10))
+        sweep_dts = np.zeros((0, 10))
+        sweep_gts = np.zeros((0, 10))
 
         sweep_dts_categories = np.zeros((0, 1), dtype=np.object_)
         sweep_gts_categories = np.zeros((0, 1), dtype=np.object_)
 
         if uuid in uuid_to_dts:
-            sweep_dts = uuid_to_dts[uuid]
-            sweep_dts_categories = uuid_to_dts_cats[uuid]
+            sweep_dts = uuid_to_dts[uuid].reshape(-1, 10)
+            sweep_dts_categories = uuid_to_dts_cats[uuid].reshape(-1, 1)
 
         if uuid in uuid_to_gts:
-            sweep_gts = uuid_to_gts[uuid]
-            sweep_gts_categories = uuid_to_gts_cats[uuid]
+            sweep_gts = uuid_to_gts[uuid].reshape(-1, 10)
+            sweep_gts_categories = uuid_to_gts_cats[uuid].reshape(-1, 1)
 
         args: Tuple[
             NDArrayFloat,
@@ -475,19 +475,19 @@ def evaluate_hierarchy(
     gts_uuids_list: List[Tuple[str, int]] = []
     dts_categories_list, gts_categories_list = [], []
     for (
-        sweep_dts,
-        sweep_gts,
-        sweep_dts_categories,
-        sweep_gts_categories,
+        sweep_dts_,
+        sweep_gts_,
+        sweep_dts_categories_,
+        sweep_gts_categories_,
         uuid,
     ) in outputs:
-        dts_list.append(sweep_dts)
-        gts_list.append(sweep_gts)
-        dts_categories_list.append(sweep_dts_categories)
-        gts_categories_list.append(sweep_gts_categories)
+        dts_list.append(sweep_dts_)
+        gts_list.append(sweep_gts_)
+        dts_categories_list.append(sweep_dts_categories_)
+        gts_categories_list.append(sweep_gts_categories_)
 
-        num_dts = len(sweep_dts)
-        num_gts = len(sweep_gts)
+        num_dts = len(sweep_dts_)
+        num_gts = len(sweep_gts_)
         dts_uuids_list.extend(num_dts * [uuid])
         gts_uuids_list.extend(num_gts * [uuid])
 

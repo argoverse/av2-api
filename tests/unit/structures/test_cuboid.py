@@ -123,7 +123,7 @@ def _get_dummy_cuboid_list_params(num_cuboids: int) -> List[Cuboid]:
             length_m=length_m + i,
             width_m=width_m + i,
             height_m=height_m + i,
-            category=category,
+            category=category.value,
             timestamp_ns=timestamp_ns,
         )
         cuboids.append(cuboid)
@@ -145,7 +145,7 @@ def test_cuboid_constructor() -> None:
         length_m=length_m,
         width_m=width_m,
         height_m=height_m,
-        category=category,
+        category=category.value,
         timestamp_ns=timestamp_ns,
     )
 

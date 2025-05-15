@@ -13,7 +13,7 @@ increased interpretability of the error modes in a set of detections.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -134,7 +134,7 @@ def accumulate(
 
     # Sort the detections by score in _descending_ order.
     scores: NDArrayFloat = dts[..., -1]
-    permutation: NDArrayInt = np.argsort(-scores).tolist()
+    permutation = np.argsort(-scores).tolist()
     dts = dts[permutation]
 
     is_evaluated_dts: NDArrayBool = np.ones(N, dtype=bool)
@@ -297,14 +297,16 @@ def accumulate_hierarchy(
     for pred_idx, pred in enumerate(zip(dts, dts_cats, dts_uuids)):
         pred_box, pred_cat, pred_uuid = pred
         min_dist = len(cfg.affinity_thresholds_m) * [np.inf]
-        match_gt_idx = len(cfg.affinity_thresholds_m) * [None]
+        match_gt_idx = cast(
+            list[Optional[int]], len(cfg.affinity_thresholds_m) * [None]
+        )
 
         if len(gts_uuids) > 0:
             keep_sweep = np.all(
                 gts_uuids == np.array([gts.shape[0] * [pred_uuid]]).squeeze(), axis=1
             )
         else:
-            keep_sweep = []
+            keep_sweep = np.empty((0,), dtype=bool)
 
         gt_ind_sweep = np.arange(gts.shape[0])[keep_sweep]
         gts_sweep = gts[keep_sweep]
@@ -323,7 +325,7 @@ def accumulate_hierarchy(
                     this_distance = dist_mat[pred_idx][gt_idx]
                     if this_distance < min_dist[i]:
                         min_dist[i] = this_distance
-                        match_gt_idx[i] = gt_idx
+                        match_gt_idx[i] = int(gt_idx)
 
         is_match = [
             min_dist[i] < dist_th for i, dist_th in enumerate(cfg.affinity_thresholds_m)
@@ -341,7 +343,7 @@ def accumulate_hierarchy(
                     this_distance = dist_mat[pred_idx][gt_idx]
                     if this_distance < min_dist[i]:
                         min_dist[i] = this_distance
-                        match_gt_idx[i] = gt_idx
+                        match_gt_idx[i] = int(gt_idx)
 
         is_dist = [
             min_dist[i] < dist_th for i, dist_th in enumerate(cfg.affinity_thresholds_m)
@@ -626,7 +628,7 @@ def compute_objects_in_roi_mask(
         cuboid_list_vertices_m_city.reshape(-1, 3)[..., :2], RasterLayerType.ROI
     )
     is_within_roi = is_within_roi.reshape(-1, 8)
-    is_within_roi = is_within_roi.any(axis=1)
+    is_within_roi = cast(NDArrayBool, is_within_roi.any(axis=1))
     return is_within_roi
 
 
