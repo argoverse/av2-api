@@ -2,7 +2,7 @@
 
 """Geometric utilities for manipulation point clouds, rigid objects, and vector geometry."""
 
-from typing import Tuple, cast
+from typing import Tuple, cast, Union
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -203,10 +203,10 @@ def hom_to_cart(hom: NDArrayFloat) -> NDArrayFloat:
 
 
 def crop_points(
-    points: NDArrayFloat | NDArrayInt,
+    points: Union[NDArrayFloat, NDArrayInt],
     lower_bound_inclusive: Tuple[float, ...],
     upper_bound_exclusive: Tuple[float, ...],
-) -> Tuple[NDArrayFloat | NDArrayInt, NDArrayBool]:
+) -> Tuple[Union[NDArrayFloat, NDArrayInt], NDArrayBool]:
     """Crop points to a lower and upper boundary.
 
     NOTE: Ellipses indicate any number of proceeding dimensions allowed for input.

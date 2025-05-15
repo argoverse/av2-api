@@ -297,7 +297,9 @@ def accumulate_hierarchy(
     for pred_idx, pred in enumerate(zip(dts, dts_cats, dts_uuids)):
         pred_box, pred_cat, pred_uuid = pred
         min_dist = len(cfg.affinity_thresholds_m) * [np.inf]
-        match_gt_idx = cast(list[int | None], len(cfg.affinity_thresholds_m) * [None])
+        match_gt_idx = cast(
+            list[Optional[int]], len(cfg.affinity_thresholds_m) * [None]
+        )
 
         if len(gts_uuids) > 0:
             keep_sweep = np.all(
