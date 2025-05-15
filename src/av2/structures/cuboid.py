@@ -439,13 +439,11 @@ class CuboidList:
         cuboids_parameters = (
             data.loc[:, ORDERED_CUBOID_COL_NAMES]
             .to_numpy()
-            .reshape(-1, len(ORDERED_CUBOID_COL_NAMES))
             .astype(np.float64)
+            .reshape(-1, len(ORDERED_CUBOID_COL_NAMES))
         )
-        categories = [str(x) for x in data.loc[:, "category"].to_numpy().reshape(-1, 1)]
-        timestamps_ns = [
-            int(x) for x in data.loc[:, "timestamp_ns"].to_numpy().reshape(-1, 1)
-        ]
+        categories = data["category"].to_list()
+        timestamps_ns = data["timestamp_ns"].to_list()
 
         cuboid_list = [
             Cuboid.from_numpy(params, category, timestamp_ns)
