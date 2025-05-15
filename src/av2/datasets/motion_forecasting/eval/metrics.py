@@ -262,7 +262,7 @@ def compute_world_brier_fde(
     M, K, N, _ = forecasted_world_trajectories.shape
     forecasted_world_trajectories = forecasted_world_trajectories.reshape(M, K, N, 2)
     gt_world_trajectories = gt_world_trajectories.reshape(M, N, 2)
-    
+
     actor_brier_fdes = [
         compute_brier_fde(
             forecasted_actor_trajectories,

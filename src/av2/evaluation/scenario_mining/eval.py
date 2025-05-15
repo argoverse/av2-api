@@ -7,7 +7,7 @@ Evaluation Metrics:
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union, cast
 from copy import deepcopy
 import pickle
 import click
@@ -188,7 +188,7 @@ def compute_objects_in_roi_mask(
         cuboid_list_vertices_m_city.reshape(-1, 3)[..., :2], RasterLayerType.ROI
     )
     is_within_roi = is_within_roi.reshape(-1, 8)
-    is_within_roi = is_within_roi.any(axis=1)
+    is_within_roi = cast(NDArrayBool, is_within_roi.any(axis=1))
     return is_within_roi
 
 

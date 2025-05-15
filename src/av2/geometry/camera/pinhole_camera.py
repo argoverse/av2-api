@@ -155,7 +155,7 @@ class PinholeCamera:
         """
         # convert cartesian to homogeneous coordinates.
         points_ego_hom = geometry_utils.cart_to_hom(points_ego)
-        points_cam: NDArrayFloat = self.extrinsics @ points_ego_hom.T
+        points_cam = self.extrinsics @ points_ego_hom.T
 
         # remove bottom row of all 1s.
         uv = self.intrinsics.K @ points_cam[:3, :]
@@ -163,7 +163,7 @@ class PinholeCamera:
         points_cam = points_cam.T
 
         if remove_nan:
-            uv, points_cam = remove_nan_values(uv, points_cam)
+            uv, points_cam = remove_nan_values(uv, points_cam) # type: ignore
 
         uv = uv[:, :2] / uv[:, 2].reshape(-1, 1)
         is_valid_points = self.cull_to_view_frustum(uv, points_cam)
