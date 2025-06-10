@@ -40,6 +40,8 @@ jobs:
         with:
           python-version: '3.x'
       - uses: psf/black@stable
+        with:
+          jupyter: true
 
   ruff:
     name: Ruff
