@@ -255,7 +255,7 @@ def compute_temporal_metrics(
         output_dir: The directory to save the plotted confusion matrices.
 
     Returns:
-        scenario_ba: The balanced accracuy where each log-prompt pair counts as a prediction to evaluate.
+        scenario_ba: The balanced accracuy where each log prompt pair counts as a prediction to evaluate.
         timestamp_ba: The balanced accuracy where each timestamp counts as a prediction to evaluate.
 
 
