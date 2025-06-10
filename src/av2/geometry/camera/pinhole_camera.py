@@ -7,7 +7,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Tuple, Union, cast
 
 import numpy as np
 
@@ -419,7 +419,7 @@ class PinholeCamera:
         ray_dirs = ray_dirs / np.linalg.norm(ray_dirs, axis=1, keepdims=True)
         if ray_dirs.shape[1] != 3:
             raise RuntimeError("Ray directions must be (N,3)")
-        return ray_dirs
+        return cast(NDArrayFloat, ray_dirs)
 
     def scale(self, scale: float) -> PinholeCamera:
         """Scale the intrinsics and image size.
