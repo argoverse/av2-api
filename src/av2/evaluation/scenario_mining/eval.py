@@ -2,8 +2,8 @@
 
 Evaluation Metrics:
     HOTA: see https://arxiv.org/abs/2009.07736
-    scenario-level F1
-    timestamp-level F1
+    log-level balanced accuracy
+    timestamp-level balanced accuracy
 """
 
 from pathlib import Path
@@ -241,11 +241,13 @@ def referred_full_tracks(sequences: Sequences) -> Sequences:
 def compute_temporal_metrics(
     track_predictions: Sequences, labels: Sequences, output_dir: str
 ) -> tuple[float, float]:
-    """Calculates the F1 score.
+    """Calculates the balanced accuracy for log and timestamp retrival.
 
-    F1 is a binary classification metric. A true postive when both
+    Balanced Accuracy (BA) is a binary classification metric. A true postive when both
     the ground-truth and prediction sequence/timestamp contain no tracks
     or both contain at least one track corresponding to the prompt.
+
+    The formula for BA is: (TP/(TP+FP) + TN/(TN+FN))/2
 
     Args:
         track_predictions: Prediction sequences.
@@ -253,8 +255,8 @@ def compute_temporal_metrics(
         output_dir: The directory to save the plotted confusion matrices.
 
     Returns:
-        scenario_f1: The F1 score where each log-prompt pair counts as a prediction to evaluate.
-        timestamp_f1: The F1 score where each timestamp counts as a prediction to evaluate.
+        scenario_ba: The balanced accracuy where each log prompt pair counts as a prediction to evaluate.
+        timestamp_ba: The balanced accuracy where each timestamp counts as a prediction to evaluate.
 
 
     """
@@ -288,10 +290,24 @@ def compute_temporal_metrics(
     scenario_fn = np.sum(scenario_gt & ~scenario_pred)
     scenario_tn = np.sum(~scenario_gt & ~scenario_pred)
 
-    scenario_f1 = float(2 * scenario_tp / (2 * scenario_tp + scenario_fp + scenario_fn))
-    timestamp_f1 = float(
-        2 * timestamp_tp / (2 * timestamp_tp + timestamp_fp + timestamp_fn)
-    )
+    # Balanced Accuracy: https://en.wikipedia.org/wiki/Evaluation_of_binary_classifiers
+    # (TPR + TNR) / 2
+    scenario_tpr = scenario_tp / (scenario_tp + scenario_fp)
+    scenario_tnr = scenario_tn / (scenario_tn + scenario_fn)
+    timestamp_tpr = timestamp_tp / (timestamp_tp + timestamp_fp)
+    timestamp_tnr = timestamp_tn / (timestamp_tn + timestamp_fn)
+
+    if scenario_tp + scenario_fp == 0:
+        scenario_tpr = 1.0
+    if scenario_tn + scenario_fn == 0:
+        scenario_tnr = 1.0
+    if timestamp_tp + timestamp_fp == 0:
+        timestamp_tpr = 1.0
+    if timestamp_tn + timestamp_fn == 0:
+        timestamp_tnr = 1.0
+
+    scenario_ba = float((scenario_tpr + scenario_tnr) / 2)
+    timestamp_ba = float((timestamp_tpr + timestamp_tnr) / 2)
 
     _plot_confusion_matrix(
         scenario_tp,
@@ -310,7 +326,7 @@ def compute_temporal_metrics(
         output_dir=output_dir,
     )
 
-    return scenario_f1, timestamp_f1
+    return scenario_ba, timestamp_ba
 
 
 def _relabel_seq_ids(sequences: Sequences) -> Sequences:
@@ -360,13 +376,13 @@ def evaluate(
     Returns:
         partial_track_HOTA: The tracking metric for the tracks that contain only the timestamps for which the description applies.
         full_track_HOTA: The tracking metric for the full track of any objects that the description ever applies to.
-        timestamp_f1: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
-        scenario_f1: A retrieval/classification metric for determining if each data log contains any instance of the prompt.
+        timestamp_ba: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
+        scenario_ba: A retrieval/classification metric for determining if each data log contains any instance of the prompt.
     """
     output_dir = out + "/partial_tracks"
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    partial_track_hota, scenario_f1, timestamp_f1 = evaluate_scenario_mining(
+    partial_track_hota, scenario_ba, timestamp_ba = evaluate_scenario_mining(
         track_predictions,
         labels,
         objective_metric=objective_metric,
@@ -394,8 +410,8 @@ def evaluate(
     return (
         partial_track_hota,
         full_track_hota,
-        timestamp_f1,
-        scenario_f1,
+        timestamp_ba,
+        scenario_ba,
     )
 
 
@@ -423,8 +439,8 @@ def evaluate_scenario_mining(
 
     Returns:
         referred_hota: The HOTA tracking metric applied to all objects with the category REFERRED_OBJECT
-        scenario_f1: A retrieval/classification metric for determining if each data log contains any instance of the prompt.
-        timestamp_f1: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
+        scenario_ba: A retrieval/classification metric for determining if each data log contains any instance of the prompt.
+        timestamp_ba: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
     """
     classes = list(AV2_CATEGORIES)
 
@@ -461,14 +477,14 @@ def evaluate_scenario_mining(
     referrred_hota = tuned_metric_values["REFERRED_OBJECT"]
 
     if not full_tracks:
-        scenario_f1, timestamp_f1 = compute_temporal_metrics(
+        scenario_ba, timestamp_ba = compute_temporal_metrics(
             filtered_track_predictions, labels, out
         )
     else:
-        scenario_f1 = 0
-        timestamp_f1 = 0
+        scenario_ba = 0
+        timestamp_ba = 0
 
-    return referrred_hota, scenario_f1, timestamp_f1
+    return referrred_hota, scenario_ba, timestamp_ba
 
 
 @click.command()
@@ -501,14 +517,14 @@ def runner(
     with open(ground_truth, "rb") as f:
         labels = pickle.load(f)
 
-    partial_track_hota, full_track_hota, timestamp_f1, scenario_f1 = evaluate(
+    partial_track_hota, full_track_hota, timestamp_ba, scenario_ba = evaluate(
         track_predictions, labels, objective_metric, max_range_m, dataset_dir, out
     )
 
-    print(f"Temporally-localized HOTA: {partial_track_hota:.2f}")
-    print(f"Full-lifespan HOTA: {full_track_hota:.2f}")
-    print(f"Timestamp-level F1: {timestamp_f1:.2f}")
-    print(f"Scenario-level F1: {scenario_f1:.2f}")
+    print(f"HOTA-Temporal: {partial_track_hota:.2f}")
+    print(f"HOTA-Track: {full_track_hota:.2f}")
+    print(f"Timestamp-level Balanced Accuracy: {timestamp_ba:.2f}")
+    print(f"Log-level Balanced Accuracy: {scenario_ba:.2f}")
 
 
 if __name__ == "__main__":
