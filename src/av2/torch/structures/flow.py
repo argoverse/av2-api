@@ -8,6 +8,8 @@ from typing import Dict, Final, Tuple
 import torch
 from kornia.geometry.linalg import transform_points
 from torch import BoolTensor, ByteTensor, FloatTensor
+from copy import deepcopy
+import numpy as np
 
 from av2.evaluation.scene_flow.constants import (
     CATEGORY_TO_INDEX,
@@ -82,29 +84,59 @@ class Flow:
         is_valid = torch.ones(len(current_pc), dtype=torch.bool)
         category_inds = torch.zeros(len(current_pc), dtype=torch.uint8)
 
-        for id in current_cuboid_map:
-            c0 = current_cuboid_map[id]
-            c0.length_m += BOUNDING_BOX_EXPANSION  # the bounding boxes are a little too tight sometimes
-            c0.width_m += BOUNDING_BOX_EXPANSION
-            obj_pts_npy, obj_mask_npy = c0.compute_interior_points(current_pc.numpy())
-            obj_pts, obj_mask = (
-                torch.as_tensor(obj_pts_npy, dtype=torch.float32),
-                torch.as_tensor(obj_mask_npy),
-            )
-            category_inds[obj_mask] = CATEGORY_TO_INDEX[str(c0.category)]
+        # # old version: fixed bounding box expansion
+        # for id in current_cuboid_map:
+        #     c0 = current_cuboid_map[id]
+        #     c0.length_m += BOUNDING_BOX_EXPANSION  # the bounding boxes are a little too tight sometimes
+        #     c0.width_m += BOUNDING_BOX_EXPANSION
+        #     obj_pts_npy, obj_mask_npy = c0.compute_interior_points(current_pc.numpy())
+        #     obj_pts, obj_mask = torch.as_tensor(
+        #         obj_pts_npy, dtype=torch.float32
+        #     ), torch.as_tensor(obj_mask_npy)
+        #     category_inds[obj_mask] = CATEGORY_TO_INDEX[str(c0.category)]
 
+        #     if id in next_cuboid_map:
+        #         c1 = next_cuboid_map[id]
+        #         c1_SE3_c0 = c1.dst_SE3_object.compose(c0.dst_SE3_object.inverse())
+        #         flow[obj_mask] = (
+        #             torch.as_tensor(
+        #                 c1_SE3_c0.transform_point_cloud(obj_pts.numpy()),
+        #                 dtype=torch.float32,
+        #             )
+        #             - obj_pts
+        #         )
+        #     else:
+        #         is_valid[obj_mask] = 0
+
+        # NOTE(HiMo): box expansion based on the object velocity
+        # check more detail: https://kin-zhang.github.io/HiMo
+        current_pc_npy = current_pc.numpy()
+        for id in current_cuboid_map:
+            c0 = deepcopy(current_cuboid_map[id])
+            obj_pts_npy, obj_mask_npy = c0.compute_interior_points(current_pc_npy)
             if id in next_cuboid_map:
                 c1 = next_cuboid_map[id]
                 c1_SE3_c0 = c1.dst_SE3_object.compose(c0.dst_SE3_object.inverse())
+                rel_obj_flow = c1_SE3_c0.transform_point_cloud(obj_pts_npy) - obj_pts_npy
+                delta_move = abs(np.linalg.norm(rel_obj_flow, axis=0).mean())
+                if delta_move > 0.04: # only when it's moving 0.4m/s
+                    c0 = current_cuboid_map[id]
+                    c0.length_m += (BOUNDING_BOX_EXPANSION + min(delta_move/2, 2)) # since 180/360 for two LiDARs orientation
+                    c0.width_m += BOUNDING_BOX_EXPANSION
+                    c0.height_m += BOUNDING_BOX_EXPANSION
+                obj_pts, obj_mask = c0.compute_interior_points(current_pc_npy)
+
+                # after expansion, we need to recompute the flow
+                c1_SE3_c0 = c1.dst_SE3_object.compose(c0.dst_SE3_object.inverse())
                 flow[obj_mask] = (
                     torch.as_tensor(
-                        c1_SE3_c0.transform_point_cloud(obj_pts_npy),
+                        c1_SE3_c0.transform_point_cloud(obj_pts),
                         dtype=torch.float32,
                     )
                     - obj_pts
                 )
             else:
-                is_valid[obj_mask] = 0
+                is_valid[torch.as_tensor(obj_mask_npy)] = 0
 
         dynamic_norm = torch.linalg.vector_norm(flow - rigid_flow, dim=-1)
         is_dynamic: BoolTensor = dynamic_norm >= SCENE_FLOW_DYNAMIC_THRESHOLD
