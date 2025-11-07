@@ -1,3 +1,5 @@
+"""Motion forecasting evaluation script for Argoverse 2 challenge submissions."""
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -30,6 +32,15 @@ RESULTS_COL_NAMES: Final = [
 
 
 class TrackAnnotations(NamedTuple):
+    """Ground truth annotations for a single track.
+    
+    Attributes:
+        scenario_id: Unique identifier for the scenario.
+        track_id: Unique identifier for the track within the scenario.
+        is_focal_track: Whether this is a focal track to be evaluated.
+        gt_trajectory_x: Ground truth x-coordinates of the trajectory.
+        gt_trajectory_y: Ground truth y-coordinates of the trajectory.
+    """
     scenario_id: str
     track_id: str
     is_focal_track: bool
@@ -38,8 +49,7 @@ class TrackAnnotations(NamedTuple):
 
 
 def evaluate(test_annotation_file: Path, user_submission_file: str) -> Dict[str, Any]:
-    """
-    Evaluates the submission for a particular challenge phase and returns score.
+    """Evaluates the submission for a particular challenge phase and returns score.
 
     Args:
         test_annotation_file: Path to test_annotation_file on the server, for argoverse challenge this is path to the dataset split folder
