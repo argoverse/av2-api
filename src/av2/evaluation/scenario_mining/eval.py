@@ -276,7 +276,7 @@ def compute_temporal_metrics(
             if 'is_positive' in frame and frame["is_positive"]:
                 timestamp_gt[j] = True
                 scenario_gt[i] = True
-            elif len(frame["label"]) > 0 and 0 in frame["label"]:
+            elif "label" in frame and len(frame["label"]) > 0 and 0 in frame["label"]:
                 timestamp_gt[j] = True
                 scenario_gt[i] = True
 
@@ -284,7 +284,7 @@ def compute_temporal_metrics(
             if 'is_positive' in frame and frame["is_positive"]:
                 timestamp_pred[j] = True
                 scenario_pred[i] = True                
-            elif len(frame["label"]) > 0 and 0 in frame["label"]:
+            elif "label" in frame and len(frame["label"]) > 0 and 0 in frame["label"]:
                 timestamp_pred[j] = True
                 scenario_pred[i] = True
 
