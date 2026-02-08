@@ -27,6 +27,7 @@ if version.parse(np.__version__) >= version.parse("1.24.0"):
     setattr(np, "bool", numpy_bool)
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -273,7 +274,7 @@ def compute_temporal_metrics(
         timestamp_pred = np.zeros(len(labels[description]), dtype=bool)
 
         for j, frame in enumerate(labels[description]):
-            if 'is_positive' in frame and frame["is_positive"]:
+            if "is_positive" in frame and frame["is_positive"]:
                 timestamp_gt[j] = True
                 scenario_gt[i] = True
             elif "label" in frame and len(frame["label"]) > 0 and 0 in frame["label"]:
@@ -281,9 +282,9 @@ def compute_temporal_metrics(
                 scenario_gt[i] = True
 
         for j, frame in enumerate(track_predictions[description]):
-            if 'is_positive' in frame and frame["is_positive"]:
+            if "is_positive" in frame and frame["is_positive"]:
                 timestamp_pred[j] = True
-                scenario_pred[i] = True                
+                scenario_pred[i] = True
             elif "label" in frame and len(frame["label"]) > 0 and 0 in frame["label"]:
                 timestamp_pred[j] = True
                 scenario_pred[i] = True
@@ -372,8 +373,9 @@ def evaluate(
     dataset_dir: str,
     out: str,
 ) -> tuple[float, float, float, float]:
-    """Run scenario mining evaluation on the supplied prediction and label pkl files. If tracks are not submitted within 
-    the scenario_predictions dictionary, only temporal metrics will be computed.
+    """Run scenario mining evaluation on the supplied prediction and label pkl files.
+
+    If tracks are not submitted within the scenario_predictions dictionary, only temporal metrics will be computed.
 
     Args:
         scenario_predictions: Prediction sequences.
@@ -389,16 +391,17 @@ def evaluate(
         timestamp_ba: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
         scenario_ba: A retrieval/classification metric for determining if each data log contains any instance of the prompt.
     """
-
-    # If user submits scenario predictions containting tracks/bounding boxes, evaluate as normally
-    # else evaluate only temporal metrics
     contains_tracking = False
     for frames in scenario_predictions.values():
         for frame in frames:
-            if 'is_positive' not in frame:
+            if "is_positive" not in frame:
                 contains_tracking = True
                 break
-            elif 'track_id' in frame and isinstance(frame['track_id'], np.ndarray) and len(frame['track_id'] > 0):
+            elif (
+                "track_id" in frame
+                and isinstance(frame["track_id"], np.ndarray)
+                and len(frame["track_id"] > 0)
+            ):
                 contains_tracking = True
                 break
 
@@ -407,9 +410,11 @@ def evaluate(
 
     if not contains_tracking:
 
-        partial_track_hota = 0
-        full_track_hota = 0
-        scenario_ba, timestamp_ba = compute_temporal_metrics(scenario_predictions, labels, out)
+        partial_track_hota = 0.0
+        full_track_hota = 0.0
+        scenario_ba, timestamp_ba = compute_temporal_metrics(
+            scenario_predictions, labels, out
+        )
 
     else:
         labels = filter_max_dist(labels, max_range_m)
@@ -417,7 +422,9 @@ def evaluate(
 
         if dataset_dir is not None:
             labels = filter_drivable_area(labels, dataset_dir)
-            scenario_predictions = filter_drivable_area(scenario_predictions, dataset_dir)
+            scenario_predictions = filter_drivable_area(
+                scenario_predictions, dataset_dir
+            )
 
         scenario_predictions = _relabel_seq_ids(scenario_predictions)
         labels = _relabel_seq_ids(labels)
@@ -510,8 +517,8 @@ def evaluate_scenario_mining(
             filtered_track_predictions, labels, out
         )
     else:
-        scenario_ba = 0
-        timestamp_ba = 0
+        scenario_ba = 0.0
+        timestamp_ba = 0.0
 
     return referrred_hota, scenario_ba, timestamp_ba
 
