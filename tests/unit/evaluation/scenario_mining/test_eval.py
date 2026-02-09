@@ -8,7 +8,6 @@ import pickle
 
 from av2.evaluation.scenario_mining.eval import evaluate
 
-
 matplotlib.use("Agg")
 if sys.stdout is None:
     sys.stdout = open("stdout.log", "w")
@@ -23,7 +22,7 @@ def test_evaluate() -> None:
 
     objective_metric = "HOTA"
     max_range_m = 100
-    dataset_dir = TEST_DATA_DIR
+    dataset_dir = str(TEST_DATA_DIR)
     out = str(TEST_DATA_DIR / "eval_results")
 
     with open(pred_pkl, "rb") as f:

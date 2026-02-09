@@ -25,7 +25,7 @@ def run_command(
         Tuple of (stdout, stderr) output if return_output is True, else None
     """
     print(cmd)
-    (stdout_data, stderr_data) = subprocess.Popen(
+    stdout_data, stderr_data = subprocess.Popen(
         cmd, shell=True, stdout=subprocess.PIPE
     ).communicate()
 

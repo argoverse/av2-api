@@ -21,4 +21,4 @@ SUBMETRIC_TO_METRIC_CLASS_NAME: Final = {
     "HOTA": "HOTA",
 }
 
-AV2_CATEGORIES: Final = tuple(x.value for x in ScenarioMiningCategories)
+SCENARIO_MINING_CATEGORIES: Final = tuple(x.value for x in ScenarioMiningCategories)
