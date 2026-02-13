@@ -18,7 +18,7 @@ import math
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Final, List, Optional, Tuple, Union
+from typing import Dict, Final, List, Optional, Tuple, Union, cast
 
 import numpy as np
 from upath import UPath
@@ -130,13 +130,17 @@ class GroundHeightLayer(RasterMapLayer):
             RuntimeError: If raster ground height layer file is missing or Sim(2) mapping from city to image coordinates
                 is missing.
         """
-        ground_height_npy_fpaths = sorted(
-            log_map_dirpath.glob("*_ground_height_surface____*.npy")
+        ground_height_npy_fpaths = cast(
+            List[Path],
+            sorted(log_map_dirpath.glob("*_ground_height_surface____*.npy")),
         )
         if not len(ground_height_npy_fpaths) == 1:
             raise RuntimeError("Raster ground height layer file is missing")
 
-        Sim2_json_fpaths = sorted(log_map_dirpath.glob("*___img_Sim2_city.json"))
+        Sim2_json_fpaths = cast(
+            List[Path],
+            sorted(log_map_dirpath.glob("*___img_Sim2_city.json")),
+        )
         if not len(Sim2_json_fpaths) == 1:
             raise RuntimeError(
                 "Sim(2) mapping from city to image coordinates is missing"
@@ -407,7 +411,9 @@ class ArgoverseStaticMap:
             RuntimeError: If the vector map data JSON file is missing.
         """
         # Load vector map data from JSON file
-        vector_data_fnames = sorted(log_map_dirpath.glob("log_map_archive_*.json"))
+        vector_data_fnames = cast(
+            List[Path], sorted(log_map_dirpath.glob("log_map_archive_*.json"))
+        )
         if not len(vector_data_fnames) == 1:
             raise RuntimeError(
                 f"JSON file containing vector map data is missing (searched in {log_map_dirpath})"

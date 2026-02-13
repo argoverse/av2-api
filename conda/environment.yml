@@ -9,8 +9,9 @@ dependencies:
   - matplotlib-base
   - maturin
   - nox
+  - python>=3.9,<3.13
   - numba
-  - numpy
+  - numpy>=1.24,<2.0
   - openblas
   - opencv
   - openssl

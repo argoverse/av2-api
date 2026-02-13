@@ -8,10 +8,14 @@ import pickle
 
 from av2.evaluation.scenario_mining.eval import evaluate
 
-
 matplotlib.use("Agg")
 if sys.stdout is None:
     sys.stdout = open("stdout.log", "w")
+
+if "numpy._core" not in sys.modules:
+    import numpy.core as _np_core
+
+    sys.modules["numpy._core"] = _np_core
 
 TEST_DATA_DIR: Final[Path] = Path(__file__).parent.resolve() / "data"
 

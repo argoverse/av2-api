@@ -5,10 +5,10 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from functools import cached_property
-from pathlib import Path
 from typing import List, Optional, Tuple
 
 import pandas as pd
+from upath import UPath
 from kornia.geometry.liegroup import Se3
 from torch.utils.data import Dataset
 
@@ -54,7 +54,7 @@ class SceneFlowDataloader(Dataset[Tuple[Sweep, Sweep, Se3, Optional[Flow]]]):
             self.memory_mapped,
         )
         self.data_dir = (
-            Path(self.root_dir) / self.dataset_name / "sensor" / self.split_name
+            UPath(self.root_dir) / self.dataset_name / "sensor" / self.split_name
         )
 
     @cached_property
