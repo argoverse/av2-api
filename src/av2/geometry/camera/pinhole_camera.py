@@ -163,7 +163,7 @@ class PinholeCamera:
         points_cam = points_cam.T
 
         if remove_nan:
-            uv, points_cam = remove_nan_values(uv, points_cam)  # type: ignore
+            uv, points_cam = remove_nan_values(uv, points_cam)
 
         uv = uv[:, :2] / uv[:, 2].reshape(-1, 1)
         is_valid_points = self.cull_to_view_frustum(uv, points_cam)

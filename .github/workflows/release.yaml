@@ -6,15 +6,25 @@ on:
       - main
       - master
     tags:
-      - '*'
+      - "*"
   pull_request:
   workflow_dispatch:
-
 permissions:
   contents: read
 
 jobs:
+  validate_tag_version:
+    name: Validate tag version alignment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure tag version matches rust/Cargo.toml
+        shell: bash
+        run: |
+          python scripts/validate_tag_version.py
+
   linux:
+    needs: [validate_tag_version]
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -29,19 +39,53 @@ jobs:
           #   target: armv7
           # - runner: ubuntu-22.04
           #   target: ppc64le
-        python_version:
-          ["3.9", "3.10", "3.11", "3.12"]
+        python_version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+      - id: version
+        name: Resolve package version
+        shell: bash
+        run: |
+          VERSION="$(python scripts/resolve_release_version.py)"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved version: ${VERSION}"
+      - name: Apply package version
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          cargo_toml = Path("rust/Cargo.toml")
+          text = cargo_toml.read_text()
+          pattern = r'(^\[package\][\s\S]*?^version\s*=\s*)"[^"]+"'
+          new_text, count = re.subn(
+              pattern,
+              lambda m: f'{m.group(1)}"{version}"',
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if count != 1:
+              raise SystemExit("Failed to update [package] version in rust/Cargo.toml")
+          cargo_toml.write_text(new_text)
+          print(f"Updated rust/Cargo.toml version to {version}")
+          PY
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --interpreter ${{ matrix.python_version }}
-          sccache: 'true'
+          args: --release --out dist -i python${{ matrix.python_version }}
+          sccache: "true"
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -81,27 +125,65 @@ jobs:
   #         path: dist
 
   windows:
+    needs: [validate_tag_version]
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
         platform:
           - runner: windows-latest
             target: x64
+            python_arch: x64
           - runner: windows-latest
             target: x86
-        python_version:
-          ["3.9", "3.10", "3.11", "3.12"]
+            python_arch: x86
+        python_version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.platform.python_arch }}
+      - id: version
+        name: Resolve package version
+        shell: bash
+        run: |
+          VERSION="$(python scripts/resolve_release_version.py)"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved version: ${VERSION}"
+      - name: Apply package version
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          cargo_toml = Path("rust/Cargo.toml")
+          text = cargo_toml.read_text()
+          pattern = r'(^\[package\][\s\S]*?^version\s*=\s*)"[^"]+"'
+          new_text, count = re.subn(
+              pattern,
+              lambda m: f'{m.group(1)}"{version}"',
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if count != 1:
+              raise SystemExit("Failed to update [package] version in rust/Cargo.toml")
+          cargo_toml.write_text(new_text)
+          print(f"Updated rust/Cargo.toml version to {version}")
+          PY
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --interpreter ${{ matrix.python_version }}
-          sccache: 'true'
+          args: --release --out dist -i python
+          sccache: "true"
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -110,27 +192,62 @@ jobs:
           path: dist
 
   macos:
+    needs: [validate_tag_version]
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
         platform:
-          - runner: macos-13
+          - runner: macos-latest
             target: x86_64
-          - runner: macos-14
+          - runner: macos-latest
             target: aarch64
-        python_version:
-          ["3.9", "3.10", "3.11", "3.12"]
+        python_version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python_version }}
+      - id: version
+        name: Resolve package version
+        shell: bash
+        run: |
+          VERSION="$(python scripts/resolve_release_version.py)"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved version: ${VERSION}"
+      - name: Apply package version
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          cargo_toml = Path("rust/Cargo.toml")
+          text = cargo_toml.read_text()
+          pattern = r'(^\[package\][\s\S]*?^version\s*=\s*)"[^"]+"'
+          new_text, count = re.subn(
+              pattern,
+              lambda m: f'{m.group(1)}"{version}"',
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if count != 1:
+              raise SystemExit("Failed to update [package] version in rust/Cargo.toml")
+          cargo_toml.write_text(new_text)
+          print(f"Updated rust/Cargo.toml version to {version}")
+          PY
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --interpreter ${{ matrix.python_version }}
-          sccache: 'true'
+          args: --release --out dist -i python
+          sccache: "true"
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -139,9 +256,45 @@ jobs:
           path: dist
 
   sdist:
+    needs: [validate_tag_version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: version
+        name: Resolve package version
+        shell: bash
+        run: |
+          VERSION="$(python scripts/resolve_release_version.py)"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved version: ${VERSION}"
+      - name: Apply package version
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          cargo_toml = Path("rust/Cargo.toml")
+          text = cargo_toml.read_text()
+          pattern = r'(^\[package\][\s\S]*?^version\s*=\s*)"[^"]+"'
+          new_text, count = re.subn(
+              pattern,
+              lambda m: f'{m.group(1)}"{version}"',
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if count != 1:
+              raise SystemExit("Failed to update [package] version in rust/Cargo.toml")
+          cargo_toml.write_text(new_text)
+          print(f"Updated rust/Cargo.toml version to {version}")
+          PY
       - name: Build sdist
         uses: PyO3/maturin-action@v1
         with:
@@ -170,7 +323,7 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
         with:
-          subject-path: 'wheels-*/*'
+          subject-path: "wheels-*/*"
       # - name: Display structure of downloaded files
       #   run: ls -R
       - name: Create 'wheels' directory
@@ -204,7 +357,7 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
         with:
-          subject-path: 'wheels-*/*'
+          subject-path: "wheels-*/*"
       - name: Create 'wheels' directory
         run: mkdir -p wheels
       - name: Copy wheels artifacts
@@ -214,4 +367,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheels/
+          skip-existing: true
           verbose: true

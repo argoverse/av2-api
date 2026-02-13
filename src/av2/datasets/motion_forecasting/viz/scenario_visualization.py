@@ -295,7 +295,7 @@ def _plot_actor_bounding_box(
         color: Desired color for the bounding box.
         bbox_size: Desired size for the bounding box (length, width).
     """
-    (bbox_length, bbox_width) = bbox_size
+    bbox_length, bbox_width = bbox_size
 
     # Compute coordinate for pivot point of bounding box
     d = np.hypot(bbox_length, bbox_width)

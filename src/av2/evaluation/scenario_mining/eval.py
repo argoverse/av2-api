@@ -263,6 +263,9 @@ def compute_temporal_metrics(
     scenario_gt = np.zeros(len(labels), dtype=bool)
     scenario_pred = np.zeros(len(labels), dtype=bool)
 
+    def _safe_rate(numerator: int, denominator: int) -> float:
+        return float(numerator / denominator) if denominator else 1.0
+
     timestamp_tp, timestamp_fp, timestamp_fn, timestamp_tn = 0, 0, 0, 0
 
     for i, description in enumerate(labels.keys()):
@@ -280,31 +283,22 @@ def compute_temporal_metrics(
                 timestamp_pred[j] = True
                 scenario_pred[i] = True
 
-        timestamp_tp += np.sum(timestamp_gt & timestamp_pred)
-        timestamp_fp += np.sum(~timestamp_gt & timestamp_pred)
-        timestamp_fn += np.sum(timestamp_gt & ~timestamp_pred)
-        timestamp_tn += np.sum(~timestamp_gt & ~timestamp_pred)
+        timestamp_tp += int(np.sum(timestamp_gt & timestamp_pred))
+        timestamp_fp += int(np.sum(~timestamp_gt & timestamp_pred))
+        timestamp_fn += int(np.sum(timestamp_gt & ~timestamp_pred))
+        timestamp_tn += int(np.sum(~timestamp_gt & ~timestamp_pred))
 
-    scenario_tp = np.sum(scenario_gt & scenario_pred)
-    scenario_fp = np.sum(~scenario_gt & scenario_pred)
-    scenario_fn = np.sum(scenario_gt & ~scenario_pred)
-    scenario_tn = np.sum(~scenario_gt & ~scenario_pred)
+    scenario_tp = int(np.sum(scenario_gt & scenario_pred))
+    scenario_fp = int(np.sum(~scenario_gt & scenario_pred))
+    scenario_fn = int(np.sum(scenario_gt & ~scenario_pred))
+    scenario_tn = int(np.sum(~scenario_gt & ~scenario_pred))
 
     # Balanced Accuracy: https://en.wikipedia.org/wiki/Evaluation_of_binary_classifiers
     # (TPR + TNR) / 2
-    scenario_tpr = scenario_tp / (scenario_tp + scenario_fp)
-    scenario_tnr = scenario_tn / (scenario_tn + scenario_fn)
-    timestamp_tpr = timestamp_tp / (timestamp_tp + timestamp_fp)
-    timestamp_tnr = timestamp_tn / (timestamp_tn + timestamp_fn)
-
-    if scenario_tp + scenario_fp == 0:
-        scenario_tpr = 1.0
-    if scenario_tn + scenario_fn == 0:
-        scenario_tnr = 1.0
-    if timestamp_tp + timestamp_fp == 0:
-        timestamp_tpr = 1.0
-    if timestamp_tn + timestamp_fn == 0:
-        timestamp_tnr = 1.0
+    scenario_tpr = _safe_rate(scenario_tp, scenario_tp + scenario_fp)
+    scenario_tnr = _safe_rate(scenario_tn, scenario_tn + scenario_fn)
+    timestamp_tpr = _safe_rate(timestamp_tp, timestamp_tp + timestamp_fp)
+    timestamp_tnr = _safe_rate(timestamp_tn, timestamp_tn + timestamp_fn)
 
     scenario_ba = float((scenario_tpr + scenario_tnr) / 2)
     timestamp_ba = float((timestamp_tpr + timestamp_tnr) / 2)

@@ -19,6 +19,10 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, 
 import click
 import numpy as np
 
+# Ensure deprecated numpy aliases are available before importing third-party
+# libraries (TrackEval) that may reference them.
+from av2.evaluation.tracking import _numpy_compat  # noqa: F401
+
 import trackeval
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.transform import Rotation
