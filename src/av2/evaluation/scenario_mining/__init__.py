@@ -23,5 +23,5 @@ SUBMETRIC_TO_METRIC_CLASS_NAME: Final = {
 
 SCENARIO_MINING_CATEGORIES: Final = tuple(x.value for x in ScenarioMiningCategories)
 
-SEQ_ID_LOG_INDICES: slice = slice(2,38)
-SEQ_ID_PROMPT_INDICES: slice = slice(42,-2)
+SEQ_ID_LOG_INDICES: slice = slice(2, 38)
+SEQ_ID_PROMPT_INDICES: slice = slice(42, -2)

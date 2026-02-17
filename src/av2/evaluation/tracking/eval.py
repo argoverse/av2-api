@@ -270,7 +270,14 @@ def evaluate_tracking(
 
 
 def _evaluate_single_threshold(
-    args: Tuple[int, Dict[str, NDArrayFloat], List[str], Sequences, Dict[str, Any], Dict[str, Any]],
+    args: Tuple[
+        int,
+        Dict[str, NDArrayFloat],
+        List[str],
+        Sequences,
+        Dict[str, Any],
+        Dict[str, Any],
+    ],
 ) -> Dict[str, Any]:
     """Evaluate tracking metrics for a single score threshold."""
     (
@@ -317,7 +324,10 @@ def _evaluate_single_threshold(
             ],
             metrics_list,
         )
-    return result_for_threshold["TrackEvalDataset"]["tracker"]["COMBINED_SEQ"]
+    return cast(
+        Dict[str, Any],
+        result_for_threshold["TrackEvalDataset"]["tracker"]["COMBINED_SEQ"],
+    )
 
 
 def _tune_score_thresholds(
@@ -379,14 +389,20 @@ def _tune_score_thresholds(
     with mp.Pool(num_workers) as pool:
         metric_results = list(
             tqdm(
-                pool.imap(_evaluate_single_threshold, [(
-                    threshold_idx,
-                    score_thresholds_by_class,
-                    classes,
-                    track_predictions,
-                    dataset_config,
-                    metrics_config,
-                ) for threshold_idx in range(num_thresholds)]),
+                pool.imap(
+                    _evaluate_single_threshold,
+                    [
+                        (
+                            threshold_idx,
+                            score_thresholds_by_class,
+                            classes,
+                            track_predictions,
+                            dataset_config,
+                            metrics_config,
+                        )
+                        for threshold_idx in range(num_thresholds)
+                    ],
+                ),
                 total=num_thresholds,
                 desc="calculating optimal track score thresholds",
             )

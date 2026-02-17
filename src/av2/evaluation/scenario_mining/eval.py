@@ -46,7 +46,7 @@ import trackeval
 from av2.evaluation.tracking.eval import (
     yaw_to_quaternion3d,
     filter_max_dist,
-    _tune_score_thresholds
+    _tune_score_thresholds,
 )
 from av2.evaluation.tracking.utils import filter_by_class_thresholds
 
@@ -124,9 +124,9 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
     """
     if dataset_dir is None:
         return tracks
-    
+
     log_prompt_pairs = list(tracks.keys())
-    log_ids = [seq_id[SEQ_ID_LOG_INDICES] for seq_id in tracks.keys()]  
+    log_ids = [seq_id[SEQ_ID_LOG_INDICES] for seq_id in tracks.keys()]
 
     log_id_to_avm, log_id_to_timestamped_poses = load_mapped_avm_and_egoposes(
         log_ids, Path(dataset_dir)
@@ -263,8 +263,16 @@ def compute_temporal_metrics(
 
     """
     prompts = []
-    timestamp_tp, timestamp_fp, timestamp_fn, timestamp_tn = defaultdict(int), defaultdict(int), defaultdict(int), defaultdict(int)
-    scenario_tp, scenario_fp, scenario_fn, scenario_tn = defaultdict(int), defaultdict(int), defaultdict(int), defaultdict(int)
+
+    timestamp_tp: defaultdict[str, int] = defaultdict(int)
+    timestamp_fp: defaultdict[str, int] = defaultdict(int)
+    timestamp_tn: defaultdict[str, int] = defaultdict(int)
+    timestamp_fn: defaultdict[str, int] = defaultdict(int)
+
+    scenario_tp: defaultdict[str, int] = defaultdict(int)
+    scenario_fp: defaultdict[str, int] = defaultdict(int)
+    scenario_tn: defaultdict[str, int] = defaultdict(int)
+    scenario_fn: defaultdict[str, int] = defaultdict(int)
 
     for seq_id in labels.keys():
 
@@ -313,10 +321,18 @@ def compute_temporal_metrics(
 
     for prompt in prompts:
 
-        scenario_tpr = _safe_rate(scenario_tp[prompt], scenario_tp[prompt] + scenario_fn[prompt])
-        scenario_tnr = _safe_rate(scenario_tn[prompt], scenario_tn[prompt] + scenario_fp[prompt])
-        timestamp_tpr = _safe_rate(timestamp_tp[prompt], timestamp_tp[prompt] + timestamp_fn[prompt])
-        timestamp_tnr = _safe_rate(timestamp_tn[prompt], timestamp_tn[prompt] + timestamp_fp[prompt])
+        scenario_tpr = _safe_rate(
+            scenario_tp[prompt], scenario_tp[prompt] + scenario_fn[prompt]
+        )
+        scenario_tnr = _safe_rate(
+            scenario_tn[prompt], scenario_tn[prompt] + scenario_fp[prompt]
+        )
+        timestamp_tpr = _safe_rate(
+            timestamp_tp[prompt], timestamp_tp[prompt] + timestamp_fn[prompt]
+        )
+        timestamp_tnr = _safe_rate(
+            timestamp_tn[prompt], timestamp_tn[prompt] + timestamp_fp[prompt]
+        )
 
         scenario_ba_by_class[prompt] = (scenario_tpr + scenario_tnr) / 2
         timestamp_ba_by_class[prompt] = (timestamp_tpr + timestamp_tnr) / 2
@@ -342,6 +358,7 @@ def compute_temporal_metrics(
 
     return scenario_ba_by_class, timestamp_ba_by_class
 
+
 def relabel_sequence_ids(sequences: Sequences) -> Sequences:
     """Turns the (log_id, prompt) tuple format into a string for HOTA summarization.
 
@@ -363,7 +380,7 @@ def relabel_sequence_ids(sequences: Sequences) -> Sequences:
 
     for seq_id_str, frames in relabeled_sequences.items():
         for frame in frames:
-            frame['seq_id'] = seq_id_str
+            frame["seq_id"] = seq_id_str
 
     return relabeled_sequences
 
@@ -384,19 +401,21 @@ def classify_referred_objects(sequences: Sequences) -> Sequences:
         for frame in frames:
 
             frame["seq_id"] = seq_id_str
-            referred_object_mask = frame['label'] == 0
+            referred_object_mask = frame["label"] == 0
 
-            frame['name'] = np.array([prompt] * np.sum(referred_object_mask))
-            frame['translation_m'] = frame['translation_m'][referred_object_mask]
-            frame['size'] = frame['size'][referred_object_mask]
-            frame['yaw'] = frame['yaw'][referred_object_mask]
-            frame['label'] = frame['label'][referred_object_mask]
-            frame['track_id'] = frame['track_id'][referred_object_mask]
+            frame["name"] = np.array([prompt] * np.sum(referred_object_mask))
+            frame["translation_m"] = frame["translation_m"][referred_object_mask]
+            frame["size"] = frame["size"][referred_object_mask]
+            frame["yaw"] = frame["yaw"][referred_object_mask]
+            frame["label"] = frame["label"][referred_object_mask]
+            frame["track_id"] = frame["track_id"][referred_object_mask]
 
-            if 'score' in frame:
-                frame['score'] = frame['score'][referred_object_mask]
-            if 'velocity_m_per_s' in frame:
-                frame['velocity_m_per_s'] = frame['velocity_m_per_s'][referred_object_mask]
+            if "score" in frame:
+                frame["score"] = frame["score"][referred_object_mask]
+            if "velocity_m_per_s" in frame:
+                frame["velocity_m_per_s"] = frame["velocity_m_per_s"][
+                    referred_object_mask
+                ]
 
     return sequences
 
@@ -451,6 +470,9 @@ def evaluate(
         if contains_tracking:
             break
 
+    partial_track_hota_by_class: dict[str, float] = {}
+    full_track_hota_by_class: dict[str, float] = {}
+
     if contains_tracking:
 
         labels = filter_max_dist(labels, max_range_m)
@@ -462,23 +484,29 @@ def evaluate(
                 scenario_predictions, dataset_dir
             )
 
-        partial_track_hota_by_class, scenario_ba_by_class, timestamp_ba_by_class = evaluate_scenario_mining(
-            scenario_predictions,
-            labels,
-            objective_metric=objective_metric,
-            out=out,
-            full_tracks=False
+        partial_track_hota_by_class, scenario_ba_by_class, timestamp_ba_by_class = (
+            evaluate_scenario_mining(
+                scenario_predictions,
+                labels,
+                objective_metric=objective_metric,
+                out=out,
+                full_tracks=False,
+            )
         )
         full_track_hota_by_class, _, _ = evaluate_scenario_mining(
             scenario_predictions,
             labels,
             objective_metric=objective_metric,
             out=out,
-            full_tracks=True
+            full_tracks=True,
         )
 
-        partial_track_hota = float(np.mean(np.array(list(partial_track_hota_by_class.values()))))
-        full_track_hota = float(np.mean(np.array(list(full_track_hota_by_class.values()))))
+        partial_track_hota = float(
+            np.mean(np.array(list(partial_track_hota_by_class.values())))
+        )
+        full_track_hota = float(
+            np.mean(np.array(list(full_track_hota_by_class.values())))
+        )
         timestamp_ba = float(np.mean(np.array(list(timestamp_ba_by_class.values()))))
         scenario_ba = float(np.mean(np.array(list(scenario_ba_by_class.values()))))
     else:
@@ -492,33 +520,30 @@ def evaluate(
         scenario_ba = float(np.mean(np.array(list(scenario_ba_by_class.values()))))
         timestamp_ba = float(np.mean(np.array(list(timestamp_ba_by_class.values()))))
 
-        partial_track_hota_by_class: dict[str, float] = {}
-        full_track_hota_by_class: dict[str, float] = {}
-
         partial_track_hota = 0.0
         full_track_hota = 0.0
 
     if out:
-        
+
         temporal_metrics = {
-            "TIMESTAMP_BALANCED_ACCURACY_CLASS_AVG": timestamp_ba,
-            "SCENARIO_BALANCED_ACCURACY_CLASS_AVG": scenario_ba,
-            "TIMESTAMP_BALANCED_ACCURACY_BY_CLASS": timestamp_ba_by_class,
-            "SCENARIO_BALANCED_ACCURACY_BY_CLASS": scenario_ba_by_class
+            "timestamp_balanced_accuracy_class_avg": timestamp_ba,
+            "scenario_balanced_accuracy_class_avg": scenario_ba,
+            "timestamp_balanced_accuracy_by_class": timestamp_ba_by_class,
+            "scenario_balanced_accuracy_by_class": scenario_ba_by_class,
         }
 
-        with open(Path(out) / 'temporal_metrics.json', 'w') as file:
+        with open(Path(out) / "temporal_metrics.json", "w") as file:
             json.dump(temporal_metrics, file, indent=4)
 
         if contains_tracking:
 
             spatiotemporal_metrics = {
-                "PARTIAL_TRACK_HOTA_CLASS_AVG": partial_track_hota,
-                "FULL_TRACK_HOTA_CLASS_AVG": full_track_hota,
-                "PARTIAL_TRACK_HOTA_BY_CLASS": partial_track_hota_by_class,
-                "FULL_TRACK_HOTA_BY_CLASS": full_track_hota_by_class
+                "partial_track_hota_class_avg": partial_track_hota,
+                "full_track_hota_class_avg": full_track_hota,
+                "partial_track_hota_by_class": partial_track_hota_by_class,
+                "full_track_hota_by_class": full_track_hota_by_class,
             }
-            with open(Path(out) / 'spatiotemporal_metrics.json', 'w') as file:
+            with open(Path(out) / "spatiotemporal_metrics.json", "w") as file:
                 json.dump(spatiotemporal_metrics, file, indent=4)
 
     return (
@@ -540,7 +565,7 @@ def evaluate_scenario_mining(
 
     Args:
         track_predictions: Dictionary of tracks.
-        labels: Dictionary of labels.
+        track_labels: Dictionary of labels.
         objective_metric: Metric to optimize.
         out: Output path.
         full_tracks: Whether the supplied labels are for the full track of any
@@ -558,7 +583,7 @@ def evaluate_scenario_mining(
     if full_tracks:
         scenario_predictions = referred_full_tracks(scenario_predictions)
         labels = referred_full_tracks(labels)
-    
+
     classes = list(set([seq_id[SEQ_ID_PROMPT_INDICES] for seq_id in labels.keys()]))
     scenario_predictions = classify_referred_objects(scenario_predictions)
     labels = classify_referred_objects(labels)
@@ -571,7 +596,7 @@ def evaluate_scenario_mining(
         num_thresholds=10,
         match_distance_m=2,
     )
-            
+
     filtered_scenario_predictions = filter_by_class_thresholds(
         scenario_predictions, score_thresholds
     )
