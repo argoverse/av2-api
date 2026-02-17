@@ -32,19 +32,19 @@ dts_close = gts + 0.05
 dts_zero = np.zeros_like(gts).astype(np.float64)
 
 gts_dynamic = np.array(
-    [False, False, False, False, True, True, True, True, False, False], dtype=np.bool
+    [False, False, False, False, True, True, True, True, False, False], dtype=np.bool_
 )
 gts_classes = np.array([0, 0, 0, 0, 17, 17, 1, 11, 0, 23], dtype=int)
 gts_valid = np.array(
-    [False, True, True, True, True, True, True, True, True, True], dtype=np.bool
+    [False, True, True, True, True, True, True, True, True, True], dtype=np.bool_
 )
 gts_close = np.array(
-    [True, True, False, False, True, True, False, False, True, True], dtype=np.bool
+    [True, True, False, False, True, True, False, False, True, True], dtype=np.bool_
 )
 
 dts_dynamic = np.array(
     [False, True, False, True, False, True, False, True, False, True],
-    dtype=np.bool,
+    dtype=np.bool_,
 )
 
 

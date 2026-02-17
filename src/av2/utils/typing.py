@@ -12,7 +12,7 @@ import numpy.typing as npt
 from upath import UPath
 
 NDArrayNumber = np.ndarray[Any, np.dtype[Union[np.integer[Any], np.floating[Any]]]]
-NDArrayBool = npt.NDArray[np.bool]
+NDArrayBool = npt.NDArray[np.bool_]
 NDArrayFloat = npt.NDArray[np.floating[Any]]
 NDArrayByte = npt.NDArray[np.uint8]
 NDArrayInt = npt.NDArray[np.int64]

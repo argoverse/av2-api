@@ -192,6 +192,8 @@ def read_img(img_path: Path, channel_order: str = "RGB") -> MatLike:
         raise ValueError("Unsupported channel order (must be BGR or RGB).")
 
     img_bgr = cv2.imread(str(img_path))
+    if img_bgr is None:
+        raise FileNotFoundError(f"Image not found: {img_path}")
     if channel_order == "BGR":
         return img_bgr
 

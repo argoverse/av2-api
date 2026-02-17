@@ -7,7 +7,7 @@ Evaluation Metrics:
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union, cast
+from typing import Any, Dict, Optional, Tuple, Union
 from copy import deepcopy
 import pickle
 import click
@@ -149,12 +149,10 @@ def filter_drivable_area(tracks: Sequences, dataset_dir: Optional[str]) -> Seque
             frame["translation_m"] = frame["translation_m"][is_evaluated]
             frame["size"] = frame["size"][is_evaluated]
             frame["yaw"] = frame["yaw"][is_evaluated]
+            frame["velocity_m_per_s"] = frame["velocity_m_per_s"][is_evaluated]
             frame["label"] = frame["label"][is_evaluated]
             frame["name"] = frame["name"][is_evaluated]
             frame["track_id"] = frame["track_id"][is_evaluated]
-
-            if "velocity_m_per_s" in frame:
-                frame["velocity_m_per_s"] = frame["velocity_m_per_s"][is_evaluated]
 
             if "score" in frame:
                 frame["score"] = frame["score"][is_evaluated]
@@ -188,7 +186,7 @@ def compute_objects_in_roi_mask(
         cuboid_list_vertices_m_city.reshape(-1, 3)[..., :2], RasterLayerType.ROI
     )
     is_within_roi = is_within_roi.reshape(-1, 8)
-    is_within_roi = cast(NDArrayBool, is_within_roi.any(axis=1))
+    is_within_roi = is_within_roi.any(axis=1)
     return is_within_roi
 
 
