@@ -413,13 +413,13 @@ def relabel_sequence_ids(sequences: Sequences) -> Sequences:
 
 
 def classify_referred_objects(sequences: Sequences) -> Sequences:
-    """Turns the (log_id, prompt) tuple format into a string for HOTA summarization.
+    """Classifies all referred objects as the prompt in the sequence id.
 
     Args:
-        sequences: The 'sequences' where each top level key is a tuple of (log_id, prompt)
+        sequences: The 'sequences' where each top level key is a string containing '(log_id, prompt)'
 
     Returns:
-        Sequences where each top level key is a string of '(log_id, prompt)'
+        Sequences where all referred objects are given a class name corresponding to the prompt
     """
     # Turn frame seq_id into string and only classify referred objects
     # seq_id str is 39 character prefix f'({log_id}, ' + prompt + 1 character suffix ')'
