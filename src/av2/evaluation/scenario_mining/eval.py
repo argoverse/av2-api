@@ -37,11 +37,6 @@ from av2.map.map_api import ArgoverseStaticMap, RasterLayerType
 from av2.utils.typing import NDArrayBool
 from av2.structures.cuboid import Cuboid, CuboidList
 from av2.evaluation.detection.utils import load_mapped_avm_and_egoposes
-import contextlib
-import multiprocessing as mp
-from functools import partial
-
-import trackeval
 
 from av2.evaluation.tracking.eval import (
     yaw_to_quaternion3d,
@@ -50,9 +45,15 @@ from av2.evaluation.tracking.eval import (
 )
 from av2.evaluation.tracking.utils import filter_by_class_thresholds
 
-from av2.evaluation.scenario_mining import SEQ_ID_LOG_INDICES, SEQ_ID_PROMPT_INDICES
+from av2.evaluation.scenario_mining import (
+    SEQ_ID_LOG_INDICES,
+    SEQ_ID_PROMPT_INDICES,
+    SCENARIO_MINING_CATEGORIES,
+)
 from av2.utils.typing import NDArrayFloat
 from av2.evaluation.typing import Sequences
+
+REFERRED_OBJECT = SCENARIO_MINING_CATEGORIES.index("REFERRED_OBJECT")
 
 
 def _plot_confusion_matrix(
@@ -209,7 +210,7 @@ def referred_full_tracks(sequences: Sequences) -> Sequences:
         # First pass: identify all track_ids that were ever referred objects
         referred_track_ids = set()
         for frame in frames:
-            mask = frame["label"] == 0  # 0 is for REFERRED_OBJECT
+            mask = frame["label"] == REFERRED_OBJECT
             referred_track_ids.update(frame["track_id"][mask])
 
         # Second pass: reconstruct frames
@@ -227,7 +228,7 @@ def referred_full_tracks(sequences: Sequences) -> Sequences:
                     new_names[i] = frame["name"][i]
 
             new_frame["name"] = new_names
-            new_frame["label"] = np.where(mask, 0, new_frame["label"])
+            new_frame["label"] = np.where(mask, REFERRED_OBJECT, frame["label"])
             new_frames.append(new_frame)
 
         reconstructed_sequences[seq_name] = new_frames
@@ -251,6 +252,10 @@ def compute_temporal_metrics(
 
     The formula for BA is: (TP/(TP+FP) + TN/(TN+FN))/2
 
+    Only non-ambiguous timestamps are used for calculating temporal metrics. Objects
+    can be procedurally annotated out to 200 meters but are only verified within 50 meters.
+    Therefore, all timestamps with referred objects exclusively past 50 meters are labeled ambiguous.
+
     Args:
         track_predictions: Prediction sequences.
         labels: Ground truth sequences.
@@ -259,8 +264,6 @@ def compute_temporal_metrics(
     Returns:
         scenario_ba_by_class: The balanced accuracy where each log prompt pair counts as a prediction to evaluate.
         timestamp_ba_by_class: The balanced accuracy where each timestamp counts as a prediction to evaluate.
-
-
     """
     prompts = []
 
@@ -281,14 +284,21 @@ def compute_temporal_metrics(
 
         timestamp_gt = np.zeros(len(labels[seq_id]), dtype=bool)
         timestamp_pred = np.zeros(len(labels[seq_id]), dtype=bool)
+        ambiguity_mask = np.zeros(len(labels[seq_id]), dtype=bool)
+
         scenario_gt = False
         scenario_pred = False
 
         for j, frame in enumerate(labels[seq_id]):
-            if "is_positive" in frame and frame["is_positive"]:
-                timestamp_gt[j] = True
-                scenario_gt = True
-            elif "label" in frame and len(frame["label"]) > 0 and 0 in frame["label"]:
+            if "is_positive" in frame:
+                if frame["is_positive"] is None:
+                    ambiguity_mask[j] = 1
+                elif frame["is_positive"]:
+                    timestamp_gt[j] = True
+                    scenario_gt = True
+
+            # Backward compatibility with previous versions of the dataset
+            elif len(frame["label"]) > 0 and REFERRED_OBJECT in frame["label"]:
                 timestamp_gt[j] = True
                 scenario_gt = True
 
@@ -296,14 +306,30 @@ def compute_temporal_metrics(
             if "is_positive" in frame and frame["is_positive"]:
                 timestamp_pred[j] = True
                 scenario_pred = True
-            elif "label" in frame and len(frame["label"]) > 0 and 0 in frame["label"]:
+            elif (
+                "label" in frame
+                and len(frame["label"]) > 0
+                and REFERRED_OBJECT in frame["label"]
+            ):
                 timestamp_pred[j] = True
                 scenario_pred = True
 
-        timestamp_tp[prompt] += np.sum(timestamp_gt & timestamp_pred)
-        timestamp_fp[prompt] += np.sum(~timestamp_gt & timestamp_pred)
-        timestamp_fn[prompt] += np.sum(timestamp_gt & ~timestamp_pred)
-        timestamp_tn[prompt] += np.sum(~timestamp_gt & ~timestamp_pred)
+        if np.all(ambiguity_mask):
+            continue
+
+        non_ambiguous = ~ambiguity_mask
+        timestamp_tp[prompt] += np.sum(
+            timestamp_gt[non_ambiguous] & timestamp_pred[non_ambiguous]
+        )
+        timestamp_fp[prompt] += np.sum(
+            ~timestamp_gt[non_ambiguous] & timestamp_pred[non_ambiguous]
+        )
+        timestamp_fn[prompt] += np.sum(
+            timestamp_gt[non_ambiguous] & ~timestamp_pred[non_ambiguous]
+        )
+        timestamp_tn[prompt] += np.sum(
+            ~timestamp_gt[non_ambiguous] & ~timestamp_pred[non_ambiguous]
+        )
 
         if scenario_pred and scenario_gt:
             scenario_tp[prompt] += 1
@@ -401,7 +427,7 @@ def classify_referred_objects(sequences: Sequences) -> Sequences:
         for frame in frames:
 
             frame["seq_id"] = seq_id_str
-            referred_object_mask = frame["label"] == 0
+            referred_object_mask = frame["label"] == REFERRED_OBJECT
 
             frame["name"] = np.array([prompt] * np.sum(referred_object_mask))
             frame["translation_m"] = frame["translation_m"][referred_object_mask]
@@ -588,7 +614,7 @@ def evaluate_scenario_mining(
     scenario_predictions = classify_referred_objects(scenario_predictions)
     labels = classify_referred_objects(labels)
 
-    score_thresholds, referred_hota_by_class, _ = _tune_score_thresholds(
+    score_thresholds, optimal_metric_by_class, _ = _tune_score_thresholds(
         labels,
         scenario_predictions,
         objective_metric,
@@ -596,6 +622,10 @@ def evaluate_scenario_mining(
         num_thresholds=10,
         match_distance_m=2,
     )
+    referred_hota_by_class = {
+        prompt: float(metric_value)
+        for prompt, metric_value in optimal_metric_by_class.items()
+    }
 
     filtered_scenario_predictions = filter_by_class_thresholds(
         scenario_predictions, score_thresholds
