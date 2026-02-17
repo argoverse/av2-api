@@ -468,8 +468,8 @@ def evaluate(
         out: Output path. May be None.
 
     Returns:
-        partial_track_hota: The tracking metric for the tracks that contain only the timestamps for which the description applies.
-        full_track_hota: The tracking metric for the full track of any objects that the description ever applies to.
+        hota_temporal: The tracking metric for the tracks that contain only the timestamps for which the description applies.
+        hota_track: The tracking metric for the full track of any objects that the description ever applies to.
         timestamp_ba: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
         scenario_ba: A retrieval/classification metric for determining if each data log contains any instance of the prompt.
     """
@@ -497,8 +497,8 @@ def evaluate(
         if contains_tracking:
             break
 
-    partial_track_hota_by_class: dict[str, float] = {}
-    full_track_hota_by_class: dict[str, float] = {}
+    hota_temporal_by_class: dict[str, float] = {}
+    hota_track_by_class: dict[str, float] = {}
 
     if contains_tracking:
 
@@ -511,7 +511,7 @@ def evaluate(
                 scenario_predictions, dataset_dir
             )
 
-        partial_track_hota_by_class, scenario_ba_by_class, timestamp_ba_by_class = (
+        hota_temporal_by_class, scenario_ba_by_class, timestamp_ba_by_class = (
             evaluate_scenario_mining(
                 scenario_predictions,
                 labels,
@@ -520,7 +520,7 @@ def evaluate(
                 full_tracks=False,
             )
         )
-        full_track_hota_by_class, _, _ = evaluate_scenario_mining(
+        hota_track_by_class, _, _ = evaluate_scenario_mining(
             scenario_predictions,
             labels,
             objective_metric=objective_metric,
@@ -528,12 +528,8 @@ def evaluate(
             full_tracks=True,
         )
 
-        partial_track_hota = float(
-            np.mean(np.array(list(partial_track_hota_by_class.values())))
-        )
-        full_track_hota = float(
-            np.mean(np.array(list(full_track_hota_by_class.values())))
-        )
+        hota_temporal = float(np.mean(np.array(list(hota_temporal_by_class.values()))))
+        hota_track = float(np.mean(np.array(list(hota_track_by_class.values()))))
         timestamp_ba = float(np.mean(np.array(list(timestamp_ba_by_class.values()))))
         scenario_ba = float(np.mean(np.array(list(scenario_ba_by_class.values()))))
     else:
@@ -547,8 +543,8 @@ def evaluate(
         scenario_ba = float(np.mean(np.array(list(scenario_ba_by_class.values()))))
         timestamp_ba = float(np.mean(np.array(list(timestamp_ba_by_class.values()))))
 
-        partial_track_hota = 0.0
-        full_track_hota = 0.0
+        hota_temporal = 0.0
+        hota_track = 0.0
 
     if out:
 
@@ -565,17 +561,17 @@ def evaluate(
         if contains_tracking:
 
             spatiotemporal_metrics = {
-                "partial_track_hota_class_avg": partial_track_hota,
-                "full_track_hota_class_avg": full_track_hota,
-                "partial_track_hota_by_class": partial_track_hota_by_class,
-                "full_track_hota_by_class": full_track_hota_by_class,
+                "hota_temporal_class_avg": hota_temporal,
+                "hota_track_class_avg": hota_track,
+                "hota_temporal_by_class": hota_temporal_by_class,
+                "hota_track_by_class": hota_track_by_class,
             }
             with open(Path(out) / "spatiotemporal_metrics.json", "w") as file:
                 json.dump(spatiotemporal_metrics, file, indent=4)
 
     return (
-        partial_track_hota,
-        full_track_hota,
+        hota_temporal,
+        hota_track,
         timestamp_ba,
         scenario_ba,
     )
