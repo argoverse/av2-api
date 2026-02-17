@@ -419,7 +419,7 @@ def classify_referred_objects(sequences: Sequences) -> Sequences:
         sequences: The 'sequences' where each top level key is a string containing '(log_id, prompt)'
 
     Returns:
-        Sequences where all referred objects are given a class name corresponding to the prompt
+        Sequences where all referred objects are given the class name corresponding to the prompt
     """
     # Turn frame seq_id into string and only classify referred objects
     # seq_id str is 39 character prefix f'({log_id}, ' + prompt + 1 character suffix ')'
