@@ -99,7 +99,7 @@ def _plot_confusion_matrix(
     # Set axis labels and ticks
     ax.set_xlabel("Predicted Label")
     ax.set_ylabel("True Label")
-    ax.set_title(title)
+    ax.set_title(f"{title}-level confusion matrix")
     ax.set_xticks([0, 1])
     ax.set_yticks([0, 1])
     ax.set_xticklabels(["Positive", "Negative"])
@@ -241,12 +241,13 @@ def _safe_rate(numerator: int, denominator: int) -> float:
 
 def compute_temporal_metrics(
     track_predictions: Sequences, labels: Sequences, output_dir: str
-) -> tuple[float, float]:
+) -> tuple[dict[str, float], dict[str, float]]:
     """Calculates the balanced accuracy for log and timestamp retrival.
 
     Balanced Accuracy (BA) is a binary classification metric. A true postive when both
     the ground-truth and prediction sequence/timestamp contain no tracks
-    or both contain at least one track corresponding to the prompt.
+    or both contain at least one track corresponding to the prompt. Each prompt
+    is evaluated as its own class.
 
     The formula for BA is: (TP/(TP+FP) + TN/(TN+FN))/2
 
@@ -256,8 +257,8 @@ def compute_temporal_metrics(
         output_dir: The directory to save the plotted confusion matrices.
 
     Returns:
-        scenario_ba: The balanced accracuy where each log prompt pair counts as a prediction to evaluate.
-        timestamp_ba: The balanced accuracy where each timestamp counts as a prediction to evaluate.
+        scenario_ba_by_class: The balanced accuracy where each log prompt pair counts as a prediction to evaluate.
+        timestamp_ba_by_class: The balanced accuracy where each timestamp counts as a prediction to evaluate.
 
 
     """
@@ -307,8 +308,8 @@ def compute_temporal_metrics(
 
     # Balanced Accuracy: https://en.wikipedia.org/wiki/Evaluation_of_binary_classifiers
     # (TPR + TNR) / 2
-    scenario_ba = {}
-    timestamp_ba = {}
+    scenario_ba_by_class = {}
+    timestamp_ba_by_class = {}
 
     for prompt in prompts:
 
@@ -317,28 +318,17 @@ def compute_temporal_metrics(
         timestamp_tpr = _safe_rate(timestamp_tp[prompt], timestamp_tp[prompt] + timestamp_fn[prompt])
         timestamp_tnr = _safe_rate(timestamp_tn[prompt], timestamp_tn[prompt] + timestamp_fp[prompt])
 
-        scenario_ba[prompt] = (scenario_tpr + scenario_tnr) / 2
-        timestamp_ba[prompt] = (timestamp_tpr + timestamp_tnr) / 2
-
-    scenario_ba_prompt_averaged = float(np.mean(list(scenario_ba.values())))
-    timestamp_ba_prompt_averaged = float(np.mean(list(timestamp_ba.values())))
+        scenario_ba_by_class[prompt] = (scenario_tpr + scenario_tnr) / 2
+        timestamp_ba_by_class[prompt] = (timestamp_tpr + timestamp_tnr) / 2
 
     if output_dir:
-        temporal_metrics = {
-            "TIMESTAMP_BALANCED_ACCURACY_CLASS_AVG": timestamp_ba_prompt_averaged,
-            "SCENARIO_BALANCED_ACCURACY_CLASS_AVG": scenario_ba_prompt_averaged,
-            "TIMESTAMP_BALANCED_ACCURACY": timestamp_ba,
-            "SCENARIO_BALANCED_ACCURACY": scenario_ba}
-
-        with open(Path(output_dir) / 'temporal_metrics.json', 'w') as file:
-            json.dump(temporal_metrics, file, indent=4)
 
         _plot_confusion_matrix(
             np.sum(list(scenario_tp.values())),
             np.sum(list(scenario_fn.values())),
             np.sum(list(scenario_fp.values())),
             np.sum(list(scenario_tn.values())),
-            title="Scenario Classification Across All Prompts",
+            title="scenario",
             output_dir=output_dir,
         )
         _plot_confusion_matrix(
@@ -346,11 +336,11 @@ def compute_temporal_metrics(
             np.sum(list(timestamp_fn.values())),
             np.sum(list(timestamp_fp.values())),
             np.sum(list(timestamp_tn.values())),
-            title="Timestamp Classification Across All Prompts",
+            title="timestamp",
             output_dir=output_dir,
         )
 
-    return scenario_ba_prompt_averaged, timestamp_ba_prompt_averaged
+    return scenario_ba_by_class, timestamp_ba_by_class
 
 def relabel_sequence_ids(sequences: Sequences) -> Sequences:
     """Turns the (log_id, prompt) tuple format into a string for HOTA summarization.
@@ -429,14 +419,21 @@ def evaluate(
         objective_metric: Metric to optimize.
         max_range_m: Maximum evaluation range.
         dataset_dir: Path to dataset. Required for ROI pruning.
-        out: Output path.
+        out: Output path. May be None.
 
     Returns:
-        partial_track_HOTA: The tracking metric for the tracks that contain only the timestamps for which the description applies.
-        full_track_HOTA: The tracking metric for the full track of any objects that the description ever applies to.
+        partial_track_hota: The tracking metric for the tracks that contain only the timestamps for which the description applies.
+        full_track_hota: The tracking metric for the full track of any objects that the description ever applies to.
         timestamp_ba: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
         scenario_ba: A retrieval/classification metric for determining if each data log contains any instance of the prompt.
     """
+    # Submissions may have sequence ids of form (log_id, prompt) or f"({log_id}, {prompt})"
+    labels = relabel_sequence_ids(labels)
+    scenario_predictions = relabel_sequence_ids(scenario_predictions)
+
+    if out:
+        Path(out).mkdir(exist_ok=True, parents=True)
+
     contains_tracking = False
     for frames in scenario_predictions.values():
         for frame in frames:
@@ -454,18 +451,7 @@ def evaluate(
         if contains_tracking:
             break
 
-    if not contains_tracking:
-
-        partial_track_hota = 0.0
-        full_track_hota = 0.0
-        scenario_ba, timestamp_ba = compute_temporal_metrics(
-            scenario_predictions, labels, out
-        )
-
-    else:
-        # Submissions may have sequence ids of form (log_id, prompt) or f"({log_id}, {prompt})"
-        labels = relabel_sequence_ids(labels)
-        scenario_predictions = relabel_sequence_ids(scenario_predictions)
+    if contains_tracking:
 
         labels = filter_max_dist(labels, max_range_m)
         scenario_predictions = filter_max_dist(scenario_predictions, max_range_m)
@@ -476,25 +462,64 @@ def evaluate(
                 scenario_predictions, dataset_dir
             )
 
-        output_dir = out + "/partial_tracks"
-        Path(output_dir).mkdir(parents=True, exist_ok=True)
-        partial_track_hota, scenario_ba, timestamp_ba = evaluate_scenario_mining(
+        partial_track_hota_by_class, scenario_ba_by_class, timestamp_ba_by_class = evaluate_scenario_mining(
             scenario_predictions,
             labels,
             objective_metric=objective_metric,
-            out=output_dir,
+            out=out,
             full_tracks=False
         )
-
-        output_dir = out + "/full_tracks"
-        Path(output_dir).mkdir(parents=True, exist_ok=True)
-        full_track_hota, _, _ = evaluate_scenario_mining(
+        full_track_hota_by_class, _, _ = evaluate_scenario_mining(
             scenario_predictions,
             labels,
             objective_metric=objective_metric,
-            out=output_dir,
-            full_tracks=True,
+            out=out,
+            full_tracks=True
         )
+
+        partial_track_hota = float(np.mean(np.array(list(partial_track_hota_by_class.values()))))
+        full_track_hota = float(np.mean(np.array(list(full_track_hota_by_class.values()))))
+        timestamp_ba = float(np.mean(np.array(list(timestamp_ba_by_class.values()))))
+        scenario_ba = float(np.mean(np.array(list(scenario_ba_by_class.values()))))
+    else:
+
+        scenario_predictions = classify_referred_objects(scenario_predictions)
+        labels = classify_referred_objects(labels)
+
+        scenario_ba_by_class, timestamp_ba_by_class = compute_temporal_metrics(
+            scenario_predictions, labels, out
+        )
+        scenario_ba = float(np.mean(np.array(list(scenario_ba_by_class.values()))))
+        timestamp_ba = float(np.mean(np.array(list(timestamp_ba_by_class.values()))))
+
+        partial_track_hota_by_class: dict[str, float] = {}
+        full_track_hota_by_class: dict[str, float] = {}
+
+        partial_track_hota = 0.0
+        full_track_hota = 0.0
+
+    if out:
+        
+        temporal_metrics = {
+            "TIMESTAMP_BALANCED_ACCURACY_CLASS_AVG": timestamp_ba,
+            "SCENARIO_BALANCED_ACCURACY_CLASS_AVG": scenario_ba,
+            "TIMESTAMP_BALANCED_ACCURACY_BY_CLASS": timestamp_ba_by_class,
+            "SCENARIO_BALANCED_ACCURACY_BY_CLASS": scenario_ba_by_class
+        }
+
+        with open(Path(out) / 'temporal_metrics.json', 'w') as file:
+            json.dump(temporal_metrics, file, indent=4)
+
+        if contains_tracking:
+
+            spatiotemporal_metrics = {
+                "PARTIAL_TRACK_HOTA_CLASS_AVG": partial_track_hota,
+                "FULL_TRACK_HOTA_CLASS_AVG": full_track_hota,
+                "PARTIAL_TRACK_HOTA_BY_CLASS": partial_track_hota_by_class,
+                "FULL_TRACK_HOTA_BY_CLASS": full_track_hota_by_class
+            }
+            with open(Path(out) / 'spatiotemporal_metrics.json', 'w') as file:
+                json.dump(spatiotemporal_metrics, file, indent=4)
 
     return (
         partial_track_hota,
@@ -510,7 +535,7 @@ def evaluate_scenario_mining(
     objective_metric: str,
     out: str,
     full_tracks: bool = False,
-) -> Tuple[float, float, float]:
+) -> tuple[dict[str, float], dict[str, float], dict[str, float]]:
     """Run evaluation.
 
     Args:
@@ -523,9 +548,9 @@ def evaluate_scenario_mining(
         when the description applies.
 
     Returns:
-        referred_hota: The HOTA tracking metric applied to all objects with the category REFERRED_OBJECT
-        scenario_ba: A retrieval/classification metric for determining if each data log contains any instance of the prompt.
-        timestamp_ba: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
+        referred_hota_by_class: The HOTA tracking metric applied to all objects with the category REFERRED_OBJECT
+        scenario_ba_by_class: A retrieval/classification metric for determining if each data log contains any instance of the prompt.
+        timestamp_ba_by_class: A retrieval/classification metric for determining if each timestamp contains any instance of the prompt.
     """
     scenario_predictions = deepcopy(track_predictions)
     labels = deepcopy(track_labels)
@@ -538,7 +563,7 @@ def evaluate_scenario_mining(
     scenario_predictions = classify_referred_objects(scenario_predictions)
     labels = classify_referred_objects(labels)
 
-    score_thresholds, tuned_metric_values, _ = _tune_score_thresholds(
+    score_thresholds, referred_hota_by_class, _ = _tune_score_thresholds(
         labels,
         scenario_predictions,
         objective_metric,
@@ -546,26 +571,14 @@ def evaluate_scenario_mining(
         num_thresholds=10,
         match_distance_m=2,
     )
-    referred_hota = float(np.mean(list(tuned_metric_values.values())))
-
-    if not full_tracks:
-
-        with open(Path(out) / 'spatiotemporal_metrics.json', 'w') as file:
-            safe_tuned_metric_values = {str(k):float(v) for k, v in tuned_metric_values.items()}
-            safe_tuned_metric_values["HOTA_TEMPORAL_CLASS_AVG"] = referred_hota
-            json.dump(safe_tuned_metric_values, file, indent=4)
             
-        filtered_scenario_predictions = filter_by_class_thresholds(
-            scenario_predictions, score_thresholds
-        )
-        scenario_ba, timestamp_ba = compute_temporal_metrics(
-            filtered_scenario_predictions, labels, out
-        )
-    else:
-        scenario_ba = 0.0
-        timestamp_ba = 0.0
-
-    return referred_hota, scenario_ba, timestamp_ba
+    filtered_scenario_predictions = filter_by_class_thresholds(
+        scenario_predictions, score_thresholds
+    )
+    scenario_ba_by_class, timestamp_ba_by_class = compute_temporal_metrics(
+        filtered_scenario_predictions, labels, out
+    )
+    return referred_hota_by_class, scenario_ba_by_class, timestamp_ba_by_class
 
 
 @click.command()
