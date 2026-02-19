@@ -26,8 +26,8 @@ def test_evaluate() -> None:
     gt_pkl = TEST_DATA_DIR / "combined_gt_dev.pkl"
 
     objective_metric = "HOTA"
-    max_range_m = 100
-    dataset_dir = TEST_DATA_DIR
+    max_range_m = 50
+    dataset_dir = str(TEST_DATA_DIR)
     out = str(TEST_DATA_DIR / "eval_results")
 
     with open(pred_pkl, "rb") as f:

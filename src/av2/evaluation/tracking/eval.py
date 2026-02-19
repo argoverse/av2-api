@@ -14,6 +14,7 @@ from functools import partial
 from itertools import chain
 from pathlib import Path
 from pprint import pprint
+import multiprocessing as mp
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, cast
 
 import click
@@ -268,6 +269,67 @@ def evaluate_tracking(
     return cast(Dict[str, Any], full_result)
 
 
+def _evaluate_single_threshold(
+    args: Tuple[
+        int,
+        Dict[str, NDArrayFloat],
+        List[str],
+        Sequences,
+        Dict[str, Any],
+        Dict[str, Any],
+    ],
+) -> Dict[str, Any]:
+    """Evaluate tracking metrics for a single score threshold."""
+    (
+        threshold_idx,
+        score_thresholds_by_class,
+        classes,
+        track_predictions,
+        dataset_config,
+        metrics_config,
+    ) = args
+
+    score_threshold_by_class = {
+        n: score_thresholds_by_class[n][threshold_idx] for n in classes
+    }
+    filtered_predictions = utils.filter_by_class_thresholds(
+        track_predictions, score_threshold_by_class
+    )
+
+    metrics_list = [
+        getattr(trackeval.metrics, metric_name)(metrics_config)
+        for metric_name in cast(List[str], metrics_config["METRICS"])
+    ]
+    evaluator = trackeval.Evaluator(
+        {
+            **trackeval.Evaluator.get_default_eval_config(),
+            "PRINT_RESULTS": False,
+            "PRINT_CONFIG": False,
+            "TIME_PROGRESS": False,
+            "OUTPUT_SUMMARY": False,
+            "OUTPUT_DETAILED": False,
+            "PLOT_CURVES": False,
+        }
+    )
+
+    with contextlib.redirect_stdout(None):
+        result_for_threshold, _ = evaluator.evaluate(
+            [
+                TrackEvalDataset(
+                    {
+                        **dataset_config,
+                        "PREDICTED_TRACKS": {"tracker": filtered_predictions},
+                    }
+                )
+            ],
+            metrics_list,
+        )
+    return cast(
+        Dict[str, Any],
+        result_for_threshold["TrackEvalDataset"]["tracker"]["COMBINED_SEQ"],
+    )
+
+
 def _tune_score_thresholds(
     labels: Sequences,
     track_predictions: Sequences,
@@ -301,10 +363,6 @@ def _tune_score_thresholds(
         "THRESHOLD": iou_threshold,
         "PRINT_CONFIG": False,
     }
-    metrics_list = [
-        getattr(trackeval.metrics, metric_name)(metrics_config)
-        for metric_name in cast(List[str], metrics_config["METRICS"])
-    ]
     dataset_config = {
         **TrackEvalDataset.get_default_dataset_config(),
         "GT_TRACKS": {"tracker": labels},
@@ -314,21 +372,10 @@ def _tune_score_thresholds(
         "TRACKERS_TO_EVAL": ["tracker"],
         "OUTPUT_FOLDER": "tmp",
     }
-    evaluator = trackeval.Evaluator(
-        {
-            **trackeval.Evaluator.get_default_eval_config(),
-            "PRINT_RESULTS": False,
-            "PRINT_CONFIG": False,
-            "TIME_PROGRESS": False,
-            "OUTPUT_SUMMARY": False,
-            "OUTPUT_DETAILED": False,
-            "PLOT_CURVES": False,
-        }
-    )
 
     score_thresholds_by_class = {}
     sim_func = partial(_xy_center_similarity, zero_distance=match_distance_m)
-    for name in classes:
+    for name in tqdm(classes, desc="getting track score thresholds by class"):
         single_cls_labels = _filter_by_class(labels, name)
         single_cls_predictions = _filter_by_class(track_predictions, name)
         score_thresholds_by_class[name] = _calculate_score_thresholds(
@@ -338,32 +385,27 @@ def _tune_score_thresholds(
             num_thresholds=num_thresholds,
         )
 
-    metric_results = []
-    for threshold_i in tqdm(
-        range(num_thresholds), "calculating optimal track score thresholds"
-    ):
-        score_threshold_by_class = {
-            n: score_thresholds_by_class[n][threshold_i] for n in classes
-        }
-        filtered_predictions = utils.filter_by_class_thresholds(
-            track_predictions, score_threshold_by_class
-        )
-        with contextlib.redirect_stdout(
-            None
-        ):  # silence print statements from TrackEval
-            result_for_threshold, _ = evaluator.evaluate(
-                [
-                    TrackEvalDataset(
-                        {
-                            **dataset_config,
-                            "PREDICTED_TRACKS": {"tracker": filtered_predictions},
-                        }
-                    )
-                ],
-                metrics_list,
+    num_workers = min(num_thresholds, mp.cpu_count())
+    with mp.Pool(num_workers) as pool:
+        metric_results = list(
+            tqdm(
+                pool.imap(
+                    _evaluate_single_threshold,
+                    [
+                        (
+                            threshold_idx,
+                            score_thresholds_by_class,
+                            classes,
+                            track_predictions,
+                            dataset_config,
+                            metrics_config,
+                        )
+                        for threshold_idx in range(num_thresholds)
+                    ],
+                ),
+                total=num_thresholds,
+                desc="calculating optimal track score thresholds",
             )
-        metric_results.append(
-            result_for_threshold["TrackEvalDataset"]["tracker"]["COMBINED_SEQ"]
         )
 
     optimal_score_threshold_by_class = {}
